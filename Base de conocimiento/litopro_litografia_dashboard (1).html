@@ -1,0 +1,2424 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LitoPro - Dashboard Litografía</title>
+    <style>
+        /* Paleta de colores LitoPro */
+        :root {
+            --color-white: #FFFFFF;
+            --color-gray-light: #DCDCDC;
+            --color-orange: #FF8214;
+            --color-yellow: #FFB41E;
+            --color-green: #84E66E;
+            --color-blue-light: #0BA4FF;
+            --color-blue-dark: #003278;
+            --color-gray-dark: #43425D;
+            --color-red: #FF4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--color-white);
+            min-height: 100vh;
+        }
+
+        /* Dashboard Layout */
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: var(--color-white);
+            min-height: 100vh;
+        }
+
+        /* Header específico para litografía */
+        .header {
+            background: linear-gradient(135deg, var(--color-blue-dark) 0%, var(--color-gray-dark) 100%);
+            padding: 1rem 2rem;
+            box-shadow: 0 4px 12px rgba(0, 50, 120, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .header h1 {
+            color: var(--color-white);
+            font-size: 1.5rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .company-info {
+            color: var(--color-white);
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .header-center {
+            flex: 1;
+            max-width: 400px;
+            margin: 0 2rem;
+        }
+
+        .search-container {
+            position: relative;
+            width: 100%;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.5rem 1rem 0.5rem 2.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 0.875rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .search-input:focus {
+            outline: none;
+            background: var(--color-white);
+            border-color: var(--color-yellow);
+            box-shadow: 0 0 0 3px rgba(255, 180, 30, 0.2);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--color-gray-dark);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-icon {
+            position: relative;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--color-white);
+            backdrop-filter: blur(10px);
+        }
+
+        .header-icon:hover {
+            background: var(--color-orange);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .header-icon .badge {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            background: var(--color-orange);
+            color: var(--color-white);
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid var(--color-white);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--color-yellow) 0%, var(--color-orange) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-white);
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .user-avatar:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .user-details {
+            cursor: pointer;
+            color: var(--color-white);
+        }
+
+        .user-details:hover {
+            color: var(--color-yellow);
+        }
+
+        .role-badge {
+            background: rgba(255, 255, 255, 0.2);
+            color: var(--color-white);
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Layout después del header */
+        .dashboard-content {
+            display: grid;
+            grid-template-columns: 280px 1fr 320px;
+            min-height: calc(100vh - 80px);
+        }
+
+        /* Sidebar Izquierdo - Menú de Litografía */
+        .sidebar-left {
+            background: var(--color-white);
+            border-right: 1px solid var(--color-gray-light);
+            overflow-y: auto;
+        }
+
+        .menu-section {
+            padding: 1rem 0.75rem;
+            border-bottom: 1px solid var(--color-gray-light);
+        }
+
+        .menu-title {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--color-gray-dark);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.75rem;
+            padding: 0 0.5rem;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 0.75rem;
+            margin-bottom: 0.125rem;
+            border-radius: 6px;
+            color: var(--color-gray-dark);
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            font-size: 0.875rem;
+            position: relative;
+        }
+
+        .menu-item:hover, .menu-item.active {
+            background: linear-gradient(135deg, var(--color-blue-light), var(--color-blue-dark));
+            color: var(--color-white);
+            transform: translateX(2px);
+        }
+
+        .menu-item .icon {
+            width: 18px;
+            margin-right: 0.75rem;
+            font-size: 1rem;
+        }
+
+        .menu-item .count {
+            margin-left: auto;
+            background: var(--color-orange);
+            color: var(--color-white);
+            border-radius: 10px;
+            padding: 0.125rem 0.5rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        /* Contenido Central */
+        .main-content {
+            padding: 2rem;
+            overflow-y: auto;
+            background: var(--color-white);
+        }
+
+        /* Estadísticas específicas de Litografía */
+        .stats-section {
+            margin-bottom: 2rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--color-white);
+            padding: 1.25rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(67, 66, 93, 0.1);
+            text-align: center;
+            border-left: 4px solid var(--color-blue-dark);
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(67, 66, 93, 0.15);
+        }
+
+        .stat-card .number {
+            font-size: 1.75rem;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-card .label {
+            font-size: 0.8rem;
+            color: var(--color-gray-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card .trend {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+
+        .stat-card.quotes .number { color: var(--color-blue-light); }
+        .stat-card.quotes { border-left-color: var(--color-blue-light); }
+
+        .stat-card.orders .number { color: var(--color-orange); }
+        .stat-card.orders { border-left-color: var(--color-orange); }
+
+        .stat-card.revenue .number { color: var(--color-green); }
+        .stat-card.revenue { border-left-color: var(--color-green); }
+
+        .stat-card.clients .number { color: var(--color-yellow); }
+        .stat-card.clients { border-left-color: var(--color-yellow); }
+
+        .trend.up {
+            background: rgba(132, 230, 110, 0.2);
+            color: var(--color-green);
+        }
+
+        .trend.down {
+            background: rgba(255, 68, 68, 0.2);
+            color: var(--color-red);
+        }
+
+        /* Sección de acciones rápidas */
+        .quick-actions {
+            background: var(--color-white);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(67, 66, 93, 0.1);
+            border: 1px solid var(--color-gray-light);
+        }
+
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .action-card {
+            background: linear-gradient(135deg, var(--color-blue-light) 0%, var(--color-blue-dark) 100%);
+            color: var(--color-white);
+            padding: 1.25rem;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .action-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(11, 164, 255, 0.3);
+        }
+
+        .action-card .icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .action-card .title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .action-card .description {
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+
+        /* Tabla de actividad reciente */
+        .recent-activity {
+            background: var(--color-white);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(67, 66, 93, 0.1);
+            border: 1px solid var(--color-gray-light);
+        }
+
+        .activity-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .activity-table th {
+            background: var(--color-gray-light);
+            color: var(--color-gray-dark);
+            padding: 0.75rem;
+            text-align: left;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .activity-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--color-gray-light);
+            font-size: 0.875rem;
+        }
+
+        .activity-table tr:hover {
+            background: rgba(11, 164, 255, 0.05);
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-badge.draft {
+            background: rgba(220, 220, 220, 0.3);
+            color: var(--color-gray-dark);
+        }
+
+        .status-badge.sent {
+            background: rgba(11, 164, 255, 0.2);
+            color: var(--color-blue-dark);
+        }
+
+        .status-badge.approved {
+            background: rgba(132, 230, 110, 0.2);
+            color: var(--color-green);
+        }
+
+        .status-badge.pending {
+            background: rgba(255, 180, 30, 0.2);
+            color: var(--color-yellow);
+        }
+
+        .status-badge.in_production {
+            background: rgba(255, 130, 20, 0.2);
+            color: var(--color-orange);
+        }
+
+        /* Crear Post */
+        .create-post {
+            background: var(--color-white);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(67, 66, 93, 0.1);
+            border: 1px solid var(--color-gray-light);
+        }
+
+        .create-post textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 1rem;
+            border: 1px solid var(--color-gray-light);
+            border-radius: 6px;
+            resize: vertical;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        .create-post textarea:focus {
+            outline: none;
+            border-color: var(--color-blue-light);
+            box-shadow: 0 0 0 3px rgba(11, 164, 255, 0.1);
+        }
+
+        .create-post-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1rem;
+            gap: 1rem;
+        }
+
+        .post-options {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .post-option {
+            padding: 0.5rem;
+            border: 1px solid var(--color-gray-light);
+            border-radius: 4px;
+            background: var(--color-white);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .post-option:hover {
+            background: var(--color-blue-light);
+            color: var(--color-white);
+            border-color: var(--color-blue-light);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            background: var(--color-blue-dark);
+            color: var(--color-white);
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: var(--color-blue-light);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 50, 120, 0.2);
+        }
+
+        .btn-secondary {
+            background: var(--color-green);
+        }
+
+        .btn-secondary:hover {
+            background: var(--color-orange);
+        }
+
+        /* Feed de Posts */
+        .posts-feed {
+            space-y: 1rem;
+        }
+
+        .post {
+            background: var(--color-white);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 8px rgba(67, 66, 93, 0.1);
+            border: 1px solid var(--color-gray-light);
+            transition: all 0.2s;
+        }
+
+        .post:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(67, 66, 93, 0.15);
+        }
+
+        .post-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .post-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--color-blue-light), var(--color-blue-dark));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-white);
+            font-weight: bold;
+            margin-right: 1rem;
+        }
+
+        .post-info h4 {
+            font-weight: 600;
+            color: var(--color-gray-dark);
+        }
+
+        .post-info p {
+            font-size: 0.875rem;
+            color: var(--color-gray-dark);
+            opacity: 0.7;
+        }
+
+        .post-content {
+            margin-bottom: 1rem;
+            line-height: 1.6;
+            color: var(--color-gray-dark);
+        }
+
+        .post-actions {
+            display: flex;
+            gap: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--color-gray-light);
+        }
+
+        .post-action {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            color: var(--color-gray-dark);
+        }
+
+        .post-action:hover {
+            background: var(--color-blue-light);
+            color: var(--color-white);
+        }
+
+        /* Sidebar Derecho - Específico para Litografía */
+        .sidebar-right {
+            background: var(--color-white);
+            border-left: 1px solid var(--color-gray-light);
+            overflow-y: auto;
+            width: 320px;
+            max-width: 320px;
+        }
+
+        .widget {
+            padding: 1.25rem;
+            border-bottom: 1px solid var(--color-gray-light);
+        }
+
+        .widget-title {
+            font-weight: 600;
+            color: var(--color-gray-dark);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        /* Stock de papel crítico */
+        .stock-widget {
+            background: linear-gradient(135deg, rgba(255, 68, 68, 0.1) 0%, rgba(255, 130, 20, 0.05) 100%);
+            border: 2px solid var(--color-red);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 12px rgba(255, 68, 68, 0.15);
+        }
+
+        .stock-widget .widget-title {
+            color: var(--color-red);
+            font-weight: 700;
+        }
+
+        .stock-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(255, 68, 68, 0.2);
+        }
+
+        .stock-item:last-child {
+            border-bottom: none;
+        }
+
+        .stock-item-name {
+            font-size: 0.8rem;
+            color: var(--color-gray-dark);
+        }
+
+        .stock-item-quantity {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--color-red);
+        }
+
+        /* Marketplace rápido */
+        .marketplace-widget {
+            background: linear-gradient(135deg, rgba(132, 230, 110, 0.1) 0%, rgba(11, 164, 255, 0.05) 100%);
+            border: 2px solid var(--color-green);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 12px rgba(132, 230, 110, 0.15);
+        }
+
+        .marketplace-widget .widget-title {
+            color: var(--color-green);
+            font-weight: 700;
+        }
+
+        .marketplace-item {
+            background: var(--color-white);
+            border-radius: 6px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border: 1px solid var(--color-green);
+        }
+
+        .marketplace-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.25rem;
+        }
+
+        .marketplace-item-name {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--color-gray-dark);
+        }
+
+        .marketplace-item-price {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--color-green);
+        }
+
+        .marketplace-item-supplier {
+            font-size: 0.7rem;
+            color: var(--color-gray-dark);
+            opacity: 0.8;
+        }
+
+        .marketplace-item-stock {
+            font-size: 0.7rem;
+            color: var(--color-blue-light);
+        }
+
+        .btn-marketplace {
+            width: 100%;
+            padding: 0.5rem;
+            background: var(--color-green);
+            color: var(--color-white);
+            border: none;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            margin-top: 0.5rem;
+        }
+
+        .btn-marketplace:hover {
+            background: var(--color-blue-light);
+        }
+
+        /* Calculadora de cortes - Mejorada */
+        .calculator-widget {
+            background: linear-gradient(135deg, rgba(11, 164, 255, 0.1) 0%, rgba(0, 50, 120, 0.05) 100%);
+            border: 2px solid var(--color-blue-light);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 12px rgba(11, 164, 255, 0.15);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .calculator-widget::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--color-blue-light), var(--color-blue-dark), var(--color-orange));
+        }
+
+        .calculator-widget .widget-title {
+            color: var(--color-blue-dark);
+            font-weight: 700;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .calculator-form {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .calc-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+
+        .calc-row-full {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+        }
+
+        .calc-input {
+            padding: 0.6rem;
+            border: 1px solid var(--color-blue-light);
+            border-radius: 6px;
+            font-size: 0.8rem;
+            width: 100%;
+            box-sizing: border-box;
+            background: var(--color-white);
+            transition: all 0.2s;
+        }
+
+        .calc-input:focus {
+            outline: none;
+            border-color: var(--color-blue-dark);
+            box-shadow: 0 0 0 3px rgba(11, 164, 255, 0.1);
+        }
+
+        .calc-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 0.375rem;
+            margin-top: 0.5rem;
+        }
+
+        .calc-btn {
+            padding: 0.5rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--color-white);
+        }
+
+        .calc-btn.horizontal {
+            background: var(--color-blue-light);
+        }
+
+        .calc-btn.horizontal:hover {
+            background: var(--color-blue-dark);
+            transform: translateY(-1px);
+        }
+
+        .calc-btn.vertical {
+            background: var(--color-green);
+        }
+
+        .calc-btn.vertical:hover {
+            background: var(--color-orange);
+            transform: translateY(-1px);
+        }
+
+        .calc-btn.maximo {
+            background: var(--color-yellow);
+        }
+
+        .calc-btn.maximo:hover {
+            background: var(--color-orange);
+            transform: translateY(-1px);
+        }
+
+        .calc-btn.reset {
+            background: var(--color-gray-dark);
+            grid-column: 1 / -1;
+            margin-top: 0.25rem;
+        }
+
+        .calc-btn.reset:hover {
+            background: var(--color-orange);
+            transform: translateY(-1px);
+        }
+
+        .calc-result {
+            background: var(--color-white);
+            border: 2px solid var(--color-blue-light);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-top: 0.75rem;
+            box-shadow: 0 2px 8px rgba(11, 164, 255, 0.1);
+        }
+
+        .calc-result-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.375rem;
+            font-size: 0.8rem;
+            color: var(--color-blue-dark);
+        }
+
+        .calc-result-item strong {
+            color: var(--color-gray-dark);
+            font-weight: 600;
+        }
+
+        .calc-canvas-container {
+            margin-top: 1rem;
+            text-align: center;
+        }
+
+        .calc-canvas-title {
+            font-size: 0.8rem;
+            color: var(--color-blue-dark);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        #canvasCortes {
+            max-width: 100%;
+            height: auto;
+            box-shadow: 0 2px 8px rgba(11, 164, 255, 0.1);
+            display: block;
+            margin: 0 auto;
+        }
+
+        /* Próximos vencimientos */
+        .deadlines-widget {
+            background: linear-gradient(135deg, rgba(255, 180, 30, 0.1) 0%, rgba(255, 130, 20, 0.05) 100%);
+            border: 2px solid var(--color-yellow);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 12px rgba(255, 180, 30, 0.15);
+        }
+
+        .deadlines-widget .widget-title {
+            color: var(--color-yellow);
+            font-weight: 700;
+        }
+
+        .deadline-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(255, 180, 30, 0.2);
+        }
+
+        .deadline-item:last-child {
+            border-bottom: none;
+        }
+
+        .deadline-info {
+            flex: 1;
+        }
+
+        .deadline-project {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--color-gray-dark);
+        }
+
+        .deadline-client {
+            font-size: 0.7rem;
+            color: var(--color-gray-dark);
+            opacity: 0.8;
+        }
+
+        .deadline-date {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--color-orange);
+        }
+
+        /* Notificaciones */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(67, 66, 93, 0.15);
+            z-index: 1000;
+            max-width: 300px;
+            color: var(--color-white);
+            font-weight: 500;
+        }
+
+        .notification.success {
+            background: var(--color-green);
+        }
+
+        .notification.error {
+            background: var(--color-red);
+        }
+
+        .notification.info {
+            background: var(--color-blue-light);
+        }
+
+        .notification.warning {
+            background: var(--color-orange);
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .dashboard {
+                max-width: 100%;
+                margin: 0;
+            }
+            
+            .dashboard-content {
+                grid-template-columns: 250px 1fr 300px;
+            }
+            
+            .header-center {
+                max-width: 300px;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar-left, .sidebar-right {
+                display: none;
+            }
+            
+            .header-center {
+                max-width: 250px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .main-content {
+                background: var(--color-white);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 1rem;
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+            
+            .header-center {
+                max-width: 100%;
+                margin: 0;
+            }
+            
+            .header-actions {
+                justify-content: center;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .main-content {
+                padding: 1rem;
+            }
+        }
+
+        /* Animaciones adicionales */
+        .stat-card, .post, .menu-item, .post-option, .action-card {
+            transition: all 0.2s ease-in-out;
+        }
+
+        /* Scrollbar personalizado */
+        .sidebar-left::-webkit-scrollbar,
+        .sidebar-right::-webkit-scrollbar,
+        .main-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar-left::-webkit-scrollbar-track,
+        .sidebar-right::-webkit-scrollbar-track,
+        .main-content::-webkit-scrollbar-track {
+            background: var(--color-gray-light);
+        }
+
+        .sidebar-left::-webkit-scrollbar-thumb,
+        .sidebar-right::-webkit-scrollbar-thumb,
+        .main-content::-webkit-scrollbar-thumb {
+            background: var(--color-blue-light);
+            border-radius: 3px;
+        }
+
+        .sidebar-left::-webkit-scrollbar-thumb:hover,
+        .sidebar-right::-webkit-scrollbar-thumb:hover,
+        .main-content::-webkit-scrollbar-thumb:hover {
+            background: var(--color-blue-dark);
+        }
+    </style>
+</head>
+<body>
+    <!-- Dashboard Principal -->
+    <div class="dashboard">
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <h1>LitoPro</h1>
+                <div class="company-info">Litografía Demo - Cartagena, Bolívar</div>
+            </div>
+            
+            <div class="header-center">
+                <div class="search-container">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" class="search-input" placeholder="Buscar cotizaciones, clientes, órdenes...">
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <div class="header-icon" onclick="showMessages()" title="Mensajes">
+                    💬
+                    <span class="badge">3</span>
+                </div>
+                <div class="header-icon" onclick="showNotifications()" title="Notificaciones">
+                    🔔
+                    <span class="badge">7</span>
+                </div>
+                <div class="header-icon" onclick="showPaperAlerts()" title="Alertas de Stock">
+                    📦
+                    <span class="badge">2</span>
+                </div>
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar" onclick="showUserMenu()">C</div>
+                    <div class="user-details" onclick="showUserMenu()">
+                        <div id="userName">Carlos Ventas</div>
+                        <div class="role-badge" id="userRole">Admin Litografía</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Layout principal -->
+        <div class="dashboard-content">
+            <!-- Sidebar Izquierdo - Menú Litografía -->
+            <div class="sidebar-left">
+                <div id="menuSections">
+                    <!-- Cotizaciones y Ventas -->
+                    <div class="menu-section">
+                        <div class="menu-title">Cotizaciones & Ventas</div>
+                        <div class="menu-item active" onclick="handleMenuAction('showQuotes')">
+                            <span class="icon">📋</span>
+                            <span>Cotizaciones</span>
+                            <span class="count">24</span>
+                        </div>
+                        <div class="menu-item" onclick="handleMenuAction('newQuote')">
+                            <span class="icon">➕</span>
+                            <span>Nueva Cotización</span>
+                        </div>
+                        <div class="menu-item" onclick="handleMenuAction('showClients')">
+                            <span class="icon">👥</span>
+                            <span>Clientes</span>
+                            <span class="count">156</span>
+                        </div>
+                        <div class="menu-item" onclick="handleMenuAction('showQuoteTemplates')">
+                            <span class="icon">📄</span>
+                            <span>Plantillas</span>
+                        </div>
+                    </div>
+
+                    <!-- Producción -->
+                    <div class="menu-section">
+                        <div class="menu-title">Producción</div>
+                        <div class="menu-item" onclick="handleMenuAction('showPrintOrders')">
+                            <span class="icon">🏭</span>
+                            <span>Órdenes de Producción</span>
+                            <span class="count">8</span>
+                        </div>
+                        <div class="menu-item" onclick="handleMenuAction('showProduction')">
+                            <span class="icon">⚙️</span>
+                            <span>Estado Producción</span>
+                        </div>
+                        <div class="menu-item" onclick="handleMenuAction('showMachines')">
+                            <span class="icon">🖨️</span>
+                            <span>Máquinas</span>
+                        </div>
+                        <div class="menu-item" onclick="handleMenuAction('showFinishes')">
+                            <span class="icon">✨</span>
+                            <span>Acabados</span>
+                        </div>
+                    </div>
+
+                    <!-- Inventario y Papel -->
+                    <div class="menu-section">
+                        <div class="menu-title">Inventario & Papel</div>
+                        <div class="menu-item" onclick="handleMenuAction('showInventory')">
+                            <span class="icon">📦</span>
+                            <span>Stock de Papel</span>
+                        </div>
+                        <div class="menu-item" onclick="handleMenuAction('showPaperOrders')">
+                            <span class="icon">🛒</span>
+                            <span>Pedidos de Papel</span>
+                            <span class="count">3</span>
+                        </div>
+                        <div class="menu-item" onclick="handleMenuAction('showMarketplace')">
+                            <span class="icon">🏪</span>
+                            <span>Marketplace</span>
+                        </div>
+                        <div class="menu-item" onclick="handleMenuAction('showSuppliers')">
+                            <span class="icon">🏭</span>
+                            <span>Proveedores</span>
+                        </div>
+                    </div>
+
+                    <!-- Herramientas -->
+                    <div class="menu-section">
+                        <div class="menu-title">Herramientas</div>
+                        <div class="menu-item" onclick="handleMenuAction('showCalculator')">
+                            <span class="icon">📐</span>
+                            <span>Calculadora</span>
+                        </div>
+                        <div class="menu-item" onclick="handleMenuAction('showReports')">
+                            <span class="icon">📊</span>
+                            <span>Reportes</span>
+                        </div>
+                        <div class="menu-item" onclick="handleMenuAction('showAnalytics')">
+                            <span class="icon">📈</span>
+                            <span>Analytics</span>
+                        </div>
+                    </div>
+
+                    <!-- Red Social -->
+                    <div class="menu-section">
+                        <div class="menu-title">Red Social</div>
+                        <div class="menu-item" onclick="handleMenuAction('showExplore')">
+                            <span class="icon">🌐</span>
+                            <span>Explorar</span>
+                        </div>
+                        <div class="menu-item" onclick="handleMenuAction('showConnections')">
+                            <span class="icon">🤝</span>
+                            <span>Conexiones</span>
+                        </div>
+                        <div class="menu-item" onclick="handleMenuAction('showMessaging')">
+                            <span class="icon">💬</span>
+                            <span>Mensajes</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contenido Central -->
+            <div class="main-content">
+                <!-- Estadísticas de Litografía -->
+                <div class="stats-section">
+                    <h3 style="margin-bottom: 1rem; color: var(--color-gray-dark); border-bottom: 2px solid var(--color-blue-light); padding-bottom: 0.5rem;">📊 Panel de Control - Litografía</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card quotes">
+                            <div class="number">24</div>
+                            <div class="label">Cotizaciones Activas</div>
+                            <div class="trend up">+15% vs mes anterior</div>
+                        </div>
+                        <div class="stat-card orders">
+                            <div class="number">8</div>
+                            <div class="label">Órdenes en Producción</div>
+                            <div class="trend up">+2 nuevas esta semana</div>
+                        </div>
+                        <div class="stat-card revenue">
+                            <div class="number">$18.5M</div>
+                            <div class="label">Ingresos del Mes</div>
+                            <div class="trend up">+23% vs mes anterior</div>
+                        </div>
+                        <div class="stat-card clients">
+                            <div class="number">156</div>
+                            <div class="label">Clientes Activos</div>
+                            <div class="trend up">+8 nuevos clientes</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Acciones Rápidas -->
+                <div class="quick-actions">
+                    <h3 style="margin-bottom: 1rem; color: var(--color-gray-dark); border-bottom: 2px solid var(--color-green); padding-bottom: 0.5rem;">⚡ Acciones Rápidas</h3>
+                    <div class="actions-grid">
+                        <div class="action-card" onclick="handleMenuAction('newQuote')">
+                            <div class="icon">📋</div>
+                            <div class="title">Nueva Cotización</div>
+                            <div class="description">Crear cotización para cliente</div>
+                        </div>
+                        <div class="action-card" onclick="handleMenuAction('newClient')" style="background: linear-gradient(135deg, var(--color-green), var(--color-blue-light));">
+                            <div class="icon">👤</div>
+                            <div class="title">Nuevo Cliente</div>
+                            <div class="description">Registrar cliente nuevo</div>
+                        </div>
+                        <div class="action-card" onclick="handleMenuAction('orderPaper')" style="background: linear-gradient(135deg, var(--color-orange), var(--color-yellow));">
+                            <div class="icon">🛒</div>
+                            <div class="title">Pedir Papel</div>
+                            <div class="description">Hacer pedido a papelería</div>
+                        </div>
+                        <div class="action-card" onclick="handleMenuAction('checkProduction')" style="background: linear-gradient(135deg, var(--color-yellow), var(--color-green));">
+                            <div class="icon">⚙️</div>
+                            <div class="title">Ver Producción</div>
+                            <div class="description">Estado de órdenes</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actividad Reciente -->
+                <div class="recent-activity">
+                    <h3 style="margin-bottom: 1rem; color: var(--color-gray-dark); border-bottom: 2px solid var(--color-orange); padding-bottom: 0.5rem;">📈 Actividad Reciente</h3>
+                    <table class="activity-table">
+                        <thead>
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Descripción</th>
+                                <th>Cliente/Proveedor</th>
+                                <th>Estado</th>
+                                <th>Fecha</th>
+                                <th>Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr onclick="viewDetail('quote', 'COT-2024-089')">
+                                <td>📋 Cotización</td>
+                                <td>COT-2024-089 - Volantes promocionales</td>
+                                <td>Restaurante La Boquilla</td>
+                                <td><span class="status-badge sent">Enviada</span></td>
+                                <td>Hoy 14:30</td>
+                                <td>$650,000</td>
+                            </tr>
+                            <tr onclick="viewDetail('order', 'ORD-2024-034')">
+                                <td>🏭 Producción</td>
+                                <td>ORD-2024-034 - Tarjetas corporativas</td>
+                                <td>Empresa ABC S.A.S.</td>
+                                <td><span class="status-badge in_production">En Producción</span></td>
+                                <td>Hoy 12:15</td>
+                                <td>$1,200,000</td>
+                            </tr>
+                            <tr onclick="viewDetail('paper_order', 'PP-2024-012')">
+                                <td>📦 Pedido Papel</td>
+                                <td>PP-2024-012 - Bond 75g y Couché 150g</td>
+                                <td>Papelería Central</td>
+                                <td><span class="status-badge approved">Confirmado</span></td>
+                                <td>Ayer 16:45</td>
+                                <td>$2,850,000</td>
+                            </tr>
+                            <tr onclick="viewDetail('quote', 'COT-2024-088')">
+                                <td>📋 Cotización</td>
+                                <td>COT-2024-088 - Catálogo de productos</td>
+                                <td>Tienda Fashion</td>
+                                <td><span class="status-badge approved">Aprobada</span></td>
+                                <td>Ayer 11:20</td>
+                                <td>$3,400,000</td>
+                            </tr>
+                            <tr onclick="viewDetail('order', 'ORD-2024-033')">
+                                <td>🏭 Producción</td>
+                                <td>ORD-2024-033 - Folletos informativos</td>
+                                <td>Clínica Dental Norte</td>
+                                <td><span class="status-badge pending">Pendiente</span></td>
+                                <td>20 Jun</td>
+                                <td>$850,000</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Crear Post/Noticia -->
+                <div class="create-post">
+                    <h3 style="margin-bottom: 1rem; color: var(--color-gray-dark); border-bottom: 2px solid var(--color-green); padding-bottom: 0.5rem;">✍️ Compartir en la Red Social</h3>
+                    <textarea id="postContent" placeholder="¿Qué quieres compartir con la comunidad de LitoPro? Promociones, trabajos terminados, consejos técnicos..."></textarea>
+                    <div class="create-post-actions">
+                        <div class="post-options">
+                            <div class="post-option" title="Agregar imagen" onclick="addImage()">📷</div>
+                            <div class="post-option" title="Agregar archivo" onclick="addFile()">📎</div>
+                            <div class="post-option" title="Marcar como promoción" onclick="markAsPromotion()">🎉</div>
+                            <div class="post-option" title="Marcar como trabajo terminado" onclick="markAsWork()">✅</div>
+                        </div>
+                        <button class="btn btn-secondary" onclick="createPost()">Publicar</button>
+                    </div>
+                </div>
+
+                <!-- Feed de Posts -->
+                <div class="posts-feed" id="postsFeed">
+                    <!-- Post 1 -->
+                    <div class="post">
+                        <div class="post-header">
+                            <div class="post-avatar">C</div>
+                            <div class="post-info">
+                                <h4>Carlos Ventas - Litografía Demo</h4>
+                                <p>Hace 2 horas</p>
+                            </div>
+                        </div>
+                        <div class="post-content">
+                            🎉 ¡Excelente mes de junio! Hemos superado nuestra meta de ventas en un 23%. Gracias a todos nuestros clientes que confían en nosotros para sus proyectos de impresión. ¡Seguimos creciendo juntos! 📈✨
+                        </div>
+                        <div class="post-actions">
+                            <div class="post-action" onclick="likePost(1)">
+                                👍 <span id="likes-1">15</span> Me gusta
+                            </div>
+                            <div class="post-action" onclick="commentPost(1)">
+                                💬 8 Comentarios
+                            </div>
+                            <div class="post-action" onclick="sharePost(1)">
+                                📤 Compartir
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Post 2 -->
+                    <div class="post">
+                        <div class="post-header">
+                            <div class="post-avatar" style="background: linear-gradient(135deg, var(--color-green), var(--color-blue-light));">P</div>
+                            <div class="post-info">
+                                <h4>Papelería Central</h4>
+                                <p>Hace 4 horas</p>
+                            </div>
+                        </div>
+                        <div class="post-content">
+                            📦 NUEVA LLEGADA: Papel couché brillante 150g de excelente calidad. Stock limitado con 15% de descuento para pedidos mayores a 200 pliegos. ¡Aprovecha esta oferta especial! 🎉
+                        </div>
+                        <div class="post-actions">
+                            <div class="post-action" onclick="likePost(2)">
+                                👍 <span id="likes-2">12</span> Me gusta
+                            </div>
+                            <div class="post-action" onclick="commentPost(2)">
+                                💬 6 Comentarios
+                            </div>
+                            <div class="post-action" onclick="makeOrder(2)">
+                                🛒 Hacer Pedido
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Post 3 -->
+                    <div class="post">
+                        <div class="post-header">
+                            <div class="post-avatar" style="background: linear-gradient(135deg, var(--color-orange), var(--color-yellow));">J</div>
+                            <div class="post-info">
+                                <h4>José Producción - Litografía Demo</h4>
+                                <p>Hace 6 horas</p>
+                            </div>
+                        </div>
+                        <div class="post-content">
+                            ✅ ¡Trabajo terminado! Acabamos de finalizar la impresión de 50,000 volantes para la campaña de verano del cliente. Calidad offset en papel couché 150g con acabado brillante. El cliente quedó muy satisfecho con el resultado. 🖨️👌
+                        </div>
+                        <div class="post-actions">
+                            <div class="post-action" onclick="likePost(3)">
+                                👍 <span id="likes-3">22</span> Me gusta
+                            </div>
+                            <div class="post-action" onclick="commentPost(3)">
+                                💬 12 Comentarios
+                            </div>
+                            <div class="post-action" onclick="sharePost(3)">
+                                📤 Compartir
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar Derecho -->
+            <div class="sidebar-right">
+                <!-- Stock Crítico -->
+                <div class="stock-widget">
+                    <h3 class="widget-title">⚠️ Stock Crítico de Papel</h3>
+                    <div class="stock-item">
+                        <div class="stock-item-name">Bond Blanco 75g</div>
+                        <div class="stock-item-quantity">15/50</div>
+                    </div>
+                    <div class="stock-item">
+                        <div class="stock-item-name">Couché 150g</div>
+                        <div class="stock-item-quantity">8/20</div>
+                    </div>
+                    <button class="btn-marketplace" onclick="handleMenuAction('orderPaper')">
+                        🛒 Pedir Papel Urgente
+                    </button>
+                </div>
+
+                <!-- Marketplace Rápido -->
+                <div class="marketplace-widget">
+                    <h3 class="widget-title">🏪 Ofertas en Marketplace</h3>
+                    
+                    <div class="marketplace-item">
+                        <div class="marketplace-item-header">
+                            <div class="marketplace-item-name">Bond 75g</div>
+                            <div class="marketplace-item-price">$2,350</div>
+                        </div>
+                        <div class="marketplace-item-supplier">Papelería Central</div>
+                        <div class="marketplace-item-stock">Stock: 500 pliegos</div>
+                        <button class="btn-marketplace" onclick="quickOrder('bond_75', 'papeleria_central')">
+                            Pedir Ahora
+                        </button>
+                    </div>
+                    
+                    <div class="marketplace-item">
+                        <div class="marketplace-item-header">
+                            <div class="marketplace-item-name">Couché 150g</div>
+                            <div class="marketplace-item-price">$4,200</div>
+                        </div>
+                        <div class="marketplace-item-supplier">Distribuidora Norte</div>
+                        <div class="marketplace-item-stock">Stock: 200 pliegos</div>
+                        <button class="btn-marketplace" onclick="quickOrder('couche_150', 'distribuidora_norte')">
+                            Pedir Ahora
+                        </button>
+                    </div>
+                    
+                    <button class="btn-marketplace" onclick="handleMenuAction('showMarketplace')" style="background: var(--color-blue-light); margin-top: 0.5rem;">
+                        Ver Marketplace Completo
+                    </button>
+                </div>
+
+                <!-- Calculadora de Cortes -->
+                <div class="calculator-widget">
+                    <h3 class="widget-title">📐 Calculadora de Cortes</h3>
+                    <div class="calculator-form">
+                        <div class="calc-row">
+                            <input type="number" id="papelAncho" class="calc-input" placeholder="Ancho papel (cm)" step="0.1">
+                            <input type="number" id="papelLargo" class="calc-input" placeholder="Largo papel (cm)" step="0.1">
+                        </div>
+                        <div class="calc-row">
+                            <input type="number" id="corteAncho" class="calc-input" placeholder="Ancho corte (cm)" step="0.1">
+                            <input type="number" id="corteLargo" class="calc-input" placeholder="Largo corte (cm)" step="0.1">
+                        </div>
+                        <div class="calc-row-full">
+                            <input type="number" id="cortesDeseados" class="calc-input" placeholder="Cantidad deseada (opcional)">
+                        </div>
+                        
+                        <div class="calc-buttons">
+                            <button class="calc-btn horizontal" onclick="calcularHorizontal()" title="Orientación horizontal del papel">
+                                📄 Horizontal
+                            </button>
+                            <button class="calc-btn vertical" onclick="calcularVertical()" title="Orientación vertical del papel">
+                                📑 Vertical
+                            </button>
+                            <button class="calc-btn maximo" onclick="calcularMaximo()" title="Cálculo óptimo automático">
+                                ⚡ Óptimo
+                            </button>
+                            <button class="calc-btn reset" onclick="resetCalculadora()">
+                                🔄 Limpiar
+                            </button>
+                        </div>
+                        
+                        <div id="calcResult" class="calc-result" style="display: none;">
+                            <!-- Resultados aquí -->
+                        </div>
+                        
+                        <div class="calc-canvas-container">
+                            <div class="calc-canvas-title">Vista previa del corte:</div>
+                            <canvas id="canvasCortes" width="280" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Próximos Vencimientos -->
+                <div class="deadlines-widget">
+                    <h3 class="widget-title">⏰ Próximos Vencimientos</h3>
+                    <div class="deadline-item">
+                        <div class="deadline-info">
+                            <div class="deadline-project">Volantes Restaurante</div>
+                            <div class="deadline-client">La Boquilla</div>
+                        </div>
+                        <div class="deadline-date">Mañana</div>
+                    </div>
+                    <div class="deadline-item">
+                        <div class="deadline-info">
+                            <div class="deadline-project">Catálogo Fashion</div>
+                            <div class="deadline-client">Tienda Fashion</div>
+                        </div>
+                        <div class="deadline-date">25 Jun</div>
+                    </div>
+                    <div class="deadline-item">
+                        <div class="deadline-info">
+                            <div class="deadline-project">Folletos Clínica</div>
+                            <div class="deadline-client">Dental Norte</div>
+                        </div>
+                        <div class="deadline-date">28 Jun</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // Incluir calculadora de cortes mejorada
+        var orientacion = "Horizontal";
+        var no_total_cortes;
+
+        // Función principal de acomodamiento
+        function acomoda(ladoMayorPliego, ladorMenorPliego, orientacionCorte, orientacionPapel) {
+            var corteAncho = parseFloat(document.getElementById('corteAncho').value);
+            var corteLargo = parseFloat(document.getElementById('corteLargo').value);
+            var corteMayor = 1;
+            var corteMenor = 1;
+            var medidaMayorPliego = 1;
+            var medidaMenorPliego = 1;
+            
+            if (orientacionPapel === "V") {
+                medidaMayorPliego = Math.min(ladoMayorPliego, ladorMenorPliego);
+                medidaMenorPliego = Math.max(ladoMayorPliego, ladorMenorPliego);
+            } else {
+                if (orientacionPapel === "H") {
+                    medidaMayorPliego = Math.max(ladoMayorPliego, ladorMenorPliego);
+                    medidaMenorPliego = Math.min(ladoMayorPliego, ladorMenorPliego);
+                } else {
+                    medidaMayorPliego = ladoMayorPliego;
+                    medidaMenorPliego = ladorMenorPliego;
+                }
+            }
+            
+            if (orientacionCorte === "H") {
+                corteMayor = Math.max(corteAncho, corteLargo);
+                corteMenor = Math.min(corteAncho, corteLargo);
+            } else {
+                if (orientacionCorte === "V") {
+                    corteMayor = Math.min(corteAncho, corteLargo);
+                    corteMenor = Math.max(corteAncho, corteLargo);
+                } else {
+                    corteMayor = corteAncho;
+                    corteMenor = corteLargo;
+                }
+            }
+            
+            var cortesTotales = (parseInt(medidaMayorPliego / corteMayor)) * (parseInt(medidaMenorPliego / corteMenor));
+            var cortesVerticales = parseInt(medidaMayorPliego / corteMayor);
+            var cortesHorizontales = parseInt(medidaMenorPliego / corteMenor);
+            var sobranteVertical = parseFloat((medidaMayorPliego - (cortesVerticales * corteMayor)).toFixed(2));
+            var sobranteHorizontal = parseFloat((medidaMenorPliego - (cortesHorizontales * corteMenor)).toFixed(2));
+            var areaUsada = parseFloat(((corteMayor * corteMenor) * (parseInt(medidaMayorPliego / corteMayor)) * (parseInt(medidaMenorPliego / corteMenor))).toFixed(2));
+            
+            return {
+                cortesT: cortesTotales,
+                cortesB: cortesVerticales,
+                cortesH: cortesHorizontales,
+                sobranteB: sobranteVertical,
+                sobranteH: sobranteHorizontal,
+                areaUtilizada: areaUsada
+            };
+        }
+
+        // Función de cálculo principal
+        function calcular(ladoMayorPliego, ladoMenorPliego, cortesVerticales, cortesHorizontales, unidadesPorPliego, cantidadPorPliego, orientacion) {
+            var cortesDeseados = parseInt(document.getElementById('cortesDeseados').value) || 1;
+            var cantDePliegos = 0;
+            
+            if (orientacion === "H") {
+                cantDePliegos = Math.ceil(cortesDeseados / cantidadPorPliego);
+            } else if (orientacion === "V") {
+                cantDePliegos = Math.ceil(cortesDeseados / cantidadPorPliego);
+            } else {
+                cantDePliegos = Math.ceil(cortesDeseados / unidadesPorPliego);
+            }
+            
+            if (cantDePliegos !== 0 && !isNaN(cantDePliegos)) {
+                // OK
+            } else {
+                if (isNaN(cantDePliegos)) {
+                    cantDePliegos = 0;
+                }
+            }
+            
+            no_total_cortes = unidadesPorPliego * cantDePliegos;
+            imprimirResultados(unidadesPorPliego, cantDePliegos, no_total_cortes, cortesHorizontales, cortesVerticales, cantidadPorPliego);
+        }
+
+        // Función para limpiar el canvas
+        function clearCanvas() {
+            var canvas = document.getElementById("canvasCortes");
+            if (canvas) {
+                var ctx = canvas.getContext("2d");
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        // Función para calcular área
+        function calcularArea(ladoMayorPliego, ladoMenorPliego, corteAncho, corteLargo, cortesTotales) {
+            var areaPliego = ladoMayorPliego * ladoMenorPliego;
+            var areaCorte = corteAncho * corteLargo;
+            var areaTotalCorte = cortesTotales * areaCorte;
+            var areaUtilizada = ((areaTotalCorte * 100) / areaPliego).toFixed(2);
+            var areaInutilizada = (100 - areaUtilizada).toFixed(2);
+            
+            return {
+                utilizada: areaUtilizada,
+                inutilizada: areaInutilizada
+            };
+        }
+
+        // Función para imprimir resultados
+        function imprimirResultados(cortesTotales, cantPliegos, cortesPorPliego, cortesHorizontales, cortesVerticales, cortesUtilizables) {
+            const resultDiv = document.getElementById('calcResult');
+            const papelAncho = parseFloat(document.getElementById('papelAncho').value);
+            const papelLargo = parseFloat(document.getElementById('papelLargo').value);
+            const corteAncho = parseFloat(document.getElementById('corteAncho').value);
+            const corteLargo = parseFloat(document.getElementById('corteLargo').value);
+            
+            const areas = calcularArea(Math.max(papelAncho, papelLargo), Math.min(papelAncho, papelLargo), corteAncho, corteLargo, cortesTotales);
+            
+            resultDiv.innerHTML = `
+                <div class="calc-result-item">
+                    <span>Cortes por pliego:</span>
+                    <strong>${cortesTotales}</strong>
+                </div>
+                <div class="calc-result-item">
+                    <span>Pliegos necesarios:</span>
+                    <strong>${cantPliegos}</strong>
+                </div>
+                <div class="calc-result-item">
+                    <span>Total cortes:</span>
+                    <strong>${cortesPorPliego}</strong>
+                </div>
+                <div class="calc-result-item">
+                    <span>Distribución:</span>
+                    <strong>${cortesVerticales} × ${cortesHorizontales}</strong>
+                </div>
+                <div class="calc-result-item">
+                    <span>Área utilizada:</span>
+                    <strong>${areas.utilizada}%</strong>
+                </div>
+                <div class="calc-result-item">
+                    <span>Área desperdiciada:</span>
+                    <strong>${areas.inutilizada}%</strong>
+                </div>
+                <div class="calc-result-item">
+                    <span>Orientación:</span>
+                    <strong>${orientacion === 'H' ? 'Horizontal' : orientacion === 'V' ? 'Vertical' : 'Óptima'}</strong>
+                </div>
+            `;
+            resultDiv.style.display = 'block';
+        }
+
+        // Función para validar el formulario
+        function validarForma() {
+            var papelAncho = parseFloat(document.getElementById('papelAncho').value);
+            var papelLargo = parseFloat(document.getElementById('papelLargo').value);
+            var corteAncho = parseFloat(document.getElementById('corteAncho').value);
+            var corteLargo = parseFloat(document.getElementById('corteLargo').value);
+            
+            if (!papelAncho || !papelLargo || !corteAncho || !corteLargo) {
+                showNotification('Por favor completa todas las medidas', 'error');
+                return false;
+            }
+            
+            if (papelAncho > 125 || papelLargo > 125) {
+                showNotification('El valor máximo para ancho y/o largo es de 125cm', 'error');
+                return false;
+            }
+            
+            if (corteAncho > papelAncho || corteLargo > papelLargo) {
+                showNotification('Las medidas del corte no pueden ser mayores que las del papel', 'error');
+                return false;
+            }
+            
+            return true;
+        }
+
+        // Función para dibujar la cuadrícula en el canvas
+        function dibujaCuadricula(cortesVerticales, cortesHorizontales, anchoCorte, largoCorte, offsetX, offsetY, escala, color) {
+            var canvas = document.getElementById("canvasCortes");
+            if (!canvas) return;
+            
+            var ctx = canvas.getContext("2d");
+            
+            // Usar colores de la paleta
+            color = color === "R" ? "#FF8214" : "#0BA4FF";
+            
+            var x = offsetX;
+            var y = offsetY;
+            var width = anchoCorte * escala;
+            var height = largoCorte * escala;
+            
+            for (var i = 0; i < cortesVerticales; i++) {
+                y = offsetY;
+                for (var j = 0; j < cortesHorizontales; j++) {
+                    ctx.fillStyle = color;
+                    ctx.fillRect(x, y, width, height);
+                    
+                    ctx.strokeStyle = "#FFFFFF";
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(x, y, width, height);
+                    
+                    y += height;
+                }
+                x += width;
+            }
+        }
+
+        // Función para configurar el canvas con escala apropiada
+        function setupCanvas(width, height) {
+            var canvas = document.getElementById("canvasCortes");
+            if (canvas) {
+                var maxWidth = 280;
+                var maxHeight = 180;
+                
+                var scaleX = maxWidth / width;
+                var scaleY = maxHeight / height;
+                var scale = Math.min(scaleX, scaleY);
+                
+                var finalWidth = width * scale;
+                var finalHeight = height * scale;
+                
+                canvas.width = finalWidth;
+                canvas.height = finalHeight;
+                canvas.style.backgroundColor = "#FFFFFF";
+                canvas.style.border = "1px solid #DCDCDC";
+                canvas.style.borderRadius = "4px";
+                canvas.style.maxWidth = "100%";
+                canvas.style.height = "auto";
+                
+                var ctx = canvas.getContext("2d");
+                ctx.strokeStyle = "#43425D";
+                ctx.lineWidth = 2;
+                ctx.strokeRect(0, 0, finalWidth, finalHeight);
+                
+                return scale;
+            }
+            return 1;
+        }
+
+        // Funciones de cálculo
+        function calcularHorizontal() {
+            if (!validarForma()) return;
+            
+            orientacion = "Horizontal";
+            var ladoMayorPliego = Math.max(parseFloat(document.getElementById('papelAncho').value), parseFloat(document.getElementById('papelLargo').value));
+            var ladoMenorPliego = Math.min(parseFloat(document.getElementById('papelAncho').value), parseFloat(document.getElementById('papelLargo').value));
+            var corteAncho = parseFloat(document.getElementById('corteAncho').value);
+            var corteLargo = parseFloat(document.getElementById('corteLargo').value);
+            
+            clearCanvas();
+            var escala = setupCanvas(ladoMayorPliego, ladoMenorPliego);
+            
+            var vectorAcomoda = acomoda(ladoMayorPliego, ladoMenorPliego, "N", "H");
+            var acumuladorCortesTotales = vectorAcomoda.cortesT;
+            
+            dibujaCuadricula(vectorAcomoda.cortesB, vectorAcomoda.cortesH, corteAncho, corteLargo, 0, 0, escala);
+            
+            var vectorAuxiliar1Acomoda = { cortesT: 0, cortesB: 0, cortesH: 0 };
+            
+            if (vectorAcomoda.sobranteB >= corteLargo) {
+                vectorAuxiliar1Acomoda = acomoda(vectorAcomoda.sobranteB, ladoMenorPliego, "H", "H");
+                acumuladorCortesTotales += vectorAuxiliar1Acomoda.cortesT;
+                dibujaCuadricula(vectorAuxiliar1Acomoda.cortesH, vectorAuxiliar1Acomoda.cortesB, corteLargo, corteAncho, vectorAcomoda.cortesB * corteAncho * escala, 0, escala, "R");
+            } else if (vectorAcomoda.sobranteH >= corteAncho) {
+                vectorAuxiliar1Acomoda = acomoda(vectorAcomoda.sobranteH, ladoMayorPliego, "H", "H");
+                acumuladorCortesTotales += vectorAuxiliar1Acomoda.cortesT;
+                dibujaCuadricula(vectorAuxiliar1Acomoda.cortesB, vectorAuxiliar1Acomoda.cortesH, corteLargo, corteAncho, 0, vectorAcomoda.cortesH * corteLargo * escala, escala, "R");
+            }
+            
+            calcular(ladoMayorPliego, ladoMenorPliego, vectorAuxiliar1Acomoda.cortesT, vectorAcomoda.cortesT, acumuladorCortesTotales, vectorAcomoda.cortesT, "H");
+            
+            showNotification('Cálculo horizontal completado', 'success');
+        }
+
+        function calcularVertical() {
+            if (!validarForma()) return;
+            
+            orientacion = "Vertical";
+            var ladoMayorPliego = Math.max(parseFloat(document.getElementById('papelAncho').value), parseFloat(document.getElementById('papelLargo').value));
+            var ladoMenorPliego = Math.min(parseFloat(document.getElementById('papelAncho').value), parseFloat(document.getElementById('papelLargo').value));
+            var corteAncho = parseFloat(document.getElementById('corteAncho').value);
+            var corteLargo = parseFloat(document.getElementById('corteLargo').value);
+            
+            clearCanvas();
+            var escala = setupCanvas(ladoMenorPliego, ladoMayorPliego);
+            
+            var vectorAcomoda = acomoda(ladoMayorPliego, ladoMenorPliego, "N", "V");
+            var acumuladorCortesTotales = vectorAcomoda.cortesT;
+            
+            dibujaCuadricula(vectorAcomoda.cortesB, vectorAcomoda.cortesH, corteAncho, corteLargo, 0, 0, escala);
+            
+            var vectorAuxiliar1Acomoda = { cortesT: 0, cortesB: 0, cortesH: 0 };
+            
+            if (vectorAcomoda.sobranteB >= corteLargo) {
+                vectorAuxiliar1Acomoda = acomoda(vectorAcomoda.sobranteB, ladoMayorPliego, "H", "H");
+                acumuladorCortesTotales += vectorAuxiliar1Acomoda.cortesT;
+                dibujaCuadricula(vectorAuxiliar1Acomoda.cortesH, vectorAuxiliar1Acomoda.cortesB, corteLargo, corteAncho, vectorAcomoda.cortesB * corteAncho * escala, 0, escala, "R");
+            } else if (vectorAcomoda.sobranteH >= corteAncho) {
+                vectorAuxiliar1Acomoda = acomoda(vectorAcomoda.sobranteH, ladoMenorPliego, "H", "H");
+                acumuladorCortesTotales += vectorAuxiliar1Acomoda.cortesT;
+                dibujaCuadricula(vectorAuxiliar1Acomoda.cortesB, vectorAuxiliar1Acomoda.cortesH, corteLargo, corteAncho, 0, vectorAcomoda.cortesH * corteLargo * escala, escala, "R");
+            }
+            
+            calcular(ladoMayorPliego, ladoMenorPliego, vectorAuxiliar1Acomoda.cortesT, vectorAcomoda.cortesT, acumuladorCortesTotales, vectorAcomoda.cortesT, "V");
+            
+            showNotification('Cálculo vertical completado', 'success');
+        }
+
+        function calcularMaximo() {
+            if (!validarForma()) return;
+            
+            orientacion = "Maximo";
+            var ladoMayorPliego = Math.max(parseFloat(document.getElementById('papelAncho').value), parseFloat(document.getElementById('papelLargo').value));
+            var ladoMenorPliego = Math.min(parseFloat(document.getElementById('papelAncho').value), parseFloat(document.getElementById('papelLargo').value));
+            var ladoMayorCorte = Math.max(parseFloat(document.getElementById('corteAncho').value), parseFloat(document.getElementById('corteLargo').value));
+            var ladoMenorCorte = Math.min(parseFloat(document.getElementById('corteAncho').value), parseFloat(document.getElementById('corteLargo').value));
+            
+            clearCanvas();
+            var escala = setupCanvas(ladoMayorPliego, ladoMenorPliego);
+            
+            var vectorAcomoda = acomoda(ladoMayorPliego, ladoMenorPliego, "H", "M");
+            var acumuladorCortesTotales = vectorAcomoda.cortesT;
+            
+            var mejorConfiguracion = {
+                a1b: ladoMayorPliego,
+                a2b: ladoMayorPliego,
+                a1h: ladoMenorPliego,
+                a2h: 0,
+                sumaCortes: acumuladorCortesTotales,
+                cortesH1: vectorAcomoda.cortesH,
+                cortesB1: vectorAcomoda.cortesB,
+                cortesT1: vectorAcomoda.cortesT,
+                cortesH2: 0,
+                cortesB2: 0,
+                cortesT2: 0
+            };
+            
+            for (var x = 0; x <= vectorAcomoda.cortesH; x++) {
+                var o = ladoMayorPliego;
+                var p = parseFloat(((ladoMenorCorte * x) + vectorAcomoda.sobranteH).toFixed(2));
+                var n = parseFloat((ladoMenorPliego - p).toFixed(2));
+                
+                if (n > 0) {
+                    var s = acomoda(ladoMayorPliego, n, "H", "N");
+                    var t = acomoda(o, p, "V", "N");
+                    var u = s.cortesT + t.cortesT;
+                    
+                    if (u > acumuladorCortesTotales) {
+                        acumuladorCortesTotales = u;
+                        mejorConfiguracion = {
+                            a1b: ladoMayorPliego,
+                            a2b: o,
+                            a1h: n,
+                            a2h: p,
+                            sumaCortes: acumuladorCortesTotales,
+                            cortesH1: s.cortesH,
+                            cortesB1: s.cortesB,
+                            cortesT1: s.cortesT,
+                            cortesH2: t.cortesH,
+                            cortesB2: t.cortesB,
+                            cortesT2: t.cortesT
+                        };
+                    }
+                }
+            }
+            
+            var segundaConfiguracion = {
+                a1b: ladoMayorPliego,
+                a2b: 0,
+                a1h: ladoMenorPliego,
+                a2h: ladoMenorPliego,
+                sumaCortes: vectorAcomoda.cortesT,
+                cortesH1: vectorAcomoda.cortesH,
+                cortesB1: vectorAcomoda.cortesB,
+                cortesT1: vectorAcomoda.cortesT,
+                cortesH2: 0,
+                cortesB2: 0,
+                cortesT2: 0
+            };
+            
+            var acumuladorCortesTotales2 = vectorAcomoda.cortesT;
+            
+            for (var x = 0; x <= vectorAcomoda.cortesB; x++) {
+                var n = ladoMenorPliego;
+                var o = parseFloat(((ladoMayorCorte * x) + vectorAcomoda.sobranteB).toFixed(2));
+                var m = parseFloat((ladoMayorPliego - o).toFixed(2));
+                
+                if (m > 0 && n > 0) {
+                    var s = acomoda(m, n, "H", "N");
+                    var t = acomoda(o, n, "V", "N");
+                    var u = s.cortesT + t.cortesT;
+                    
+                    if (u > acumuladorCortesTotales2) {
+                        acumuladorCortesTotales2 = u;
+                        segundaConfiguracion = {
+                            a1b: m,
+                            a2b: o,
+                            a1h: n,
+                            a2h: n,
+                            sumaCortes: acumuladorCortesTotales2,
+                            cortesH1: s.cortesH,
+                            cortesB1: s.cortesB,
+                            cortesT1: s.cortesT,
+                            cortesH2: t.cortesH,
+                            cortesB2: t.cortesB,
+                            cortesT2: t.cortesT
+                        };
+                    }
+                }
+            }
+            
+            var configuracionFinal;
+            if (segundaConfiguracion.sumaCortes > mejorConfiguracion.sumaCortes) {
+                configuracionFinal = segundaConfiguracion;
+            } else {
+                configuracionFinal = mejorConfiguracion;
+            }
+            
+            dibujaCuadricula(configuracionFinal.cortesB1, configuracionFinal.cortesH1, ladoMayorCorte, ladoMenorCorte, 0, 0, escala);
+            
+            if (configuracionFinal.cortesT2 > 0) {
+                if (configuracionFinal === segundaConfiguracion) {
+                    dibujaCuadricula(configuracionFinal.cortesB2, configuracionFinal.cortesH2, ladoMenorCorte, ladoMayorCorte, 
+                                    configuracionFinal.cortesB1 * ladoMayorCorte * escala, 0, escala, "R");
+                } else {
+                    dibujaCuadricula(configuracionFinal.cortesH2, configuracionFinal.cortesB2, ladoMenorCorte, ladoMayorCorte, 
+                                    0, configuracionFinal.cortesH1 * ladoMenorCorte * escala, escala, "R");
+                }
+            }
+            
+            calcular(ladoMayorPliego, ladoMenorPliego, configuracionFinal.cortesT2, configuracionFinal.cortesT1, 
+                    configuracionFinal.sumaCortes, configuracionFinal.sumaCortes, "M");
+            
+            showNotification(`Cálculo óptimo: ${configuracionFinal.sumaCortes} cortes (${configuracionFinal.cortesT1} + ${configuracionFinal.cortesT2})`, 'success');
+        }
+
+        function resetCalculadora() {
+            document.getElementById('papelAncho').value = '';
+            document.getElementById('papelLargo').value = '';
+            document.getElementById('corteAncho').value = '';
+            document.getElementById('corteLargo').value = '';
+            document.getElementById('cortesDeseados').value = '';
+            document.getElementById('calcResult').style.display = 'none';
+            clearCanvas();
+            
+            const canvas = document.getElementById('canvasCortes');
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                canvas.width = 280;
+                canvas.height = 180;
+                canvas.style.backgroundColor = "#FFFFFF";
+                canvas.style.border = "1px solid #DCDCDC";
+                canvas.style.borderRadius = "4px";
+                canvas.style.maxWidth = "100%";
+                canvas.style.height = "auto";
+                
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#43425D';
+                ctx.font = '14px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Ingresa las medidas y presiona', canvas.width/2, canvas.height/2 - 10);
+                ctx.fillText('un botón para calcular', canvas.width/2, canvas.height/2 + 10);
+            }
+            
+            showNotification('Calculadora reiniciada', 'info');
+        }
+
+        // Funciones del dashboard de litografía
+        let postCounter = 5;
+
+        function handleMenuAction(action) {
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            event.target.closest('.menu-item').classList.add('active');
+            
+            const actions = {
+                showQuotes: () => showNotification('Módulo de Cotizaciones - Mostrando 24 cotizaciones activas', 'info'),
+                newQuote: () => showNotification('Abriendo formulario de nueva cotización...', 'success'),
+                showClients: () => showNotification('Módulo de Clientes - 156 clientes registrados', 'info'),
+                showQuoteTemplates: () => showNotification('Plantillas de Cotización disponibles', 'info'),
+                showPrintOrders: () => showNotification('Órdenes de Producción - 8 órdenes activas', 'info'),
+                showProduction: () => showNotification('Estado de Producción en tiempo real', 'info'),
+                showMachines: () => showNotification('Gestión de Máquinas de Impresión', 'info'),
+                showFinishes: () => showNotification('Catálogo de Acabados disponibles', 'info'),
+                showInventory: () => showNotification('Inventario de Papel - Stock actual', 'info'),
+                showPaperOrders: () => showNotification('Pedidos de Papel - 3 pedidos pendientes', 'warning'),
+                showMarketplace: () => showNotification('Marketplace de Papel - Búsqueda de proveedores', 'success'),
+                showSuppliers: () => showNotification('Gestión de Proveedores registrados', 'info'),
+                showCalculator: () => {
+                    showNotification('Calculadora de cortes activada', 'success');
+                    document.getElementById('papelAncho').focus();
+                    document.getElementById('canvasCortes').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                },
+                showReports: () => showNotification('Módulo de Reportes y Estadísticas', 'info'),
+                showAnalytics: () => showNotification('Analytics y Métricas de Negocio', 'info'),
+                showExplore: () => showNotification('Red Social - Explorar comunidad', 'info'),
+                showConnections: () => showNotification('Conexiones y Seguidores', 'info'),
+                showMessaging: () => showNotification('Sistema de Mensajería', 'info'),
+                newClient: () => showNotification('Formulario de nuevo cliente', 'success'),
+                orderPaper: () => showNotification('Iniciando pedido de papel urgente...', 'warning'),
+                checkProduction: () => showNotification('Verificando estado de producción...', 'info')
+            };
+            
+            const actionFunction = actions[action];
+            if (actionFunction) {
+                actionFunction();
+            } else {
+                showNotification(`Funcionalidad "${action}" en desarrollo`, 'info');
+            }
+        }
+
+        function viewDetail(type, id) {
+            showNotification(`Abriendo ${type} ${id}...`, 'info');
+            // Aquí iría la lógica para abrir el detalle del documento
+        }
+
+        function quickOrder(paperType, supplier) {
+            showNotification(`Pedido rápido: ${paperType} de ${supplier}`, 'success');
+            // Aquí iría la lógica para hacer pedido rápido
+        }
+
+        function createPost() {
+            const content = document.getElementById('postContent').value.trim();
+            if (!content) {
+                showNotification('Por favor escribe algo para publicar', 'error');
+                return;
+            }
+            
+            const newPostDiv = document.createElement('div');
+            newPostDiv.className = 'post';
+            newPostDiv.innerHTML = `
+                <div class="post-header">
+                    <div class="post-avatar">C</div>
+                    <div class="post-info">
+                        <h4>Carlos Ventas - Litografía Demo</h4>
+                        <p>Ahora mismo</p>
+                    </div>
+                </div>
+                <div class="post-content">
+                    ${content}
+                </div>
+                <div class="post-actions">
+                    <div class="post-action" onclick="likePost(${postCounter})">
+                        👍 <span id="likes-${postCounter}">0</span> Me gusta
+                    </div>
+                    <div class="post-action" onclick="commentPost(${postCounter})">
+                        💬 0 Comentarios
+                    </div>
+                    <div class="post-action" onclick="sharePost(${postCounter})">
+                        📤 Compartir
+                    </div>
+                </div>
+            `;
+            
+            const postsContainer = document.getElementById('postsFeed');
+            postsContainer.insertBefore(newPostDiv, postsContainer.firstChild);
+            
+            document.getElementById('postContent').value = '';
+            postCounter++;
+            
+            showNotification('Publicación creada exitosamente', 'success');
+        }
+
+        function addImage() {
+            showNotification('Función de agregar imagen en desarrollo', 'info');
+        }
+
+        function addFile() {
+            showNotification('Función de agregar archivo en desarrollo', 'info');
+        }
+
+        function markAsPromotion() {
+            showNotification('Post marcado como promoción', 'success');
+        }
+
+        function markAsWork() {
+            showNotification('Post marcado como trabajo terminado', 'success');
+        }
+
+        function likePost(postId) {
+            const likesElement = document.getElementById(`likes-${postId}`);
+            if (likesElement) {
+                const currentLikes = parseInt(likesElement.textContent) + 1;
+                likesElement.textContent = currentLikes;
+                showNotification('¡Te gusta esta publicación!', 'success');
+            }
+        }
+
+        function commentPost(postId) {
+            const comment = prompt('Escribe tu comentario:');
+            if (comment && comment.trim()) {
+                showNotification('Comentario agregado', 'success');
+            }
+        }
+
+        function sharePost(postId) {
+            showNotification('Publicación compartida', 'success');
+        }
+
+        function makeOrder(postId) {
+            showNotification('Redirigiendo al marketplace para hacer pedido...', 'info');
+        }
+
+        // Funciones del header
+        function showMessages() {
+            showNotification('Mensajes: 3 conversaciones activas', 'info');
+        }
+
+        function showNotifications() {
+            showNotification('Notificaciones: 7 nuevas notificaciones', 'info');
+        }
+
+        function showPaperAlerts() {
+            showNotification('Alertas de Stock: 2 papeles con stock crítico', 'warning');
+        }
+
+        function showUserMenu() {
+            const actions = [
+                'Ver perfil',
+                'Configuración de cuenta',
+                'Configuración de empresa',
+                'Reportes personales',
+                'Cambiar contraseña',
+                'Cerrar sesión'
+            ];
+            
+            const action = prompt('Selecciona una opción:\n\n1. Ver perfil\n2. Configuración de cuenta\n3. Configuración de empresa\n4. Reportes personales\n5. Cambiar contraseña\n6. Cerrar sesión\n\nEscribe el número:');
+            
+            switch(action) {
+                case '1':
+                    showNotification('Perfil de usuario - Carlos Ventas', 'info');
+                    break;
+                case '2':
+                    showNotification('Configuración de cuenta personal', 'info');
+                    break;
+                case '3':
+                    showNotification('Configuración de Litografía Demo', 'info');
+                    break;
+                case '4':
+                    showNotification('Reportes personales de ventas', 'info');
+                    break;
+                case '5':
+                    showNotification('Cambio de contraseña', 'info');
+                    break;
+                case '6':
+                    logout();
+                    break;
+                default:
+                    if (action) showNotification('Opción no válida', 'error');
+            }
+        }
+
+        function logout() {
+            showNotification('Cerrando sesión...', 'info');
+            setTimeout(() => {
+                alert('Sesión cerrada. En la versión final, esto redirigirá al login.');
+            }, 1000);
+        }
+
+        // Sistema de notificaciones
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            notification.style.animation = 'slideIn 0.3s ease-out';
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-in';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 4000);
+        }
+
+        // Funciones de búsqueda
+        function handleSearch() {
+            const searchInput = document.querySelector('.search-input');
+            const query = searchInput.value.trim();
+            if (query) {
+                showNotification(`Buscando: "${query}"...`, 'info');
+                // Aquí iría la lógica de búsqueda real
+                setTimeout(() => {
+                    showNotification(`Se encontraron resultados para "${query}"`, 'success');
+                }, 1500);
+            }
+        }
+
+        // Simulación de datos en tiempo real
+        function updateDashboardData() {
+            // Actualizar contadores aleatorios para simular actividad
+            const quotes = document.querySelector('.stat-card.quotes .number');
+            const orders = document.querySelector('.stat-card.orders .number');
+            
+            // Simular cambios mínimos
+            if (Math.random() > 0.7) {
+                const currentQuotes = parseInt(quotes.textContent);
+                quotes.textContent = currentQuotes + (Math.random() > 0.5 ? 1 : -1);
+            }
+            
+            if (Math.random() > 0.8) {
+                const currentOrders = parseInt(orders.textContent);
+                orders.textContent = Math.max(0, currentOrders + (Math.random() > 0.6 ? 1 : -1));
+            }
+        }
+
+        // Funciones de interacción con tabla
+        function sortTable(column) {
+            showNotification(`Ordenando por ${column}`, 'info');
+        }
+
+        function filterTable(filter) {
+            showNotification(`Aplicando filtro: ${filter}`, 'info');
+        }
+
+        // Simulación de actualizaciones de stock
+        function checkStockLevels() {
+            const stockItems = document.querySelectorAll('.stock-item-quantity');
+            stockItems.forEach(item => {
+                const [current, minimum] = item.textContent.split('/').map(Number);
+                if (current <= minimum) {
+                    item.style.color = 'var(--color-red)';
+                    item.style.fontWeight = 'bold';
+                }
+            });
+        }
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            showNotification('¡Bienvenido a LitoPro - Litografía Demo!', 'success');
+            
+            // Inicializar canvas de la calculadora
+            const canvas = document.getElementById('canvasCortes');
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                canvas.width = 280;
+                canvas.height = 180;
+                canvas.style.backgroundColor = "#FFFFFF";
+                canvas.style.border = "1px solid #DCDCDC";
+                canvas.style.borderRadius = "4px";
+                canvas.style.maxWidth = "100%";
+                canvas.style.height = "auto";
+                
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#43425D';
+                ctx.font = '14px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Ingresa las medidas y presiona', canvas.width/2, canvas.height/2 - 10);
+                ctx.fillText('un botón para calcular', canvas.width/2, canvas.height/2 + 10);
+            }
+            
+            // Funcionalidad de búsqueda
+            const searchInput = document.querySelector('.search-input');
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    handleSearch();
+                }
+            });
+            
+            searchInput.addEventListener('input', function() {
+                const query = this.value.trim();
+                if (query.length > 2) {
+                    console.log('Búsqueda en tiempo real:', query);
+                }
+            });
+            
+            // Verificar stock crítico
+            checkStockLevels();
+            
+            // Actualizar datos cada 30 segundos
+            setInterval(updateDashboardData, 30000);
+            
+            // Mostrar alerta de stock bajo después de 3 segundos
+            setTimeout(() => {
+                showNotification('⚠️ Tienes 2 tipos de papel con stock crítico', 'warning');
+            }, 3000);
+            
+            // Simular notificación de nueva cotización
+            setTimeout(() => {
+                showNotification('📋 Nueva cotización recibida: COT-2024-090', 'info');
+                // Actualizar contador
+                const quotesCount = document.querySelector('.menu-item .count');
+                if (quotesCount && quotesCount.textContent === '24') {
+                    quotesCount.textContent = '25';
+                }
+            }, 15000);
+            
+            // Simular actualización de producción
+            setTimeout(() => {
+                showNotification('🏭 Orden ORD-2024-034 completada y lista para entrega', 'success');
+            }, 25000);
+        });
+
+        // Funciones adicionales para interactividad
+        function refreshData() {
+            showNotification('Actualizando datos del dashboard...', 'info');
+            setTimeout(() => {
+                showNotification('Datos actualizados correctamente', 'success');
+                updateDashboardData();
+            }, 2000);
+        }
+
+        function exportData() {
+            showNotification('Exportando datos a Excel...', 'info');
+            setTimeout(() => {
+                showNotification('Archivo exportado: dashboard_litografia.xlsx', 'success');
+            }, 3000);
+        }
+
+        // Atajos de teclado
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey) {
+                switch(e.key) {
+                    case 'n':
+                        e.preventDefault();
+                        handleMenuAction('newQuote');
+                        break;
+                    case 'f':
+                        e.preventDefault();
+                        document.querySelector('.search-input').focus();
+                        break;
+                    case 'r':
+                        e.preventDefault();
+                        refreshData();
+                        break;
+                }
+            }
+        });
+
+        // Función para simular conexión en tiempo real
+        function simulateRealTimeUpdates() {
+            const events = [
+                { message: '📋 Nueva cotización enviada', type: 'info' },
+                { message: '💰 Pago recibido de cliente', type: 'success' },
+                { message: '📦 Stock bajo en papel couché', type: 'warning' },
+                { message: '🏭 Máquina #1 requiere mantenimiento', type: 'warning' },
+                { message: '✅ Orden de producción completada', type: 'success' },
+                { message: '👤 Nuevo cliente registrado', type: 'info' }
+            ];
+            
+            // Mostrar evento aleatorio cada 45-90 segundos
+            const randomDelay = Math.random() * 45000 + 45000;
+            setTimeout(() => {
+                const randomEvent = events[Math.floor(Math.random() * events.length)];
+                showNotification(randomEvent.message, randomEvent.type);
+                simulateRealTimeUpdates(); // Programar próximo evento
+            }, randomDelay);
+        }
+
+        // Iniciar simulación de eventos en tiempo real
+        setTimeout(simulateRealTimeUpdates, 60000); // Comenzar después de 1 minuto
+
+    </script>
+</body>
+</html>

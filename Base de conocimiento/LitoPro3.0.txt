@@ -1,0 +1,180 @@
+**Nombre del Proyecto:** Plataforma LitoPro -- Gestión y Red Social para
+Artes Gráficas\
+**Versión:** 1.0\
+**Fecha:** \[por completar\]\
+**Responsable:** \[por completar\]
+
+**1. Descripción General**
+
+**LitoPro** es una plataforma SaaS dirigida al sector de artes gráficas
+en Colombia. Su objetivo principal es digitalizar procesos clave como
+cotizaciones, órdenes de impresión y pedidos de papel, interconectando
+litografías, papelerías y diseñadores. Además, incorpora funcionalidades
+de red social similares a Facebook, permitiendo interacción entre
+usuarios del gremio.
+
+**2. Glosario**
+
+-   **Cotización:** Documento con precios detallados de los productos
+    solicitados por un cliente.
+
+-   **Orden de impresión:** Instrucción detallada para operarios con
+    datos de producción del producto cotizado.
+
+-   **Orden de pedido de papel:** Solicitud que se envía a una papelería
+    con la cantidad y tipo de papel necesarios para imprimir uno o
+    varios ítems.
+
+-   **Montaje:** Cantidad de unidades de un producto que caben en un
+    pliego de papel.
+
+-   **Tintas:** Número de colores que se imprimen, expresado como 4x0,
+    1x1, etc.
+
+-   **Millar:** Unidad de medida que equivale a 1.000 impresiones.
+
+**3. Actores del Sistema**
+
+-   **Administrador:** Gestiona la plataforma, usuarios, y configuración
+    general.
+
+-   **Vendedor:** Crea cotizaciones, gestiona pedidos y ordenes de
+    impresión.
+
+-   **Operario:** Consulta órdenes de impresión y gestiona procesos
+    productivos.
+
+-   **Usuarios de la red social:** Pueden seguir, comentar, publicar,
+    chatear y reaccionar.
+
+**4. Módulos Funcionales**
+
+**4.1. Autenticación y Seguridad**
+
+-   Registro de cuenta con datos personales/empresariales.
+
+-   Inicio de sesión con control de sesión activa.
+
+-   Recuperación de contraseña por correo.
+
+-   Roles de usuario con privilegios diferenciados.
+
+**4.2. Configuración del Sistema**
+
+-   Información de la empresa.
+
+-   Numeración automática de documentos por empresa.
+
+-   Gestión de plantillas de cotización reutilizables.
+
+**4.3. Red Social**
+
+-   Publicaciones con texto, imagen y archivo.
+
+-   Comentarios y reacciones.
+
+-   Sistema de "seguir" a otros usuarios.
+
+-   Chat en tiempo real.
+
+-   Filtro de contenido por ubicación y conexiones.
+
+-   Notificaciones internas y externas (correo, WhatsApp, SMS).
+
+**4.4. Gestión de Datos (CRUD)**
+
+-   **Usuarios, Clientes, Proveedores.**
+
+-   **Papeles, Máquinas, CTP, Acabados, Productos.**
+
+-   Control de stock e inventario, multibodega.
+
+**4.5. Módulo de Cotización**
+
+-   Tipos de ítems:
+
+    -   **Sencillo:** cálculo basado en montaje, papel, máquina, tintas,
+        cortes, diseño.
+
+    -   **Talonario, Revista, Digital, Personalizado, Producto:** cada
+        uno con lógica específica (por describir).
+
+-   Selección de máquina (propia o proveedor).
+
+-   Algoritmo de montaje (calculadora de cortes).
+
+-   Imprimir cotización.
+
+-   Imprimir costos detallados.
+
+-   Enviar por correo.
+
+-   Guardar múltiples versiones.
+
+**4.6. Orden de Impresión (antes llamada Orden de Producción)**
+
+-   Generada desde cotización o manualmente.
+
+-   Datos: fecha de entrega, cantidad de papel, tintas, millares,
+    observaciones.
+
+-   Asignación de operario.
+
+**4.7. Pedido de Papel**
+
+-   Manual o a partir de cotización autorizada.
+
+-   Calculadora de cortes determina número de pliegos.
+
+-   Verifica existencia en proveedores del sistema.
+
+-   Generación de orden con corte y tipo de papel por ítem.
+
+**4.8. Bloques Adicionales**
+
+-   Calculadora de cortes de papel.
+
+-   Notificaciones internas y por correo / WhatsApp / SMS.
+
+-   Buscador general de documentos, usuarios, cotizaciones, etc.
+
+**5. Requerimientos No Funcionales**
+
+-   Aplicación **responsive**.
+
+-   Construido en **Laravel + Livewire + Filament + MySQL**.
+
+-   Seguridad: autenticación con control de sesión activa.
+
+-   Escalabilidad: estructura SaaS multiempresa.
+
+-   Interoperabilidad futura con otros sistemas (opcional).
+
+**6. Casos de Uso (Resumen)**
+
+  -------------------------------------------------------------------------
+  **Módulo**      **Actor**           **Acción**
+  --------------- ------------------- -------------------------------------
+  Cotización      Vendedor            Crear, editar, guardar versiones
+
+  Orden Impresión Vendedor/Operario   Generar desde cotización, asignar
+                                      trabajo
+
+  Pedido Papel    Vendedor            Crear manual o desde cotización
+
+  Red Social      Todos               Publicar, comentar, chatear
+
+  Inventario      Admin/Vendedor      Consultar stock y proveedores
+
+  Configuración   Admin               Definir numeración y plantillas
+  -------------------------------------------------------------------------
+
+**7. Tecnologías y Arquitectura**
+
+-   **Backend:** Laravel
+
+-   **Frontend:** Livewire + Filament
+
+-   **Base de Datos:** MySQL
+
+-   **Integraciones:** Email, WhatsApp, sistema de notificaciones
