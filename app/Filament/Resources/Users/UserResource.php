@@ -15,6 +15,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Auth;
 
 class UserResource extends Resource
 {
@@ -48,11 +49,24 @@ class UserResource extends Resource
         ];
     }
 
-    public static function getRecordRouteBindingEloquentQuery(): Builder
+    public static function getEloquentQuery(): Builder
     {
-        return parent::getRecordRouteBindingEloquentQuery()
+        $query = parent::getEloquentQuery()
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
+            
+        // Si no es Super Admin, filtrar solo usuarios de la empresa del usuario logueado
+        $user = Auth::user();
+        if ($user && !$user->hasRole('Super Admin')) {
+            $query->where('company_id', $user->company_id);
+        }
+        
+        return $query;
+    }
+
+    public static function getRecordRouteBindingEloquentQuery(): Builder
+    {
+        return static::getEloquentQuery();
     }
 }

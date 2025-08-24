@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -12,7 +13,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, HasRoles, SoftDeletes;
+    use HasFactory, Notifiable, HasRoles, SoftDeletes, BelongsToTenant;
 
     /**
      * The attributes that are mass assignable.
@@ -63,11 +64,7 @@ class User extends Authenticatable
         ];
     }
 
-    // Relaciones Multi-Tenant
-    public function company(): BelongsTo
-    {
-        return $this->belongsTo(Company::class);
-    }
+    // Relaciones Multi-Tenant (heredadas del trait BelongsToTenant)
 
     // Relaciones geográficas
     public function country(): BelongsTo
