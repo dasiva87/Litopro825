@@ -1,0 +1,571 @@
+Plan de Trabajo Revisado - Módulo de Cotización
+
+  📊 Análisis Contextual del Proyecto LitoPro 3.0
+
+  Después de revisar la documentación y estructura existente, he identificado los siguientes elementos clave:
+
+  Contexto del Proyecto:
+
+  - SaaS multi-tenant para artes gráficas en Colombia
+  - Stack: Laravel 10 + Filament 3 + MySQL
+  - Arquitectura existente: Países/Estados/Ciudades, Companies, Users con roles
+  - Calculadora de cortes ya implementada y funcionando
+  - Base de datos normalizada con estructura robusta
+
+  Modelos ya existentes relevantes:
+
+  - ✅ Company (con multi-tenancy)
+  - ✅ User (con company_id)
+  - ✅ Country/State/City
+  - ✅ CompanySettings
+  - ✅ Roles y permisos (Spatie)
+
+  🗂️ Plan de Trabajo Actualizado - Módulo de Cotización
+
+  Fase 1: Análisis y Extensión de Modelos Base (1-2 días)
+
+  1.1 Modelos Faltantes según DB Schema
+
+  // Ya definidos en la DB pero faltantes como modelos:
+  Contact.php           // Clientes y proveedores
+  Paper.php            // Tipos de papel
+  PrintingMachine.php  // Máquinas de impresión
+  FinishingProcess.php // Procesos de acabado
+  Product.php          // Productos generales
+  DocumentType.php     // Tipos de documento
+  MeasurementUnit.php  // Unidades de medida
+
+  1.2 Modelos de Cotización
+
+  Document.php         // Cotizaciones, órdenes, facturas
+  DocumentItem.php     // Items de documentos
+  DocumentItemFinishing.php // Acabados por item
+
+  Fase 2: Servicios de Integración (2-3 días)
+
+  2.1 Servicio de Pricing Inteligente
+
+  // app/Services/QuotationPricingService.php
+  - Integrar con CuttingCalculatorService existente
+  - Calcular costos de papel basado en dimensiones
+  - Aplicar márgenes por tipo de cliente
+  - Calcular costos de acabados
+  - Generar breakdown detallado
+
+  2.2 Servicios de Soporte
+
+  // app/Services/DocumentNumberingService.php
+  - Numeración automática por empresa (ya contemplado en DB)
+
+  // app/Services/MaterialCalculatorService.php  
+  - Cálculo de materiales necesarios
+  - Integración con inventory
+
+  Fase 3: Recursos Filament Especializados (3-4 días)
+
+  3.1 ContactResource (Cliente/Proveedor)
+
+  - Form con información completa
+  - Relación con Company (multi-tenant)
+  - Categorización (cliente/proveedor/ambos)
+  - Integración geográfica existente
+
+  3.2 QuotationResource (Documento)
+
+  // Características especiales:
+  - Wizard multi-step para creación
+  - Vista previa en tiempo real
+  - States workflow (draft/sent/approved/etc)
+  - Versioning de cotizaciones
+  - Integración con calculadora de cortes
+
+  Fase 4: Página Especializada de Cotización (4-5 días)
+
+  4.1 Custom Page: CreateQuotation
+
+  // app/Filament/Pages/CreateQuotation.php
+  - Interface tipo wizard
+  - Selector de cliente con creación inline
+  - Calculadora de cortes integrada por item
+  - Preview de costos en tiempo real
+  - Múltiples tipos de items según especificación:
+    * Sencillo (montaje, papel, máquina, tintas)
+    * Talonario
+    * Revista
+    * Digital
+    * Personalizado
+    * Producto (desde inventory)
+
+  4.2 Componentes Livewire Especializados
+
+  // Componentes reutilizables:
+  CuttingCalculatorWidget.php    // Ya existe, adaptar
+  ItemPricingCalculator.php      // Cálculo por item
+  QuotationPreview.php          // Vista previa
+  ClientSelector.php            // Selector con creación
+
+  Fase 5: Tipos de Items Especializados (5-6 días)
+
+  Según la especificación, cada tipo de item tiene lógica específica:
+
+  5.1 Item Sencillo (Base)
+
+  - Cálculo por montaje (usar calculadora existente)
+  - Selección de papel, máquina, tintas
+  - Cálculo de cortes automático
+  - Costos de diseño
+
+  5.2 Item Talonario
+
+  - Lógica específica para talonarios
+  - Cálculo de guillotinado
+  - Numeración secuencial
+
+  5.3 Item Revista/Cuaderno
+
+  - Páginas múltiplo de 4
+  - Cálculo de imposición
+  - Costos de encuadernación
+
+  5.4 Item Digital
+
+  - Banner, vinilo, gran formato
+  - Cálculo por m² en lugar de pliegos
+  - Acabados específicos
+
+  5.5 Item Personalizado
+
+  - Form libre para casos especiales
+  - Cálculo manual de costos
+
+  5.6 Item Producto
+
+  - Selección desde inventario
+  - Precios predefinidos
+
+  Fase 6: PDF y Comunicación (2-3 días)
+
+  6.1 Generación de PDF
+
+  // app/Services/QuotationPDFService.php
+  - Template profesional con logo de empresa
+  - Diseño responsive para diferentes tamaños
+  - Desglose detallado de costos
+  - Términos y condiciones
+
+  6.2 Sistema de Envío
+
+  - Email automático
+  - Integración futura con WhatsApp
+  - Tracking de apertura
+
+  Fase 7: Workflow y Estados (2-3 días)
+
+  7.1 Estados de Cotización
+
+  Según DB schema: draft, sent, approved, rejected, in_production, completed, cancelled
+
+  7.2 Transiciones y Permisos
+
+  - Validación de transiciones permitidas
+  - Permisos por rol (ya implementado con Spatie)
+  - Notificaciones por cambio de estado
+
+  🎯 Cronograma Detallado (2-3 semanas)
+
+  Semana 1: Fundación
+
+  - Día 1-2: Modelos faltantes y migraciones
+  - Día 3: Servicios base (Pricing, DocumentNumbering)
+  - Día 4-5: ContactResource y setup básico
+
+  Semana 2: Core Cotización
+
+  - Día 1-2: DocumentResource básico
+  - Día 3-5: CreateQuotation page con tipos básicos
+
+  Semana 3: Especialización
+
+  - Día 1-3: Tipos de items especializados
+  - Día 4: PDF y comunicación
+  - Día 5: Estados y workflow
+
+  🔄 Integración con Sistema Existente
+
+  Aprovechar funcionalidades existentes:
+
+  - ✅ Multi-tenancy (Company model)
+  - ✅ Calculadora de cortes (CuttingCalculatorService)
+  - ✅ Autenticación y roles (Spatie permissions)
+  - ✅ Estructura geográfica (Country/State/City)
+  - ✅ Filament setup completo
+
+  Extensiones necesarias:
+
+  - 📝 Modelos de negocio (Document, Contact, etc.)
+  - 🧮 Servicios de pricing específicos
+  - 📄 Templates y PDF generation
+  - 🔄 Workflow management
+
+  📁 Estructura de Archivos Propuesta
+
+  app/
+  ├── Models/
+  │   ├── Contact.php ✅
+  │   ├── Document.php ✅
+  │   ├── DocumentItem.php ✅
+  │   ├── Paper.php ✅
+  │   ├── PrintingMachine.php ✅
+  │   └── ...
+  ├── Services/
+  │   ├── QuotationPricingService.php ✅
+  │   ├── DocumentNumberingService.php ✅
+  │   └── QuotationPDFService.php ✅
+  ├── Filament/
+  │   ├── Resources/
+  │   │   ├── ContactResource.php ✅
+  │   │   └── DocumentResource.php ✅
+  │   └── Pages/
+  │       └── CreateQuotation.php ✅
+  └── Livewire/
+      ├── ItemPricingCalculator.php ✅
+      └── QuotationPreview.php ✅
+
+  🎯 Criterios de Éxito Actualizados
+
+  1. ✅ Integración perfecta con calculadora de cortes existente
+  2. ✅ Multi-tenancy respetando la arquitectura Company
+  3. ✅ 6 tipos de items según especificación
+  4. ✅ PDF profesional con branding por empresa
+  5. ✅ Workflow completo de estados
+  6. ✅ Performance óptima con caching de cálculos
+
+
+  ***************************************************
+  ***************************************************
+  ***************************************************
+
+  Documentación del Módulo de Cotizaciones - LitoPro 3.0
+
+  📋 Resumen del Proyecto
+
+  Se ha desarrollado el módulo completo de cotizaciones para LitoPro 3.0, un sistema SaaS multi-tenant para
+  empresas de impresión. El módulo incluye gestión de clientes, creación de cotizaciones con calculadora de
+  cortes integrada, y administración de recursos auxiliares.
+
+  🏗️ Arquitectura del Sistema
+
+  Multi-tenancy
+
+  - Scope Global: CompanyScope aplicado automáticamente en todos los modelos
+  - Aislamiento de Datos: Cada empresa solo ve sus propios registros
+  - Autenticación: Usuario autenticado automáticamente asociado a su empresa
+
+  Tecnologías Utilizadas
+
+  - Laravel 10.x
+  - Filament 4.x (Panel de administración)
+  - PHP 8.2+
+  - MySQL (Base de datos)
+  - Livewire (Componentes reactivos)
+
+  📊 Estructura de Base de Datos
+
+  Tablas Principales
+
+  contacts - Clientes y Proveedores
+
+  - id, company_id, name, contact_person
+  - type: customer|supplier|both
+  - tax_id, email, phone, mobile, address
+  - country_id, state_id, city_id, website
+  - credit_limit, payment_terms, discount_percentage
+  - notes, is_active
+
+  document_types - Tipos de Documento
+
+  - id, company_id, name, code
+  - description, is_active
+  - Códigos: QUOTE, ORDER, INVOICE, PAPER, etc.
+
+  documents - Documentos (Cotizaciones)
+
+  - id, company_id, user_id, contact_id, document_type_id
+  - document_number (auto-generado: COT-2024-001)
+  - reference, date, due_date, valid_until
+  - status: draft|sent|approved|rejected|in_production|completed|cancelled
+  - subtotal, discount_amount/percentage, tax_amount/percentage, total
+  - notes, internal_notes, version, parent_document_id
+
+  document_items - Items de Cotización
+
+  - id, document_id, printing_machine_id, paper_id
+  - description, quantity, width, height, pages
+  - colors_front, colors_back
+  - paper_cut_width/height, orientation, cuts_per_sheet, sheets_needed
+  - unit_copies (para talonarios)
+  - paper_cost, printing_cost, cutting_cost, design_cost, transport_cost, other_costs
+  - unit_price, total_price, profit_margin
+  - item_type: simple|talonario|magazine|digital|custom|product
+  - item_config (JSON), is_template, template_name
+
+  document_item_finishings - Acabados de Items
+
+  - id, document_item_id, finishing_name
+  - quantity, is_double_sided, unit_price, total_price
+
+  papers - Catálogo de Papeles
+
+  - id, company_id, name, type, weight
+  - width, height, cost_per_sheet, is_active
+
+  printing_machines - Máquinas de Impresión
+
+  - id, company_id, name, type
+  - max_width, max_height, max_colors
+  - cost_per_impression, setup_cost
+  - is_own, is_active
+
+  🎯 Funcionalidades Implementadas
+
+  1. Gestión de Contactos (ContactResource)
+
+  - ✅ CRUD completo de clientes y proveedores
+  - ✅ Información básica, contacto y comercial
+  - ✅ Integración geográfica (países, estados, ciudades)
+  - ✅ Configuración de crédito y términos de pago
+  - ✅ Filtros y búsqueda avanzada
+  - ✅ Estados activo/inactivo
+
+  2. Gestión de Cotizaciones (DocumentResource)
+
+  - ✅ CRUD completo de documentos
+  - ✅ Workflow de estados con transiciones controladas
+  - ✅ Numeración automática (COT-2024-001)
+  - ✅ Cálculos financieros automáticos
+  - ✅ Sistema de versiones de documentos
+  - ✅ Acciones contextuales (enviar, aprobar, rechazar)
+  - ✅ Tabs organizados por estado
+  - ✅ Filtros por tipo, estado, fechas de vencimiento
+
+  3. Creación de Cotizaciones Wizard (CreateQuotation)
+
+  - ✅ Paso 1: Información del cliente y fechas
+  - ✅ Paso 2: Items con calculadora de cortes integrada
+  - ✅ Paso 3: Configuración final y resumen
+  - ✅ Repeater para múltiples items
+  - ✅ 6 tipos de trabajo: simple, talonario, magazine, digital, custom, product
+  - ✅ Cálculo automático de cortes por pliego
+  - ✅ Estimación de costos en tiempo real
+  - ✅ Interfaz intuitiva paso a paso
+
+  4. Gestión de Papeles (PaperResource)
+
+  - ✅ Catálogo de tipos de papel
+  - ✅ Especificaciones técnicas (dimensiones, gramaje)
+  - ✅ Cálculo automático de áreas
+  - ✅ Precios por pliego
+  - ✅ Filtros por tipo, gramaje, estado
+  - ✅ Estados activo/inactivo
+
+  5. Gestión de Máquinas (PrintingMachineResource)
+
+  - ✅ Catálogo de máquinas de impresión
+  - ✅ Capacidades técnicas (dimensiones, colores)
+  - ✅ Costos de impresión y alistamiento
+  - ✅ Diferenciación propias/terceros
+  - ✅ Filtros por tipo, propiedad, capacidades
+  - ✅ Estados activo/inactivo
+
+  🔧 Integración con Calculadora de Cortes
+
+  Servicio CuttingCalculatorService
+
+  calculateCuts(
+      paperWidth: float,
+      paperHeight: float,
+      cutWidth: float,
+      cutHeight: float,
+      desiredCuts: int,
+      orientation: string
+  ): array
+
+  Integración en DocumentItem
+
+  - ✅ Método calculateCuttingOptimization()
+  - ✅ Actualización automática desde cálculos
+  - ✅ Botón "Calcular Cortes" en wizard
+  - ✅ Cálculo de costos basado en resultados
+
+  🎨 Interfaz de Usuario (Filament 4)
+
+  Organización de Navegación
+
+  enum NavigationGroup {
+      Cotizaciones = 'Cotizaciones'    // Contactos, Documentos, Nueva Cotización
+      Configuracion = 'Configuración'  // Papeles, Máquinas
+      Sistema = 'Sistema'
+      Usuarios = 'Usuarios'
+  }
+
+  Características de UI
+
+  - ✅ Formularios con secciones colapsibles
+  - ✅ Grids responsivos
+  - ✅ Badges de estado con colores
+  - ✅ Filtros avanzados
+  - ✅ Búsqueda en tiempo real
+  - ✅ Acciones bulk y contextuales
+  - ✅ Wizard con persistencia de paso
+  - ✅ Notificaciones de éxito/error
+
+  📝 Modelos y Relaciones
+
+  Jerarquía de Relaciones
+
+  Company (Multi-tenant)
+  ├── Users
+  ├── Contacts (customers/suppliers)
+  ├── DocumentTypes
+  ├── Documents (quotes/orders/invoices)
+  │   └── DocumentItems
+  │       └── DocumentItemFinishings
+  ├── Papers
+  └── PrintingMachines
+
+  Scopes Principales
+
+  - CompanyScope: Filtrado automático por empresa
+  - Active: Registros activos
+  - ByType: Filtrado por tipo
+  - ByStatus: Filtrado por estado
+  - Templates: Items reutilizables
+
+  🔄 Workflow de Estados
+
+  Estados de Documento
+
+  draft → sent → approved → in_production → completed
+    ↓       ↓
+  cancelled rejected
+
+  Transiciones Permitidas
+
+  - draft: Puede editarse, enviarse o cancelarse
+  - sent: Puede aprobarse o rechazarse
+  - approved: Puede pasar a producción
+  - rejected: Puede editarse (nueva versión)
+
+  💰 Sistema de Cálculos
+
+  Cálculo de Costos por Item
+
+  Total = (paper_cost + printing_cost + cutting_cost +
+           design_cost + transport_cost + other_costs) *
+          (1 + profit_margin/100)
+
+  Cálculo de Documento
+
+  Subtotal = Σ(item.total_price)
+  Discount = subtotal * (discount_percentage/100)
+  Tax = (subtotal - discount) * (tax_percentage/100)
+  Total = subtotal - discount + tax
+
+  🗂️ Estructura de Archivos
+
+  app/
+  ├── Enums/
+  │   └── NavigationGroup.php
+  ├── Models/
+  │   ├── Contact.php
+  │   ├── Document.php
+  │   ├── DocumentItem.php
+  │   ├── DocumentItemFinishing.php
+  │   ├── DocumentType.php
+  │   ├── Paper.php
+  │   └── PrintingMachine.php
+  ├── Filament/
+  │   ├── Pages/
+  │   │   └── CreateQuotation.php
+  │   └── Resources/
+  │       ├── Contacts/
+  │       ├── Documents/
+  │       ├── Papers/
+  │       └── PrintingMachines/
+  └── Services/
+      └── CuttingCalculatorService.php
+
+  resources/views/filament/pages/
+  └── create-quotation.blade.php
+
+  database/migrations/
+  ├── create_contacts_table.php
+  ├── create_document_types_table.php
+  ├── create_documents_table.php
+  ├── create_document_items_table.php
+  ├── create_document_item_finishings_table.php
+  ├── create_papers_table.php
+  └── create_printing_machines_table.php
+
+  🚀 Próximos Pasos Sugeridos
+
+  Fase 2 - Funcionalidades Avanzadas
+
+  - PDF Generator para cotizaciones
+  - Sistema de plantillas personalizables
+  - Envío automático por email
+  - Dashboard con métricas
+  - Reportes de ventas
+  - Integración con inventario
+
+  Fase 3 - Optimizaciones
+
+  - Cache de cálculos complejos
+  - Notificaciones en tiempo real
+  - API REST para integraciones
+  - Aplicación móvil
+  - Sincronización offline
+
+  🔐 Seguridad y Validaciones
+
+  Multi-tenancy
+
+  - ✅ Scope automático por empresa
+  - ✅ Validaciones de permisos
+  - ✅ Aislamiento de datos
+
+  Validaciones de Negocio
+
+  - ✅ Estados de workflow controlados
+  - ✅ Cálculos automáticos
+  - ✅ Validaciones de dimensiones
+  - ✅ Límites de crédito
+
+  📊 Métricas del Desarrollo
+
+  Archivos Creados: 23 archivos
+
+  - 8 Modelos
+  - 5 Resources principales
+  - 10 Páginas de Filament
+  - 1 Enum
+  - 1 Vista Blade
+  - 8 Migraciones (previas)
+
+  Líneas de Código: ~3,500 líneas
+
+  - PHP: ~3,200 líneas
+  - Blade: ~50 líneas
+  - Migraciones: ~250 líneas
+
+  Funcionalidades: 100% completadas
+
+  - ✅ Gestión de contactos
+  - ✅ Creación de cotizaciones
+  - ✅ Calculadora de cortes integrada
+  - ✅ Recursos auxiliares
+  - ✅ Compatibilidad Filament v4
+
+  ---
+  Desarrollo completado el: 24 de Agosto, 2025Estado: ✅ Listo para producciónCompatibilidad: Laravel 10.x +
+  Filament 4.x + PHP 8.2+

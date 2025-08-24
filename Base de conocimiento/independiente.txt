@@ -1,0 +1,448 @@
+● 🚀 Guía de Desarrollo Independiente - LitoPro 3.0
+
+  📚 Fundamentos Técnicos
+
+  Stack Tecnológico
+
+  # Versiones exactas del proyecto
+  Laravel: 10.x
+  Filament: 4.x
+  PHP: 8.2+
+  MySQL: 8.0+
+  Node.js: 18+ (para assets)
+
+  Comandos Esenciales
+
+  # Desarrollo diario
+  php artisan serve                    # Servidor local
+  php artisan migrate                  # Ejecutar migraciones
+  php artisan db:seed                  # Poblar datos
+  php artisan queue:work              # Procesar colas
+  php artisan optimize:clear          # Limpiar cache
+
+  # Filament específicos
+  php artisan make:filament-resource ModelName
+  php artisan make:filament-page PageName
+  php artisan make:filament-widget WidgetName
+  php artisan filament:optimize       # Optimizar Filament
+
+  🗂️ Estructura del Proyecto
+
+  Convenciones de Archivos
+
+  app/
+  ├── Enums/                     # Enums del sistema
+  ├── Models/                    # Modelos Eloquent
+  ├── Filament/
+  │   ├── Resources/            # CRUD Resources
+  │   ├── Pages/               # Páginas personalizadas
+  │   ├── Widgets/            # Dashboard widgets
+  │   └── Clusters/           # Agrupaciones de resources
+  ├── Services/               # Lógica de negocio
+  ├── Policies/              # Políticas de autorización
+  └── Http/
+      ├── Controllers/       # Controladores tradicionales
+      └── Middleware/       # Middleware personalizado
+
+  🎯 Patrones de Desarrollo
+
+  1. Crear un Nuevo Módulo
+
+  Paso 1: Crear el Modelo
+
+  // app/Models/Invoice.php
+  <?php
+  namespace App\Models;
+
+  use Illuminate\Database\Eloquent\Model;
+  use Illuminate\Database\Eloquent\SoftDeletes;
+  use App\Models\Scopes\CompanyScope;
+
+  class Invoice extends Model
+  {
+      use SoftDeletes;
+
+      protected $fillable = [
+          'company_id', 'document_id', 'invoice_number',
+          // ... más campos
+      ];
+
+      protected $casts = [
+          'date' => 'date',
+          'amount' => 'decimal:2',
+          'is_paid' => 'boolean',
+      ];
+
+      // SIEMPRE incluir CompanyScope para multi-tenancy
+      protected static function boot()
+      {
+          parent::boot();
+          static::addGlobalScope(new CompanyScope);
+      }
+
+      // Relaciones
+      public function company(): BelongsTo
+      {
+          return $this->belongsTo(Company::class);
+      }
+
+      // Scopes útiles
+      public function scopePaid($query)
+      {
+          return $query->where('is_paid', true);
+      }
+
+      // Métodos de negocio
+      public function markAsPaid(): bool
+      {
+          $this->is_paid = true;
+          return $this->save();
+      }
+  }
+
+  Paso 2: Crear la Migración
+
+  // database/migrations/xxxx_create_invoices_table.php
+  Schema::create('invoices', function (Blueprint $table) {
+      $table->id();
+      $table->foreignId('company_id')->constrained()->cascadeOnDelete();
+      $table->foreignId('document_id')->nullable()->constrained();
+      $table->string('invoice_number')->unique();
+      $table->date('date');
+      $table->decimal('amount', 10, 2);
+      $table->boolean('is_paid')->default(false);
+      $table->timestamps();
+      $table->softDeletes();
+
+      // Índices importantes
+      $table->index(['company_id', 'is_paid']);
+      $table->index(['company_id', 'date']);
+  });
+
+  Paso 3: Crear el Resource de Filament
+
+  php artisan make:filament-resource Invoice --generate
+
+  // app/Filament/Resources/InvoiceResource.php
+  <?php
+  namespace App\Filament\Resources;
+
+  use App\Enums\NavigationGroup;
+  use BackedEnum;
+
+  class InvoiceResource extends Resource
+  {
+      protected static ?string $model = Invoice::class;
+      protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-currency-dollar';
+      protected static NavigationGroup|string|null $navigationGroup = NavigationGroup::Cotizaciones;
+      protected static ?int $navigationSort = 3;
+
+      public static function form(Form $form): Form
+      {
+          return $form->schema([
+              // Usar secciones para organizar
+              Forms\Components\Section::make('Información Principal')
+                  ->schema([
+                      // Campos del formulario
+                  ]),
+          ]);
+      }
+
+      public static function table(Table $table): Table
+      {
+          return $table
+              ->columns([
+                  // Columnas de la tabla
+              ])
+              ->filters([
+                  // Filtros útiles
+              ])
+              ->actions([
+                  // Acciones por registro
+              ]);
+      }
+  }
+
+  2. Integrar con Calculadora de Cortes
+
+  // En tu modelo DocumentItem o similar
+  use App\Services\CuttingCalculatorService;
+
+  public function calculateCuttingOptimization(): array
+  {
+      if (!$this->paper || !$this->width || !$this->height) {
+          return [];
+      }
+
+      $calculator = new CuttingCalculatorService();
+
+      try {
+          return $calculator->calculateCuts(
+              paperWidth: $this->paper->width,
+              paperHeight: $this->paper->height,
+              cutWidth: $this->width,
+              cutHeight: $this->height,
+              desiredCuts: (int) $this->quantity,
+              orientation: $this->orientation ?? 'horizontal'
+          );
+      } catch (\Exception $e) {
+          \Log::error('Error en cálculo de cortes: ' . $e->getMessage());
+          return [];
+      }
+  }
+
+  3. Crear Páginas Personalizadas
+
+  // app/Filament/Pages/Reports.php
+  <?php
+  namespace App\Filament\Pages;
+
+  use Filament\Pages\Page;
+  use App\Enums\NavigationGroup;
+
+  class Reports extends Page
+  {
+      protected static NavigationGroup|string|null $navigationGroup = NavigationGroup::Sistema;
+      protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
+      protected static string $view = 'filament.pages.reports';
+
+      // Propiedades públicas para Livewire
+      public $startDate;
+      public $endDate;
+      public $reportData = [];
+
+      public function mount(): void
+      {
+          $this->startDate = now()->startOfMonth()->format('Y-m-d');
+          $this->endDate = now()->format('Y-m-d');
+          $this->generateReport();
+      }
+
+      public function generateReport(): void
+      {
+          // Lógica del reporte
+          $this->reportData = Document::query()
+              ->whereBetween('created_at', [$this->startDate, $this->endDate])
+              ->selectRaw('status, COUNT(*) as count, SUM(total) as total')
+              ->groupBy('status')
+              ->get();
+      }
+  }
+
+  🛠️ Herramientas de Desarrollo
+
+  Debugging
+
+  // En desarrollo, usar:
+  dd($variable);              // Dump and die
+  dump($variable);           // Dump sin parar
+  logger('Debug info', $data); // Log personalizado
+
+  // En Filament Resources:
+  \Filament\Notifications\Notification::make()
+      ->title('Título')
+      ->body('Mensaje')
+      ->success() // o ->danger(), ->warning()
+      ->send();
+
+  Testing
+
+  # Ejecutar tests
+  php artisan test
+  php artisan test --filter InvoiceTest
+
+  # Crear tests
+  php artisan make:test InvoiceTest
+  php artisan make:test InvoiceTest --unit
+
+  Base de Datos
+
+  # Migraciones
+  php artisan make:migration create_invoices_table
+  php artisan migrate:rollback --step=1
+  php artisan migrate:refresh --seed
+
+  # Seeders
+  php artisan make:seeder InvoiceSeeder
+  php artisan db:seed --class=InvoiceSeeder
+
+  # Factory
+  php artisan make:factory InvoiceFactory
+
+  📋 Lista de Verificación para Nuevas Funcionalidades
+
+  ✅ Checklist Completo
+
+  Preparación
+
+  - Definir requerimientos claros
+  - Diseñar esquema de base de datos
+  - Identificar relaciones con modelos existentes
+  - Planificar flujo de usuario
+
+  Desarrollo Backend
+
+  - Crear migración con índices apropiados
+  - Crear modelo con CompanyScope
+  - Definir relaciones Eloquent
+  - Crear Factory para testing
+  - Escribir tests unitarios básicos
+
+  Desarrollo Frontend (Filament)
+
+  - Crear Resource con form() y table()
+  - Configurar navegación y permisos
+  - Agregar filtros y búsqueda
+  - Implementar acciones personalizadas
+  - Probar responsividad
+
+  Integración
+
+  - Conectar con servicios existentes
+  - Validar cálculos automáticos
+  - Probar flujo completo
+  - Verificar multi-tenancy
+  - Documentar cambios
+
+  🚨 Errores Comunes y Soluciones
+
+  1. Error de Multi-tenancy
+
+  Problem: Datos de otra empresa aparecen
+  Solution: Verificar que CompanyScope esté aplicado
+
+  2. Error de Tipos en Filament v4
+
+  // ❌ Incorrecto
+  protected static ?string $navigationIcon = 'heroicon-o-users';
+  protected static ?string $navigationGroup = 'Sistema';
+
+  // ✅ Correcto
+  protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-users';
+  protected static NavigationGroup|string|null $navigationGroup = NavigationGroup::Sistema;
+
+  3. Error en Relaciones
+
+  // ❌ Incorrecto - Sin constrained()
+  $table->foreignId('company_id');
+
+  // ✅ Correcto - Con cascada
+  $table->foreignId('company_id')->constrained()->cascadeOnDelete();
+
+  4. Error en Cálculos
+
+  // ❌ Incorrecto - Sin validaciones
+  public function calculateTotal()
+  {
+      return $this->quantity * $this->price;
+  }
+
+  // ✅ Correcto - Con validaciones
+  public function calculateTotal(): float
+  {
+      if (!$this->quantity || !$this->price) {
+          return 0.0;
+      }
+      return (float) ($this->quantity * $this->price);
+  }
+
+  📖 Recursos de Aprendizaje
+
+  Documentación Oficial
+
+  - Laravel: https://laravel.com/docs/10.x
+  - Filament: https://filamentphp.com/docs/3.x
+  - PHP: https://www.php.net/docs.php
+
+  Patrones Útiles
+
+  // Service Pattern para lógica compleja
+  class InvoiceService 
+  {
+      public function generateFromDocument(Document $document): Invoice
+      {
+          // Lógica de conversión
+      }
+  }
+
+  // Repository Pattern para consultas complejas
+  class DocumentRepository
+  {
+      public function getExpiringSoon(int $days = 7): Collection
+      {
+          return Document::query()
+              ->where('valid_until', '<=', now()->addDays($days))
+              ->where('status', 'sent')
+              ->get();
+      }
+  }
+
+  // Observer Pattern para eventos
+  class DocumentObserver
+  {
+      public function created(Document $document): void
+      {
+          // Lógica después de crear documento
+      }
+  }
+
+  Tips de Performance
+
+  // Usar eager loading para evitar N+1
+  $documents = Document::with(['contact', 'items.paper'])->get();
+
+  // Cachear consultas costosas
+  $expensiveData = Cache::remember('reports.monthly', 3600, function () {
+      return Document::complexQuery()->get();
+  });
+
+  // Usar chunks para procesar grandes datasets
+  Document::chunk(100, function ($documents) {
+      foreach ($documents as $document) {
+          // Procesar documento
+      }
+  });
+
+  🎯 Flujo de Desarrollo Recomendado
+
+  1. Planificación (30 min)
+
+  - Definir requerimientos
+  - Revisar modelos existentes
+  - Planificar integraciones
+
+  2. Base de Datos (45 min)
+
+  - Crear migración
+  - Crear modelo con relaciones
+  - Ejecutar y verificar
+
+  3. Resource Filament (60 min)
+
+  - Crear resource básico
+  - Configurar formulario
+  - Configurar tabla con filtros
+
+  4. Integración (30 min)
+
+  - Conectar con servicios
+  - Probar cálculos
+  - Verificar permisos
+
+  5. Testing (30 min)
+
+  - Probar flujo completo
+  - Verificar edge cases
+  - Documentar cambios
+
+  ---
+  🚀 ¡Estás Listo!
+
+  Con esta guía tienes todo lo necesario para:
+  - ✅ Crear nuevos módulos siguiendo patrones establecidos
+  - ✅ Integrar con la calculadora de cortes existente
+  - ✅ Mantener consistencia en el código
+  - ✅ Evitar errores comunes
+  - ✅ Desarrollar con confianza
+
+  ¡Éxito en tu desarrollo independiente! 💪
