@@ -9,6 +9,7 @@ use App\Filament\Resources\Documents\Pages\CreateQuotation;
 use App\Filament\Resources\Documents\Pages\EditDocument;
 use App\Filament\Resources\Documents\Pages\ListDocuments;
 use App\Filament\Resources\Documents\Pages\ViewDocument;
+use App\Filament\Resources\Documents\RelationManagers;
 use App\Filament\Resources\Documents\Schemas\DocumentForm;
 use App\Filament\Resources\Documents\Tables\DocumentsTable;
 use App\Models\Document;
@@ -51,7 +52,7 @@ class DocumentResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\DocumentItemsRelationManager::class,
         ];
     }
 

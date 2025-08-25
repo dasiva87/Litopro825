@@ -215,7 +215,14 @@ class Document extends Model
     // Métodos de cálculo
     public function calculateTotals(): void
     {
-        $this->subtotal = $this->items->sum('total_price');
+        // Calcular subtotal basado en los items polimórficos
+        $subtotal = 0;
+        foreach ($this->items as $item) {
+            if ($item->itemable) {
+                $subtotal += $item->itemable->final_price ?? 0;
+            }
+        }
+        $this->subtotal = $subtotal;
         
         // Calcular descuento
         if ($this->discount_percentage > 0) {
@@ -231,6 +238,12 @@ class Document extends Model
         
         $this->total = $subtotalAfterDiscount + $this->tax_amount;
         $this->save();
+    }
+    
+    public function recalculateTotals(): void
+    {
+        $this->load('items.itemable');
+        $this->calculateTotals();
     }
 
     // Generación de número de documento

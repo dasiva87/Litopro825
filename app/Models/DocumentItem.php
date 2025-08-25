@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Services\CuttingCalculatorService;
 
@@ -14,6 +15,8 @@ class DocumentItem extends Model
 
     protected $fillable = [
         'document_id',
+        'itemable_type',
+        'itemable_id',
         'printing_machine_id',
         'paper_id',
         'description',
@@ -83,6 +86,11 @@ class DocumentItem extends Model
     public function document(): BelongsTo
     {
         return $this->belongsTo(Document::class);
+    }
+
+    public function itemable(): MorphTo
+    {
+        return $this->morphTo();
     }
 
     public function printingMachine(): BelongsTo
