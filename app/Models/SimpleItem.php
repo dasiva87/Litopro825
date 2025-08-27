@@ -206,19 +206,76 @@ class SimpleItem extends Model
 
     public function calculateAll(): void
     {
-        // Calcular campos automáticos
+        // Usar el nuevo sistema de cálculo avanzado
+        try {
+            $calculator = new \App\Services\SimpleItemCalculatorService();
+            $pricingResult = $calculator->calculateFinalPricing($this);
+            
+            // Actualizar campos con los resultados del nuevo calculador
+            $this->mounting_quantity = $pricingResult->mountingOption->sheetsNeeded;
+            $this->paper_cuts_h = $pricingResult->mountingOption->cuttingLayout['horizontal_cuts'];
+            $this->paper_cuts_v = $pricingResult->mountingOption->cuttingLayout['vertical_cuts'];
+            $this->paper_cost = $pricingResult->mountingOption->paperCost;
+            $this->printing_cost = $pricingResult->printingCalculation->totalCost;
+            $this->mounting_cost = $pricingResult->additionalCosts->mountingCost;
+            $this->total_cost = $pricingResult->subtotal;
+            $this->final_price = $pricingResult->finalPrice;
+            
+        } catch (\Exception $e) {
+            // Fallback al sistema anterior si hay error
+            $this->calculateAllLegacy();
+        }
+    }
+
+    // Mantener el método anterior como fallback
+    private function calculateAllLegacy(): void
+    {
         $this->mounting_quantity = $this->calculateMounting();
         
         $cuts = $this->calculatePaperCuts();
         $this->paper_cuts_h = $cuts['h'];
         $this->paper_cuts_v = $cuts['v'];
 
-        // Calcular costos
         $this->paper_cost = $this->calculatePaperCost();
         $this->printing_cost = $this->calculatePrintingCost();
         $this->mounting_cost = $this->calculateMountingCost();
         $this->total_cost = $this->calculateTotalCost();
         $this->final_price = $this->calculateFinalPrice();
+    }
+
+    // Método para obtener opciones de montaje disponibles
+    public function getMountingOptions(): array
+    {
+        try {
+            $calculator = new \App\Services\SimpleItemCalculatorService();
+            return $calculator->calculateMountingOptions($this);
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    // Método para obtener el desglose detallado de costos
+    public function getDetailedCostBreakdown(): array
+    {
+        try {
+            $calculator = new \App\Services\SimpleItemCalculatorService();
+            $pricingResult = $calculator->calculateFinalPricing($this);
+            return $pricingResult->getFormattedBreakdown();
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    // Método para validar viabilidad técnica
+    public function validateTechnicalViability(): array
+    {
+        try {
+            $calculator = new \App\Services\SimpleItemCalculatorService();
+            $validation = $calculator->validateTechnicalViability($this);
+            return $validation->getAllMessages();
+        } catch (\Exception $e) {
+            return [['type' => 'error', 'message' => 'Error al validar: ' . $e->getMessage()]];
+        }
     }
 
     // Accessors útiles

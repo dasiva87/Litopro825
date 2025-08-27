@@ -218,9 +218,20 @@ class Document extends Model
         // Calcular subtotal basado en los items polimórficos
         $subtotal = 0;
         foreach ($this->items as $item) {
-            if ($item->itemable) {
-                $subtotal += $item->itemable->final_price ?? 0;
+            $itemTotal = 0;
+            
+            if ($item->itemable_type === 'App\\Models\\Product') {
+                // Para productos, usar total_price del DocumentItem
+                $itemTotal = $item->total_price ?? 0;
+            } elseif ($item->itemable && isset($item->itemable->final_price)) {
+                // Para SimpleItems y otros, usar final_price del item relacionado
+                $itemTotal = $item->itemable->final_price;
+            } else {
+                // Fallback: usar total_price del DocumentItem
+                $itemTotal = $item->total_price ?? 0;
             }
+            
+            $subtotal += $itemTotal;
         }
         $this->subtotal = $subtotal;
         

@@ -247,6 +247,23 @@ class DocumentItem extends Model
 
     public function calculateTotals(): void
     {
+        // Para productos, no recalcular - los precios ya vienen definidos
+        if ($this->itemable_type === 'App\\Models\\Product') {
+            // Solo validar que los precios estén correctos si hay un producto relacionado
+            if ($this->itemable) {
+                $product = $this->itemable;
+                // Si los precios no están definidos, calcularlos del producto
+                if ($this->unit_price == 0) {
+                    $this->unit_price = $product->sale_price;
+                }
+                if ($this->total_price == 0) {
+                    $this->total_price = $product->calculateTotalPrice($this->quantity);
+                }
+            }
+            return;
+        }
+
+        // Para otros tipos de items, usar el cálculo original
         // Calcular costos base si no están definidos
         if ($this->paper_cost == 0 && $this->paper) {
             $this->calculateBaseCosts();
