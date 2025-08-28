@@ -228,7 +228,7 @@ class CuttingCalculatorService
         $wastedAreaPercentage = round(100 - $usedAreaPercentage, 2);
 
         // Calcular pliegos necesarios
-        $sheetsNeeded = $desiredCuts > 0 ? ceil($desiredCuts / $totalCuts) : 0;
+        $sheetsNeeded = ($desiredCuts > 0 && $totalCuts > 0) ? ceil($desiredCuts / $totalCuts) : 0;
         $totalCutsProduced = $totalCuts * $sheetsNeeded;
 
         // Determinar cortes utilizables según orientación

@@ -19,8 +19,9 @@ class DatabaseSeeder extends Seeder
             StateSeeder::class,
             CitySeeder::class,
             RolePermissionSeeder::class,
+            TestDataSeeder::class, // Datos de prueba para desarrollo
         ]);
 
-        $this->command->info('Base data seeded successfully for LitoPro!');
+        $this->command->info('LitoPro seeded successfully with test data!');
     }
 }

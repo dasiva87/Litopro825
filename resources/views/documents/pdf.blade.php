@@ -62,14 +62,22 @@
 <body>
     <div class="header">
         <div class="company-info">
-            <h1>{{ $document->company->name }}</h1>
-            <p>{{ $document->company->address ?? '' }}</p>
-            <p>{{ $document->company->phone ?? '' }} | {{ $document->company->email ?? '' }}</p>
+            <h1>{{ $document->company->name ?? 'Empresa' }}</h1>
+            @if($document->company->address)
+                <p>{{ $document->company->address }}</p>
+            @endif
+            @if($document->company->phone || $document->company->email)
+                <p>
+                    @if($document->company->phone){{ $document->company->phone }}@endif
+                    @if($document->company->phone && $document->company->email) | @endif
+                    @if($document->company->email){{ $document->company->email }}@endif
+                </p>
+            @endif
         </div>
         
         <div class="document-info">
             <h2>{{ $document->documentType->name ?? 'Documento' }}</h2>
-            <p><strong>Número:</strong> {{ $document->number }}</p>
+            <p><strong>Número:</strong> {{ $document->document_number }}</p>
             <p><strong>Fecha:</strong> {{ $document->date->format('d/m/Y') }}</p>
             <p><strong>Estado:</strong> {{ ucfirst($document->status) }}</p>
         </div>
@@ -90,6 +98,7 @@
         <thead>
             <tr>
                 <th>Descripción</th>
+                <th>Detalles</th>
                 <th>Cantidad</th>
                 <th>Precio Unitario</th>
                 <th>Total</th>
@@ -99,9 +108,27 @@
             @foreach($document->items as $item)
             <tr>
                 <td>{{ $item->description }}</td>
-                <td>{{ $item->quantity }}</td>
+                <td>
+                    @if($item->itemable_type === 'App\\Models\\SimpleItem' && $item->itemable)
+                        <small>
+                            {{ $item->itemable->horizontal_size }}x{{ $item->itemable->vertical_size }}cm<br>
+                            Tintas: {{ $item->itemable->ink_front_count }}+{{ $item->itemable->ink_back_count }}
+                            @if($item->itemable->paper)
+                                <br>Papel: {{ $item->itemable->paper->name }} {{ $item->itemable->paper->weight }}g
+                            @endif
+                        </small>
+                    @elseif($item->itemable_type === 'App\\Models\\Product' && $item->itemable)
+                        <small>
+                            Producto de inventario<br>
+                            Código: {{ $item->itemable->code }}
+                        </small>
+                    @else
+                        <small>Item estándar</small>
+                    @endif
+                </td>
+                <td>{{ number_format($item->quantity) }} uds</td>
                 <td>${{ number_format($item->unit_price, 2) }}</td>
-                <td>${{ number_format($item->total, 2) }}</td>
+                <td>${{ number_format($item->total_price, 2) }}</td>
             </tr>
             @endforeach
         </tbody>

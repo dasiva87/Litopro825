@@ -45,7 +45,7 @@ class SimpleItemCalculatorService
                     sheetsNeeded: $result['sheetsNeeded'],
                     utilizationPercentage: $result['usedAreaPercentage'],
                     wastePercentage: $result['wastedAreaPercentage'],
-                    paperCost: $result['sheetsNeeded'] * $item->paper->price,
+                    paperCost: $result['sheetsNeeded'] * $item->paper->cost_per_sheet,
                     cuttingLayout: [
                         'vertical_cuts' => $result['verticalCuts'],
                         'horizontal_cuts' => $result['horizontalCuts']

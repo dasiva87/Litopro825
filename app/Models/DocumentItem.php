@@ -382,6 +382,63 @@ class DocumentItem extends Model
         return $item;
     }
 
+    // Método helper para calcular y actualizar precios automáticamente
+    public function calculateAndUpdatePrices(): bool
+    {
+        if ($this->unit_price > 0 && $this->total_price > 0) {
+            return true; // Ya tiene precios, no necesita cálculo
+        }
+
+        try {
+            if ($this->itemable_type === 'App\\Models\\SimpleItem' && $this->itemable) {
+                $calculator = new \App\Services\SimpleItemCalculatorService();
+                $pricing = $calculator->calculateFinalPricing($this->itemable);
+                
+                $this->update([
+                    'unit_price' => $pricing->unitPrice,
+                    'total_price' => $pricing->finalPrice,
+                ]);
+                
+                return true;
+                
+            } elseif ($this->itemable_type === 'App\\Models\\Product' && $this->itemable) {
+                $product = $this->itemable;
+                $unitPrice = $product->sale_price;
+                $totalPrice = $unitPrice * $this->quantity;
+                
+                $this->update([
+                    'unit_price' => $unitPrice,
+                    'total_price' => $totalPrice,
+                ]);
+                
+                return true;
+            }
+        } catch (\Exception $e) {
+            \Log::error('Error calculating item prices: ' . $e->getMessage(), [
+                'document_item_id' => $this->id,
+                'itemable_type' => $this->itemable_type,
+                'itemable_id' => $this->itemable_id
+            ]);
+        }
+
+        return false;
+    }
+
+    // Método estático para corregir todos los items con precios 0
+    public static function fixZeroPrices(): int
+    {
+        $itemsFixed = 0;
+        $zeroItems = self::where('unit_price', 0)->orWhere('total_price', 0)->get();
+        
+        foreach ($zeroItems as $item) {
+            if ($item->calculateAndUpdatePrices()) {
+                $itemsFixed++;
+            }
+        }
+
+        return $itemsFixed;
+    }
+
     // Constantes
     const TYPE_SIMPLE = 'simple';
     const TYPE_TALONARIO = 'talonario';
