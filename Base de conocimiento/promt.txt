@@ -1,0 +1,110 @@
+el papers está mal implementado ya que debe tener los siguientes parametros Còdigo, nombre, ancho, alto, gramaje, precio, stock, papel propio(esto es para saber si el papel es de la empresa o es de algun proveedor), proveedor(este parametro es una llave foranea a contacts) se activa si el papel no es propio, para seleccionar el proveedor, estos parametros deben ser en ingles para seguir las recomendaciones de laravel. dame un plan para realizar este cambio.
+
+en tipo de maquina si la maquina no es propia se debe activar para seleccionar el proveedor, el costo de la impresion es por millar, que son 1000 impresiones, 
+
+ahora vamos a desarrollar los document de tipo cotizacion, este debe listar todos los docuemnt_item que ester relacionado con el ID del document. y hace falta agregar a la base de datos los tipos de item que recibe, iniciemos con: Item_sencillo: tiene: descipcion, cantidad, tamanoHorizontal, tamanoVertical, cant_montaje (calculado), corte_papel_h (calculado), corte_papel_v (calculado), num_tinta_tiro, num_tinta_retiro, TiroYRetiroPlancha (boolean), valor_diseno, valor_transporte, valor_rifle, PorcentajeGanancia. estos parametros deben ser en ingles para seguir las recomendaciones de laravel. dame un plan para realizar este cambio.
+
+
+Item sencillo
+para calcularlo tenemos en cuenta lo siguiente:
+
+Cantidad: cuántas unidades necesita el cliente (Quantity)
+
+Colores: se suman la cantidad de colores por cada lado (ink_front_count + ink_back_count)
+
+Tamaño: dado un tamaño (corte horizontal y corte vertical), calculamos cuántos pliegos papel se necesita para el trabajo, primero haciendo un montaje dependiendo del tipo de máquina elegida, mostramos al usuario las diferentes opciones para imprimirlo, dependiendo el que el usuario elija, calculamos la cantidad de papel a utilizar, usando el algoritmo de “CALCULADORA DE CORTES” 
+
+Tipo de papel: el usuario elige el papel este tiene un tamaño que tambien se usa para la calculadora de papel que el cliente necesita de una base de datos almacenada porque en esta plataforma hay papelerías afiliadas a LitoPro que suministran todo tipo de papel.
+
+Máquina: el usuario elige en qué máquina lo quiere imprimir, estas pueden ser propias a de un proveedor que esté afiliado a LitoPro. Estas tienen un tamaño minimo y un tamaño maximo
+
+Ejemplo: 10000 volantes tamaño 20 x 13 cm, impreso 4x0 en papel propalcote 115.
+Después que el usuario elige en qué máquina lo va a imprimir, el sistema le sugiere los diferentes montajes que puede realizar y así el usuario elige el que prefiera.
+con el algoritmo de la calculadora de cortes de papel calculamos cuanto papel necesitamos para imprimir el trabajo, supongamos que el sistema no arrojo que el corte de papel es 50x 35 cm, en este tamaño caben 4 volantes esto lo dividipos por la cantidad solicitada que son 10000 no arroja que necesitamos 2500 hojas, que de esta salen 4 de un pliego de papel que mide 100 x 70, luego esto lo multiplicamos por el valor del del papel necesitado.
+calculamos cuantos millares de impresion esta formula es la cantidad de tinta por cada lado multiplicado por la cantidad de cortes necesarios, en este caso son: 4 tintas por 2500 tamaños que se va a imprimir, el valor del millar se redondena hacía arriba, después que la cantidad pade de 1000 en este casado sería 3 millares de hojas por 4 tintas nos da que son 12 millares de impresion, multiplicado por el valor del millar que depende de la maquina elegida.
+adicional se el eagrega un coto de corte, diseño.
+
+
+
+vamos a desarrollar el calculo del Item sencillo, primero genera el paso a paso para aprobacion
+esta es la descripcion:
+calcular el costo total de trabajos de impresión de ítems sencillos (volantes, flyers, tarjetas, etc.).
+Parámetros de Entrada
+Cantidad (Quantity): Número de unidades que necesita el cliente
+Dimensiones del ítem: Corte horizontal x Corte vertical (en cm)
+Colores:
+ink_front_count: Número de tintas en la cara frontal
+ink_back_count: Número de tintas en la cara posterior
+Total de colores = ink_front_count + ink_back_count
+Tipo de papel: Elegido de base de datos de papelerías afiliadas (incluye dimensiones estándar)
+Máquina de impresión: Propia o de proveedor afiliado (con tamaños mínimo y máximo)
+Algoritmo de Cálculo
+PASO 1: Cálculo de Papel Necesario
+Utiliza el algoritmo "CALCULADORA DE CORTES":
+Determinar montajes disponibles: Basado en la máquina seleccionada, mostrar opciones de montaje al usuario
+Calcular aprovechamiento:
+Determinar cuántas piezas caben en cada pliego según el montaje elegido
+Ejemplo: En un corte de 50x35 cm caben 4 volantes de 20x13 cm
+Calcular pliegos necesarios:
+Pliegos_necesarios = REDONDEAR_ARRIBA(Cantidad_total ÷ Piezas_por_pliego)
+Calcular precio total:
+precio_total = Pliegos_necesarios × Precio_por_pliego
+
+PASO 2: Cálculo de Millares de Impresión
+Fórmula base:
+Millares_impresion = (Total_colores × Pliegos_necesarios) ÷ 1000
+
+Redondeo: Siempre redondear HACIA ARRIBA
+Costo de impresión:
+Costo_impresion = Millares_impresion × Precio_millar_maquina
+
+PASO 3: Costos Adicionales
+Costo de corte: Según especificaciones de la máquina/proveedor
+Costo de diseño: Si aplica
+
+PASO 4: Cálculo Total
+Costo_total = Papel_total + Costo_impresion + Costo_corte + Costo_diseño
+Ejemplo de Aplicación
+Solicitud: 10,000 volantes de 20x13 cm, impresión 4x0, papel propalcote 115g
+Proceso:
+
+Usuario selecciona máquina → Sistema muestra opciones de montaje
+Usuario elige montaje → Sistema calcula: 4 volantes por pliego de 50x35 cm
+Cálculo de pliegos: 10,000 ÷ 4 = 2,500 hojas necesarias
+Si el papel base es 100x70 cm → Cálculo final de papel
+Millares de impresión: 4 tintas × 2,500 pliegos = 10,000 ÷ 1000 = 10 millares
+Redondeo hacia arriba: 10 millares → 12 millares de impresión
+Costo final = (Papel + Impresión + Corte + Diseño)
+
+Reglas de Negocio
+Validaciones:
+
+Verificar que las dimensiones del ítem no excedan los límites de la máquina
+Confirmar disponibilidad de papel en papelerías afiliadas
+Validar que el montaje sea técnicamente viable
+
+Optimizaciones:
+
+Sugerir montajes que minimicen desperdicio de papel
+Mostrar opciones de máquinas que ofrezcan mejor precio/calidad
+Alertar sobre descuentos por volumen si aplica
+
+Presentación de Resultados:
+
+Mostrar desglose detallado de costos
+Incluir tiempo estimado de producción
+Presentar alternativas de papel/máquina si mejoran el precio
+
+
+
+
+
+vamos hacer el plan para desarrollar el home de la plataforma el cual es el que està en la carpeta base de   │
+│   conocimiento/litopro_litografia_dashboard (1).html, està dividido en 3 pardes, en el side izquierdo està el  │
+│   menu principal tal cual como lo tenemos desarrollado, en al columna central tenemos un panel de control      │
+│   con varios dator relevantes como son las cotizaicones activas, ordenes de produccion, ingreso, clinetes      │
+│   activos, y podemos agregar las ordenes de pedido de papel activas, un poco mas abajo estàn las acciones      │
+│   rapidas, luego una tabla con todos los tipos de documentos activos, luego viene la red social de             │
+│   litografias donde podemos hacer mensajes y ver lo que las otras litografias ofrecen, del side derecho        │
+│   tenemos stock, ofertas en marketplace, y la parte mas importante la calculadora de papel, panel de proximos  │
+│   vencimientos, quiero que crees el plan ya que hay varios modelos que intervienen es este home   

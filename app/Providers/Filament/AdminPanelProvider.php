@@ -36,12 +36,22 @@ class AdminPanelProvider extends PanelProvider
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
-                Dashboard::class,
+                \App\Filament\Pages\LitoproDashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
+                // Default Filament Widgets
                 AccountWidget::class,
-                FilamentInfoWidget::class,
+                
+                // LitoPro Central Panel Widgets
+                \App\Filament\Widgets\DashboardStatsWidget::class,
+                \App\Filament\Widgets\ActiveDocumentsWidget::class,
+                \App\Filament\Widgets\SocialFeedWidget::class,
+                
+                // LitoPro Sidebar Widgets (specialized tools)
+                \App\Filament\Widgets\StockAlertsWidget::class,
+                \App\Filament\Widgets\DeadlinesWidget::class,
+                \App\Filament\Widgets\PaperCalculatorWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
