@@ -262,6 +262,32 @@ class DocumentItem extends Model
             }
             return;
         }
+        
+        // Para items digitales, no recalcular si ya tienen precios definidos
+        if ($this->itemable_type === 'App\\Models\\DigitalItem') {
+            // Si los precios ya están definidos (del formulario), no recalcular
+            if ($this->unit_price > 0 && $this->total_price > 0) {
+                return;
+            }
+            
+            // Si no están definidos y hay un DigitalItem relacionado, calcular
+            if ($this->itemable && $this->item_config) {
+                $config = json_decode($this->item_config, true);
+                
+                // Preparar parámetros para el cálculo
+                $params = ['quantity' => $this->quantity];
+                if ($config['pricing_type'] === 'size' && isset($config['width']) && isset($config['height'])) {
+                    $params['width'] = $config['width'];
+                    $params['height'] = $config['height'];
+                }
+                
+                // Calcular usando el método del DigitalItem
+                $totalPrice = $this->itemable->calculateTotalPrice($params);
+                $this->unit_price = $totalPrice / $this->quantity;
+                $this->total_price = $totalPrice;
+            }
+            return;
+        }
 
         // Para otros tipos de items, usar el cálculo original
         // Calcular costos base si no están definidos
@@ -410,6 +436,34 @@ class DocumentItem extends Model
                     'unit_price' => $unitPrice,
                     'total_price' => $totalPrice,
                 ]);
+                
+                return true;
+                
+            } elseif ($this->itemable_type === 'App\\Models\\DigitalItem' && $this->itemable) {
+                // Para DigitalItems, el precio ya está calculado y guardado en el DocumentItem
+                // Pero podríamos recalcular si tenemos parámetros adicionales en metadata
+                $digitalItem = $this->itemable;
+                
+                // Si hay metadata con parámetros específicos, usar esos para recalcular
+                if ($this->item_config && is_array($this->item_config)) {
+                    $calculator = new \App\Services\DigitalItemCalculatorService();
+                    $totalPrice = $calculator->calculateTotalPrice($digitalItem, $this->item_config);
+                    $unitPrice = $totalPrice / ($this->item_config['quantity'] ?? 1);
+                    
+                    $this->update([
+                        'unit_price' => $unitPrice,
+                        'total_price' => $totalPrice,
+                    ]);
+                } else {
+                    // Si no hay configuración específica, usar precio base * cantidad
+                    $unitPrice = $digitalItem->unit_value;
+                    $totalPrice = $unitPrice * $this->quantity;
+                    
+                    $this->update([
+                        'unit_price' => $unitPrice,
+                        'total_price' => $totalPrice,
+                    ]);
+                }
                 
                 return true;
             }

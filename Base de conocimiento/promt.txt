@@ -20,7 +20,7 @@ Máquina: el usuario elige en qué máquina lo quiere imprimir, estas pueden ser
 
 Ejemplo: 10000 volantes tamaño 20 x 13 cm, impreso 4x0 en papel propalcote 115.
 Después que el usuario elige en qué máquina lo va a imprimir, el sistema le sugiere los diferentes montajes que puede realizar y así el usuario elige el que prefiera.
-con el algoritmo de la calculadora de cortes de papel calculamos cuanto papel necesitamos para imprimir el trabajo, supongamos que el sistema no arrojo que el corte de papel es 50x 35 cm, en este tamaño caben 4 volantes esto lo dividipos por la cantidad solicitada que son 10000 no arroja que necesitamos 2500 hojas, que de esta salen 4 de un pliego de papel que mide 100 x 70, luego esto lo multiplicamos por el valor del del papel necesitado.
+con el algoritmo de la calculadora de cortes de papel calculamos cuanto papel necesitamos para imprimir el trabajo, supongamos que el sistema nos arrojo que el corte de papel es 50x 35 cm, en este tamaño caben 4 volantes esto lo dividipos por la cantidad solicitada que son 10000 no arroja que necesitamos 2500 hojas, que de esta salen 4 de un pliego de papel que mide 100 x 70, luego esto lo multiplicamos por el valor del del papel necesitado.
 calculamos cuantos millares de impresion esta formula es la cantidad de tinta por cada lado multiplicado por la cantidad de cortes necesarios, en este caso son: 4 tintas por 2500 tamaños que se va a imprimir, el valor del millar se redondena hacía arriba, después que la cantidad pade de 1000 en este casado sería 3 millares de hojas por 4 tintas nos da que son 12 millares de impresion, multiplicado por el valor del millar que depende de la maquina elegida.
 adicional se el eagrega un coto de corte, diseño.
 
@@ -99,12 +99,97 @@ Presentar alternativas de papel/máquina si mejoran el precio
 
 
 
-vamos hacer el plan para desarrollar el home de la plataforma el cual es el que està en la carpeta base de   │
-│   conocimiento/litopro_litografia_dashboard (1).html, està dividido en 3 pardes, en el side izquierdo està el  │
-│   menu principal tal cual como lo tenemos desarrollado, en al columna central tenemos un panel de control      │
-│   con varios dator relevantes como son las cotizaicones activas, ordenes de produccion, ingreso, clinetes      │
-│   activos, y podemos agregar las ordenes de pedido de papel activas, un poco mas abajo estàn las acciones      │
-│   rapidas, luego una tabla con todos los tipos de documentos activos, luego viene la red social de             │
-│   litografias donde podemos hacer mensajes y ver lo que las otras litografias ofrecen, del side derecho        │
-│   tenemos stock, ofertas en marketplace, y la parte mas importante la calculadora de papel, panel de proximos  │
-│   vencimientos, quiero que crees el plan ya que hay varios modelos que intervienen es este home   
+vamos hacer el plan para desarrollar el home de la plataforma el cual es el que està en la carpeta base de conocimiento/litopro_litografia_dashboard (1).html, està dividido en 3 pardes, en el side izquierdo està el menu principal tal cual como lo tenemos desarrollado, en al columna central tenemos un panel de control con varios dator relevantes como son las cotizaicones activas, ordenes de produccion, ingreso, clinetes activos, y podemos agregar las ordenes de pedido de papel activas, un poco mas abajo estàn las acciones rapidas, luego una tabla con todos los tipos de documentos activos, luego viene la red social de          
+litografias donde podemos hacer mensajes y ver lo que las otras litografias ofrecen, del side derecho tenemos stock, ofertas en marketplace, y la parte mas importante la calculadora de papel, panel de proximos vencimientos, quiero que crees el plan ya que hay varios modelos que intervienen es este home   
+
+
+
+
+
+
+
+
+
+toma como referencia el Item sencillo para desarrollar el Item Revista
+para calcularlo tenemos en cuenta lo siguiente:
+
+Cantidad: cuántas unidades necesita el cliente (Quantity)
+
+tamaño de la revista cerrado. 
+tipo de encuadernancion, grapado, plegado, anillado, cosido, caballete, lomo
+lado de encuadernacion, arriba, izquierda, derecha, abajo
+
+Debe tener un boton para agregar todos los tipos de hojas que necesite la revista, por ejemplo
+	1. cantidad tiene predeterminado el tamaño que se ingreso anteriormente, tipo de hoja portada, tiene predeterminado el tamaño que se eligio en tamaño revista pero puede ser modificado, tiene un tipo de papel, cantidad de tintas se suman la cantidad de colores por cada lado (ink_front_count + ink_back_count), acabados
+	2. cantidad tiene predeterminado el tamaño que se ingreso anteriormente,tipo de hoja interna, tiene predeterminado el tamaño que se eligio en tamaño revista pero puede ser modificadotiene un tipo de papel, cantidad de tintas se suman la cantidad de colores por cada lado (ink_front_count + ink_back_count), acabados
+	3. cantidad tiene predeterminado el tamaño que se ingreso anteriormente,tipo de hoja separador, tiene predeterminado el tamaño que se eligio en tamaño revista pero puede ser modificadotiene un tipo de papel, cantidad de tintas se suman la cantidad de colores por cada lado (ink_front_count + ink_back_count), acabados
+
+	al parecer las revistas son grupos de item sencillos que se van agregando a un item de tipo Revista
+
+el tamaño de cada tipo de hoja se calcula lo siguiente:
+
+	Tamaño así: dado un tamaño (corte horizontal y corte vertical), calculamos cuántos pliegos papel se necesita para el trabajo, primero haciendo un montaje dependiendo del tipo de máquina elegida, mostramos al usuario las diferentes opciones para imprimirlo, dependiendo el que el usuario elija, calculamos la cantidad de papel a utilizar, usando el algoritmo de “CALCULADORA DE CORTES” 
+
+	Tipo de papel: el usuario elige el papel este tiene un tamaño que tambien se usa para la calculadora de papel que el cliente necesita de una base de datos almacenada porque en esta plataforma hay papelerías afiliadas a LitoPro que suministran todo tipo de papel.
+
+	Máquina: el usuario elige en qué máquina lo quiere imprimir, estas pueden ser propias a de un proveedor que esté afiliado a LitoPro. Estas tienen un tamaño minimo y un tamaño maximo
+
+despues de agregar todos los tipos de hoja tambien podemos seleccionar varios acabados como: armado, refile, empaque
+
+Ejemplo: 
+1000 revistas tamaño carta cerrado, portada y contraportada en propalcote 300 plastificado mate por ambas caras impresa 4x4, 28 paginas internas en papel propalcote 115 impresas 4x4, grapadas por el lado derecho
+
+Después que el usuario elige en qué máquina lo va a imprimir, el sistema le sugiere los diferentes montajes que puede realizar y así el usuario elige el que prefiera.
+
+con el algoritmo de la calculadora de cortes de papel calculamos cuanto papel necesitamos para imprimir el cada tipo de hoja, supongamos que el sistema nos arrojo que el corte de papel es 50x 35 cm, en este tamaño caben 4 volantes esto lo dividipos por la cantidad solicitada que son 10000 no arroja que necesitamos 2500 hojas, que de esta salen 4 de un pliego de papel que mide 100 x 70, luego esto lo multiplicamos por el valor del del papel necesitado.
+calculamos cuantos millares de impresion esta formula es la cantidad de tinta por cada lado multiplicado por la cantidad de cortes necesarios, en este caso son: 4 tintas por 2500 tamaños que se va a imprimir, el valor del millar se redondena hacía arriba, después que la cantidad pade de 1000 en este casado sería 3 millares de hojas por 4 tintas nos da que son 12 millares de impresion, multiplicado por el valor del millar que depende de la maquina elegida.
+adicional se el eagrega un coto de corte, diseño.
+
+vamos a desarrollar el calculo del Item Revista, primero genera el paso a paso para aprobacion
+
+----------------------------------------------------------
+
+Quiero que el dashboar lo diseñes mejor, los widget estàn bien pero mejora el ui/ux, dividelo en tres columnas, izquierda el menu, centro Documentos Activos ylas publicaciones red social, y a la derecha,  Stock Crítico, Próximos Vencimientos, Calculadora de Papel
+
+mejor en 2 columnas 75% y 25%
+columna 1: DashboardStatsWidget (Header) - Métricas principales
+			- 📋 ActiveDocumentsWidget - Documentos activos (tabla completa)
+      		- 🌐 SocialFeedWidget - Red social entre litografías (mejorado)
+
+Columna 2  - Herramientas Especializadas                     │
+     │ - ⚠️ StockAlertsWidget - Alertas de inventario crítico                  │
+     │ - ⏰ DeadlinesWidget - Próximos vencimientos                             │
+     │ - 🧮 PaperCalculatorWidget - Calculadora visual de papel 
+primero muestrame el plan de trabajo, como quedarìa implementado
+
+
+
+-------------------------------
+ItemDigital
+
+desarrollemos el tipo de item digital, el calculo de este item no es muy complejo, este item se guarda con los parametros y luego se usa en las cotizaciones, para guardar este item necestiamos los siguiente parametros
+
+codigo
+cantidad
+Descripcion
+valor
+Precio de Compra
+
+Precio de Venta
+Margen de Ganancia
+informacion del proveedor: propio o no
+no tiene inventario
+
+valor por: unidad o tamaño ancho y alto
+
+Si el valor es por unidad el calculo del costo final es multiplicar, cantidad por valor unitario
+si el valor es por tamaño el calculo del costo final es multiplicar, alto por ancho por valor unitario
+
+primero genera el paso a paso para aprobacion
+
+
+
+-------------
+ahora vamos a desarrollar el tipo de item personalizado, este item solo tien los campos cantidad descripcion valor unitario y el valor total se calcula multipicando la cantidad por el valor unitario, no tiene mas configuracion ya que el usurio ingrsa manualmente los datos, no tiene calculos complejos
+
+.

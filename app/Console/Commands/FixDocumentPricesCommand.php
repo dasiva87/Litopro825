@@ -33,7 +33,7 @@ class FixDocumentPricesCommand extends Command
                 return [
                     $item->id,
                     $item->document_id,
-                    str_limit($item->description, 30),
+                    \Illuminate\Support\Str::limit($item->description, 30),
                     class_basename($item->itemable_type ?? 'N/A'),
                     '$' . number_format($item->unit_price, 2),
                     '$' . number_format($item->total_price, 2)

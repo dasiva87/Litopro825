@@ -74,6 +74,148 @@ class DocumentItemsRelationManager extends RelationManager
                                 ];
                             }
                             
+                            if ($itemType === 'digital') {
+                                return [
+                                    Forms\Components\Hidden::make('itemable_type')
+                                        ->default('App\\Models\\DigitalItem'),
+                                        
+                                    \Filament\Schemas\Components\Section::make('Seleccionar Item Digital')
+                                        ->description('Elige un item digital existente y especifica parámetros')
+                                        ->schema([
+                                            Select::make('itemable_id')
+                                                ->label('Item Digital')
+                                                ->relationship(
+                                                    name: 'itemable',
+                                                    titleAttribute: 'description',
+                                                    modifyQueryUsing: fn ($query) => $query->where('active', true)->where('company_id', auth()->user()->company_id)
+                                                )
+                                                ->getOptionLabelFromRecordUsing(function ($record) {
+                                                    return $record->code . ' - ' . $record->description . ' (' . $record->pricing_type_name . ')';
+                                                })
+                                                ->searchable(['code', 'description'])
+                                                ->preload()
+                                                ->required()
+                                                ->live()
+                                                ->columnSpanFull(),
+                                                
+                                            \Filament\Schemas\Components\Grid::make(3)
+                                                ->schema([
+                                                    Forms\Components\TextInput::make('quantity')
+                                                        ->label('Cantidad')
+                                                        ->numeric()
+                                                        ->required()
+                                                        ->default(1)
+                                                        ->minValue(1)
+                                                        ->suffix('unidades')
+                                                        ->live(),
+                                                        
+                                                    Forms\Components\TextInput::make('width')
+                                                        ->label('Ancho (cm)')
+                                                        ->numeric()
+                                                        ->visible(function ($get) {
+                                                            $itemId = $get('itemable_id');
+                                                            if ($itemId) {
+                                                                $item = \App\Models\DigitalItem::find($itemId);
+                                                                return $item && $item->pricing_type === 'size';
+                                                            }
+                                                            return false;
+                                                        })
+                                                        ->required(function ($get) {
+                                                            $itemId = $get('itemable_id');
+                                                            if ($itemId) {
+                                                                $item = \App\Models\DigitalItem::find($itemId);
+                                                                return $item && $item->pricing_type === 'size';
+                                                            }
+                                                            return false;
+                                                        })
+                                                        ->live(),
+                                                        
+                                                    Forms\Components\TextInput::make('height')
+                                                        ->label('Alto (cm)')
+                                                        ->numeric()
+                                                        ->visible(function ($get) {
+                                                            $itemId = $get('itemable_id');
+                                                            if ($itemId) {
+                                                                $item = \App\Models\DigitalItem::find($itemId);
+                                                                return $item && $item->pricing_type === 'size';
+                                                            }
+                                                            return false;
+                                                        })
+                                                        ->required(function ($get) {
+                                                            $itemId = $get('itemable_id');
+                                                            if ($itemId) {
+                                                                $item = \App\Models\DigitalItem::find($itemId);
+                                                                return $item && $item->pricing_type === 'size';
+                                                            }
+                                                            return false;
+                                                        })
+                                                        ->live(),
+                                                ]),
+                                                
+                                            Forms\Components\Placeholder::make('digital_preview')
+                                                ->content(function ($get) {
+                                                    $itemId = $get('itemable_id');
+                                                    $quantity = $get('quantity') ?? 1;
+                                                    $width = $get('width') ?? 0;
+                                                    $height = $get('height') ?? 0;
+                                                    
+                                                    if (!$itemId) {
+                                                        return '📋 Selecciona un item digital para ver el cálculo';
+                                                    }
+                                                    
+                                                    $item = \App\Models\DigitalItem::find($itemId);
+                                                    if (!$item) {
+                                                        return '❌ Item digital no encontrado';
+                                                    }
+                                                    
+                                                    $calculator = new \App\Services\DigitalItemCalculatorService();
+                                                    $params = ['quantity' => $quantity];
+                                                    
+                                                    if ($item->pricing_type === 'size') {
+                                                        $params['width'] = $width;
+                                                        $params['height'] = $height;
+                                                    }
+                                                    
+                                                    $errors = $calculator->validateParameters($item, $params);
+                                                    
+                                                    $content = '<div class="space-y-2">';
+                                                    $content .= '<div><strong>📋 Item:</strong> ' . $item->description . '</div>';
+                                                    $content .= '<div><strong>📐 Tipo:</strong> ' . $item->pricing_type_name . '</div>';
+                                                    $content .= '<div><strong>💰 Valor unitario:</strong> ' . $item->formatted_unit_value . '</div>';
+                                                    
+                                                    if (!empty($errors)) {
+                                                        $content .= '<div class="text-red-600 mt-2">';
+                                                        foreach ($errors as $error) {
+                                                            $content .= '<div>❌ ' . $error . '</div>';
+                                                        }
+                                                        $content .= '</div>';
+                                                    } else {
+                                                        $totalPrice = $item->calculateTotalPrice($params);
+                                                        $unitPrice = $totalPrice / $quantity;
+                                                        
+                                                        if ($item->pricing_type === 'size' && $width > 0 && $height > 0) {
+                                                            $area = ($width / 100) * ($height / 100); // Convertir a m²
+                                                            $content .= '<div><strong>📏 Área:</strong> ' . number_format($area, 4) . ' m²</div>';
+                                                        }
+                                                        
+                                                        $content .= '<div class="mt-2 p-2 bg-blue-50 rounded">';
+                                                        $content .= '<div><strong>💵 Precio por unidad:</strong> $' . number_format($unitPrice, 2) . '</div>';
+                                                        $content .= '<div><strong>💵 Total:</strong> $' . number_format($totalPrice, 2) . '</div>';
+                                                        $content .= '</div>';
+                                                        
+                                                        $content .= '<div class="text-green-600"><strong>✅ Cálculo válido</strong></div>';
+                                                    }
+                                                    
+                                                    $content .= '</div>';
+                                                    return $content;
+                                                })
+                                                ->html()
+                                                ->columnSpanFull()
+                                                ->visible(fn ($get) => filled($get('itemable_id'))),
+                                        ]),
+                                ];
+                            }
+                            
                             if ($itemType === 'product') {
                                 return [
                                     Forms\Components\Hidden::make('itemable_type')
@@ -304,6 +446,43 @@ class DocumentItemsRelationManager extends RelationManager
                             ];
                         }
                         
+                        // Manejar items digitales
+                        elseif ($data['item_type'] === 'digital' && $data['itemable_type'] === 'App\\Models\\DigitalItem') {
+                            $digitalItem = \App\Models\DigitalItem::find($data['itemable_id']);
+                            
+                            if (!$digitalItem) {
+                                throw new \Exception('Item digital no encontrado');
+                            }
+                            
+                            // Preparar parámetros para cálculo
+                            $params = ['quantity' => $data['quantity'] ?? 1];
+                            if ($digitalItem->pricing_type === 'size') {
+                                $params['width'] = $data['width'] ?? 0;
+                                $params['height'] = $data['height'] ?? 0;
+                            }
+                            
+                            // Validar parámetros
+                            $errors = $digitalItem->validateParameters($params);
+                            
+                            if (!empty($errors)) {
+                                throw new \Exception('Parámetros inválidos: ' . implode(', ', $errors));
+                            }
+                            
+                            // Calcular precio total
+                            $totalPrice = $digitalItem->calculateTotalPrice($params);
+                            $unitPrice = $totalPrice / $params['quantity'];
+                            
+                            // Configurar datos para DocumentItem
+                            $data = [
+                                'itemable_type' => 'App\\Models\\DigitalItem',
+                                'itemable_id' => $digitalItem->id,
+                                'description' => 'Digital: ' . $digitalItem->description,
+                                'quantity' => $params['quantity'],
+                                'unit_price' => $unitPrice,
+                                'total_price' => $totalPrice
+                            ];
+                        }
+                        
                         // Manejar productos del inventario
                         elseif ($data['item_type'] === 'product' && $data['itemable_type'] === 'App\\Models\\Product') {
                             // El producto ya existe, solo necesitamos crear la referencia en DocumentItem
@@ -366,6 +545,187 @@ class DocumentItemsRelationManager extends RelationManager
                         $this->dispatch('$refresh');
                     })
                     ->modalWidth('7xl'),
+                    
+                Action::make('quick_digital_item')
+                    ->label('Item Digital Rápido')
+                    ->icon('heroicon-o-computer-desktop')
+                    ->color('primary')
+                    ->form([
+                        \Filament\Schemas\Components\Section::make('Agregar Item Digital')
+                            ->description('Selecciona un item digital existente y especifica parámetros')
+                            ->schema([
+                                Select::make('digital_item_id')
+                                    ->label('Item Digital')
+                                    ->options(function () {
+                                        return \App\Models\DigitalItem::where('active', true)
+                                            ->where('company_id', auth()->user()->company_id)
+                                            ->get()
+                                            ->mapWithKeys(function ($item) {
+                                                return [
+                                                    $item->id => $item->code . ' - ' . $item->description . ' (' . $item->pricing_type_name . ')'
+                                                ];
+                                            });
+                                    })
+                                    ->searchable()
+                                    ->required()
+                                    ->live()
+                                    ->afterStateUpdated(function ($state, $set) {
+                                        if ($state) {
+                                            $item = \App\Models\DigitalItem::find($state);
+                                            if ($item) {
+                                                $set('item_description', $item->description);
+                                                $set('pricing_type', $item->pricing_type);
+                                                $set('unit_value', $item->unit_value);
+                                            }
+                                        }
+                                    }),
+                                    
+                                \Filament\Schemas\Components\Grid::make(3)
+                                    ->schema([
+                                        Forms\Components\TextInput::make('quantity')
+                                            ->label('Cantidad')
+                                            ->numeric()
+                                            ->required()
+                                            ->default(1)
+                                            ->minValue(1)
+                                            ->suffix('unidades')
+                                            ->live(),
+                                            
+                                        Forms\Components\TextInput::make('width')
+                                            ->label('Ancho (cm)')
+                                            ->numeric()
+                                            ->visible(fn ($get) => $get('pricing_type') === 'size')
+                                            ->required(fn ($get) => $get('pricing_type') === 'size')
+                                            ->live(),
+                                            
+                                        Forms\Components\TextInput::make('height')
+                                            ->label('Alto (cm)')
+                                            ->numeric()
+                                            ->visible(fn ($get) => $get('pricing_type') === 'size')
+                                            ->required(fn ($get) => $get('pricing_type') === 'size')
+                                            ->live(),
+                                    ]),
+                                    
+                                Forms\Components\Placeholder::make('digital_calc')
+                                    ->content(function ($get) {
+                                        $itemId = $get('digital_item_id');
+                                        $quantity = $get('quantity') ?? 1;
+                                        $width = $get('width') ?? 0;
+                                        $height = $get('height') ?? 0;
+                                        
+                                        if (!$itemId) {
+                                            return '📋 Selecciona un item digital para ver el cálculo';
+                                        }
+                                        
+                                        $item = \App\Models\DigitalItem::find($itemId);
+                                        if (!$item) {
+                                            return '❌ Item digital no encontrado';
+                                        }
+                                        
+                                        $params = ['quantity' => $quantity];
+                                        
+                                        if ($item->pricing_type === 'size') {
+                                            $params['width'] = $width;
+                                            $params['height'] = $height;
+                                        }
+                                        
+                                        $errors = $item->validateParameters($params);
+                                        
+                                        $content = '<div class="space-y-2">';
+                                        $content .= '<div><strong>📋 Item:</strong> ' . $item->description . '</div>';
+                                        $content .= '<div><strong>📐 Tipo:</strong> ' . $item->pricing_type_name . '</div>';
+                                        $content .= '<div><strong>💰 Valor unitario:</strong> ' . $item->formatted_unit_value . '</div>';
+                                        
+                                        if (!empty($errors)) {
+                                            $content .= '<div class="text-red-600 mt-2">';
+                                            foreach ($errors as $error) {
+                                                $content .= '<div>❌ ' . $error . '</div>';
+                                            }
+                                            $content .= '</div>';
+                                        } else {
+                                            $totalPrice = $item->calculateTotalPrice($params);
+                                            $unitPrice = $totalPrice / $quantity;
+                                            
+                                            if ($item->pricing_type === 'size' && $width > 0 && $height > 0) {
+                                                $area = ($width / 100) * ($height / 100); // Convertir a m²
+                                                $content .= '<div><strong>📏 Área:</strong> ' . number_format($area, 4) . ' m²</div>';
+                                            }
+                                            
+                                            $content .= '<div class="mt-2 p-2 bg-blue-50 rounded">';
+                                            $content .= '<div><strong>💵 Precio por unidad:</strong> $' . number_format($unitPrice, 2) . '</div>';
+                                            $content .= '<div><strong>💵 Total:</strong> $' . number_format($totalPrice, 2) . '</div>';
+                                            $content .= '</div>';
+                                            
+                                            $content .= '<div class="text-green-600"><strong>✅ Cálculo válido</strong></div>';
+                                        }
+                                        
+                                        $content .= '</div>';
+                                        return $content;
+                                    })
+                                    ->html()
+                                    ->columnSpanFull()
+                                    ->visible(fn ($get) => filled($get('digital_item_id'))),
+                                    
+                                Forms\Components\Hidden::make('item_description'),
+                                Forms\Components\Hidden::make('pricing_type'),
+                                Forms\Components\Hidden::make('unit_value'),
+                            ])
+                    ])
+                    ->action(function (array $data) {
+                        $digitalItem = \App\Models\DigitalItem::find($data['digital_item_id']);
+                        
+                        if (!$digitalItem) {
+                            throw new \Exception('Item digital no encontrado');
+                        }
+                        
+                        // Preparar parámetros para cálculo
+                        $params = ['quantity' => $data['quantity'] ?? 1];
+                        if ($digitalItem->pricing_type === 'size') {
+                            $params['width'] = $data['width'] ?? 0;
+                            $params['height'] = $data['height'] ?? 0;
+                        }
+                        
+                        // Validar parámetros
+                        $errors = $digitalItem->validateParameters($params);
+                        
+                        if (!empty($errors)) {
+                            throw new \Exception('Parámetros inválidos: ' . implode(', ', $errors));
+                        }
+                        
+                        // Calcular precio total
+                        $totalPrice = $digitalItem->calculateTotalPrice($params);
+                        $unitPrice = $totalPrice / $params['quantity'];
+                        
+                        // Crear el DocumentItem asociado con item_config
+                        $itemConfig = [
+                            'pricing_type' => $digitalItem->pricing_type,
+                            'unit_value' => $digitalItem->unit_value
+                        ];
+                        
+                        if ($digitalItem->pricing_type === 'size') {
+                            $itemConfig['width'] = $params['width'];
+                            $itemConfig['height'] = $params['height'];
+                        }
+                        
+                        $this->getOwnerRecord()->items()->create([
+                            'itemable_type' => 'App\\Models\\DigitalItem',
+                            'itemable_id' => $digitalItem->id,
+                            'description' => 'Digital: ' . $digitalItem->description,
+                            'quantity' => $params['quantity'],
+                            'unit_price' => $unitPrice,
+                            'total_price' => $totalPrice,
+                            'item_type' => 'digital',
+                            'item_config' => json_encode($itemConfig)
+                        ]);
+                        
+                        // Recalcular totales del documento
+                        $this->getOwnerRecord()->recalculateTotals();
+                        
+                        // Refrescar la tabla
+                        $this->dispatch('$refresh');
+                    })
+                    ->modalWidth('5xl')
+                    ->successNotificationTitle('Item digital agregado correctamente'),
                     
                 Action::make('quick_product_item')
                     ->label('Producto Rápido')

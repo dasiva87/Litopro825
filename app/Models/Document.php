@@ -224,6 +224,9 @@ class Document extends Model
             if ($item->itemable_type === 'App\\Models\\Product') {
                 // Para productos, usar total_price del DocumentItem
                 $itemTotal = $item->total_price ?? 0;
+            } elseif ($item->itemable_type === 'App\\Models\\DigitalItem') {
+                // Para items digitales, usar total_price del DocumentItem (ya calculado)
+                $itemTotal = $item->total_price ?? 0;
             } elseif ($item->itemable && isset($item->itemable->final_price)) {
                 // Para SimpleItems y otros, usar final_price del item relacionado
                 $itemTotal = $item->itemable->final_price;
