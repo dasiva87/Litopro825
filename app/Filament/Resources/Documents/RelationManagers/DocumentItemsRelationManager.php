@@ -19,6 +19,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\Select;
 use Filament\Schemas\Components\Wizard;
+use Filament\Schemas\Components\Grid;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
@@ -31,6 +32,110 @@ class DocumentItemsRelationManager extends RelationManager
     protected static ?string $modelLabel = 'Item';
 
     protected static ?string $pluralModelLabel = 'Items';
+
+    private function shouldShowSizeFields(?int $finishingId): bool
+    {
+        if (!$finishingId) {
+            return false;
+        }
+        
+        $finishing = \App\Models\Finishing::find($finishingId);
+        return $finishing && $finishing->measurement_unit->value === 'tamaño';
+    }
+
+    private function calculateFinishingCost($set, $get): void
+    {
+        $finishingId = $get('finishing_id');
+        $quantity = $get('quantity') ?? 0;
+        $width = $get('width') ?? 0;
+        $height = $get('height') ?? 0;
+        
+        \Log::info('calculateFinishingCost called', [
+            'finishing_id' => $finishingId,
+            'quantity' => $quantity,
+            'width' => $width,
+            'height' => $height
+        ]);
+        
+        if ($finishingId && $quantity > 0) {
+            try {
+                $finishing = \App\Models\Finishing::find($finishingId);
+                if ($finishing) {
+                    $calculator = app(\App\Services\FinishingCalculatorService::class);
+                    $cost = $calculator->calculateCost($finishing, [
+                        'quantity' => $quantity,
+                        'width' => $width,
+                        'height' => $height,
+                    ]);
+                    
+                    \Log::info('Calculated cost', ['cost' => $cost]);
+                    $set('calculated_cost', $cost);
+                    
+                    // Recalcular el total del item incluyendo todos los acabados
+                    $this->recalculateItemTotal($set, $get);
+                }
+            } catch (\Exception $e) {
+                \Log::error('Error calculating finishing cost', ['error' => $e->getMessage()]);
+                $set('calculated_cost', 0);
+            }
+        } else {
+            $set('calculated_cost', 0);
+            // Recalcular el total del item incluso si se quita un acabado
+            $this->recalculateItemTotal($set, $get);
+        }
+    }
+    
+    private function recalculateItemTotal($set, $get): void
+    {
+        try {
+            // Obtener el precio base del item
+            $basePrice = 0;
+            $quantity = $get('../../quantity') ?? 1; // Acceder al quantity del nivel padre
+            
+            if ($get('../../item_type') === 'digital') {
+                // Para items digitales, obtener el precio base
+                $unitValue = $get('../../unit_value') ?? 0;
+                $pricingType = $get('../../pricing_type') ?? 'unit';
+                
+                if ($pricingType === 'size') {
+                    $width = $get('../../width') ?? 0;
+                    $height = $get('../../height') ?? 0;
+                    $area = ($width / 100) * ($height / 100); // convertir cm a m²
+                    $basePrice = $area * $unitValue * $quantity;
+                } else {
+                    $basePrice = $unitValue * $quantity;
+                }
+            }
+            
+            // Sumar todos los costos de acabados
+            $finishings = $get('../../finishings') ?? [];
+            $finishingsCost = 0;
+            
+            foreach ($finishings as $finishing) {
+                if (isset($finishing['calculated_cost'])) {
+                    $finishingsCost += (float) $finishing['calculated_cost'];
+                }
+            }
+            
+            $totalPrice = $basePrice + $finishingsCost;
+            $unitPrice = $quantity > 0 ? $totalPrice / $quantity : 0;
+            
+            \Log::info('Recalculating item total', [
+                'base_price' => $basePrice,
+                'finishings_cost' => $finishingsCost,
+                'total_price' => $totalPrice,
+                'unit_price' => $unitPrice,
+                'quantity' => $quantity
+            ]);
+            
+            // Actualizar los precios en el formulario principal
+            $set('../../unit_price', round($unitPrice, 2));
+            $set('../../total_price', round($totalPrice, 2));
+            
+        } catch (\Exception $e) {
+            \Log::error('Error recalculating item total', ['error' => $e->getMessage()]);
+        }
+    }
 
     public function form(Schema $schema): Schema
     {
@@ -84,13 +189,13 @@ class DocumentItemsRelationManager extends RelationManager
                                         ->schema([
                                             Select::make('itemable_id')
                                                 ->label('Item Digital')
-                                                ->relationship(
-                                                    name: 'itemable',
-                                                    titleAttribute: 'description',
-                                                    modifyQueryUsing: fn ($query) => $query->where('active', true)->where('company_id', auth()->user()->company_id)
-                                                )
-                                                ->getOptionLabelFromRecordUsing(function ($record) {
-                                                    return $record->code . ' - ' . $record->description . ' (' . $record->pricing_type_name . ')';
+                                                ->options(function () {
+                                                    return \App\Models\DigitalItem::where('company_id', auth()->user()->company_id)
+                                                        ->where('active', true)
+                                                        ->get()
+                                                        ->mapWithKeys(function ($item) {
+                                                            return [$item->id => $item->code . ' - ' . $item->description . ' (' . $item->pricing_type_name . ')'];
+                                                        });
                                                 })
                                                 ->searchable(['code', 'description'])
                                                 ->preload()
@@ -152,6 +257,108 @@ class DocumentItemsRelationManager extends RelationManager
                                                         ->live(),
                                                 ]),
                                                 
+                                            // Sección de Acabados Completa
+                                            \Filament\Schemas\Components\Section::make('🎨 Acabados Opcionales')
+                                                ->description('Agrega acabados adicionales que se calcularán automáticamente')
+                                                ->schema([
+                                                    Forms\Components\Repeater::make('finishings')
+                                                        ->label('Acabados')
+                                                        ->schema([
+                                                            Forms\Components\Select::make('finishing_id')
+                                                                ->label('Acabado')
+                                                                ->options(function () {
+                                                                    return \App\Models\Finishing::where('active', true)
+                                                                        ->where('company_id', auth()->user()->company_id)
+                                                                        ->get()
+                                                                        ->mapWithKeys(function ($finishing) {
+                                                                            return [
+                                                                                $finishing->id => $finishing->code . ' - ' . $finishing->name . ' (' . $finishing->measurement_unit->label() . ')'
+                                                                            ];
+                                                                        });
+                                                                })
+                                                                ->required()
+                                                                ->live()
+                                                                ->searchable()
+                                                                ->afterStateUpdated(function ($set, $get, $state) {
+                                                                    $this->calculateFinishingCost($set, $get);
+                                                                }),
+                                                                
+                                                            Grid::make(3)
+                                                                ->schema([
+                                                                    Forms\Components\TextInput::make('quantity')
+                                                                        ->label('Cantidad')
+                                                                        ->numeric()
+                                                                        ->default(1)
+                                                                        ->required()
+                                                                        ->live()
+                                                                        ->afterStateUpdated(function ($set, $get, $state) {
+                                                                            $this->calculateFinishingCost($set, $get);
+                                                                        }),
+                                                                        
+                                                                    Forms\Components\TextInput::make('width')
+                                                                        ->label('Ancho (cm)')
+                                                                        ->numeric()
+                                                                        ->step(0.01)
+                                                                        ->live()
+                                                                        ->visible(fn ($get) => $this->shouldShowSizeFields($get('finishing_id')))
+                                                                        ->afterStateUpdated(function ($set, $get, $state) {
+                                                                            $this->calculateFinishingCost($set, $get);
+                                                                        }),
+                                                                        
+                                                                    Forms\Components\TextInput::make('height')
+                                                                        ->label('Alto (cm)')
+                                                                        ->numeric()
+                                                                        ->step(0.01)
+                                                                        ->live()
+                                                                        ->visible(fn ($get) => $this->shouldShowSizeFields($get('finishing_id')))
+                                                                        ->afterStateUpdated(function ($set, $get, $state) {
+                                                                            $this->calculateFinishingCost($set, $get);
+                                                                        }),
+                                                                ]),
+                                                                
+                                                            Forms\Components\Placeholder::make('calculated_cost_display')
+                                                                ->label('Costo Calculado')
+                                                                ->content(function ($get) {
+                                                                    $finishingId = $get('finishing_id');
+                                                                    $quantity = $get('quantity') ?? 0;
+                                                                    $width = $get('width') ?? 0;
+                                                                    $height = $get('height') ?? 0;
+                                                                    
+                                                                    if (!$finishingId || $quantity <= 0) {
+                                                                        return '$0.00';
+                                                                    }
+                                                                    
+                                                                    try {
+                                                                        $finishing = \App\Models\Finishing::find($finishingId);
+                                                                        if (!$finishing) {
+                                                                            return 'Acabado no encontrado';
+                                                                        }
+                                                                        
+                                                                        $calculator = app(\App\Services\FinishingCalculatorService::class);
+                                                                        $cost = $calculator->calculateCost($finishing, [
+                                                                            'quantity' => $quantity,
+                                                                            'width' => $width,
+                                                                            'height' => $height,
+                                                                        ]);
+                                                                        
+                                                                        return '$' . number_format($cost, 2);
+                                                                    } catch (\Exception $e) {
+                                                                        return 'Error: ' . $e->getMessage();
+                                                                    }
+                                                                })
+                                                                ->live(),
+                                                                
+                                                            Forms\Components\Hidden::make('calculated_cost')
+                                                                ->live(),
+                                                        ])
+                                                        ->defaultItems(0)
+                                                        ->reorderable()
+                                                        ->collapsible()
+                                                        ->columnSpanFull(),
+                                                ])
+                                                ->collapsible()
+                                                ->persistCollapsed(false),
+
                                             Forms\Components\Placeholder::make('digital_preview')
                                                 ->content(function ($get) {
                                                     $itemId = $get('itemable_id');
@@ -168,7 +375,6 @@ class DocumentItemsRelationManager extends RelationManager
                                                         return '❌ Item digital no encontrado';
                                                     }
                                                     
-                                                    $calculator = new \App\Services\DigitalItemCalculatorService();
                                                     $params = ['quantity' => $quantity];
                                                     
                                                     if ($item->pricing_type === 'size') {
@@ -176,7 +382,7 @@ class DocumentItemsRelationManager extends RelationManager
                                                         $params['height'] = $height;
                                                     }
                                                     
-                                                    $errors = $calculator->validateParameters($item, $params);
+                                                    $errors = $item->validateParameters($params);
                                                     
                                                     $content = '<div class="space-y-2">';
                                                     $content .= '<div><strong>📋 Item:</strong> ' . $item->description . '</div>';
@@ -190,17 +396,15 @@ class DocumentItemsRelationManager extends RelationManager
                                                         }
                                                         $content .= '</div>';
                                                     } else {
-                                                        $totalPrice = $item->calculateTotalPrice($params);
-                                                        $unitPrice = $totalPrice / $quantity;
+                                                        $baseTotalPrice = $item->calculateTotalPrice($params);
                                                         
                                                         if ($item->pricing_type === 'size' && $width > 0 && $height > 0) {
-                                                            $area = ($width / 100) * ($height / 100); // Convertir a m²
+                                                            $area = ($width / 100) * ($height / 100);
                                                             $content .= '<div><strong>📏 Área:</strong> ' . number_format($area, 4) . ' m²</div>';
                                                         }
                                                         
                                                         $content .= '<div class="mt-2 p-2 bg-blue-50 rounded">';
-                                                        $content .= '<div><strong>💵 Precio por unidad:</strong> $' . number_format($unitPrice, 2) . '</div>';
-                                                        $content .= '<div><strong>💵 Total:</strong> $' . number_format($totalPrice, 2) . '</div>';
+                                                        $content .= '<div><strong>💵 TOTAL:</strong> $' . number_format($baseTotalPrice, 2) . '</div>';
                                                         $content .= '</div>';
                                                         
                                                         $content .= '<div class="text-green-600"><strong>✅ Cálculo válido</strong></div>';
@@ -226,16 +430,16 @@ class DocumentItemsRelationManager extends RelationManager
                                         ->schema([
                                             Select::make('itemable_id')
                                                 ->label('Producto')
-                                                ->relationship(
-                                                    name: 'itemable',
-                                                    titleAttribute: 'name',
-                                                    modifyQueryUsing: fn ($query) => $query->where('active', true)->where('company_id', auth()->user()->company_id)
-                                                )
-                                                ->getOptionLabelFromRecordUsing(function ($record) {
-                                                    $stockStatus = $record->stock == 0 ? ' (SIN STOCK)' : 
-                                                                  ($record->isLowStock() ? ' (STOCK BAJO)' : '');
-                                                    return $record->name . ' - $' . number_format($record->sale_price, 2) . 
-                                                           ' (Stock: ' . $record->stock . ')' . $stockStatus;
+                                                ->options(function () {
+                                                    return \App\Models\Product::where('company_id', auth()->user()->company_id)
+                                                        ->where('active', true)
+                                                        ->get()
+                                                        ->mapWithKeys(function ($product) {
+                                                            $stockStatus = $product->stock == 0 ? ' (SIN STOCK)' : 
+                                                                          ($product->isLowStock() ? ' (STOCK BAJO)' : '');
+                                                            return [$product->id => $product->name . ' - $' . number_format($product->sale_price, 2) . 
+                                                                   ' (Stock: ' . $product->stock . ')' . $stockStatus];
+                                                        });
                                                 })
                                                 ->searchable(['name', 'code', 'description'])
                                                 ->preload()
@@ -389,6 +593,10 @@ class DocumentItemsRelationManager extends RelationManager
                         if ($record->itemable && isset($record->itemable->final_price) && $record->itemable->quantity > 0) {
                             return $record->itemable->final_price / $record->itemable->quantity;
                         }
+                        // Para DigitalItems, usar método que incluye acabados
+                        if ($record->itemable_type === 'App\\Models\\DigitalItem') {
+                            return $record->getUnitPriceWithFinishings();
+                        }
                         return $record->unit_price ?? 0;
                     })
                     ->money('COP'),
@@ -404,10 +612,31 @@ class DocumentItemsRelationManager extends RelationManager
                         if ($record->itemable && isset($record->itemable->final_price)) {
                             return $record->itemable->final_price;
                         }
+                        // Para DigitalItems, usar método que incluye acabados
+                        if ($record->itemable_type === 'App\\Models\\DigitalItem') {
+                            return $record->getTotalPriceWithFinishings();
+                        }
                         return $record->total_price ?? 0;
                     })
                     ->money('COP')
                     ->sortable(),
+                    
+                TextColumn::make('finishings_info')
+                    ->label('Acabados')
+                    ->getStateUsing(function ($record) {
+                        if ($record->itemable_type === 'App\\Models\\DigitalItem' && $record->itemable) {
+                            $finishings = $record->itemable->finishings;
+                            if ($finishings->count() > 0) {
+                                $names = $finishings->pluck('name')->take(2)->implode(', ');
+                                $total = $finishings->count();
+                                return $total > 2 ? $names . " (+" . ($total - 2) . " más)" : $names;
+                            }
+                        }
+                        return '—';
+                    })
+                    ->badge()
+                    ->color(fn($state) => $state !== '—' ? 'primary' : 'gray')
+                    ->visible(fn() => true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('itemable_type')
@@ -442,12 +671,15 @@ class DocumentItemsRelationManager extends RelationManager
                                 'description' => 'SimpleItem: ' . $simpleItem->description,
                                 'quantity' => $simpleItem->quantity,
                                 'unit_price' => $simpleItem->final_price / $simpleItem->quantity,
-                                'total_price' => $simpleItem->final_price
+                                'total_price' => $simpleItem->final_price,
+                                'item_type' => 'simple'
                             ];
                         }
                         
                         // Manejar items digitales
-                        elseif ($data['item_type'] === 'digital' && $data['itemable_type'] === 'App\\Models\\DigitalItem') {
+                        elseif ($data['item_type'] === 'digital') {
+                            // Asegurar que itemable_type está configurado
+                            $data['itemable_type'] = 'App\\Models\\DigitalItem';
                             $digitalItem = \App\Models\DigitalItem::find($data['itemable_id']);
                             
                             if (!$digitalItem) {
@@ -468,18 +700,41 @@ class DocumentItemsRelationManager extends RelationManager
                                 throw new \Exception('Parámetros inválidos: ' . implode(', ', $errors));
                             }
                             
-                            // Calcular precio total
-                            $totalPrice = $digitalItem->calculateTotalPrice($params);
+                            // Calcular precio base del item
+                            $baseTotalPrice = $digitalItem->calculateTotalPrice($params);
+                            
+                            // Procesar acabados si existen
+                            $finishingsCost = 0;
+                            $finishingsData = $data['finishings'] ?? [];
+                            
+                            if (!empty($finishingsData)) {
+                                $finishingService = app(\App\Services\FinishingCalculatorService::class);
+                                
+                                foreach ($finishingsData as $finishingData) {
+                                    if (isset($finishingData['finishing_id']) && isset($finishingData['calculated_cost'])) {
+                                        $finishingsCost += (float) $finishingData['calculated_cost'];
+                                    }
+                                }
+                            }
+                            
+                            // Precio total incluyendo acabados
+                            $totalPrice = $baseTotalPrice + $finishingsCost;
                             $unitPrice = $totalPrice / $params['quantity'];
+                            
+                            // Guardar datos de acabados para usar después de crear el DocumentItem
+                            $tempFinishingsData = $finishingsData;
                             
                             // Configurar datos para DocumentItem
                             $data = [
                                 'itemable_type' => 'App\\Models\\DigitalItem',
                                 'itemable_id' => $digitalItem->id,
-                                'description' => 'Digital: ' . $digitalItem->description,
+                                'description' => 'Digital: ' . $digitalItem->description . 
+                                              (!empty($finishingsData) ? ' (con acabados)' : ''),
                                 'quantity' => $params['quantity'],
                                 'unit_price' => $unitPrice,
-                                'total_price' => $totalPrice
+                                'total_price' => $totalPrice,
+                                'item_type' => 'digital',
+                                '_temp_finishings_data' => $tempFinishingsData // Temporal para después del guardado
                             ];
                         }
                         
@@ -505,13 +760,44 @@ class DocumentItemsRelationManager extends RelationManager
                                 'description' => 'Producto: ' . $product->name,
                                 'quantity' => $requestedQuantity,
                                 'unit_price' => $product->sale_price,
-                                'total_price' => $product->calculateTotalPrice($requestedQuantity)
+                                'total_price' => $product->calculateTotalPrice($requestedQuantity),
+                                'item_type' => 'product'
                             ];
                         }
                         
                         return $data;
                     })
-                    ->after(function () {
+                    ->after(function ($record, array $data) {
+                        // Manejar acabados para DigitalItem si existen
+                        if (isset($data['_temp_finishings_data']) && !empty($data['_temp_finishings_data'])) {
+                            $digitalItem = $record->itemable;
+                            
+                            if ($digitalItem instanceof \App\Models\DigitalItem) {
+                                foreach ($data['_temp_finishings_data'] as $finishingData) {
+                                    if (isset($finishingData['finishing_id']) && 
+                                        isset($finishingData['calculated_cost'])) {
+                                        
+                                        $finishing = \App\Models\Finishing::find($finishingData['finishing_id']);
+                                        
+                                        if ($finishing) {
+                                            // Preparar parámetros para el acabado
+                                            $finishingParams = ['quantity' => $finishingData['quantity'] ?? 1];
+                                            
+                                            if (isset($finishingData['width'])) {
+                                                $finishingParams['width'] = $finishingData['width'];
+                                            }
+                                            if (isset($finishingData['height'])) {
+                                                $finishingParams['height'] = $finishingData['height'];
+                                            }
+                                            
+                                            // Agregar acabado al DigitalItem
+                                            $digitalItem->addFinishing($finishing, $finishingParams);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
                         // Recalcular totales del documento
                         $this->getOwnerRecord()->recalculateTotals();
                     }),
@@ -939,6 +1225,35 @@ class DocumentItemsRelationManager extends RelationManager
                             return $simpleItemData;
                         }
                         
+                        // Para DigitalItems, cargar acabados existentes
+                        if ($record->itemable_type === 'App\\Models\\DigitalItem' && $record->itemable) {
+                            $digitalItem = $record->itemable;
+                            
+                            // Cargar acabados existentes
+                            $finishingsData = [];
+                            $existingFinishings = $digitalItem->finishings()->get();
+                            
+                            foreach ($existingFinishings as $finishing) {
+                                $finishingsData[] = [
+                                    'finishing_id' => $finishing->id,
+                                    'quantity' => $finishing->pivot->quantity ?? 1,
+                                    'width' => $finishing->pivot->width,
+                                    'height' => $finishing->pivot->height,
+                                    'calculated_cost' => $finishing->pivot->calculated_cost,
+                                ];
+                            }
+                            
+                            return [
+                                'item_type' => 'digital',
+                                'itemable_type' => $record->itemable_type,
+                                'itemable_id' => $record->itemable_id,
+                                'quantity' => $record->quantity,
+                                'finishings' => $finishingsData,
+                                'unit_price' => $record->unit_price,
+                                'total_price' => $record->total_price,
+                            ];
+                        }
+                        
                         // Para otros tipos, usar datos del DocumentItem
                         return [
                             'description' => $record->itemable ? $record->itemable->description : $record->description,
@@ -977,6 +1292,48 @@ class DocumentItemsRelationManager extends RelationManager
                                 'quantity' => $simpleItem->quantity,
                                 'unit_price' => $simpleItem->final_price / $simpleItem->quantity,
                                 'total_price' => $simpleItem->final_price
+                            ]);
+                        } elseif ($record->itemable_type === 'App\\Models\\DigitalItem' && $record->itemable) {
+                            // Manejar edición de DigitalItems con acabados
+                            $digitalItem = $record->itemable;
+                            
+                            // Procesar acabados
+                            $finishingsData = $data['finishings'] ?? [];
+                            $finishingsCost = 0;
+                            
+                            // Limpiar acabados existentes
+                            $digitalItem->finishings()->detach();
+                            
+                            // Agregar nuevos acabados
+                            if (!empty($finishingsData)) {
+                                foreach ($finishingsData as $finishingData) {
+                                    if (isset($finishingData['finishing_id']) && isset($finishingData['calculated_cost'])) {
+                                        $finishing = \App\Models\Finishing::find($finishingData['finishing_id']);
+                                        
+                                        if ($finishing) {
+                                            $finishingParams = [
+                                                'quantity' => $finishingData['quantity'] ?? 1,
+                                                'width' => $finishingData['width'] ?? null,
+                                                'height' => $finishingData['height'] ?? null,
+                                            ];
+                                            
+                                            $digitalItem->addFinishing($finishing, $finishingParams);
+                                            $finishingsCost += (float) $finishingData['calculated_cost'];
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // Recalcular precio total del item
+                            $basePrice = $digitalItem->calculateTotalPrice(['quantity' => $data['quantity']]);
+                            $totalPrice = $basePrice + $finishingsCost;
+                            $unitPrice = $totalPrice / $data['quantity'];
+                            
+                            // Actualizar DocumentItem
+                            $record->update([
+                                'quantity' => $data['quantity'],
+                                'unit_price' => $unitPrice,
+                                'total_price' => $totalPrice,
                             ]);
                         } else {
                             // Para otros tipos de items, actualizar los datos básicos

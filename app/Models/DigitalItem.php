@@ -5,9 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Concerns\BelongsToTenant;
+use App\Services\FinishingCalculatorService;
 
 class DigitalItem extends Model
 {
@@ -82,6 +84,13 @@ class DigitalItem extends Model
     public function documentItems(): MorphMany
     {
         return $this->morphMany(DocumentItem::class, 'itemable');
+    }
+
+    public function finishings(): BelongsToMany
+    {
+        return $this->belongsToMany(Finishing::class, 'digital_item_finishing')
+            ->withPivot(['quantity', 'width', 'height', 'calculated_cost'])
+            ->withTimestamps();
     }
 
     // Métodos de negocio
@@ -264,5 +273,115 @@ class DigitalItem extends Model
         return static::active()
             ->pluck('code', 'id')
             ->toArray();
+    }
+
+    // Métodos para acabados
+
+    /**
+     * Calcular el precio total incluyendo acabados
+     */
+    public function calculateTotalWithFinishings(array $params): float
+    {
+        $basePrice = $this->calculateTotalPrice($params);
+        $finishingsCost = $this->calculateFinishingsCost();
+        
+        return $basePrice + $finishingsCost;
+    }
+
+    /**
+     * Calcular el costo total de todos los acabados
+     */
+    public function calculateFinishingsCost(): float
+    {
+        $total = 0.0;
+
+        foreach ($this->finishings as $finishing) {
+            $total += (float) $finishing->pivot->calculated_cost;
+        }
+
+        return $total;
+    }
+
+    /**
+     * Agregar un acabado calculando su costo automáticamente
+     */
+    public function addFinishing(Finishing $finishing, array $params): void
+    {
+        $calculatorService = app(FinishingCalculatorService::class);
+        $calculatedCost = $calculatorService->calculateCost($finishing, $params);
+
+        $pivotData = [
+            'calculated_cost' => $calculatedCost,
+        ];
+
+        // Agregar parámetros específicos según el tipo de medida
+        if (isset($params['quantity'])) {
+            $pivotData['quantity'] = $params['quantity'];
+        }
+        if (isset($params['width'])) {
+            $pivotData['width'] = $params['width'];
+        }
+        if (isset($params['height'])) {
+            $pivotData['height'] = $params['height'];
+        }
+
+        $this->finishings()->attach($finishing->id, $pivotData);
+    }
+
+    /**
+     * Actualizar un acabado recalculando su costo
+     */
+    public function updateFinishing(Finishing $finishing, array $params): void
+    {
+        $calculatorService = app(FinishingCalculatorService::class);
+        $calculatedCost = $calculatorService->calculateCost($finishing, $params);
+
+        $pivotData = [
+            'calculated_cost' => $calculatedCost,
+        ];
+
+        // Agregar parámetros específicos según el tipo de medida
+        if (isset($params['quantity'])) {
+            $pivotData['quantity'] = $params['quantity'];
+        }
+        if (isset($params['width'])) {
+            $pivotData['width'] = $params['width'];
+        }
+        if (isset($params['height'])) {
+            $pivotData['height'] = $params['height'];
+        }
+
+        $this->finishings()->updateExistingPivot($finishing->id, $pivotData);
+    }
+
+    /**
+     * Remover un acabado
+     */
+    public function removeFinishing(Finishing $finishing): void
+    {
+        $this->finishings()->detach($finishing->id);
+    }
+
+    /**
+     * Obtener resumen de acabados aplicados
+     */
+    public function getFinishingsSummary(): array
+    {
+        $summary = [];
+
+        foreach ($this->finishings as $finishing) {
+            $summary[] = [
+                'name' => $finishing->name,
+                'measurement_unit' => $finishing->measurement_unit->label(),
+                'cost' => $finishing->pivot->calculated_cost,
+                'params' => [
+                    'quantity' => $finishing->pivot->quantity,
+                    'width' => $finishing->pivot->width,
+                    'height' => $finishing->pivot->height,
+                ],
+            ];
+        }
+
+        return $summary;
     }
 }

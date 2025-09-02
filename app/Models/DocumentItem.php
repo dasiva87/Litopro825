@@ -263,28 +263,40 @@ class DocumentItem extends Model
             return;
         }
         
-        // Para items digitales, no recalcular si ya tienen precios definidos
+        // Para items digitales, manejar cálculo completo incluyendo acabados
         if ($this->itemable_type === 'App\\Models\\DigitalItem') {
-            // Si los precios ya están definidos (del formulario), no recalcular
-            if ($this->unit_price > 0 && $this->total_price > 0) {
-                return;
-            }
-            
-            // Si no están definidos y hay un DigitalItem relacionado, calcular
-            if ($this->itemable && $this->item_config) {
-                $config = json_decode($this->item_config, true);
-                
-                // Preparar parámetros para el cálculo
-                $params = ['quantity' => $this->quantity];
-                if ($config['pricing_type'] === 'size' && isset($config['width']) && isset($config['height'])) {
-                    $params['width'] = $config['width'];
-                    $params['height'] = $config['height'];
+            if ($this->itemable) {
+                // Si los precios ya están definidos (del formulario), incluir acabados
+                if ($this->unit_price > 0 && $this->total_price > 0) {
+                    // Agregar costo de acabados al precio total
+                    $finishingsCost = $this->itemable->calculateFinishingsCost();
+                    if ($finishingsCost > 0) {
+                        $baseTotal = $this->total_price;
+                        $this->total_price = $baseTotal + $finishingsCost;
+                        $this->unit_price = $this->total_price / $this->quantity;
+                    }
+                    return;
                 }
                 
-                // Calcular usando el método del DigitalItem
-                $totalPrice = $this->itemable->calculateTotalPrice($params);
-                $this->unit_price = $totalPrice / $this->quantity;
-                $this->total_price = $totalPrice;
+                // Si no están definidos y hay un DigitalItem relacionado, calcular desde cero
+                if ($this->item_config) {
+                    $config = json_decode($this->item_config, true);
+                    
+                    // Preparar parámetros para el cálculo
+                    $params = ['quantity' => $this->quantity];
+                    if ($config['pricing_type'] === 'size' && isset($config['width']) && isset($config['height'])) {
+                        $params['width'] = $config['width'];
+                        $params['height'] = $config['height'];
+                    }
+                    
+                    // Calcular precio base + acabados
+                    $baseTotalPrice = $this->itemable->calculateTotalPrice($params);
+                    $finishingsCost = $this->itemable->calculateFinishingsCost();
+                    $totalPrice = $baseTotalPrice + $finishingsCost;
+                    
+                    $this->unit_price = $totalPrice / $this->quantity;
+                    $this->total_price = $totalPrice;
+                }
             }
             return;
         }
@@ -311,6 +323,34 @@ class DocumentItem extends Model
         // Calcular precio unitario y total
         $this->unit_price = $this->quantity > 0 ? $totalCosts / $this->quantity : $totalCosts;
         $this->total_price = $totalCosts;
+    }
+
+    /**
+     * Obtener el precio total incluyendo acabados (para DigitalItem)
+     */
+    public function getTotalPriceWithFinishings(): float
+    {
+        $basePrice = $this->total_price ?? 0;
+        
+        // Solo para DigitalItems
+        if ($this->itemable_type === 'App\\Models\\DigitalItem' && $this->itemable) {
+            $finishingsCost = $this->itemable->calculateFinishingsCost();
+            return $basePrice + $finishingsCost;
+        }
+        
+        return $basePrice;
+    }
+
+    /**
+     * Obtener el precio unitario incluyendo acabados (para DigitalItem)
+     */
+    public function getUnitPriceWithFinishings(): float
+    {
+        if ($this->quantity <= 0) {
+            return 0;
+        }
+        
+        return $this->getTotalPriceWithFinishings() / $this->quantity;
     }
 
     // Métodos específicos por tipo de item
