@@ -10,7 +10,7 @@ use Illuminate\Contracts\View\View;
 
 class QuickActionsWidget extends Widget
 {
-    protected string $view = 'filament.widgets.quick-actions';
+    protected string $view = 'filament.widgets.quick-actions-dashboard';
     
     protected static ?int $sort = 2;
     

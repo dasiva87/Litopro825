@@ -1,8 +1,8 @@
 <div 
     x-data="{ 
         showCreatePost: @entangle('showCreatePost'),
-        posts: @js($posts),
-        postTypes: @js($postTypes)
+        posts: @js($posts ?? []),
+        postTypes: @js($postTypes ?? [])
     }"
     class="fi-wi-social-feed"
 >
@@ -11,271 +11,166 @@
             <x-slot name="heading">
                 <div class="flex items-center justify-between w-full">
                     <div class="flex items-center gap-2">
-                        <x-heroicon-o-users class="h-6 w-6 text-primary-500" />
-                        <span class="font-semibold text-gray-900 dark:text-white text-lg">Red Social LitoPro</span>
+                        <svg class="h-6 w-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                        </svg>
+                        <span class="font-semibold text-gray-900 dark:text-white text-lg">💬 Compartir en la Red Social</span>
                     </div>
-                    <x-filament::button
-                        wire:click="toggleCreatePost"
-                        size="sm"
-                        color="primary"
-                        icon="heroicon-o-plus"
-                    >
-                        Nueva Publicación
-                    </x-filament::button>
                 </div>
             </x-slot>
             
-            <!-- Crear Post -->
-            <div x-show="showCreatePost" x-transition class="create-post mb-6">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 pb-2 border-b-2 border-primary-500">
-                    ✍️ Compartir en la Red Social
-                </h3>
-                
-                <form wire:submit="createPost" class="space-y-4">
-                    <!-- Tipo de Publicación -->
-                    <div>
-                        <x-filament::input.wrapper>
-                            <x-filament::input.select wire:model="newPostType">
-                                @foreach($postTypes as $value => $label)
-                                    <option value="{{ $value }}">{{ $label }}</option>
-                                @endforeach
-                            </x-filament::input.select>
-                        </x-filament::input.wrapper>
-                    </div>
-                    
-                    <!-- Contenido -->
+            <!-- Create Post Form -->
+            <div class="create-post mb-6">
+                <form class="space-y-4">
                     <div>
                         <textarea 
-                            wire:model="newPostContent"
-                            rows="4"
-                            class="w-full min-h-[100px] p-4 border border-gray-300 dark:border-gray-600 rounded-lg resize-vertical font-sans transition-colors focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:bg-gray-800 dark:text-white"
+                            rows="3"
+                            class="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-lg resize-vertical font-sans transition-colors focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:bg-gray-800 dark:text-white"
                             placeholder="¿Qué quieres compartir con la comunidad de LitoPro? Promociones, trabajos terminados, consejos técnicos..."
                         ></textarea>
-                        @error('newPostContent') 
-                            <p class="text-sm text-danger-600 dark:text-danger-400 mt-1">{{ $message }}</p>
-                        @enderror
                     </div>
                     
-                    <!-- Acciones -->
-                    <div class="create-post-actions flex justify-between items-center pt-4 gap-4">
-                        <div class="post-options flex gap-2">
-                            <div class="post-option p-2 border border-gray-300 dark:border-gray-600 rounded cursor-pointer transition-all hover:bg-primary-500 hover:text-white hover:border-primary-500" title="Agregar imagen">
-                                📷
-                            </div>
-                            <div class="post-option p-2 border border-gray-300 dark:border-gray-600 rounded cursor-pointer transition-all hover:bg-primary-500 hover:text-white hover:border-primary-500" title="Agregar archivo">
-                                📎
-                            </div>
-                            <div class="post-option p-2 border border-gray-300 dark:border-gray-600 rounded cursor-pointer transition-all hover:bg-primary-500 hover:text-white hover:border-primary-500" title="Marcar como promoción">
-                                🎉
-                            </div>
-                            <div class="post-option p-2 border border-gray-300 dark:border-gray-600 rounded cursor-pointer transition-all hover:bg-primary-500 hover:text-white hover:border-primary-500" title="Marcar como trabajo terminado">
-                                ✅
-                            </div>
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center space-x-4">
+                            <button type="button" class="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                <span class="text-sm">Imagen</span>
+                            </button>
+                            <button type="button" class="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.586-6.586a2 2 0 00-2.828-2.828l-6.586 6.586a2 2 0 11-2.828-2.828L13.343 4.929a4 4 0 116.586 6.586L13.343 18.1a4 4 0 01-6.586-6.586z"/>
+                                </svg>
+                                <span class="text-sm">Archivo</span>
+                            </button>
                         </div>
-                        
-                        <div class="flex gap-2">
-                            <x-filament::button 
-                                type="button"
-                                wire:click="toggleCreatePost"
-                                color="gray"
-                                size="sm"
-                            >
-                                Cancelar
-                            </x-filament::button>
-                            <x-filament::button 
-                                type="submit"
-                                color="success"
-                                size="sm"
-                            >
-                                Publicar
-                            </x-filament::button>
-                        </div>
+                        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                            Publicar
+                        </button>
                     </div>
                 </form>
             </div>
 
-            <!-- Feed de Posts -->
-            <div class="posts-feed space-y-4" id="postsFeed">
-                @forelse($posts as $post)
-                    <!-- Post {{ $post['id'] }} -->
-                    <div class="post bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700 transition-all hover:shadow-md hover:-translate-y-0.5">
-                        <!-- Post Header -->
-                        <div class="post-header flex items-center mb-4">
-                            <div class="post-avatar w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold mr-4">
-                                {{ $post['avatar_initials'] }}
+            <!-- Social Feed -->
+            <div class="divide-y divide-gray-200">
+                <!-- Post 1 -->
+                <div class="p-6">
+                    <div class="flex items-start space-x-3">
+                        <img class="h-10 w-10 rounded-full" 
+                             src="https://ui-avatars.com/api/?name=Carlos+Ventas&background=3b82f6&color=fff" 
+                             alt="Carlos Ventas">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-2">
+                                <h4 class="text-sm font-medium text-gray-900 dark:text-white">Carlos Ventas</h4>
+                                <span class="text-sm text-gray-500">Litografía Demo</span>
+                                <span class="text-sm text-gray-400">•</span>
+                                <span class="text-sm text-gray-400">hace 2 horas</span>
                             </div>
-                            <div class="post-info flex-1">
-                                <div class="flex items-center gap-2">
-                                    <h4 class="font-semibold text-gray-900 dark:text-white">{{ $post['company_name'] }}</h4>
-                                    <x-filament::badge color="{{ $post['post_type_color'] }}" size="sm">
-                                        {{ $post['post_type_label'] }}
-                                    </x-filament::badge>
-                                </div>
-                                <p class="text-sm text-gray-600 dark:text-gray-400">
-                                    Por {{ $post['author_name'] }} • {{ $post['created_at_human'] }}
-                                </p>
-                            </div>
-                        </div>
-                        
-                        <!-- Post Content -->
-                        <div class="post-content mb-4 text-gray-800 dark:text-gray-200 leading-relaxed">
-                            {{ $post['content'] }}
-                        </div>
-                        
-                        <!-- Post Actions -->
-                        <div class="post-actions flex gap-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                            <button 
-                                wire:click="likePost({{ $post['id'] }})"
-                                class="post-action flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all text-sm {{ $post['user_liked'] ? 'text-primary-600 bg-primary-50 dark:bg-primary-900/20' : 'text-gray-600 dark:text-gray-400 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-900/20' }}"
-                            >
-                                <span class="{{ $post['user_liked'] ? 'scale-110' : '' }}">👍</span>
-                                <span>{{ $post['likes_count'] }} Me gusta</span>
-                            </button>
-                            
-                            <div class="post-action flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 hover:text-gray-800 dark:hover:bg-gray-700">
-                                💬 {{ $post['comments_count'] }} Comentarios
-                            </div>
-                            
-                            <div class="post-action flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 hover:text-gray-800 dark:hover:bg-gray-700">
-                                📤 Compartir
+                            <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
+                                🎉 ¡Excelente mes de junio! Hemos superado nuestra meta de ventas en un 23%. Gracias a todos nuestros clientes que confían en nosotros para sus proyectos de impresión. ¡Seguimos creciendo juntos! 💪🏻 ✨
+                            </p>
+                            <div class="mt-4 flex items-center space-x-6">
+                                <button class="flex items-center space-x-2 text-gray-500 hover:text-blue-600 transition-colors">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                    </svg>
+                                    <span class="text-sm">13 Me gusta</span>
+                                </button>
+                                <button class="flex items-center space-x-2 text-gray-500 hover:text-blue-600 transition-colors">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                                    </svg>
+                                    <span class="text-sm">5 Comentarios</span>
+                                </button>
+                                <button class="flex items-center space-x-2 text-gray-500 hover:text-blue-600 transition-colors">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"/>
+                                    </svg>
+                                    <span class="text-sm">Compartir</span>
+                                </button>
                             </div>
                         </div>
-                        
-                        <!-- Recent Comments -->
-                        @if(count($post['recent_comments']) > 0)
-                            <div class="recent-comments mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-                                @foreach($post['recent_comments'] as $comment)
-                                    <div class="comment-item flex items-start gap-3 mb-3 last:mb-0">
-                                        <div class="comment-avatar w-8 h-8 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
-                                            {{ substr($comment['author_name'], 0, 1) }}
-                                        </div>
-                                        <div class="comment-content flex-1">
-                                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2">
-                                                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $comment['author_name'] }}</p>
-                                                <p class="text-sm text-gray-700 dark:text-gray-300 mt-1">{{ $comment['content'] }}</p>
-                                            </div>
-                                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-3">{{ $comment['created_at_human'] }}</p>
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
                     </div>
-                @empty
-                    <div class="text-center py-12">
-                        <div class="text-6xl mb-4">📱</div>
-                        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">¡Sé el primero en publicar!</h3>
-                        <p class="text-gray-600 dark:text-gray-400">Comparte ofertas, solicitudes o noticias con la comunidad de litografías.</p>
-                        <x-filament::button 
-                            wire:click="toggleCreatePost"
-                            color="primary"
-                            class="mt-4"
-                        >
-                            Crear mi primera publicación
-                        </x-filament::button>
+                </div>
+
+                <!-- Post 2 -->
+                <div class="p-6">
+                    <div class="flex items-start space-x-3">
+                        <img class="h-10 w-10 rounded-full" 
+                             src="https://ui-avatars.com/api/?name=Papeleria+Central&background=10b981&color=fff" 
+                             alt="Papelería Central">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-2">
+                                <h4 class="text-sm font-medium text-gray-900 dark:text-white">Papelería Central</h4>
+                                <span class="text-sm text-gray-500">Distribuidor</span>
+                                <span class="text-sm text-gray-400">•</span>
+                                <span class="text-sm text-gray-400">hace 5 horas</span>
+                            </div>
+                            <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
+                                📦 NUEVA LLEGADA: Papel couche brillante 150g de excelente calidad. Stock limitado con 15% de descuento para pedidos mayores a 200 pliegos. ¡Aprovecha esta oferta especial! 🔥
+                            </p>
+                            <div class="mt-4 flex items-center space-x-6">
+                                <button class="flex items-center space-x-2 text-gray-500 hover:text-blue-600 transition-colors">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                    </svg>
+                                    <span class="text-sm">12 Me gusta</span>
+                                </button>
+                                <button class="flex items-center space-x-2 text-gray-500 hover:text-blue-600 transition-colors">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                                    </svg>
+                                    <span class="text-sm">0 Comentarios</span>
+                                </button>
+                                <button class="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors">
+                                    👀 Hacer Pedido
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                @endforelse
+                </div>
+
+                <!-- Post 3 -->
+                <div class="p-6">
+                    <div class="flex items-start space-x-3">
+                        <img class="h-10 w-10 rounded-full" 
+                             src="https://ui-avatars.com/api/?name=Jose+Produccion&background=f59e0b&color=fff" 
+                             alt="José Producción">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-2">
+                                <h4 class="text-sm font-medium text-gray-900 dark:text-white">José Producción</h4>
+                                <span class="text-sm text-gray-500">Litografía Demo</span>
+                                <span class="text-sm text-gray-400">•</span>
+                                <span class="text-sm text-gray-400">hace 8 horas</span>
+                            </div>
+                            <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
+                                ✅ Trabajo terminado! Acabamos de finalizar la impresión de 50,000 volantes para la campaña de verano del cliente. Calidad offset en papel couche 150g con acabado brillante. El cliente quedó muy satisfecho con el resultado. 👍 📰
+                            </p>
+                            <div class="mt-4 flex items-center space-x-6">
+                                <button class="flex items-center space-x-2 text-gray-500 hover:text-blue-600 transition-colors">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                    </svg>
+                                    <span class="text-sm">22 Me gusta</span>
+                                </button>
+                                <button class="flex items-center space-x-2 text-gray-500 hover:text-blue-600 transition-colors">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                                    </svg>
+                                    <span class="text-sm">12 Comentarios</span>
+                                </button>
+                                <button class="flex items-center space-x-2 text-gray-500 hover:text-blue-600 transition-colors">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"/>
+                                    </svg>
+                                    <span class="text-sm">Compartir</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </x-filament::section>
     </x-filament-widgets::widget>
 </div>
-
-<!-- Success message -->
-@if(session()->has('social-success'))
-    <div x-data="{ show: true }" 
-         x-show="show" 
-         x-init="setTimeout(() => show = false, 3000)"
-         x-transition
-         class="fixed top-4 right-4 bg-success-500 text-white p-4 rounded-lg shadow-lg z-50">
-        {{ session('social-success') }}
-    </div>
-@endif
-
-<style>
-/* Estilos específicos del widget social */
-.fi-wi-social-feed .create-post textarea:focus {
-    outline: none;
-    border-color: rgb(59 130 246);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.fi-wi-social-feed .post {
-    animation: fadeInUp 0.3s ease-out;
-}
-
-.fi-wi-social-feed .post-action:hover {
-    transform: translateY(-1px);
-}
-
-.fi-wi-social-feed .post-avatar {
-    animation: pulse 2s infinite;
-}
-
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes pulse {
-    0%, 100% {
-        opacity: 1;
-    }
-    50% {
-        opacity: .8;
-    }
-}
-
-/* Hover effects mejorados */
-.fi-wi-social-feed .post-option:hover {
-    transform: scale(1.05);
-}
-
-.fi-wi-social-feed .comment-item {
-    animation: slideIn 0.2s ease-out;
-}
-
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateX(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-</style>
-
-<script>
-document.addEventListener('livewire:init', () => {
-    // Listen for post creation events
-    Livewire.on('post-created', (event) => {
-        // Could trigger confetti or other celebration effects
-        console.log('New post created!');
-    });
-    
-    // Listen for post liked events  
-    Livewire.on('post-liked', (event) => {
-        const button = document.querySelector(`[wire\\:click="likePost(${event.postId})"]`);
-        if (button) {
-            // Add a small animation
-            button.style.transform = 'scale(0.95)';
-            setTimeout(() => {
-                button.style.transform = 'scale(1)';
-            }, 150);
-        }
-    });
-});
-
-// Auto-expand textarea
-function autoExpandTextarea(textarea) {
-    textarea.style.height = 'auto';
-    textarea.style.height = textarea.scrollHeight + 'px';
-}
-</script>

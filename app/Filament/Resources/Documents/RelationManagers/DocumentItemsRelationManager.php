@@ -88,27 +88,37 @@ class DocumentItemsRelationManager extends RelationManager
     private function recalculateItemTotal($set, $get): void
     {
         try {
+            // Determinar la ruta de acceso basado en el contexto (desde repeater o desde form principal)
+            $isFromRepeater = str_contains(json_encode(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS)), 'calculateFinishingCost');
+            $pathPrefix = $isFromRepeater ? '../../' : '';
+            
             // Obtener el precio base del item
             $basePrice = 0;
-            $quantity = $get('../../quantity') ?? 1; // Acceder al quantity del nivel padre
+            $quantity = $get($pathPrefix . 'quantity') ?? 1;
             
-            if ($get('../../item_type') === 'digital') {
-                // Para items digitales, obtener el precio base
-                $unitValue = $get('../../unit_value') ?? 0;
-                $pricingType = $get('../../pricing_type') ?? 'unit';
+            if ($get($pathPrefix . 'item_type') === 'digital') {
+                // Para items digitales, obtener el precio base del DigitalItem
+                $itemableId = $get($pathPrefix . 'itemable_id');
                 
-                if ($pricingType === 'size') {
-                    $width = $get('../../width') ?? 0;
-                    $height = $get('../../height') ?? 0;
-                    $area = ($width / 100) * ($height / 100); // convertir cm a m²
-                    $basePrice = $area * $unitValue * $quantity;
-                } else {
-                    $basePrice = $unitValue * $quantity;
+                if ($itemableId) {
+                    $digitalItem = \App\Models\DigitalItem::find($itemableId);
+                    if ($digitalItem) {
+                        $unitValue = $digitalItem->unit_value;
+                        
+                        if ($digitalItem->pricing_type === 'size') {
+                            $width = $get($pathPrefix . 'width') ?? 0;
+                            $height = $get($pathPrefix . 'height') ?? 0;
+                            $area = ($width / 100) * ($height / 100); // convertir cm a m²
+                            $basePrice = $area * $unitValue * $quantity;
+                        } else {
+                            $basePrice = $unitValue * $quantity;
+                        }
+                    }
                 }
             }
             
             // Sumar todos los costos de acabados
-            $finishings = $get('../../finishings') ?? [];
+            $finishings = $get($pathPrefix . 'finishings') ?? [];
             $finishingsCost = 0;
             
             foreach ($finishings as $finishing) {
@@ -125,12 +135,13 @@ class DocumentItemsRelationManager extends RelationManager
                 'finishings_cost' => $finishingsCost,
                 'total_price' => $totalPrice,
                 'unit_price' => $unitPrice,
-                'quantity' => $quantity
+                'quantity' => $quantity,
+                'context' => $isFromRepeater ? 'repeater' : 'main_form'
             ]);
             
             // Actualizar los precios en el formulario principal
-            $set('../../unit_price', round($unitPrice, 2));
-            $set('../../total_price', round($totalPrice, 2));
+            $set($pathPrefix . 'unit_price', round($unitPrice, 2));
+            $set($pathPrefix . 'total_price', round($totalPrice, 2));
             
         } catch (\Exception $e) {
             \Log::error('Error recalculating item total', ['error' => $e->getMessage()]);
@@ -212,7 +223,10 @@ class DocumentItemsRelationManager extends RelationManager
                                                         ->default(1)
                                                         ->minValue(1)
                                                         ->suffix('unidades')
-                                                        ->live(),
+                                                        ->live()
+                                                        ->afterStateUpdated(function ($set, $get, $state) {
+                                                            $this->recalculateItemTotal($set, $get);
+                                                        }),
                                                         
                                                     Forms\Components\TextInput::make('width')
                                                         ->label('Ancho (cm)')
@@ -233,7 +247,10 @@ class DocumentItemsRelationManager extends RelationManager
                                                             }
                                                             return false;
                                                         })
-                                                        ->live(),
+                                                        ->live()
+                                                        ->afterStateUpdated(function ($set, $get, $state) {
+                                                            $this->recalculateItemTotal($set, $get);
+                                                        }),
                                                         
                                                     Forms\Components\TextInput::make('height')
                                                         ->label('Alto (cm)')
@@ -254,7 +271,10 @@ class DocumentItemsRelationManager extends RelationManager
                                                             }
                                                             return false;
                                                         })
-                                                        ->live(),
+                                                        ->live()
+                                                        ->afterStateUpdated(function ($set, $get, $state) {
+                                                            $this->recalculateItemTotal($set, $get);
+                                                        }),
                                                 ]),
                                                 
                                             // Sección de Acabados Completa
@@ -1163,6 +1183,110 @@ class DocumentItemsRelationManager extends RelationManager
                     })
                     ->modalWidth('5xl')
                     ->successNotificationTitle('Producto agregado correctamente'),
+                    
+                Action::make('quick_magazine_item')
+                    ->label('Revista Rápida')
+                    ->icon('heroicon-o-rectangle-stack')
+                    ->color('indigo')
+                    ->form([
+                        \Filament\Schemas\Components\Section::make('Crear Revista')
+                            ->description('Crear una nueva revista con configuración básica')
+                            ->schema([
+                                Forms\Components\Textarea::make('description')
+                                    ->label('Descripción de la Revista')
+                                    ->required()
+                                    ->rows(2)
+                                    ->placeholder('Revista corporativa, catálogo de productos, etc.'),
+                                    
+                                Forms\Components\Grid::make(3)
+                                    ->schema([
+                                        Forms\Components\TextInput::make('quantity')
+                                            ->label('Cantidad')
+                                            ->numeric()
+                                            ->required()
+                                            ->default(100)
+                                            ->minValue(1)
+                                            ->suffix('revistas'),
+                                            
+                                        Forms\Components\TextInput::make('closed_width')
+                                            ->label('Ancho Cerrado (cm)')
+                                            ->numeric()
+                                            ->required()
+                                            ->default(21)
+                                            ->minValue(1)
+                                            ->suffix('cm'),
+                                            
+                                        Forms\Components\TextInput::make('closed_height')
+                                            ->label('Alto Cerrado (cm)')
+                                            ->numeric()
+                                            ->required()
+                                            ->default(29.7)
+                                            ->minValue(1)
+                                            ->suffix('cm'),
+                                    ]),
+                                    
+                                Forms\Components\Grid::make(2)
+                                    ->schema([
+                                        Forms\Components\Select::make('binding_type')
+                                            ->label('Tipo de Encuadernación')
+                                            ->required()
+                                            ->options([
+                                                'grapado' => 'Grapado',
+                                                'cosido' => 'Cosido',
+                                                'anillado' => 'Anillado',
+                                                'espiral' => 'Espiral',
+                                            ])
+                                            ->default('grapado'),
+                                            
+                                        Forms\Components\Select::make('binding_side')
+                                            ->label('Lado de Encuadernación')
+                                            ->required()
+                                            ->options([
+                                                'izquierda' => 'Izquierda',
+                                                'derecha' => 'Derecha',
+                                                'arriba' => 'Arriba',
+                                                'abajo' => 'Abajo',
+                                            ])
+                                            ->default('izquierda'),
+                                    ]),
+                                    
+                                Forms\Components\Placeholder::make('magazine_info')
+                                    ->content('📖 Una vez creada la revista, podrás agregar las páginas (SimpleItems) desde la vista de edición.')
+                                    ->columnSpanFull(),
+                            ])
+                    ])
+                    ->action(function (array $data) {
+                        // Crear el MagazineItem
+                        $magazine = \App\Models\MagazineItem::create([
+                            'description' => $data['description'],
+                            'quantity' => $data['quantity'],
+                            'closed_width' => $data['closed_width'],
+                            'closed_height' => $data['closed_height'],
+                            'binding_type' => $data['binding_type'],
+                            'binding_side' => $data['binding_side'],
+                            'design_value' => 0,
+                            'transport_value' => 0,
+                            'profit_percentage' => 25,
+                        ]);
+                        
+                        // Crear el DocumentItem asociado
+                        $this->getOwnerRecord()->items()->create([
+                            'itemable_type' => 'App\\Models\\MagazineItem',
+                            'itemable_id' => $magazine->id,
+                            'description' => 'Revista: ' . $magazine->description,
+                            'quantity' => $magazine->quantity,
+                            'unit_price' => $magazine->final_price > 0 ? $magazine->final_price / $magazine->quantity : 0,
+                            'total_price' => $magazine->final_price
+                        ]);
+                        
+                        // Recalcular totales del documento
+                        $this->getOwnerRecord()->recalculateTotals();
+                        
+                        // Refrescar la tabla
+                        $this->dispatch('$refresh');
+                    })
+                    ->modalWidth('4xl')
+                    ->successNotificationTitle('Revista creada correctamente'),
             ])
             ->actions([
                 EditAction::make()
@@ -1175,6 +1299,14 @@ class DocumentItemsRelationManager extends RelationManager
                                 \Filament\Schemas\Components\Section::make('Editar Item Sencillo')
                                     ->description('Modificar los detalles del item y recalcular automáticamente')
                                     ->schema(SimpleItemForm::configure(new \Filament\Schemas\Schema())->getComponents())
+                            ];
+                        }
+                        
+                        if ($record->itemable_type === 'App\\Models\\MagazineItem') {
+                            return [
+                                \Filament\Schemas\Components\Section::make('Editar Revista')
+                                    ->description('Modificar los detalles de la revista y recalcular automáticamente')
+                                    ->schema(\App\Filament\Resources\MagazineItems\Schemas\MagazineItemForm::configure(new \Filament\Schemas\Schema())->getComponents())
                             ];
                         }
                         
@@ -1223,6 +1355,16 @@ class DocumentItemsRelationManager extends RelationManager
                             $simpleItemData['itemable_id'] = $record->itemable_id;
                             
                             return $simpleItemData;
+                        }
+                        
+                        if ($record->itemable_type === 'App\\Models\\MagazineItem' && $record->itemable) {
+                            // Cargar todos los datos del MagazineItem para mostrar en el formulario
+                            $magazineData = $record->itemable->toArray();
+                            
+                            // Cargar relaciones necesarias
+                            $record->itemable->load(['pages.simpleItem', 'finishings']);
+                            
+                            return $magazineData;
                         }
                         
                         // Para DigitalItems, cargar acabados existentes
@@ -1292,6 +1434,38 @@ class DocumentItemsRelationManager extends RelationManager
                                 'quantity' => $simpleItem->quantity,
                                 'unit_price' => $simpleItem->final_price / $simpleItem->quantity,
                                 'total_price' => $simpleItem->final_price
+                            ]);
+                        } elseif ($record->itemable_type === 'App\\Models\\MagazineItem' && $record->itemable) {
+                            // Manejar edición de MagazineItems
+                            $record->load('itemable');
+                            $magazine = $record->itemable;
+                            
+                            // Verificar que es una instancia válida
+                            if (!$magazine instanceof \App\Models\MagazineItem) {
+                                throw new \Exception('Error: El item relacionado no es un MagazineItem válido');
+                            }
+                            
+                            // Filtrar campos del MagazineItem
+                            $magazineData = array_filter($data, function($key) {
+                                return !in_array($key, ['item_type', 'itemable_type', 'itemable_id']);
+                            }, ARRAY_FILTER_USE_KEY);
+                            
+                            // Actualizar el MagazineItem
+                            $magazine->fill($magazineData);
+                            
+                            // Recalcular automáticamente
+                            if (method_exists($magazine, 'calculateAll')) {
+                                $magazine->calculateAll();
+                            }
+                            $magazine->save();
+                            
+                            // Actualizar también el DocumentItem con los nuevos valores
+                            $unitPrice = $magazine->quantity > 0 ? $magazine->final_price / $magazine->quantity : 0;
+                            $record->update([
+                                'description' => 'Revista: ' . $magazine->description,
+                                'quantity' => $magazine->quantity,
+                                'unit_price' => $unitPrice,
+                                'total_price' => $magazine->final_price
                             ]);
                         } elseif ($record->itemable_type === 'App\\Models\\DigitalItem' && $record->itemable) {
                             // Manejar edición de DigitalItems con acabados
@@ -1395,6 +1569,12 @@ class DocumentItemsRelationManager extends RelationManager
                             $content .= '<div><strong>Tintas:</strong> ' . $item->ink_front_count . 'x' . $item->ink_back_count . '</div>';
                             $content .= '<div><strong>Papel:</strong> ' . ($item->paper->name ?? 'N/A') . '</div>';
                             $content .= '<div><strong>Máquina:</strong> ' . ($item->printingMachine->name ?? 'N/A') . '</div>';
+                        } elseif ($record->itemable_type === 'App\\Models\\MagazineItem') {
+                            $content .= '<div><strong>Cantidad:</strong> ' . number_format($item->quantity) . ' revistas</div>';
+                            $content .= '<div><strong>Dimensiones Cerrada:</strong> ' . $item->closed_width . ' × ' . $item->closed_height . ' cm</div>';
+                            $content .= '<div><strong>Encuadernación:</strong> ' . ucfirst($item->binding_type) . ' (' . $item->binding_side . ')</div>';
+                            $content .= '<div><strong>Total Páginas:</strong> ' . $item->total_pages . ' págs</div>';
+                            $content .= '<div><strong>Tipos de Página:</strong> ' . $item->pages->count() . '</div>';
                         } else {
                             // Para otros tipos de items, mostrar campos básicos
                             $content .= '<div><strong>Cantidad:</strong> ' . number_format($record->quantity ?? 0) . ' uds</div>';
@@ -1484,6 +1664,124 @@ class DocumentItemsRelationManager extends RelationManager
                         
                         } // Cerrar el bloque if SimpleItem
                         
+                        // Información específica para MagazineItems
+                        if ($record->itemable_type === 'App\\Models\\MagazineItem') {
+                            $breakdown = method_exists($item, 'getDetailedCostBreakdown') ? $item->getDetailedCostBreakdown() : [];
+                            $validations = method_exists($item, 'validateTechnicalViability') ? $item->validateTechnicalViability() : [];
+                            
+                            // Páginas de la revista
+                            $content .= '<div>';
+                            $content .= '<h3 class="text-lg font-semibold mb-3">Páginas de la Revista</h3>';
+                            
+                            if ($item->pages && $item->pages->count() > 0) {
+                                foreach ($item->pages as $page) {
+                                    $content .= '<div class="p-3 bg-blue-50 rounded mb-2">';
+                                    $content .= '<div class="flex justify-between">';
+                                    $content .= '<div>';
+                                    $content .= '<strong>' . ucfirst($page->page_type) . '</strong> (Orden: ' . $page->page_order . ')<br>';
+                                    $content .= '<small class="text-gray-600">';
+                                    $content .= 'Cantidad: ' . $page->page_quantity . ' páginas<br>';
+                                    if ($page->simpleItem) {
+                                        $content .= 'SimpleItem: ' . $page->simpleItem->description;
+                                    }
+                                    $content .= '</small>';
+                                    $content .= '</div>';
+                                    $content .= '<div class="text-right">';
+                                    $content .= '<strong>$' . number_format($page->total_cost ?? 0, 2) . '</strong><br>';
+                                    $content .= '<small class="text-gray-500">total página</small>';
+                                    $content .= '</div>';
+                                    $content .= '</div>';
+                                    $content .= '</div>';
+                                }
+                            } else {
+                                $content .= '<p class="text-gray-500 italic">No hay páginas agregadas aún</p>';
+                            }
+                            $content .= '</div>';
+                            
+                            // Acabados de la revista
+                            if ($item->finishings && $item->finishings->count() > 0) {
+                                $content .= '<div>';
+                                $content .= '<h3 class="text-lg font-semibold mb-3">Acabados</h3>';
+                                foreach ($item->finishings as $finishing) {
+                                    $content .= '<div class="p-2 bg-purple-50 rounded mb-2">';
+                                    $content .= '<div class="flex justify-between">';
+                                    $content .= '<span>' . $finishing->name . '</span>';
+                                    $content .= '<span class="font-medium">$' . number_format($finishing->pivot->total_cost ?? 0, 2) . '</span>';
+                                    $content .= '</div>';
+                                    $content .= '</div>';
+                                }
+                                $content .= '</div>';
+                            }
+                            
+                            // Desglose de costos
+                            if (!empty($breakdown)) {
+                                $content .= '<div>';
+                                $content .= '<h3 class="text-lg font-semibold mb-3">Desglose de Costos</h3>';
+                                $content .= '<div class="space-y-2">';
+                                
+                                if (isset($breakdown['pages']['total'])) {
+                                    $content .= '<div class="flex justify-between p-2 bg-blue-50 rounded">';
+                                    $content .= '<span>Páginas</span>';
+                                    $content .= '<span class="font-medium">$' . number_format($breakdown['pages']['total'], 2) . '</span>';
+                                    $content .= '</div>';
+                                }
+                                
+                                if (isset($breakdown['binding']['total'])) {
+                                    $content .= '<div class="flex justify-between p-2 bg-green-50 rounded">';
+                                    $content .= '<span>Encuadernación</span>';
+                                    $content .= '<span class="font-medium">$' . number_format($breakdown['binding']['total'], 2) . '</span>';
+                                    $content .= '</div>';
+                                }
+                                
+                                if (isset($breakdown['assembly']['total'])) {
+                                    $content .= '<div class="flex justify-between p-2 bg-yellow-50 rounded">';
+                                    $content .= '<span>Armado</span>';
+                                    $content .= '<span class="font-medium">$' . number_format($breakdown['assembly']['total'], 2) . '</span>';
+                                    $content .= '</div>';
+                                }
+                                
+                                if (isset($breakdown['summary']['final_price'])) {
+                                    $content .= '<div class="flex justify-between p-3 bg-gray-100 rounded font-semibold text-lg">';
+                                    $content .= '<span>Total Final</span>';
+                                    $content .= '<span>$' . number_format($breakdown['summary']['final_price'], 2) . '</span>';
+                                    $content .= '</div>';
+                                }
+                                
+                                $content .= '</div>';
+                                $content .= '</div>';
+                            }
+                            
+                            // Validaciones técnicas
+                            if (!empty($validations)) {
+                                $content .= '<div>';
+                                $content .= '<h3 class="text-lg font-semibold mb-3">Validaciones Técnicas</h3>';
+                                
+                                if (isset($validations['errors']) && !empty($validations['errors'])) {
+                                    foreach ($validations['errors'] as $error) {
+                                        $content .= '<div class="p-3 bg-red-50 border border-red-200 rounded text-red-800 mb-2">';
+                                        $content .= '❌ ' . $error;
+                                        $content .= '</div>';
+                                    }
+                                }
+                                
+                                if (isset($validations['warnings']) && !empty($validations['warnings'])) {
+                                    foreach ($validations['warnings'] as $warning) {
+                                        $content .= '<div class="p-3 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 mb-2">';
+                                        $content .= '⚠️ ' . $warning;
+                                        $content .= '</div>';
+                                    }
+                                }
+                                
+                                if (isset($validations['isValid']) && $validations['isValid'] && empty($validations['warnings'])) {
+                                    $content .= '<div class="p-3 bg-green-50 border border-green-200 rounded text-green-800">';
+                                    $content .= '✅ Todas las validaciones pasaron correctamente';
+                                    $content .= '</div>';
+                                }
+                                
+                                $content .= '</div>';
+                            }
+                        } // Cerrar el bloque if MagazineItem
+                        
                         $content .= '</div>';
                         
                         return new \Illuminate\Support\HtmlString($content);
@@ -1514,6 +1812,45 @@ class DocumentItemsRelationManager extends RelationManager
                                     'description' => 'SimpleItem: ' . $newItem->description,
                                     'quantity' => $newItem->quantity,
                                     'unit_price' => $newItem->final_price / $newItem->quantity,
+                                    'total_price' => $newItem->final_price
+                                ]);
+                            } elseif ($record->itemable_type === 'App\\Models\\MagazineItem') {
+                                // Para MagazineItems, duplicar también las páginas y relaciones
+                                $originalMagazine = $record->itemable;
+                                
+                                // Duplicar las páginas asociadas
+                                foreach ($originalMagazine->pages as $page) {
+                                    $newItem->pages()->create([
+                                        'simple_item_id' => $page->simple_item_id,
+                                        'page_type' => $page->page_type,
+                                        'page_order' => $page->page_order,
+                                        'page_quantity' => $page->page_quantity,
+                                        'page_notes' => $page->page_notes,
+                                    ]);
+                                }
+                                
+                                // Duplicar acabados
+                                foreach ($originalMagazine->finishings as $finishing) {
+                                    $newItem->finishings()->attach($finishing->id, [
+                                        'quantity' => $finishing->pivot->quantity,
+                                        'unit_cost' => $finishing->pivot->unit_cost,
+                                        'total_cost' => $finishing->pivot->total_cost,
+                                        'finishing_options' => $finishing->pivot->finishing_options,
+                                        'notes' => $finishing->pivot->notes,
+                                    ]);
+                                }
+                                
+                                // Recalcular precios de la revista duplicada
+                                $newItem->calculateAll();
+                                $newItem->save();
+                                
+                                $unitPrice = $newItem->quantity > 0 ? $newItem->final_price / $newItem->quantity : 0;
+                                $this->getOwnerRecord()->items()->create([
+                                    'itemable_type' => $record->itemable_type,
+                                    'itemable_id' => $newItem->id,
+                                    'description' => 'Revista: ' . $newItem->description,
+                                    'quantity' => $newItem->quantity,
+                                    'unit_price' => $unitPrice,
                                     'total_price' => $newItem->final_price
                                 ]);
                             } else {

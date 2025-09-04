@@ -4,8 +4,88 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "332548283b997da1a14009e631eb5fe8",
+    "content-hash": "1712bbfeb918b9fe6877bdced091020e",
     "packages": [
+        {
+            "name": "andreia/filament-nord-theme",
+            "version": "v2.0.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/andreia/filament-nord-theme.git",
+                "reference": "5d0e4b4b6ffc6531010b958b50d873df5941f454"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/andreia/filament-nord-theme/zipball/5d0e4b4b6ffc6531010b958b50d873df5941f454",
+                "reference": "5d0e4b4b6ffc6531010b958b50d873df5941f454",
+                "shasum": ""
+            },
+            "require": {
+                "filament/filament": "^4.0",
+                "illuminate/contracts": "^10.0|^11.0|^12.0",
+                "php": "^8.2"
+            },
+            "require-dev": {
+                "larastan/larastan": "^2.0.1||^3.0",
+                "laravel/pint": "^1.0",
+                "nunomaduro/collision": "^7.10.0||^8.1.1",
+                "orchestra/testbench": "^8.22.0||^9.0.0||^10.0.0",
+                "pestphp/pest": "^2.1||^3.0",
+                "pestphp/pest-plugin-arch": "^2.0||^3.0",
+                "pestphp/pest-plugin-laravel": "^2.0||^3.0",
+                "pestphp/pest-plugin-livewire": "^2.1||^3.0",
+                "phpstan/extension-installer": "^1.1",
+                "phpstan/phpstan-deprecation-rules": "^1.0||^2.0",
+                "phpstan/phpstan-phpunit": "^1.0||^2.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Andreia\\FilamentNordTheme\\FilamentNordThemeServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Andreia\\FilamentNordTheme\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Andreia Bohner",
+                    "email": "andreiabohner@gmail.com",
+                    "role": "Developer"
+                }
+            ],
+            "description": "A minimalist Arctic Nord theme for FilamentPHP",
+            "homepage": "https://github.com/andreia/filament-nord-theme",
+            "keywords": [
+                "arctic",
+                "filament",
+                "filament-theme",
+                "filamentphp",
+                "laravel",
+                "nord-theme",
+                "php",
+                "theme"
+            ],
+            "support": {
+                "issues": "https://github.com/andreia/filament-nord-theme/issues",
+                "source": "https://github.com/andreia/filament-nord-theme"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/andreia",
+                    "type": "github"
+                }
+            ],
+            "time": "2025-07-13T20:10:13+00:00"
+        },
         {
             "name": "anourvalar/eloquent-serialize",
             "version": "1.3.4",
@@ -10588,12 +10668,12 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": [],
+    "stability-flags": {},
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
         "php": "^8.2"
     },
-    "platform-dev": [],
+    "platform-dev": {},
     "plugin-api-version": "2.6.0"
 }

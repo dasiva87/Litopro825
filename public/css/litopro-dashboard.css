@@ -1,0 +1,325 @@
+/* LitoPro Dashboard Custom Styles */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* Global Dashboard Styles */
+.litopro-dashboard {
+    font-family: 'Inter', sans-serif;
+    background: #f9fafb;
+    min-height: 100vh;
+}
+
+/* Sidebar Gradient */
+.sidebar-gradient {
+    background: linear-gradient(145deg, #1e3a8a 0%, #1e40af 50%, #3b82f6 100%);
+}
+
+/* Card Hover Effects */
+.card-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Stats Cards */
+.stat-card {
+    background: linear-gradient(135deg, var(--bg-from) 0%, var(--bg-to) 100%);
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+/* Notifications Badge Animation */
+.notifications-badge {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Social Avatar Hover */
+.social-avatar {
+    transition: all 0.3s ease;
+}
+
+.social-avatar:hover {
+    transform: scale(1.1);
+}
+
+/* Override Filament Default Styles for Custom Dashboard */
+.fi-main {
+    background: #f9fafb !important;
+}
+
+.fi-header {
+    display: none !important;
+}
+
+.fi-sidebar {
+    display: none !important;
+}
+
+.fi-main-ctn {
+    margin-left: 0 !important;
+    padding: 0 !important;
+}
+
+.fi-page {
+    padding: 0 !important;
+}
+
+/* Quick Actions Grid */
+.quick-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+@media (min-width: 1024px) {
+    .quick-actions-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* Progress Bars */
+.progress-bar {
+    height: 0.5rem;
+    border-radius: 9999px;
+    overflow: hidden;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 9999px;
+    transition: width 0.3s ease;
+}
+
+/* Status Badges */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.status-badge.enviada {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.status-badge.produccion {
+    background-color: #fed7aa;
+    color: #ea580c;
+}
+
+.status-badge.confirmado {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.status-badge.aprobada {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.status-badge.pendiente {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+/* Critical Stock Indicators */
+.stock-critical {
+    background-color: #fef2f2;
+    border-color: #fecaca;
+}
+
+.stock-warning {
+    background-color: #fffbeb;
+    border-color: #fcd34d;
+}
+
+.stock-good {
+    background-color: #f0fdf4;
+    border-color: #bbf7d0;
+}
+
+/* Social Feed Styles */
+.social-post {
+    border-bottom: 1px solid #e5e7eb;
+    padding: 1.5rem;
+    transition: background-color 0.2s ease;
+}
+
+.social-post:hover {
+    background-color: #f9fafb;
+}
+
+.social-engagement {
+    display: flex;
+    align-items: center;
+    space-x: 1.5rem;
+    margin-top: 1rem;
+}
+
+.engagement-button {
+    display: flex;
+    align-items: center;
+    space-x: 0.5rem;
+    color: #6b7280;
+    font-size: 0.875rem;
+    transition: color 0.2s ease;
+    cursor: pointer;
+}
+
+.engagement-button:hover {
+    color: #3b82f6;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .litopro-dashboard .sidebar-gradient {
+        display: none;
+    }
+    
+    .litopro-dashboard .flex {
+        flex-direction: column;
+    }
+    
+    .litopro-dashboard main {
+        margin-left: 0;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Widget Styles */
+.widget-container {
+    background: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    padding: 1.5rem;
+}
+
+.widget-header {
+    display: flex;
+    align-items: center;
+    justify-content: between;
+    margin-bottom: 1rem;
+}
+
+.widget-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #111827;
+}
+
+/* Calculator Styles */
+.calculator-input {
+    width: 100%;
+    font-size: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.calculator-input:focus {
+    outline: none;
+    ring: 1px;
+    ring-color: #3b82f6;
+    border-color: #3b82f6;
+}
+
+.calculator-button {
+    flex: 1;
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    transition: background-color 0.2s ease;
+}
+
+.calculator-button.primary {
+    background-color: #3b82f6;
+    color: white;
+}
+
+.calculator-button.primary:hover {
+    background-color: #2563eb;
+}
+
+.calculator-button.success {
+    background-color: #10b981;
+    color: white;
+}
+
+.calculator-button.success:hover {
+    background-color: #059669;
+}
+
+.calculator-button.warning {
+    background-color: #f59e0b;
+    color: white;
+}
+
+.calculator-button.warning:hover {
+    background-color: #d97706;
+}
+
+/* Loading States */
+.loading-shimmer {
+    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .litopro-dashboard .sidebar-gradient,
+    .litopro-dashboard header,
+    .engagement-button {
+        display: none !important;
+    }
+    
+    .litopro-dashboard {
+        background: white !important;
+    }
+    
+    .card-hover {
+        box-shadow: none !important;
+        border: 1px solid #e5e7eb !important;
+    }
+}

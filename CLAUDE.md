@@ -76,6 +76,7 @@ class DocumentItem {
 // - SimpleItem: Cálculos automáticos con CuttingCalculatorService
 // - Product: Inventario con stock y precios
 // - DigitalItem: Servicios digitales (unit/size pricing)
+// - TalonarioItem: Numeración secuencial + hojas como SimpleItems
 ```
 
 ### SimpleItem - Campos
@@ -94,20 +95,29 @@ Total = unit_value × quantity
 Total = (width/100 × height/100) × unit_value × quantity
 ```
 
+### TalonarioItem - Sistema Completo
+```php
+// Numeración: Prefijo + rango (001-1000)
+// Hojas: Cada hoja es SimpleItem independiente
+// Acabados: POR_NUMERO / POR_TALONARIO (numeración, perforación, engomado)
+// Cálculo: suma hojas + acabados + costos adicionales
+```
+
 ## DocumentItems RelationManager
 
 ### Funciones Principales
-- **"Agregar Item"**: Wizard por tipos (SimpleItem, Product, DigitalItem)
+- **"Agregar Item"**: Wizard por tipos (SimpleItem, Product, DigitalItem, TalonarioItem)
 - **"Item Sencillo/Producto/Digital Rápido"**: Modals optimizados
 - **Tabla simplificada**: 5 columnas (Tipo, Cantidad, Descripción, Precio Unit, Total)
 - **Acciones**: Editar, Ver Detalles, Duplicar, Borrar
 - **Recálculo automático**: Totales actualizados en tiempo real
 
-### Estado Items
-- ✅ **SimpleItem**: Funcional con CuttingCalculatorService
-- ✅ **Product**: Inventario completo con stock y validaciones
-- ✅ **DigitalItem**: Dual pricing (unit/size) + sistema acabados completo
-- 🔄 **TalonarioItem/MagazineItem**: Pendientes
+### Estado Items Polimórficos
+- ✅ **SimpleItem**: CuttingCalculatorService + 6 secciones formulario
+- ✅ **Product**: Inventario completo + gestión stock + alertas
+- ✅ **DigitalItem**: Dual pricing (unit/size) + auto-generación códigos
+- ✅ **TalonarioItem**: Numeración secuencial + hojas múltiples + acabados específicos
+- 🔄 **MagazineItem**: Pendiente
 
 ## Herramientas de Mantenimiento
 
@@ -196,25 +206,69 @@ Password: password
 
 
 ## Estado del Sistema
-
-### Items Polimórficos Funcionales
-- ✅ **SimpleItem**: CuttingCalculatorService + 6 secciones formulario
-- ✅ **Product**: Inventario completo + gestión stock + alertas
-- ✅ **DigitalItem**: Dual pricing (unit/size) + auto-generación códigos
-
-### Sistema Operativo
 - **Multi-tenancy**: Scopes automáticos por company_id
-- **PDF Generation**: Template polimórfico con precios correctos
+- **PDF Generation**: Template polimórfico con precios correctos  
 - **Dashboard**: 6 widgets + calculadora Canvas HTML5 + alertas stock
 - **Testing**: 60 tests (Unit + Feature) + polimorfismo coverage
-- **Maintenance**: Comandos dry-run para precios y setup demo
-
-### Funcionalidades Core
-- **DocumentItems**: RelationManager con 3 botones rápidos + wizard
-- **Price Calculation**: Auto-cálculo por tipo + corrección masiva
+- **DocumentItems**: RelationManager con wizard + 4 tipos items + recálculo automático
+- **Price Calculation**: Auto-cálculo por tipo + corrección masiva + comandos dry-run
 - **Roles & Permissions**: Spatie + 5 roles + 28 permisos específicos
-- **CuttingCalculator**: Optimización de cortes + visualización
+
+## PROGRESO RECIENTE
+
+### ✅ TalonarioItem - Sistema Completado (04-Sep-2025)
+**Implementación completa del sistema de talonarios:**
+
+#### Arquitectura Implementada
+- **Modelo TalonarioItem**: 270 líneas con BelongsToTenant + polymorphic relations
+- **TalonarioSheet**: Pivot model conectando a SimpleItems
+- **TalonarioCalculatorService**: 340+ líneas con lógica de negocio completa
+- **FinishingMeasurementUnit**: Enum extendido (POR_NUMERO, POR_TALONARIO)
+
+#### Características Funcionales
+- **Numeración secuencial**: Prefijo + rango (001-1000) + números por talonario
+- **Hojas múltiples**: Cada hoja = SimpleItem con cálculos independientes  
+- **Acabados específicos**: Numeración ($15 por número), Perforación ($500 por talonario)
+- **Auto-cálculos**: Suma hojas + acabados + costos + margen automático
+- **Modal "Agregar Hoja"**: Form completo con materiales + tintas + dimensiones
+
+#### Problemas Resueltos
+- ✅ **Página en blanco**: Encoding UTF-8 corregido en TalonarioItemForm
+- ✅ **Error enum match**: Agregados casos POR_NUMERO/POR_TALONARIO en FinishingsTable
+- ✅ **Botón faltante**: Modal "Agregar Hoja" restaurado con Actions completas  
+- ✅ **PrintingCalculation error**: front_back_plate boolean requerido solucionado
+
+#### Archivos Clave Creados/Modificados
+```
+/database/migrations/2025_09_04_*_talonario_*.php (4 migraciones)
+/app/Models/TalonarioItem.php (270 líneas)
+/app/Models/TalonarioSheet.php (122 líneas)  
+/app/Services/TalonarioCalculatorService.php (340+ líneas)
+/app/Filament/Resources/TalonarioItems/* (Resource completo)
+/database/seeders/TalonarioFinishingsSeeder.php
+```
+
+### 🎯 PRÓXIMA PRIORIDAD: MagazineItem
+**Implementar sistema de revistas siguiendo patrón TalonarioItem:**
+- Páginas múltiples como SimpleItems
+- Acabados específicos (grapa, anillado, doblez)
+- Cálculos por cantidad de páginas + terminados
+
+---
 
 ## Documentación Especializada
-- **Testing**: Ver `TESTING_SETUP.md`
+- **Testing**: Ver `TESTING_SETUP.md`  
 - **Architecture**: Multi-tenant con scopes automáticos por company_id
+
+## COMANDO PARA CONTINUAR MAÑANA
+```bash
+# Iniciar sesión de trabajo
+cd /home/dasiva/Descargas/litopro825 && php artisan serve &
+
+# Verificar estado actual
+php artisan migrate:status
+git status --short
+
+# Continuar con MagazineItem
+echo "Listo para implementar MagazineItem siguiendo patrón TalonarioItem"
+```

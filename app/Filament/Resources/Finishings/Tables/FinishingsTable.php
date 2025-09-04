@@ -35,6 +35,8 @@ class FinishingsTable
                         'rango' => 'warning', 
                         'unidad' => 'success',
                         'tamaño' => 'primary',
+                        'por_numero' => 'indigo',
+                        'por_talonario' => 'purple',
                     }),
                 TextColumn::make('unit_price')
                     ->label('Precio')

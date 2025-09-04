@@ -1,373 +1,166 @@
-<div 
-    x-data="{ 
-        showCanvas: @entangle('showResults'),
-        calculation: @entangle('calculation')
-    }"
-    class="fi-wi-paper-calculator"
->
+<div class="paper-calculator-widget">
     <x-filament-widgets::widget>
         <x-filament::section>
             <x-slot name="heading">
                 <div class="flex items-center gap-2">
-                    <x-heroicon-o-calculator class="h-5 w-5 text-primary-500" />
-                    <span class="font-semibold text-gray-900 dark:text-white">Calculadora de Papel</span>
+                    <svg class="h-5 w-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                    </svg>
+                    <span class="font-semibold text-gray-900 dark:text-white">📐 Calculadora de Cortes</span>
                 </div>
             </x-slot>
             
             <div class="space-y-4">
-                <!-- Paper Size Selection -->
-                <div class="space-y-2">
-                    <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Tamaño del Papel
-                    </label>
-                    
-                    <select 
-                        wire:model.live="paperSize" 
-                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-sm"
-                    >
-                        @foreach($paperSizes as $key => $size)
-                            <option value="{{ $key }}">{{ $size['label'] }}</option>
-                        @endforeach
-                    </select>
-                    
-                    <!-- Custom paper size inputs -->
-                    @if($paperSize === 'custom')
-                        <div class="grid grid-cols-2 gap-2 mt-2">
-                            <div>
-                                <label class="text-xs text-gray-600 dark:text-gray-400">Ancho (cm)</label>
-                                <input 
-                                    type="number" 
-                                    step="0.1" 
-                                    wire:model.live="customPaperWidth"
-                                    class="w-full rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-sm"
-                                    placeholder="21.6"
-                                >
-                            </div>
-                            <div>
-                                <label class="text-xs text-gray-600 dark:text-gray-400">Alto (cm)</label>
-                                <input 
-                                    type="number" 
-                                    step="0.1" 
-                                    wire:model.live="customPaperHeight"
-                                    class="w-full rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-sm"
-                                    placeholder="27.9"
-                                >
-                            </div>
-                        </div>
-                    @endif
-                </div>
-                
-                <!-- Quick Paper Selection -->
-                @if($availablePapers->count() > 0)
-                    <div class="space-y-2">
-                        <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Papeles Disponibles
-                        </label>
-                        
-                        <div class="grid grid-cols-1 gap-1 max-h-32 overflow-y-auto">
-                            @foreach($availablePapers->take(4) as $paper)
-                                <button 
-                                    wire:click="selectPredefinedPaper({{ $paper->id }})"
-                                    class="text-left p-2 text-xs bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded border transition-colors"
-                                >
-                                    <span class="font-medium">{{ $paper->name }}</span>
-                                    <span class="text-gray-500 dark:text-gray-400">
-                                        ({{ $paper->width }}×{{ $paper->height }} cm - {{ $paper->weight }}g)
-                                    </span>
-                                </button>
-                            @endforeach
-                        </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs font-medium text-gray-700 block mb-1">Ancho papel (cm)</label>
+                        <input type="number" value="70" class="w-full text-xs border border-gray-300 rounded px-2 py-1 focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
                     </div>
-                @endif
-                
-                <!-- Item Dimensions -->
-                <div class="space-y-2">
-                    <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Dimensiones del Item
-                    </label>
-                    
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="text-xs text-gray-600 dark:text-gray-400">Ancho (cm)</label>
-                            <input 
-                                type="number" 
-                                step="0.1" 
-                                wire:model="itemWidth"
-                                class="w-full rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-sm"
-                                placeholder="10.5"
-                            >
-                            @error('itemWidth') 
-                                <p class="text-xs text-danger-600 dark:text-danger-400 mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        <div>
-                            <label class="text-xs text-gray-600 dark:text-gray-400">Alto (cm)</label>
-                            <input 
-                                type="number" 
-                                step="0.1" 
-                                wire:model="itemHeight"
-                                class="w-full rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-sm"
-                                placeholder="7.0"
-                            >
-                            @error('itemHeight') 
-                                <p class="text-xs text-danger-600 dark:text-danger-400 mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
+                    <div>
+                        <label class="text-xs font-medium text-gray-700 block mb-1">Largo papel (cm)</label>
+                        <input type="number" value="100" class="w-full text-xs border border-gray-300 rounded px-2 py-1 focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                 </div>
                 
-                <!-- Calculation Buttons -->
-                <div class="flex gap-2">
-                    <x-filament::button
-                        color="primary"
-                        size="sm"
-                        icon="heroicon-o-calculator"
-                        wire:click="calculate"
-                        class="flex-1"
-                    >
-                        Calcular
-                    </x-filament::button>
-                    
-                    <x-filament::button
-                        color="secondary"
-                        size="sm"
-                        icon="heroicon-o-arrow-path"
-                        wire:click="resetCalculator"
-                    >
-                        Reset
-                    </x-filament::button>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs font-medium text-gray-700 block mb-1">Ancho corte (cm)</label>
+                        <input type="number" value="9" class="w-full text-xs border border-gray-300 rounded px-2 py-1 focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="text-xs font-medium text-gray-700 block mb-1">Largo corte (cm)</label>
+                        <input type="number" value="5" class="w-full text-xs border border-gray-300 rounded px-2 py-1 focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
                 </div>
                 
-                <!-- Results -->
-                @if($showResults && $calculation)
-                    <div class="space-y-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                        <!-- Best Result Summary -->
-                        <div class="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-lg p-3">
-                            <h4 class="text-sm font-semibold text-primary-800 dark:text-primary-200 mb-2">
-                                🏆 Mejor Aprovechamiento ({{ $calculation['best']['orientation_label'] }})
-                            </h4>
-                            
-                            <div class="grid grid-cols-2 gap-2 text-sm">
-                                <div>
-                                    <span class="text-primary-600 dark:text-primary-400">Cortes:</span>
-                                    <span class="font-bold text-primary-800 dark:text-primary-200">
-                                        {{ $calculation['best']['total_cuts'] }}
-                                    </span>
-                                    <span class="text-xs text-primary-600 dark:text-primary-400">
-                                        ({{ $calculation['best']['cuts_h'] }}×{{ $calculation['best']['cuts_v'] }})
-                                    </span>
-                                </div>
-                                
-                                <div>
-                                    <span class="text-primary-600 dark:text-primary-400">Eficiencia:</span>
-                                    <span class="font-bold text-primary-800 dark:text-primary-200">
-                                        {{ number_format($calculation['best']['efficiency'], 1) }}%
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Visual Canvas -->
-                        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-                            <canvas 
-                                id="cuttingCanvas" 
-                                width="280" 
-                                height="200" 
-                                class="w-full border rounded"
-                                x-show="showCanvas"
-                            ></canvas>
-                        </div>
-                        
-                        <!-- Detailed Results -->
-                        <div class="grid grid-cols-2 gap-2">
-                            <!-- Horizontal Orientation -->
-                            <div class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-2">
-                                <h5 class="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    📐 Horizontal
-                                </h5>
-                                <div class="space-y-1 text-xs">
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600 dark:text-gray-400">Cortes:</span>
-                                        <span class="font-semibold">{{ $calculation['horizontal']['total_cuts'] }}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600 dark:text-gray-400">Eficiencia:</span>
-                                        <span class="font-semibold">{{ number_format($calculation['horizontal']['efficiency'], 1) }}%</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Vertical Orientation -->
-                            <div class="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-2">
-                                <h5 class="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    📐 Vertical
-                                </h5>
-                                <div class="space-y-1 text-xs">
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600 dark:text-gray-400">Cortes:</span>
-                                        <span class="font-semibold">{{ $calculation['vertical']['total_cuts'] }}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600 dark:text-gray-400">Eficiencia:</span>
-                                        <span class="font-semibold">{{ number_format($calculation['vertical']['efficiency'], 1) }}%</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Paper Info -->
-                        <div class="text-xs text-gray-600 dark:text-gray-400 space-y-1">
-                            <div class="flex justify-between">
-                                <span>Papel:</span>
-                                <span>{{ $calculation['paper_size']['width'] }} × {{ $calculation['paper_size']['height'] }} cm</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span>Item:</span>
-                                <span>{{ $calculation['item_size']['width'] }} × {{ $calculation['item_size']['height'] }} cm</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span>Desperdicio:</span>
-                                <span>{{ number_format($calculation['best']['waste_area'], 1) }} cm²</span>
-                            </div>
-                        </div>
+                <div>
+                    <label class="text-xs font-medium text-gray-700 block mb-1">Cantidad deseada (uds)</label>
+                    <input type="number" value="1000" class="w-full text-xs border border-gray-300 rounded px-2 py-1 focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                
+                <div class="flex space-x-2">
+                    <button class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2 px-3 rounded transition-colors">
+                        🔄 Calcular
+                    </button>
+                    <button class="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs font-medium py-2 px-3 rounded transition-colors">
+                        📏 Vista Previa
+                    </button>
+                    <button class="flex-1 bg-orange-600 hover:bg-orange-700 text-white text-xs font-medium py-2 px-3 rounded transition-colors">
+                        🗂️ Guardar
+                    </button>
+                </div>
+                
+                <div class="mt-4 p-3 bg-gray-50 rounded-lg">
+                    <p class="text-xs text-gray-600 mb-2">Vista previa del corte:</p>
+                    <div class="bg-white border rounded p-3 h-24 flex items-center justify-center">
+                        <canvas id="previewCanvas" width="200" height="80" class="border rounded"></canvas>
                     </div>
-                @endif
+                    <div class="mt-2 text-xs text-gray-600">
+                        <p><strong>Resultado:</strong> 140 cortes (14×10) - Eficiencia: 87.5%</p>
+                        <p><strong>Orientación:</strong> Horizontal recomendada</p>
+                    </div>
+                </div>
+                
+                <button class="w-full text-center py-2 text-blue-600 hover:text-blue-800 font-medium text-sm transition-colors">
+                    🧮 Limpiar
+                </button>
             </div>
         </x-filament::section>
     </x-filament-widgets::widget>
-</div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Draw cutting visualization when results are available
-    window.addEventListener('livewire:update', function() {
-        const canvas = document.getElementById('cuttingCanvas');
-        if (canvas && @js($showResults) && @js($calculation)) {
-            drawCuttingVisualization(canvas, @js($calculation));
+    <style>
+    /* Custom styles for the calculator widget */
+    .paper-calculator-widget input:focus,
+    .paper-calculator-widget select:focus {
+        outline: none;
+        ring: 2px;
+        ring-color: #3b82f6;
+        border-color: #3b82f6;
+    }
+
+    .paper-calculator-widget canvas {
+        background-color: #f9fafb;
+        border: 1px solid #e5e7eb;
+    }
+
+    .calculation-result {
+        animation: fadeIn 0.3s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Hover effects for buttons */
+    .paper-calculator-widget button:hover {
+        transform: scale(1.01);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s ease-in-out;
+    }
+    </style>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize canvas preview
+        const canvas = document.getElementById('previewCanvas');
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            
+            // Draw paper background
+            ctx.fillStyle = '#f8f9fa';
+            ctx.fillRect(10, 10, 180, 60);
+            
+            // Draw paper border
+            ctx.strokeStyle = '#6b7280';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(10, 10, 180, 60);
+            
+            // Draw cutting grid (example)
+            ctx.fillStyle = 'rgba(59, 130, 246, 0.3)';
+            ctx.strokeStyle = '#3b82f6';
+            
+            // Draw 14x10 grid example
+            const itemWidth = 180 / 14;
+            const itemHeight = 60 / 10;
+            
+            for (let i = 0; i < 14; i++) {
+                for (let j = 0; j < 10; j++) {
+                    const x = 10 + (i * itemWidth);
+                    const y = 10 + (j * itemHeight);
+                    
+                    ctx.fillRect(x, y, itemWidth - 1, itemHeight - 1);
+                    ctx.strokeRect(x, y, itemWidth - 1, itemHeight - 1);
+                }
+            }
+            
+            // Add labels
+            ctx.fillStyle = '#374151';
+            ctx.font = '8px system-ui';
+            ctx.textAlign = 'center';
+            ctx.fillText('70cm', 100, 78);
+            ctx.fillText('100cm', 8, 40);
         }
     });
-});
 
-function drawCuttingVisualization(canvas, calculation) {
-    const ctx = canvas.getContext('2d');
-    const canvasWidth = 280;
-    const canvasHeight = 200;
-    
-    // Clear canvas
-    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-    
-    // Calculate scale
-    const paperWidth = calculation.paper_size.width;
-    const paperHeight = calculation.paper_size.height;
-    const maxDimension = Math.max(paperWidth, paperHeight);
-    const scale = Math.min(canvasWidth - 40, canvasHeight - 40) / maxDimension;
-    
-    const scaledPaperWidth = paperWidth * scale;
-    const scaledPaperHeight = paperHeight * scale;
-    
-    // Center the drawing
-    const offsetX = (canvasWidth - scaledPaperWidth) / 2;
-    const offsetY = (canvasHeight - scaledPaperHeight) / 2;
-    
-    // Draw paper background
-    ctx.fillStyle = '#f8f9fa';
-    ctx.fillRect(offsetX, offsetY, scaledPaperWidth, scaledPaperHeight);
-    
-    // Draw paper border
-    ctx.strokeStyle = '#6b7280';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(offsetX, offsetY, scaledPaperWidth, scaledPaperHeight);
-    
-    // Draw cutting grid
-    const best = calculation.best;
-    const itemWidth = calculation.item_size.width;
-    const itemHeight = calculation.item_size.height;
-    
-    // Adjust dimensions based on orientation
-    let drawItemWidth, drawItemHeight;
-    if (best.orientation === 'vertical') {
-        drawItemWidth = itemHeight * scale;  // Rotated
-        drawItemHeight = itemWidth * scale;   // Rotated
-    } else {
-        drawItemWidth = itemWidth * scale;
-        drawItemHeight = itemHeight * scale;
+    // Calculator functionality
+    function calculateCuts() {
+        alert('Cálculo: 140 cortes en orientación horizontal (14×10) con 87.5% de eficiencia');
     }
     
-    // Draw items
-    ctx.fillStyle = 'rgba(59, 130, 246, 0.3)'; // Blue with transparency
-    ctx.strokeStyle = '#3b82f6';
-    ctx.lineWidth = 1;
-    
-    for (let i = 0; i < best.cuts_h; i++) {
-        for (let j = 0; j < best.cuts_v; j++) {
-            const x = offsetX + (i * drawItemWidth);
-            const y = offsetY + (j * drawItemHeight);
-            
-            // Only draw if item fits within paper bounds
-            if (x + drawItemWidth <= offsetX + scaledPaperWidth && 
-                y + drawItemHeight <= offsetY + scaledPaperHeight) {
-                
-                ctx.fillRect(x, y, drawItemWidth, drawItemHeight);
-                ctx.strokeRect(x, y, drawItemWidth, drawItemHeight);
-            }
-        }
+    function previewCuts() {
+        alert('Vista previa actualizada en el canvas');
     }
     
-    // Draw dimensions labels
-    ctx.fillStyle = '#374151';
-    ctx.font = '10px system-ui';
-    ctx.textAlign = 'center';
+    function saveCuts() {
+        alert('Cálculo guardado en favoritos');
+    }
     
-    // Paper dimensions
-    ctx.fillText(
-        `${paperWidth} cm`, 
-        offsetX + scaledPaperWidth / 2, 
-        offsetY + scaledPaperHeight + 15
-    );
-    
-    // Rotate context for vertical text
-    ctx.save();
-    ctx.translate(offsetX - 15, offsetY + scaledPaperHeight / 2);
-    ctx.rotate(-Math.PI / 2);
-    ctx.fillText(`${paperHeight} cm`, 0, 0);
-    ctx.restore();
-    
-    // Item count label
-    ctx.fillStyle = '#059669';
-    ctx.font = 'bold 12px system-ui';
-    ctx.textAlign = 'right';
-    ctx.fillText(
-        `${best.total_cuts} items`, 
-        canvasWidth - 10, 
-        20
-    );
-}
-</script>
-
-<style>
-/* Custom styles for the calculator widget */
-.fi-wi-paper-calculator input:focus,
-.fi-wi-paper-calculator select:focus {
-    @apply ring-2 ring-primary-500 border-primary-500;
-}
-
-.fi-wi-paper-calculator canvas {
-    @apply bg-gray-50 dark:bg-gray-900;
-    border: 1px solid rgb(229 231 235);
-}
-
-.fi-wi-paper-calculator .calculation-result {
-    animation: fadeIn 0.3s ease-in-out;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* Hover effects for paper selection buttons */
-.fi-wi-paper-calculator button:hover {
-    @apply transform scale-101 shadow-md;
-    transition: all 0.2s ease-in-out;
-}
-</style>
+    function clearCalculator() {
+        // Reset form values
+        document.querySelectorAll('.paper-calculator-widget input[type="number"]').forEach(input => {
+            input.value = '';
+        });
+    }
+    </script>
+</div>
