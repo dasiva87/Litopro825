@@ -88,7 +88,7 @@ class Document extends Model
     // Relación con items del documento
     public function items(): HasMany
     {
-        return $this->hasMany(DocumentItem::class);
+        return $this->hasMany(DocumentItem::class, 'document_id');
     }
 
     // Relaciones de versionado

@@ -237,13 +237,15 @@ class TalonarioItem extends Model
     public function getSheetsTableData(): array
     {
         return $this->sheets()->with('simpleItem')->orderBy('sheet_order')->get()->map(function ($sheet) {
+            $description = $sheet->sheet_notes ?: ($sheet->simpleItem ? $sheet->simpleItem->description : 'Sin descripción');
             return [
                 'id' => $sheet->id,
                 'type' => $sheet->sheet_type_name,
-                'order' => $sheet->sheet_order,
-                'color' => $sheet->paper_color,
-                'description' => $sheet->simpleItem ? $sheet->simpleItem->description : 'Sin SimpleItem',
-                'unit_price' => $sheet->simpleItem ? number_format($sheet->simpleItem->final_price / $sheet->simpleItem->quantity, 2) : '0.00',
+                'order' => $sheet->sheet_order ?? 1,
+                'color' => $sheet->paper_color ?? 'blanco',
+                'description' => $description,
+                'unit_price' => $sheet->simpleItem && $sheet->simpleItem->quantity > 0 ? 
+                    number_format($sheet->simpleItem->final_price / $sheet->simpleItem->quantity, 2) : '0.00',
                 'total_cost' => $sheet->simpleItem ? number_format($sheet->simpleItem->final_price, 2) : '0.00',
                 'simple_item_id' => $sheet->simple_item_id,
             ];

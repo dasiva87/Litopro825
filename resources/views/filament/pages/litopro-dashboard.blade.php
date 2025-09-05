@@ -1,6 +1,5 @@
-<x-filament-panels::page>
-<div class="litopro-dashboard-wrapper">
-<style>
+<div class="litopro-dashboard-container">
+    <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 /* Force full layout override */
@@ -21,10 +20,10 @@
     height: 100vh !important;
 }
 
-/* Wrapper styles */
-.litopro-dashboard-wrapper {
-    height: 100vh;
-    overflow: hidden;
+/* Page wrapper styles */
+.fi-page {
+    height: 100vh !important;
+    overflow: hidden !important;
 }
 
 /* Custom dashboard styles */
@@ -91,85 +90,75 @@
         display: block;
     }
 }
-</style>
+    </style>
 
-<!-- Header -->
-<header class="bg-white border-b border-gray-200 sticky top-0 z-50">
-    <div class="px-6 py-4">
-        <div class="flex items-center justify-between">
-            <!-- Mobile menu button -->
-            <button class="mobile-menu-button p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 mr-2" onclick="toggleMobileMenu()">
-                <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-                </svg>
-            </button>
-            
-            <!-- Logo y Título -->
-            <div class="flex items-center space-x-4">
-                <div class="flex items-center space-x-3">
-                    <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                        <span class="text-white font-bold text-sm">L</span>
-                    </div>
-                    <h1 class="text-xl font-bold text-gray-900">LitoPro</h1>
-                    <span class="text-sm text-gray-500">Panel de Control - Litografía</span>
-                </div>
-            </div>
-            
-            <!-- Search Bar -->
-            <div class="flex-1 max-w-lg mx-8">
-                <div class="relative">
-                    <input type="text" placeholder="Buscar cotizaciones, clientes, órdenes..." 
-                           class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    <svg class="absolute left-3 top-2.5 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div class="px-6 py-4">
+            <div class="flex items-center justify-between">
+                <!-- Mobile menu button -->
+                <button class="mobile-menu-button p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 mr-2" onclick="toggleMobileMenu()">
+                    <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                     </svg>
-                </div>
-            </div>
-            
-            <!-- Notifications y User -->
-            <div class="flex items-center space-x-4">
-                <!-- Notifications -->
-                <div class="relative">
-                    <button class="relative p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5-5-5h5zm0 0V9a6 6 0 00-12 0v8h12z"/>
-                        </svg>
-                        <span class="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full notifications-badge"></span>
-                    </button>
-                </div>
+                </button>
                 
-                <!-- User Menu -->
-                <div class="flex items-center space-x-3">
-                    <div class="text-right">
-                        <p class="text-sm font-medium text-gray-900">{{ auth()->user()->name }}</p>
-                        <p class="text-xs text-gray-500">{{ auth()->user()->company->name }}</p>
-                    </div>
-                    <img class="h-8 w-8 rounded-full" 
-                         src="https://ui-avatars.com/api/?name={{ urlencode(auth()->user()->name) }}&background=3b82f6&color=fff" 
-                         alt="User">
-                </div>
-                
-                <!-- Alert Banner -->
-                @if($this->getCriticalStock() > 0)
-                <div class="bg-orange-100 border border-orange-200 rounded-lg px-3 py-2">
-                    <div class="flex items-center space-x-2">
-                        <svg class="h-4 w-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-                        </svg>
-                        <span class="text-sm font-medium text-orange-800">
-                            Tienes {{ $this->getCriticalStock() }} tipos de papel con stock crítico
-                        </span>
+                <!-- Logo y Título -->
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-sm">L</span>
+                        </div>
+                        <h1 class="text-xl font-bold text-gray-900">LitoPro</h1>
+                        <span class="text-sm text-gray-500">Panel de Control - Litografía</span>
                     </div>
                 </div>
-                @endif
+                
+                <!-- Search Bar -->
+                <div class="flex-1 max-w-lg mx-8">
+                    <div class="relative">
+                        <input type="text" placeholder="Buscar cotizaciones, clientes, órdenes..." 
+                               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <svg class="absolute left-3 top-2.5 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                    </div>
+                </div>
+                
+                <!-- Notifications y User -->
+                <div class="flex items-center space-x-4">
+                    <!-- User Menu -->
+                    <div class="flex items-center space-x-3">
+                        <div class="text-right">
+                            <p class="text-sm font-medium text-gray-900">{{ auth()->user()->name }}</p>
+                            <p class="text-xs text-gray-500">{{ auth()->user()->company->name }}</p>
+                        </div>
+                        <img class="h-8 w-8 rounded-full" 
+                             src="https://ui-avatars.com/api/?name={{ urlencode(auth()->user()->name) }}&background=3b82f6&color=fff" 
+                             alt="User">
+                    </div>
+                    
+                    <!-- Alert Banner -->
+                    @if($this->getCriticalStock() > 0)
+                    <div class="bg-orange-100 border border-orange-200 rounded-lg px-3 py-2">
+                        <div class="flex items-center space-x-2">
+                            <svg class="h-4 w-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                            </svg>
+                            <span class="text-sm font-medium text-orange-800">
+                                Stock crítico: {{ $this->getCriticalStock() }} tipos de papel
+                            </span>
+                        </div>
+                    </div>
+                    @endif
+                </div>
             </div>
         </div>
-    </div>
-</header>
+    </header>
 
-<div class="flex h-screen pt-16">
-    <!-- Sidebar -->
-    <aside class="w-64 sidebar-gradient text-white flex-shrink-0">
+    <div class="flex h-screen pt-16">
+        <!-- Sidebar -->
+        <aside class="w-64 sidebar-gradient text-white flex-shrink-0">
             <div class="p-4 space-y-2">
                 <!-- Navegación Principal -->
                 <div class="space-y-1">
@@ -200,13 +189,6 @@
                         Clientes
                         <span class="ml-auto bg-green-600 text-white text-xs rounded-full px-2 py-1">{{ $this->getActiveClients() }}</span>
                     </a>
-                    
-                    <a href="#" class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-blue-100 hover:bg-blue-800 hover:text-white transition-colors">
-                        <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-                        </svg>
-                        Plantillas
-                    </a>
                 </div>
                 
                 <!-- Producción -->
@@ -222,33 +204,11 @@
                         Órdenes de Producción
                         <span class="ml-auto bg-yellow-600 text-white text-xs rounded-full px-2 py-1">{{ $this->getProductionOrders() }}</span>
                     </a>
-                    
-                    <a href="#" class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-blue-100 hover:bg-blue-800 hover:text-white transition-colors">
-                        <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a4 4 0 118 0v4M3 21h18l-2-9H5l-2 9z"/>
-                        </svg>
-                        Estado Producción
-                    </a>
-                    
-                    <a href="{{ route('filament.admin.resources.printing-machines.index') }}" 
-                       class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-blue-100 hover:bg-blue-800 hover:text-white transition-colors">
-                        <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/>
-                        </svg>
-                        Máquinas
-                    </a>
-                    
-                    <a href="#" class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-blue-100 hover:bg-blue-800 hover:text-white transition-colors">
-                        <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
-                        </svg>
-                        Acabados
-                    </a>
                 </div>
                 
                 <!-- Inventario & Papel -->
                 <div class="space-y-1 pt-4">
-                    <h3 class="text-xs font-semibold text-blue-200 uppercase tracking-wider mb-3">INVENTARIO & PAPEL</h3>
+                    <h3 class="text-xs font-semibold text-blue-200 uppercase tracking-wider mb-3">INVENTARIO</h3>
                     
                     <a href="{{ route('filament.admin.resources.papers.index') }}" 
                        class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-blue-100 hover:bg-blue-800 hover:text-white transition-colors">
@@ -259,90 +219,6 @@
                         @if($this->getCriticalStock() > 0)
                         <span class="ml-auto bg-red-600 text-white text-xs rounded-full px-2 py-1">!</span>
                         @endif
-                    </a>
-                    
-                    <a href="{{ route('filament.admin.resources.products.index') }}" 
-                       class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-blue-100 hover:bg-blue-800 hover:text-white transition-colors">
-                        <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                        </svg>
-                        Inventario
-                    </a>
-                    
-                    <a href="#" class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-blue-100 hover:bg-blue-800 hover:text-white transition-colors">
-                        <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
-                        </svg>
-                        Pedidos de Papel
-                        <span class="ml-auto bg-blue-600 text-white text-xs rounded-full px-2 py-1">5</span>
-                    </a>
-                    
-                    <a href="#" class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-blue-100 hover:bg-blue-800 hover:text-white transition-colors">
-                        <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                        </svg>
-                        Marketplace
-                    </a>
-                    
-                    <a href="{{ route('filament.admin.resources.contacts.index', ['tableFilters[type][value]' => 'supplier']) }}" class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-blue-100 hover:bg-blue-800 hover:text-white transition-colors">
-                        <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                        </svg>
-                        Proveedores
-                    </a>
-                </div>
-                
-                <!-- Herramientas -->
-                <div class="space-y-1 pt-4">
-                    <h3 class="text-xs font-semibold text-blue-200 uppercase tracking-wider mb-3">HERRAMIENTAS</h3>
-                    
-                    <a href="{{ route('filament.admin.pages.cutting-calculator') }}" 
-                       class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-blue-100 hover:bg-blue-800 hover:text-white transition-colors">
-                        <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                        </svg>
-                        Calculadoras
-                    </a>
-                    
-                    <a href="#" class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-blue-100 hover:bg-blue-800 hover:text-white transition-colors">
-                        <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                        </svg>
-                        Reportes
-                    </a>
-                    
-                    <a href="#" class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-blue-100 hover:bg-blue-800 hover:text-white transition-colors">
-                        <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/>
-                        </svg>
-                        Analytics
-                    </a>
-                </div>
-                
-                <!-- Red Social -->
-                <div class="space-y-1 pt-4">
-                    <h3 class="text-xs font-semibold text-blue-200 uppercase tracking-wider mb-3">RED SOCIAL</h3>
-                    
-                    <a href="#" class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-blue-100 hover:bg-blue-800 hover:text-white transition-colors">
-                        <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"/>
-                        </svg>
-                        Explorar
-                    </a>
-                    
-                    <a href="#" class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-blue-100 hover:bg-blue-800 hover:text-white transition-colors">
-                        <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"/>
-                        </svg>
-                        Conexiones
-                    </a>
-                    
-                    <a href="#" class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-blue-100 hover:bg-blue-800 hover:text-white transition-colors">
-                        <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
-                        </svg>
-                        Mensajes
                     </a>
                 </div>
             </div>
@@ -365,7 +241,6 @@
                                 <dl>
                                     <dt class="text-sm font-medium text-blue-100">Cotizaciones Activas</dt>
                                     <dd class="text-2xl font-semibold text-white">{{ $this->getActiveQuotations() }}</dd>
-                                    <dd class="text-xs text-blue-100">Estado: Enviadas y En Revisión</dd>
                                 </dl>
                             </div>
                         </div>
@@ -382,9 +257,8 @@
                             </div>
                             <div class="ml-5 w-0 flex-1">
                                 <dl>
-                                    <dt class="text-sm font-medium text-orange-100">Órdenes en Producción</dt>
+                                    <dt class="text-sm font-medium text-orange-100">Producción</dt>
                                     <dd class="text-2xl font-semibold text-white">{{ $this->getProductionOrders() }}</dd>
-                                    <dd class="text-xs text-orange-100">En proceso y programadas</dd>
                                 </dl>
                             </div>
                         </div>
@@ -402,7 +276,6 @@
                                 <dl>
                                     <dt class="text-sm font-medium text-green-100">Ingresos del Mes</dt>
                                     <dd class="text-2xl font-semibold text-white">${{ number_format($this->getMonthlyRevenue(), 1) }}M</dd>
-                                    <dd class="text-xs text-green-100">Documentos facturados</dd>
                                 </dl>
                             </div>
                         </div>
@@ -420,191 +293,54 @@
                                 <dl>
                                     <dt class="text-sm font-medium text-purple-100">Clientes Activos</dt>
                                     <dd class="text-2xl font-semibold text-white">{{ $this->getActiveClients() }}</dd>
-                                    <dd class="text-xs text-purple-100">Con cotizaciones recientes</dd>
                                 </dl>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Dashboard Content Grid -->
-                <div class="grid grid-cols-1 xl:grid-cols-4 gap-6">
-                    <!-- Main Content Column -->
-                    <div class="xl:col-span-3 space-y-6">
-                        <!-- Acciones Rápidas Widget -->
-                        @livewire(\App\Filament\Widgets\QuickActionsWidget::class, [], key('quick-actions'))
-
-                        <!-- Actividad Reciente -->
-                        <div class="bg-white rounded-xl shadow-sm">
-                            <div class="p-6 border-b border-gray-200">
-                                <h3 class="text-lg font-semibold text-gray-900">📋 Actividad Reciente</h3>
-                            </div>
-                            <div class="divide-y divide-gray-200">
-                                @foreach($this->getRecentActivity() as $activity)
-                                <div class="p-4 hover:bg-gray-50 transition-colors">
-                                    <div class="flex items-center space-x-4">
-                                        <div class="w-2 h-2 rounded-full
-                                            @if($activity['status_color'] === 'gray') bg-gray-600
-                                            @elseif($activity['status_color'] === 'yellow') bg-yellow-600
-                                            @elseif($activity['status_color'] === 'green') bg-green-600
-                                            @elseif($activity['status_color'] === 'orange') bg-orange-600
-                                            @elseif($activity['status_color'] === 'blue') bg-blue-600
-                                            @elseif($activity['status_color'] === 'red') bg-red-600
-                                            @else bg-gray-600
-                                            @endif">
-                                        </div>
-                                        <div class="flex-1">
-                                            <div class="flex items-center justify-between">
-                                                <p class="text-sm font-medium text-gray-900">{{ $activity['id'] }}</p>
-                                                <span class="text-xs text-gray-500">{{ $activity['time_diff'] }}</span>
-                                            </div>
-                                            <p class="text-sm text-gray-600">{{ $activity['title'] }}</p>
-                                            <div class="flex items-center space-x-4 mt-2">
-                                                <span class="text-sm text-gray-500">{{ $activity['client'] }}</span>
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                                    @if($activity['status_color'] === 'gray') bg-gray-100 text-gray-800
-                                                    @elseif($activity['status_color'] === 'yellow') bg-yellow-100 text-yellow-800
-                                                    @elseif($activity['status_color'] === 'green') bg-green-100 text-green-800
-                                                    @elseif($activity['status_color'] === 'orange') bg-orange-100 text-orange-800
-                                                    @elseif($activity['status_color'] === 'blue') bg-blue-100 text-blue-800
-                                                    @elseif($activity['status_color'] === 'red') bg-red-100 text-red-800
-                                                    @else bg-gray-100 text-gray-800
-                                                    @endif">
-                                                    {{ $activity['status_label'] }}
-                                                </span>
-                                                <span class="text-sm font-medium text-gray-900">${{ number_format($activity['total']) }}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                @endforeach
-                            </div>
-                        </div>
-
-                        <!-- Compartir en la Red Social -->
-                        <div class="bg-white p-6 rounded-xl shadow-sm">
-                            <h3 class="text-lg font-semibold text-gray-900 mb-4">💬 Compartir en la Red Social</h3>
-                            <div class="space-y-4">
-                                <textarea rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                                          placeholder="¿Qué quieres compartir con la comunidad de LitoPro? Promociones, trabajos terminados, consejos técnicos..."></textarea>
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center space-x-4">
-                                        <button class="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors">
-                                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                            </svg>
-                                            <span class="text-sm">Imagen</span>
-                                        </button>
-                                        <button class="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors">
-                                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.586-6.586a2 2 0 00-2.828-2.828l-6.586 6.586a2 2 0 11-2.828-2.828L13.343 4.929a4 4 0 116.586 6.586L13.343 18.1a4 4 0 01-6.586-6.586z"/>
-                                            </svg>
-                                            <span class="text-sm">Archivo</span>
-                                        </button>
-                                    </div>
-                                    <button class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-                                        Publicar
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Social Feed Widget -->
-                        @livewire(\App\Filament\Widgets\SocialFeedWidget::class, [], key('social-feed'))
-                    </div>
-
-                    <!-- Sidebar Column -->
-                    <div class="space-y-6">
-                        <!-- Stock Alerts Widget -->
-                        @livewire(\App\Filament\Widgets\StockAlertsWidget::class, [], key('stock-alerts'))
-
-                        <!-- Ofertas en Marketplace -->
-                        <div class="bg-white p-6 rounded-xl shadow-sm">
-                            <div class="flex items-center justify-between mb-4">
-                                <h3 class="text-lg font-semibold text-gray-900">🛒 Ofertas en Marketplace</h3>
-                                <svg class="h-4 w-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                                </svg>
-                            </div>
-                            <div class="space-y-3">
-                                <div class="p-3 bg-green-50 rounded-lg border border-green-200">
-                                    <div class="flex items-center justify-between">
-                                        <div>
-                                            <p class="text-sm font-medium text-green-900">Bond 75g</p>
-                                            <p class="text-xs text-green-700">Disponible ahora</p>
-                                        </div>
-                                        <div class="text-right">
-                                            <p class="text-sm font-bold text-green-900">$2,300</p>
-                                            <p class="text-xs text-green-700">por pliego</p>
-                                        </div>
-                                    </div>
-                                    <button class="mt-2 w-full bg-green-600 hover:bg-green-700 text-white text-xs font-medium py-1.5 px-3 rounded transition-colors">
-                                        Ver Oferta
-                                    </button>
-                                </div>
-                                
-                                <div class="p-3 bg-green-50 rounded-lg border border-green-200">
-                                    <div class="flex items-center justify-between">
-                                        <div>
-                                            <p class="text-sm font-medium text-green-900">Couche 150g</p>
-                                            <p class="text-xs text-green-700">Stock limitado</p>
-                                        </div>
-                                        <div class="text-right">
-                                            <p class="text-sm font-bold text-green-900">$4,100</p>
-                                            <p class="text-xs text-green-700">por pliego</p>
-                                        </div>
-                                    </div>
-                                    <button class="mt-2 w-full bg-green-600 hover:bg-green-700 text-white text-xs font-medium py-1.5 px-3 rounded transition-colors">
-                                        Ver Oferta
-                                    </button>
-                                </div>
-                                
-                                <button class="w-full text-center py-2 text-blue-600 hover:text-blue-800 font-medium text-sm transition-colors">
-                                    Ver Marketplace Completo
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Paper Calculator Widget -->
-                        @livewire(\App\Filament\Widgets\PaperCalculatorWidget::class, [], key('paper-calculator'))
-
-                        <!-- Deadlines Widget -->
-                        @livewire(\App\Filament\Widgets\DeadlinesWidget::class, [], key('deadlines'))
+                <!-- Quick Actions -->
+                <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">🚀 Acciones Rápidas</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <a href="{{ route('filament.admin.resources.documents.create-quotation') }}" 
+                           class="bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg p-4 text-center transition-colors">
+                            <div class="text-blue-600 text-2xl mb-2">📝</div>
+                            <div class="text-sm font-medium text-blue-900">Nueva Cotización</div>
+                        </a>
+                        <a href="{{ route('filament.admin.resources.contacts.create') }}" 
+                           class="bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg p-4 text-center transition-colors">
+                            <div class="text-green-600 text-2xl mb-2">👤</div>
+                            <div class="text-sm font-medium text-green-900">Nuevo Cliente</div>
+                        </a>
+                        <a href="{{ route('filament.admin.resources.products.create') }}" 
+                           class="bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg p-4 text-center transition-colors">
+                            <div class="text-purple-600 text-2xl mb-2">📦</div>
+                            <div class="text-sm font-medium text-purple-900">Nuevo Producto</div>
+                        </a>
+                        <a href="{{ route('filament.admin.pages.cutting-calculator') }}" 
+                           class="bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-lg p-4 text-center transition-colors">
+                            <div class="text-orange-600 text-2xl mb-2">🧮</div>
+                            <div class="text-sm font-medium text-orange-900">Calculadora</div>
+                        </a>
                     </div>
                 </div>
             </div>
         </main>
     </div>
-</div>
 
-<script>
-// Inicialización del dashboard personalizado
+    <script>
+// Dashboard initialization
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('LitoPro Dashboard cargado correctamente');
-    
-    // Auto-refresh de widgets cada 5 minutos
-    setInterval(function() {
-        if (typeof Livewire !== 'undefined') {
-            Livewire.emit('refreshWidgets');
-        }
-    }, 300000);
+    console.log('LitoPro Dashboard loaded successfully');
 });
 
 // Toggle mobile menu
 function toggleMobileMenu() {
     const sidebar = document.querySelector('.dashboard-sidebar');
-    sidebar.classList.toggle('open');
-}
-
-// Close mobile menu when clicking outside
-document.addEventListener('click', function(event) {
-    const sidebar = document.querySelector('.dashboard-sidebar');
-    const menuButton = document.querySelector('.mobile-menu-button');
-    
-    if (!sidebar.contains(event.target) && !menuButton.contains(event.target)) {
-        sidebar.classList.remove('open');
+    if (sidebar) {
+        sidebar.classList.toggle('open');
     }
-});
-</script>
+}
+    </script>
 </div>
-</x-filament-panels::page>

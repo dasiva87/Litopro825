@@ -78,6 +78,11 @@ class DocumentItem extends Model
 
         // Auto-calcular totales cuando se actualiza
         static::saving(function ($item) {
+            // Auto-generar descripción si está vacía
+            if (empty($item->description) && $item->itemable) {
+                $item->description = $item->generateDescription();
+            }
+            
             $item->calculateTotals();
         });
     }
@@ -85,7 +90,7 @@ class DocumentItem extends Model
     // Relaciones
     public function document(): BelongsTo
     {
-        return $this->belongsTo(Document::class);
+        return $this->belongsTo(Document::class, 'document_id');
     }
 
     public function itemable(): MorphTo
@@ -544,4 +549,23 @@ class DocumentItem extends Model
     const ORIENTATION_HORIZONTAL = 'horizontal';
     const ORIENTATION_VERTICAL = 'vertical';
     const ORIENTATION_MAXIMUM = 'maximum';
+
+    /**
+     * Auto-generar descripción basada en el tipo de item
+     */
+    public function generateDescription(): string
+    {
+        if (!$this->itemable) {
+            return 'Item sin descripción';
+        }
+
+        return match($this->itemable_type) {
+            'App\\Models\\SimpleItem' => 'Item Sencillo: ' . ($this->itemable->description ?? 'Sin descripción'),
+            'App\\Models\\Product' => 'Producto: ' . ($this->itemable->name ?? 'Sin nombre'),
+            'App\\Models\\DigitalItem' => 'Servicio Digital: ' . ($this->itemable->description ?? 'Sin descripción'),
+            'App\\Models\\TalonarioItem' => 'Talonario: ' . ($this->itemable->description ?? 'Sin descripción'),
+            'App\\Models\\MagazineItem' => 'Revista: ' . ($this->itemable->description ?? 'Sin descripción'),
+            default => 'Item: ' . class_basename($this->itemable_type),
+        };
+    }
 }

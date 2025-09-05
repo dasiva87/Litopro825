@@ -11,4 +11,6 @@ Route::get('/', function () {
 Route::middleware('auth')->group(function () {
     Route::get('/documents/{document}/pdf', [DocumentPdfController::class, 'show'])
         ->name('documents.pdf');
+    Route::get('/documents/{document}/download', [DocumentPdfController::class, 'download'])
+        ->name('documents.pdf.download');
 });

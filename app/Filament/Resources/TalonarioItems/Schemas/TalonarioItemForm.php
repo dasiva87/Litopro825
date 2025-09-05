@@ -380,6 +380,7 @@ class TalonarioItemForm
                                         'sheet_type' => $sheetType,
                                         'sheet_order' => $sheetOrder,
                                         'paper_color' => $paperColor,
+                                        'sheet_notes' => $data['description'], // Usar sheet_notes en lugar de description
                                     ]);
 
                                     // Recalcular precios del talonario

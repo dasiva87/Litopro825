@@ -5,57 +5,113 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $document->number }} - {{ $document->documentType->name }}</title>
     <style>
+        @page {
+            margin: 0.75in;
+            size: letter;
+        }
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 0;
             color: #333;
+            font-size: 11pt;
+            line-height: 1.4;
         }
         .header {
             border-bottom: 2px solid #333;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+            page-break-inside: avoid;
         }
         .company-info {
             text-align: right;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+        }
+        .company-info h1 {
+            font-size: 20pt;
+            margin: 0 0 10px 0;
+        }
+        .company-info p {
+            margin: 3px 0;
+            font-size: 10pt;
         }
         .document-info {
             background: #f8f9fa;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
+            padding: 12px;
+            border-radius: 3px;
+            margin-bottom: 15px;
+        }
+        .document-info h2 {
+            font-size: 16pt;
+            margin: 0 0 8px 0;
+        }
+        .document-info p {
+            margin: 2px 0;
+            font-size: 10pt;
         }
         .contact-info {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+        }
+        .contact-info h3 {
+            font-size: 12pt;
+            margin: 0 0 8px 0;
+        }
+        .contact-info p {
+            margin: 2px 0;
+            font-size: 10pt;
         }
         .items-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin-top: 15px;
+            font-size: 9pt;
         }
         .items-table th,
         .items-table td {
             border: 1px solid #ddd;
-            padding: 12px;
+            padding: 8px 6px;
             text-align: left;
+            vertical-align: top;
         }
         .items-table th {
             background: #f8f9fa;
             font-weight: bold;
+            font-size: 9pt;
+        }
+        .items-table td.number {
+            text-align: right;
+            white-space: nowrap;
+        }
+        .items-table td.center {
+            text-align: center;
         }
         .totals {
-            margin-top: 20px;
+            margin-top: 15px;
             text-align: right;
+            font-size: 10pt;
         }
         .total-line {
-            margin: 5px 0;
+            margin: 3px 0;
         }
         .final-total {
             font-weight: bold;
-            font-size: 1.2em;
+            font-size: 12pt;
             border-top: 2px solid #333;
+            padding-top: 8px;
+            margin-top: 8px;
+        }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            color: #666;
+            font-size: 8pt;
+            border-top: 1px solid #ddd;
             padding-top: 10px;
+        }
+        .item-details {
+            font-size: 8pt;
+            color: #666;
+            line-height: 1.2;
         }
     </style>
 </head>
@@ -97,38 +153,78 @@
     <table class="items-table">
         <thead>
             <tr>
-                <th>Descripción</th>
-                <th>Detalles</th>
-                <th>Cantidad</th>
-                <th>Precio Unitario</th>
-                <th>Total</th>
+                <th style="width: 35%;">Descripción</th>
+                <th style="width: 25%;">Detalles</th>
+                <th style="width: 12%;">Cantidad</th>
+                <th style="width: 14%;">Precio Unitario</th>
+                <th style="width: 14%;">Total</th>
             </tr>
         </thead>
         <tbody>
             @foreach($document->items as $item)
+            @php
+                // Calcular precios correctos para mostrar en PDF
+                $unitPrice = 0;
+                $totalPrice = 0;
+                
+                if ($item->itemable_type === 'App\\Models\\SimpleItem' && $item->itemable) {
+                    $totalPrice = $item->itemable->final_price ?? 0;
+                    $unitPrice = $item->itemable->quantity > 0 ? $totalPrice / $item->itemable->quantity : 0;
+                } elseif ($item->itemable_type === 'App\\Models\\TalonarioItem' && $item->itemable) {
+                    $totalPrice = $item->itemable->final_price ?? 0;
+                    $unitPrice = $item->itemable->quantity > 0 ? $totalPrice / $item->itemable->quantity : 0;
+                } elseif ($item->itemable_type === 'App\\Models\\MagazineItem' && $item->itemable) {
+                    $totalPrice = $item->itemable->final_price ?? 0;
+                    $unitPrice = $item->itemable->quantity > 0 ? $totalPrice / $item->itemable->quantity : 0;
+                } elseif ($item->itemable_type === 'App\\Models\\CustomItem' && $item->itemable) {
+                    $unitPrice = $item->itemable->unit_price ?? 0;
+                    $totalPrice = $item->itemable->total_price ?? 0;
+                } elseif ($item->itemable_type === 'App\\Models\\DigitalItem' && $item->itemable) {
+                    // Para DigitalItems, usar método del DocumentItem que incluye acabados
+                    $totalPrice = $item->getTotalPriceWithFinishings() ?? 0;
+                    $unitPrice = $item->getUnitPriceWithFinishings() ?? 0;
+                } else {
+                    // Fallback a los valores del DocumentItem
+                    $unitPrice = $item->unit_price ?? 0;
+                    $totalPrice = $item->total_price ?? 0;
+                }
+            @endphp
             <tr>
                 <td>{{ $item->description }}</td>
-                <td>
+                <td class="item-details">
                     @if($item->itemable_type === 'App\\Models\\SimpleItem' && $item->itemable)
-                        <small>
-                            {{ $item->itemable->horizontal_size }}x{{ $item->itemable->vertical_size }}cm<br>
-                            Tintas: {{ $item->itemable->ink_front_count }}+{{ $item->itemable->ink_back_count }}
-                            @if($item->itemable->paper)
-                                <br>Papel: {{ $item->itemable->paper->name }} {{ $item->itemable->paper->weight }}g
-                            @endif
-                        </small>
+                        {{ $item->itemable->horizontal_size }}×{{ $item->itemable->vertical_size }}cm<br>
+                        Tintas: {{ $item->itemable->ink_front_count }}+{{ $item->itemable->ink_back_count }}
+                        @if($item->itemable->paper)
+                            <br>{{ $item->itemable->paper->name }} {{ $item->itemable->paper->weight }}g
+                        @endif
+                    @elseif($item->itemable_type === 'App\\Models\\TalonarioItem' && $item->itemable)
+                        Talonario {{ $item->itemable->prefijo ? $item->itemable->prefijo . '-' : '' }}{{ str_pad($item->itemable->numero_inicial, 3, '0', STR_PAD_LEFT) }} al {{ str_pad($item->itemable->numero_final, 3, '0', STR_PAD_LEFT) }}<br>
+                        {{ $item->itemable->numeros_por_talonario }} números por talonario<br>
+                        {{ $item->itemable->ancho }}×{{ $item->itemable->alto }}cm
+                    @elseif($item->itemable_type === 'App\\Models\\MagazineItem' && $item->itemable)
+                        Revista {{ $item->itemable->closed_width }}×{{ $item->itemable->closed_height }}cm cerrada<br>
+                        Encuadernación: {{ ucfirst($item->itemable->binding_type ?? 'No definida') }}
+                    @elseif($item->itemable_type === 'App\\Models\\DigitalItem' && $item->itemable)
+                        Servicio digital {{ ucfirst($item->itemable->pricing_type ?? 'unit') }}<br>
+                        @if($item->itemable->pricing_type === 'size' && $item->itemable->width && $item->itemable->height)
+                            {{ $item->itemable->width }}×{{ $item->itemable->height }}cm
+                        @endif
+                    @elseif($item->itemable_type === 'App\\Models\\CustomItem' && $item->itemable)
+                        Item personalizado
+                        @if($item->itemable->notes)
+                            <br>{{ $item->itemable->notes }}
+                        @endif
                     @elseif($item->itemable_type === 'App\\Models\\Product' && $item->itemable)
-                        <small>
-                            Producto de inventario<br>
-                            Código: {{ $item->itemable->code }}
-                        </small>
+                        Producto inventario<br>
+                        Código: {{ $item->itemable->code }}
                     @else
-                        <small>Item estándar</small>
+                        Item estándar
                     @endif
                 </td>
-                <td>{{ number_format($item->quantity) }} uds</td>
-                <td>${{ number_format($item->unit_price, 2) }}</td>
-                <td>${{ number_format($item->total_price, 2) }}</td>
+                <td class="center">{{ number_format($item->quantity, 0, ',', '.') }}</td>
+                <td class="number">${{ number_format($unitPrice, 2, ',', '.') }}</td>
+                <td class="number">${{ number_format($totalPrice, 2, ',', '.') }}</td>
             </tr>
             @endforeach
         </tbody>
@@ -136,33 +232,47 @@
 
     <div class="totals">
         <div class="total-line">
-            <strong>Subtotal: ${{ number_format($document->subtotal, 2) }}</strong>
+            <strong>Subtotal: ${{ number_format($document->subtotal, 2, ',', '.') }}</strong>
         </div>
         @if($document->tax_amount > 0)
         <div class="total-line">
-            <strong>Impuestos: ${{ number_format($document->tax_amount, 2) }}</strong>
+            <strong>Impuestos ({{ number_format($document->tax_percentage, 1) }}%): ${{ number_format($document->tax_amount, 2, ',', '.') }}</strong>
         </div>
         @endif
         @if($document->discount_amount > 0)
         <div class="total-line">
-            <strong>Descuento: -${{ number_format($document->discount_amount, 2) }}</strong>
+            <strong>Descuento: -${{ number_format($document->discount_amount, 2, ',', '.') }}</strong>
         </div>
         @endif
         <div class="total-line final-total">
-            <strong>Total: ${{ number_format($document->total, 2) }}</strong>
+            <strong>TOTAL: ${{ number_format($document->total, 2, ',', '.') }}</strong>
         </div>
     </div>
     @endif
 
     @if($document->notes)
-    <div style="margin-top: 30px;">
+    <div style="margin-top: 20px;">
         <h3>Observaciones:</h3>
-        <p>{{ $document->notes }}</p>
+        <div style="background: #f8f9fa; padding: 10px; border-left: 3px solid #007bff; font-size: 10pt;">
+            {{ $document->notes }}
+        </div>
+    </div>
+    @endif
+    
+    @if($document->status === 'draft')
+    <div style="margin-top: 20px; text-align: center; color: #dc3545; font-weight: bold; font-size: 10pt;">
+        ⚠️ DOCUMENTO BORRADOR - SIN VALOR COMERCIAL
     </div>
     @endif
 
-    <div style="margin-top: 50px; text-align: center; color: #666; font-size: 0.9em;">
-        <p>Generado el {{ now()->format('d/m/Y H:i') }}</p>
+    <div class="footer">
+        <p>
+            <strong>{{ $document->documentType->name ?? 'Documento' }} {{ $document->document_number }}</strong> | 
+            Generado el {{ now()->format('d/m/Y \a \l\a\s H:i') }} por {{ $document->company->name ?? 'LitoPro' }}
+        </p>
+        @if($document->valid_until)
+        <p>Válido hasta: {{ $document->valid_until->format('d/m/Y') }}</p>
+        @endif
     </div>
 </body>
 </html>

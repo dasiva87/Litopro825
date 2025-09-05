@@ -5,6 +5,7 @@ namespace App\Filament\Resources\TalonarioItems;
 use App\Filament\Resources\TalonarioItems\Pages\CreateTalonarioItem;
 use App\Filament\Resources\TalonarioItems\Pages\EditTalonarioItem;
 use App\Filament\Resources\TalonarioItems\Pages\ListTalonarioItems;
+use App\Filament\Resources\TalonarioItems\RelationManagers;
 use App\Filament\Resources\TalonarioItems\Schemas\TalonarioItemForm;
 use App\Filament\Resources\TalonarioItems\Tables\TalonarioItemsTable;
 use App\Models\TalonarioItem;
@@ -35,7 +36,7 @@ class TalonarioItemResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\TalonarioSheetsRelationManager::class,
         ];
     }
 
