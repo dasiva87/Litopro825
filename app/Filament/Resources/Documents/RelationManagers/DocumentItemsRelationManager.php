@@ -18,7 +18,6 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
@@ -49,19 +48,33 @@ class DocumentItemsRelationManager extends RelationManager
         $finishing = \App\Models\Finishing::find($finishingId);
         return $finishing && $finishing->measurement_unit->value === 'tamaño';
     }
+    
+
 
     private function calculateFinishingCost($set, $get): void
     {
+        \Log::info('calculateFinishingCost method called');
+        
         $finishingId = $get('finishing_id');
         $quantity = $get('quantity') ?? 0;
         $width = $get('width') ?? 0;
         $height = $get('height') ?? 0;
         
+        // Para acabados de SimpleItem, usar las dimensiones del item si no se especifican
+        if ($width == 0) {
+            $width = $get('../../horizontal_size') ?? 0;
+        }
+        if ($height == 0) {
+            $height = $get('../../vertical_size') ?? 0;
+        }
+        
         \Log::info('calculateFinishingCost called', [
             'finishing_id' => $finishingId,
             'quantity' => $quantity,
             'width' => $width,
-            'height' => $height
+            'height' => $height,
+            'horizontal_size_path' => $get('../../horizontal_size'),
+            'vertical_size_path' => $get('../../vertical_size')
         ]);
         
         if ($finishingId && $quantity > 0) {
@@ -77,9 +90,6 @@ class DocumentItemsRelationManager extends RelationManager
                     
                     \Log::info('Calculated cost', ['cost' => $cost]);
                     $set('calculated_cost', $cost);
-                    
-                    // Recalcular el total del item incluyendo todos los acabados
-                    $this->recalculateItemTotal($set, $get);
                 }
             } catch (\Exception $e) {
                 \Log::error('Error calculating finishing cost', ['error' => $e->getMessage()]);
@@ -94,16 +104,33 @@ class DocumentItemsRelationManager extends RelationManager
     
     private function recalculateItemTotal($set, $get): void
     {
+        \Log::info('recalculateItemTotal method called');
+        
         try {
             // Determinar la ruta de acceso basado en el contexto (desde repeater o desde form principal)
             $isFromRepeater = str_contains(json_encode(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS)), 'calculateFinishingCost');
             $pathPrefix = $isFromRepeater ? '../../' : '';
             
+            \Log::info('recalculateItemTotal context', [
+                'isFromRepeater' => $isFromRepeater,
+                'pathPrefix' => $pathPrefix
+            ]);
+            
             // Obtener el precio base del item
             $basePrice = 0;
             $quantity = $get($pathPrefix . 'quantity') ?? 1;
             
-            if ($get($pathPrefix . 'item_type') === 'digital') {
+            $itemType = $get($pathPrefix . 'item_type');
+            
+            \Log::info('recalculateItemTotal data check', [
+                'item_type' => $itemType,
+                'quantity' => $quantity,
+                'horizontal_size' => $get($pathPrefix . 'horizontal_size'),
+                'paper_id' => $get($pathPrefix . 'paper_id'),
+                'finishings_count' => count($get($pathPrefix . 'finishings') ?? [])
+            ]);
+            
+            if ($itemType === 'digital') {
                 // Para items digitales, obtener el precio base del DigitalItem
                 $itemableId = $get($pathPrefix . 'itemable_id');
                 
@@ -121,6 +148,41 @@ class DocumentItemsRelationManager extends RelationManager
                             $basePrice = $unitValue * $quantity;
                         }
                     }
+                }
+            } elseif ($itemType === 'simple' || ($itemType === null && $get($pathPrefix . 'horizontal_size') !== null)) {
+                // Para items sencillos, calcular precio usando SimpleItemCalculatorService
+                try {
+                    $simpleItemData = [
+                        'description' => $get($pathPrefix . 'description') ?? '',
+                        'quantity' => $quantity,
+                        'horizontal_size' => $get($pathPrefix . 'horizontal_size') ?? 0,
+                        'vertical_size' => $get($pathPrefix . 'vertical_size') ?? 0,
+                        'paper_id' => $get($pathPrefix . 'paper_id'),
+                        'printing_machine_id' => $get($pathPrefix . 'printing_machine_id'),
+                        'ink_front_count' => $get($pathPrefix . 'ink_front_count') ?? 4,
+                        'ink_back_count' => $get($pathPrefix . 'ink_back_count') ?? 0,
+                        'front_back_plate' => $get($pathPrefix . 'front_back_plate') ?? false,
+                        'design_value' => $get($pathPrefix . 'design_value') ?? 0,
+                        'transport_value' => $get($pathPrefix . 'transport_value') ?? 0,
+                        'rifle_value' => $get($pathPrefix . 'rifle_value') ?? 0,
+                        'profit_percentage' => $get($pathPrefix . 'profit_percentage') ?? 30,
+                    ];
+                    
+                    // Crear un objeto temporal para calcular el precio
+                    $tempSimpleItem = new \App\Models\SimpleItem();
+                    $tempSimpleItem->fill($simpleItemData);
+                    
+                    // Usar el calculador para obtener precio base (sin acabados)
+                    $calculator = app(\App\Services\SimpleItemCalculatorService::class);
+                    $calculation = $calculator->calculatePrice($tempSimpleItem);
+                    $basePrice = $calculation->totalCostWithProfit ?? 0;
+                    
+                } catch (\Exception $e) {
+                    \Log::error('Error calculating SimpleItem base price', [
+                        'error' => $e->getMessage(),
+                        'data' => $simpleItemData ?? []
+                    ]);
+                    $basePrice = 0;
                 }
             }
             
@@ -190,10 +252,191 @@ class DocumentItemsRelationManager extends RelationManager
                                     Forms\Components\Hidden::make('itemable_type')
                                         ->default('App\\Models\\SimpleItem'),
                                         
-                                    // Incluir formulario de SimpleItem inline
-                                    Group::make()
-                                        ->schema(SimpleItemForm::configure(new \Filament\Schemas\Schema())->getComponents())
-                                        ->columnSpanFull(),
+                                    // Campos para el recálculo de totales
+                                    Forms\Components\Hidden::make('unit_price')
+                                        ->default(0),
+                                        
+                                    Forms\Components\Hidden::make('total_price')
+                                        ->default(0),
+                                        
+                                    // Incluir formulario de SimpleItem inline - usando array directo
+                                    ...array_merge(
+                                            // Componentes base del SimpleItem (sin la sección de acabados)
+                                            array_filter(SimpleItemForm::configure(new \Filament\Schemas\Schema())->getComponents(), function($component) {
+                                                return !($component instanceof \Filament\Schemas\Components\Section && 
+                                                        str_contains($component->getLabel(), 'Acabados'));
+                                            }),
+                                            // Agregar sección de acabados con callbacks específicos para wizard
+                                            [
+                                                \Filament\Schemas\Components\Section::make('🎨 Acabados Opcionales')
+                                                    ->description('Agrega acabados adicionales que se calcularán automáticamente')
+                                                    ->schema([
+                                                        \Filament\Forms\Components\Repeater::make('finishings')
+                                                            ->label('Acabados')
+                                                            ->schema([
+                                                                \Filament\Forms\Components\Select::make('finishing_id')
+                                                                    ->label('Acabado')
+                                                                    ->options(function () {
+                                                                        return \App\Models\Finishing::where('active', true)
+                                                                            ->where('company_id', auth()->user()->company_id)
+                                                                            ->get()
+                                                                            ->mapWithKeys(function ($finishing) {
+                                                                                return [
+                                                                                    $finishing->id => $finishing->code . ' - ' . $finishing->name . ' (' . $finishing->measurement_unit->label() . ')'
+                                                                                ];
+                                                                            });
+                                                                    })
+                                                                    ->required()
+                                                                    ->live()
+                                                                    ->searchable()
+                                                                    ->afterStateUpdated(function ($set, $get, $state) {
+                                                                        \Log::info('SimpleItem finishing_id callback triggered', ['state' => $state]);
+                                                                        $this->calculateFinishingCost($set, $get);
+                                                                        $this->recalculateItemTotal($set, $get);
+                                                                    }),
+                                                                    
+                                                                \Filament\Schemas\Components\Grid::make(3)
+                                                                    ->schema([
+                                                                        \Filament\Forms\Components\TextInput::make('quantity')
+                                                                            ->label('Cantidad')
+                                                                            ->numeric()
+                                                                            ->default(1)
+                                                                            ->required()
+                                                                            ->live()
+                                                                            ->afterStateUpdated(function ($set, $get, $state) {
+                                                                                $this->calculateFinishingCost($set, $get);
+                                                                                $this->recalculateItemTotal($set, $get);
+                                                                            }),
+                                                                            
+                                                                        \Filament\Forms\Components\TextInput::make('width')
+                                                                            ->label('Ancho (cm)')
+                                                                            ->numeric()
+                                                                            ->step(0.01)
+                                                                            ->live()
+                                                                            ->visible(fn ($get) => $this->shouldShowSizeFields($get('finishing_id')))
+                                                                            ->afterStateUpdated(function ($set, $get, $state) {
+                                                                                $this->calculateFinishingCost($set, $get);
+                                                                                $this->recalculateItemTotal($set, $get);
+                                                                            }),
+                                                                            
+                                                                        \Filament\Forms\Components\TextInput::make('height')
+                                                                            ->label('Alto (cm)')
+                                                                            ->numeric()
+                                                                            ->step(0.01)
+                                                                            ->live()
+                                                                            ->visible(fn ($get) => $this->shouldShowSizeFields($get('finishing_id')))
+                                                                            ->afterStateUpdated(function ($set, $get, $state) {
+                                                                                $this->calculateFinishingCost($set, $get);
+                                                                                $this->recalculateItemTotal($set, $get);
+                                                                            }),
+                                                                    ]),
+                                                                    
+                                                                \Filament\Forms\Components\Placeholder::make('calculated_cost_display')
+                                                                    ->label('Costo Calculado')
+                                                                    ->content(function ($get) {
+                                                                        $finishingId = $get('finishing_id');
+                                                                        $quantity = $get('quantity') ?? 0;
+                                                                        $width = $get('width') ?? ($get('../../horizontal_size') ?? 0);
+                                                                        $height = $get('height') ?? ($get('../../vertical_size') ?? 0);
+                                                                        
+                                                                        if (!$finishingId || $quantity <= 0) {
+                                                                            return '$0.00';
+                                                                        }
+                                                                        
+                                                                        try {
+                                                                            $finishing = \App\Models\Finishing::find($finishingId);
+                                                                            if (!$finishing) {
+                                                                                return 'Acabado no encontrado';
+                                                                            }
+                                                                            
+                                                                            $calculator = app(\App\Services\FinishingCalculatorService::class);
+                                                                            $cost = $calculator->calculateCost($finishing, [
+                                                                                'quantity' => $quantity,
+                                                                                'width' => $width,
+                                                                                'height' => $height,
+                                                                            ]);
+                                                                            
+                                                                            return '$' . number_format($cost, 2);
+                                                                        } catch (\Exception $e) {
+                                                                            return 'Error: ' . $e->getMessage();
+                                                                        }
+                                                                    })
+                                                                    ->live(),
+                                                                    
+                                                                \Filament\Forms\Components\Hidden::make('calculated_cost')
+                                                                    ->live(),
+                                                            ])
+                                                            ->defaultItems(0)
+                                                            ->reorderable()
+                                                            ->collapsible()
+                                                            ->columnSpanFull(),
+                                                    ])
+                                                    ->collapsible()
+                                                    ->persistCollapsed(false),
+                                                    
+                                                // Sección de resumen de precios
+                                                \Filament\Schemas\Components\Section::make('💰 Resumen de Precios')
+                                                    ->description('Precio total calculado incluyendo acabados')
+                                                    ->schema([
+                                                        \Filament\Forms\Components\Placeholder::make('price_summary')
+                                                            ->label('Total Calculado')
+                                                            ->content(function ($get) {
+                                                                // Debug para ver todos los valores
+                                                                $allData = [
+                                                                    'total_price' => $get('total_price'),
+                                                                    'unit_price' => $get('unit_price'),
+                                                                    'quantity' => $get('quantity'),
+                                                                    'horizontal_size' => $get('horizontal_size'),
+                                                                    'vertical_size' => $get('vertical_size'),
+                                                                    'paper_id' => $get('paper_id'),
+                                                                    'finishings' => $get('finishings'),
+                                                                ];
+                                                                
+                                                                \Log::info('Price summary debug', $allData);
+                                                                
+                                                                $totalPrice = $get('total_price') ?? 0;
+                                                                $unitPrice = $get('unit_price') ?? 0;
+                                                                $quantity = $get('quantity') ?? 1;
+                                                                $finishings = $get('finishings') ?? [];
+                                                                
+                                                                // Calcular manualmente si no hay total_price
+                                                                if ($totalPrice <= 0) {
+                                                                    // Calcular acabados manualmente
+                                                                    $finishingsCost = 0;
+                                                                    foreach ($finishings as $finishing) {
+                                                                        if (isset($finishing['calculated_cost'])) {
+                                                                            $finishingsCost += (float) $finishing['calculated_cost'];
+                                                                        }
+                                                                    }
+                                                                    
+                                                                    if ($finishingsCost > 0) {
+                                                                        return '<div class="space-y-2">
+                                                                            <div class="text-lg text-orange-600">Total Acabados: <strong>$' . number_format($finishingsCost, 2) . '</strong></div>
+                                                                            <div class="text-sm text-gray-600">
+                                                                                Complete los datos del SimpleItem para ver el precio total<br>
+                                                                                Acabados detectados: ' . count($finishings) . '
+                                                                            </div>
+                                                                        </div>';
+                                                                    }
+                                                                    
+                                                                    return 'Complete el formulario para ver el precio calculado';
+                                                                }
+                                                                
+                                                                return '<div class="space-y-2">
+                                                                    <div class="text-2xl font-bold text-blue-600">$' . number_format($totalPrice, 2) . '</div>
+                                                                    <div class="text-sm text-gray-600">
+                                                                        Precio por unidad: <strong>$' . number_format($unitPrice, 4) . '</strong><br>
+                                                                        Cantidad: <strong>' . number_format($quantity) . ' unidades</strong>
+                                                                    </div>
+                                                                </div>';
+                                                            })
+                                                            ->html()
+                                                            ->live(),
+                                                    ])
+                                                    ->collapsible()
+                                                    ->persistCollapsed(false),
+                                            ]
+                                        ),
                                 ];
                             }
                             
@@ -802,11 +1045,26 @@ class DocumentItemsRelationManager extends RelationManager
                         if ($data['item_type'] === 'simple' && $data['itemable_type'] === 'App\\Models\\SimpleItem') {
                             // Extraer datos del SimpleItem del formulario anidado
                             $simpleItemData = array_filter($data, function($key) {
-                                return !in_array($key, ['item_type', 'itemable_type', 'itemable_id', 'quantity', 'unit_price', 'total_price']);
+                                return !in_array($key, ['item_type', 'itemable_type', 'itemable_id', 'quantity', 'unit_price', 'total_price', 'finishings']);
                             }, ARRAY_FILTER_USE_KEY);
                             
                             // Crear el SimpleItem
                             $simpleItem = SimpleItem::create($simpleItemData);
+                            
+                            // Procesar acabados si existen
+                            $finishings = $data['finishings'] ?? [];
+                            $finishingsCost = 0;
+                            
+                            foreach ($finishings as $finishing) {
+                                if (isset($finishing['calculated_cost']) && $finishing['calculated_cost'] > 0) {
+                                    $finishingsCost += (float) $finishing['calculated_cost'];
+                                }
+                            }
+                            
+                            // Calcular precio total incluyendo acabados
+                            $basePriceTotal = $simpleItem->final_price ?? 0;
+                            $totalPriceWithFinishings = $basePriceTotal + $finishingsCost;
+                            $unitPriceWithFinishings = $totalPriceWithFinishings / max($simpleItem->quantity, 1);
                             
                             // Configurar datos para DocumentItem
                             $data = [
@@ -814,9 +1072,10 @@ class DocumentItemsRelationManager extends RelationManager
                                 'itemable_id' => $simpleItem->id,
                                 'description' => 'SimpleItem: ' . $simpleItem->description,
                                 'quantity' => $simpleItem->quantity,
-                                'unit_price' => $simpleItem->final_price / $simpleItem->quantity,
-                                'total_price' => $simpleItem->final_price,
-                                'item_type' => 'simple'
+                                'unit_price' => $unitPriceWithFinishings,
+                                'total_price' => $totalPriceWithFinishings,
+                                'item_type' => 'simple',
+                                'finishings_data' => !empty($finishings) ? json_encode($finishings) : null,
                             ];
                         }
                         
@@ -935,6 +1194,31 @@ class DocumentItemsRelationManager extends RelationManager
                         return $data;
                     })
                     ->after(function ($record, array $data) {
+                        // Manejar acabados para SimpleItem si existen
+                        if (isset($data['finishings_data']) && !empty($data['finishings_data'])) {
+                            $finishingsData = json_decode($data['finishings_data'], true);
+                            if (is_array($finishingsData)) {
+                                foreach ($finishingsData as $finishingData) {
+                                    if (isset($finishingData['finishing_id']) && 
+                                        isset($finishingData['calculated_cost']) &&
+                                        $finishingData['calculated_cost'] > 0) {
+                                        
+                                        $finishing = \App\Models\Finishing::find($finishingData['finishing_id']);
+                                        if ($finishing) {
+                                            \App\Models\DocumentItemFinishing::create([
+                                                'document_item_id' => $record->id,
+                                                'finishing_name' => $finishing->name,
+                                                'quantity' => $finishingData['quantity'] ?? 1,
+                                                'is_double_sided' => false, // Para SimpleItem por defecto
+                                                'unit_price' => $finishingData['calculated_cost'] / max($finishingData['quantity'] ?? 1, 1),
+                                                'total_price' => $finishingData['calculated_cost'],
+                                            ]);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
                         // Manejar acabados para DigitalItem si existen
                         if (isset($data['_temp_finishings_data']) && !empty($data['_temp_finishings_data'])) {
                             $digitalItem = $record->itemable;
@@ -978,18 +1262,75 @@ class DocumentItemsRelationManager extends RelationManager
                             ->schema(SimpleItemForm::configure(new \Filament\Schemas\Schema())->getComponents())
                     ])
                     ->action(function (array $data) {
+                        \Log::info('Item Sencillo Rápido - Action called', [
+                            'has_finishings' => isset($data['finishings']),
+                            'finishings_count' => count($data['finishings'] ?? []),
+                            'finishings_data' => $data['finishings'] ?? 'NO FINISHINGS'
+                        ]);
+                        
+                        // Extraer acabados si existen
+                        $finishings = $data['finishings'] ?? [];
+                        $finishingsData = [];
+                        
+                        // Filtrar acabados del data para crear SimpleItem
+                        $simpleItemData = array_filter($data, function($key) {
+                            return $key !== 'finishings';
+                        }, ARRAY_FILTER_USE_KEY);
+                        
                         // Crear el SimpleItem
-                        $simpleItem = SimpleItem::create($data);
+                        $simpleItem = SimpleItem::create($simpleItemData);
+                        
+                        // Calcular costos de acabados
+                        $finishingsCost = 0;
+                        foreach ($finishings as $finishing) {
+                            \Log::info('Processing finishing in SimpleItem Rápido', [
+                                'finishing' => $finishing,
+                                'has_calculated_cost' => isset($finishing['calculated_cost']),
+                                'calculated_cost' => $finishing['calculated_cost'] ?? 'NONE'
+                            ]);
+                            
+                            if (isset($finishing['calculated_cost']) && $finishing['calculated_cost'] > 0) {
+                                $finishingsCost += (float) $finishing['calculated_cost'];
+                                $finishingsData[] = $finishing;
+                            }
+                        }
+                        
+                        \Log::info('Total finishings cost calculated', [
+                            'finishings_cost' => $finishingsCost,
+                            'finishings_data_count' => count($finishingsData)
+                        ]);
+                        
+                        // Calcular precio total incluyendo acabados
+                        $basePriceTotal = $simpleItem->final_price ?? 0;
+                        $totalPriceWithFinishings = $basePriceTotal + $finishingsCost;
+                        $unitPriceWithFinishings = $totalPriceWithFinishings / max($simpleItem->quantity, 1);
                         
                         // Crear el DocumentItem asociado con todos los campos requeridos
-                        $this->getOwnerRecord()->items()->create([
+                        $documentItem = $this->getOwnerRecord()->items()->create([
                             'itemable_type' => 'App\\Models\\SimpleItem',
                             'itemable_id' => $simpleItem->id,
                             'description' => 'SimpleItem: ' . $simpleItem->description,
                             'quantity' => $simpleItem->quantity,
-                            'unit_price' => $simpleItem->final_price / $simpleItem->quantity,
-                            'total_price' => $simpleItem->final_price
+                            'unit_price' => $unitPriceWithFinishings,
+                            'total_price' => $totalPriceWithFinishings
                         ]);
+                        
+                        // Crear los acabados asociados
+                        foreach ($finishingsData as $finishingData) {
+                            if (isset($finishingData['finishing_id'])) {
+                                $finishing = \App\Models\Finishing::find($finishingData['finishing_id']);
+                                if ($finishing) {
+                                    \App\Models\DocumentItemFinishing::create([
+                                        'document_item_id' => $documentItem->id,
+                                        'finishing_name' => $finishing->name,
+                                        'quantity' => $finishingData['quantity'] ?? 1,
+                                        'is_double_sided' => false,
+                                        'unit_price' => $finishingData['calculated_cost'] / max($finishingData['quantity'] ?? 1, 1),
+                                        'total_price' => $finishingData['calculated_cost'],
+                                    ]);
+                                }
+                            }
+                        }
                         
                         // Recalcular totales del documento
                         $this->getOwnerRecord()->recalculateTotals();

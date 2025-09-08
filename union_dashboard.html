@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LitoPro 3.0 - Dashboard Completo con Red Social</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'litopro': {
+                            50: '#eff6ff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a'
+                        }
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .smooth-scroll {
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans smooth-scroll">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-50">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-litopro-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-print text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-900">LitoPro</h1>
+                        <p class="text-sm text-gray-500">Panel de Control</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Search Bar -->
+            <div class="flex-1 max-w-lg mx-8">
+                <div class="relative">
+                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" 
+                           class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-litopro-500 focus:border-litopro-500" 
+                           placeholder="Buscar cotizaciones, clientes, órdenes...">
+                </div>
+            </div>
+            
+            <!-- Navigation Tabs -->
+            <div class="flex items-center space-x-4 mr-6">
+                <button onclick="scrollToSection('dashboard')" class="flex items-center px-4 py-2 text-litopro-600 bg-litopro-50 rounded-lg font-medium">
+                    <i class="fas fa-chart-bar mr-2"></i>
+                    Dashboard
+                </button>
+                <button onclick="scrollToSection('social')" class="flex items-center px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium">
+                    <i class="fas fa-share-alt mr-2"></i>
+                    Red Social
+                </button>
+            </div>
+            
+            <!-- User Menu -->
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <button class="relative p-2 text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-bell text-xl"></i>
+                        <span class="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center">3</span>
+                    </button>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+                        <span class="text-white font-semibold text-sm">CV</span>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700">Carlos Ventas</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white border-r border-gray-200 min-h-screen sticky top-20">
+            <div class="p-6">
+                <nav class="space-y-6">
+                    <!-- Dashboard -->
+                    <div>
+                        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Dashboard</h3>
+                        <ul class="space-y-2">
+                            <li>
+                                <button onclick="scrollToSection('dashboard')" class="flex items-center w-full px-3 py-2 text-sm font-medium text-litopro-700 bg-litopro-50 rounded-lg">
+                                    <i class="fas fa-chart-bar w-5 h-5 mr-3"></i>
+                                    Panel Principal
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Cotizaciones y Ventas -->
+                    <div>
+                        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Cotizaciones y Ventas</h3>
+                        <ul class="space-y-2">
+                            <li>
+                                <a href="#" class="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+                                    <i class="fas fa-file-invoice-dollar w-5 h-5 mr-3"></i>
+                                    Cotizaciones
+                                    <span class="ml-auto bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full">24</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+                                    <i class="fas fa-plus-circle w-5 h-5 mr-3"></i>
+                                    Nueva Cotización
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+                                    <i class="fas fa-users w-5 h-5 mr-3"></i>
+                                    Clientes
+                                    <span class="ml-auto bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full">156</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Producción -->
+                    <div>
+                        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Producción</h3>
+                        <ul class="space-y-2">
+                            <li>
+                                <a href="#" class="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+                                    <i class="fas fa-clipboard-list w-5 h-5 mr-3"></i>
+                                    Órdenes de Producción
+                                    <span class="ml-auto bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full">8</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+                                    <i class="fas fa-cog w-5 h-5 mr-3"></i>
+                                    Estado Producción
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Red Social -->
+                    <div>
+                        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Red Social</h3>
+                        <ul class="space-y-2">
+                            <li>
+                                <button onclick="scrollToSection('social')" class="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+                                    <i class="fas fa-share-alt w-5 h-5 mr-3"></i>
+                                    Feed Principal
+                                </button>
+                            </li>
+                            <li>
+                                <a href="#" class="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+                                    <i class="fas fa-users w-5 h-5 mr-3"></i>
+                                    Mi Red
+                                    <span class="ml-auto bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">45</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+                                    <i class="fas fa-comments w-5 h-5 mr-3"></i>
+                                    Mensajes
+                                    <span class="ml-auto bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">3</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Inventario & Papel -->
+                    <div>
+                        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Inventario & Papel</h3>
+                        <ul class="space-y-2">
+                            <li>
+                                <a href="#" class="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+                                    <i class="fas fa-boxes w-5 h-5 mr-3"></i>
+                                    Stock de Papel
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+                                    <i class="fas fa-shopping-cart w-5 h-5 mr-3"></i>
+                                    Pedidos de Papel
+                                    <span class="ml-auto bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">!</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1">
+            <!-- SECCIÓN DASHBOARD -->
+            <section id="dashboard" class="p-8">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Dashboard Principal</h2>
+                    <p class="text-gray-600">Resumen de tu actividad y métricas principales</p>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <!-- Cotizaciones Activas -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600 mb-1">Cotizaciones Activas</p>
+                                <p class="text-3xl font-bold text-gray-900">24</p>
+                                <p class="text-sm text-green-600 font-medium">
+                                    <i class="fas fa-arrow-up mr-1"></i>
+                                    +12% vs mes anterior
+                                </p>
+                            </div>
+                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-file-invoice text-blue-600 text-lg"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Órdenes en Producción -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600 mb-1">Órdenes en Producción</p>
+                                <p class="text-3xl font-bold text-gray-900">8</p>
+                                <p class="text-sm text-orange-600 font-medium">
+                                    <i class="fas fa-clock mr-1"></i>
+                                    3 próximas a vencer
+                                </p>
+                            </div>
+                            <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-cogs text-orange-600 text-lg"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ingresos del Mes -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600 mb-1">Ingresos del Mes</p>
+                                <p class="text-3xl font-bold text-gray-900">$18.5M</p>
+                                <p class="text-sm text-green-600 font-medium">
+                                    <i class="fas fa-arrow-up mr-1"></i>
+                                    +23% vs mes anterior
+                                </p>
+                            </div>
+                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-dollar-sign text-green-600 text-lg"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Clientes Activos -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600 mb-1">Clientes Activos</p>
+                                <p class="text-3xl font-bold text-gray-900">156</p>
+                                <p class="text-sm text-blue-600 font-medium">
+                                    <i class="fas fa-user-plus mr-1"></i>
+                                    +8 nuevos este mes
+                                </p>
+                            </div>
+                            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-users text-purple-600 text-lg"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                        <i class="fas fa-bolt mr-2 text-yellow-500"></i>
+                        Acciones Rápidas
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <button class="flex flex-col items-center p-6 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors group">
+                            <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                                <i class="fas fa-file-plus text-white text-lg"></i>
+                            </div>
+                            <span class="font-medium text-gray-900">Nueva Cotización</span>
+                            <span class="text-sm text-gray-500 mt-1">Crear cotización para cliente</span>
+                        </button>
+
+                        <button class="flex flex-col items-center p-6 bg-green-50 hover:bg-green-100 rounded-lg transition-colors group">
+                            <div class="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                                <i class="fas fa-user-plus text-white text-lg"></i>
+                            </div>
+                            <span class="font-medium text-gray-900">Nuevo Cliente</span>
+                            <span class="text-sm text-gray-500 mt-1">Registrar cliente nuevo</span>
+                        </button>
+
+                        <button class="flex flex-col items-center p-6 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors group">
+                            <div class="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                                <i class="fas fa-shopping-cart text-white text-lg"></i>
+                            </div>
+                            <span class="font-medium text-gray-900">Pedir Papel</span>
+                            <span class="text-sm text-gray-500 mt-1">Nueva orden a proveedor</span>
+                        </button>
+
+                        <button class="flex flex-col items-center p-6 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors group">
+                            <div class="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                                <i class="fas fa-chart-bar text-white text-lg"></i>
+                            </div>
+                            <span class="font-medium text-gray-900">Ver Producción</span>
+                            <span class="text-sm text-gray-500 mt-1">Estado de trabajos</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Content Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Recent Activity -->
+                    <div class="lg:col-span-2">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                            <div class="px-6 py-4 border-b border-gray-200">
+                                <h3 class="text-lg font-semibold text-gray-900">
+                                    <i class="fas fa-clock mr-2 text-blue-500"></i>
+                                    Actividad Reciente
+                                </h3>
+                            </div>
+                            <div class="p-0">
+                                <div class="overflow-hidden">
+                                    <table class="w-full">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white divide-y divide-gray-200">
+                                            <tr class="hover:bg-gray-50">
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <div class="flex items-center">
+                                                        <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                                            <i class="fas fa-file-invoice text-blue-600 text-sm"></i>
+                                                        </div>
+                                                        <span class="ml-3 text-sm font-medium text-gray-900">Cotización</span>
+                                                    </div>
+                                                </td>
+                                                <td class="px-6 py-4">
+                                                    <div class="text-sm font-medium text-gray-900">COT-2024-069</div>
+                                                    <div class="text-sm text-gray-500">Volantes promocionales</div>
+                                                </td>
+                                                <td class="px-6 py-4 text-sm text-gray-900">Restaurante La Bogotá</td>
+                                                <td class="px-6 py-4">
+                                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                                        ENVIADA
+                                                    </span>
+                                                </td>
+                                                <td class="px-6 py-4 text-sm font-semibold text-gray-900">$950,000</td>
+                                            </tr>
+                                            <tr class="hover:bg-gray-50">
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <div class="flex items-center">
+                                                        <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                                                            <i class="fas fa-cogs text-orange-600 text-sm"></i>
+                                                        </div>
+                                                        <span class="ml-3 text-sm font-medium text-gray-900">Producción</span>
+                                                    </div>
+                                                </td>
+                                                <td class="px-6 py-4">
+                                                    <div class="text-sm font-medium text-gray-900">ORD-2024-034</div>
+                                                    <div class="text-sm text-gray-500">Tarjetas corporativas</div>
+                                                </td>
+                                                <td class="px-6 py-4 text-sm text-gray-900">Empresa ABC S.A.S.</td>
+                                                <td class="px-6 py-4">
+                                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
+                                                        EN PRODUCCIÓN
+                                                    </span>
+                                                </td>
+                                                <td class="px-6 py-4 text-sm font-semibold text-gray-900">$1,200,000</td>
+                                            </tr>
+                                            <tr class="hover:bg-gray-50">
+                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                    <div class="flex items-center">
+                                                        <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                                                            <i class="fas fa-check-circle text-green-600 text-sm"></i>
+                                                        </div>
+                                                        <span class="ml-3 text-sm font-medium text-gray-900">Completado</span>
+                                                    </div>
+                                                </td>
+                                                <td class="px-6 py-4">
+                                                    <div class="text-sm font-medium text-gray-900">COT-2024-067</div>
+                                                    <div class="text-sm text-gray-500">Catálogo de productos</div>
+                                                </td>
+                                                <td class="px-6 py-4 text-sm text-gray-900">Tienda Fashion</td>
+                                                <td class="px-6 py-4">
+                                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                                        APROBADA
+                                                    </span>
+                                                </td>
+                                                <td class="px-6 py-4 text-sm font-semibold text-gray-900">$3,400,000</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SECCIÓN RED SOCIAL -->
+            <section id="social" class="pt-4 bg-gray-50">
+                <div class="mb-8">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h1 class="text-2xl font-bold text-gray-900 flex items-center">
+                                    <i class="fas fa-share-alt mr-3 text-litopro-600"></i>
+                                    Red Social LitoPro
+                                </h1>
+                                <p class="text-gray-600 mt-1">Conecta con el gremio de artes gráficas en Colombia</p>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <div class="flex -space-x-2">
+                                    <div class="w-8 h-8 bg-blue-500 rounded-full border-2 border-white flex items-center justify-center">
+                                        <span class="text-white text-xs font-semibold">LG</span>
+                                    </div>
+                                    <div class="w-8 h-8 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                                        <span class="text-white text-xs font-semibold">PC</span>
+                                    </div>
+                                    <div class="w-8 h-8 bg-purple-500 rounded-full border-2 border-white flex items-center justify-center">
+                                        <span class="text-white text-xs font-semibold">TD</span>
+                                    </div>
+                                    <div class="w-8 h-8 bg-orange-500 rounded-full border-2 border-white flex items-center justify-center">
+                                        <span class="text-white text-xs font-semibold">+12</span>
+                                    </div>
+                                </div>
+                                <span class="text-sm text-gray-600">156 empresas conectadas</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-8">
+                    <!-- Feed Principal (Columna Izquierda y Central) -->
+                    <div class="lg:col-span-2 space-y-6">
+
+                        <!-- Formulario para Publicar -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                            <div class="p-6">
+                                <div class="flex items-start space-x-4">
+                                    <div class="w-12 h-12 bg-litopro-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                        <span class="text-white font-semibold">CV</span>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                                            <textarea 
+                                                id="postContent"
+                                                placeholder="¿Qué quieres compartir con la comunidad de LitoPro? Promociones, trabajos terminados, consejos técnicos..." 
+                                                class="w-full bg-transparent border-none resize-none placeholder-gray-500 text-gray-900 focus:outline-none"
+                                                rows="3"></textarea>
+                                        </div>
+                                        
+                                        <!-- Opciones de Contenido -->
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center space-x-4">
+                                                <button class="flex items-center px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" onclick="triggerFileUpload('image')">
+                                                    <i class="fas fa-image mr-2 text-green-500"></i>
+                                                    <span class="text-sm">Imagen</span>
+                                                </button>
+                                                <button class="flex items-center px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" onclick="triggerFileUpload('file')">
+                                                    <i class="fas fa-paperclip mr-2 text-blue-500"></i>
+                                                    <span class="text-sm">Archivo</span>
+                                                </button>
+                                                <button class="flex items-center px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" onclick="addPoll()">
+                                                    <i class="fas fa-poll mr-2 text-purple-500"></i>
+                                                    <span class="text-sm">Encuesta</span>
+                                                </button>
+                                                <button class="flex items-center px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" onclick="addLocation()">
+                                                    <i class="fas fa-map-marker-alt mr-2 text-red-500"></i>
+                                                    <span class="text-sm">Ubicación</span>
+                                                </button>
+                                            </div>
+                                            
+                                            <!-- Configuración de Privacidad -->
+                                            <div class="flex items-center space-x-3">
+                                                <select class="text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-litopro-500">
+                                                    <option value="public">🌍 Público</option>
+                                                    <option value="network">👥 Mi Red</option>
+                                                    <option value="city">🏙️ Mi Ciudad</option>
+                                                    <option value="private">🔒 Solo Yo</option>
+                                                </select>
+                                                
+                                                <button 
+                                                    onclick="publishPost()"
+                                                    class="bg-litopro-600 hover:bg-litopro-700 text-white font-semibold px-6 py-2 rounded-lg transition-colors flex items-center">
+                                                    <i class="fas fa-paper-plane mr-2"></i>
+                                                    Publicar
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Preview de archivos adjuntos -->
+                                        <div id="attachmentPreview" class="hidden mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex items-center">
+                                                    <i class="fas fa-file text-blue-500 mr-2"></i>
+                                                    <span class="text-sm text-blue-700" id="fileName">archivo_adjunto.pdf</span>
+                                                </div>
+                                                <button onclick="removeAttachment()" class="text-red-500 hover:text-red-700">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Posts del Feed -->
+                        <!-- Post 1: Trabajo Completado -->
+                        <article class="bg-white rounded-xl shadow-sm border border-gray-200">
+                            <div class="p-6">
+                                <!-- Header del Post -->
+                                <div class="flex items-start justify-between mb-4">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
+                                            <span class="text-white font-semibold text-sm">CV</span>
+                                        </div>
+                                        <div>
+                                            <h3 class="font-semibold text-gray-900">Carlos Ventas - Litografía Demo</h3>
+                                            <div class="flex items-center text-sm text-gray-500 space-x-2">
+                                                <span>Hace 2 horas</span>
+                                                <span>•</span>
+                                                <div class="flex items-center">
+                                                    <i class="fas fa-globe-americas mr-1"></i>
+                                                    Público
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="relative">
+                                        <button class="text-gray-400 hover:text-gray-600 p-2" onclick="togglePostMenu(1)">
+                                            <i class="fas fa-ellipsis-h"></i>
+                                        </button>
+                                        <div id="postMenu1" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                                            <a href="#" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-50">
+                                                <i class="fas fa-bookmark mr-2"></i>
+                                                Guardar post
+                                            </a>
+                                            <a href="#" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-50">
+                                                <i class="fas fa-flag mr-2"></i>
+                                                Reportar
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Contenido del Post -->
+                                <div class="mb-4">
+                                    <p class="text-gray-900 mb-3">
+                                        🎉 ¡Excelente mes de junio! Hemos superado nuestra meta de ventas en un 23%. Gracias a 
+                                        todos nuestros clientes que confían en nosotros para sus proyectos de impresión. 
+                                        ¡Seguimos creciendo juntos! 📈✨
+                                    </p>
+                                    
+                                    <!-- Imagen del post -->
+                                    <div class="rounded-lg overflow-hidden bg-gray-100">
+                                        <div class="aspect-w-16 aspect-h-9 bg-gradient-to-br from-blue-400 to-purple-600 flex items-center justify-center">
+                                            <div class="text-center text-white">
+                                                <i class="fas fa-chart-line text-6xl mb-4 opacity-80"></i>
+                                                <p class="text-xl font-semibold">Reporte de Ventas - Junio 2025</p>
+                                                <p class="text-blue-100">+23% vs mes anterior</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Acciones del Post -->
+                                <div class="border-t border-gray-100 pt-4">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <div class="flex items-center space-x-4 text-sm text-gray-500">
+                                            <span class="flex items-center">
+                                                <i class="fas fa-thumbs-up text-blue-500 mr-1"></i>
+                                                13 Me gusta
+                                            </span>
+                                            <span>5 Comentarios</span>
+                                            <span>2 Compartir</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="grid grid-cols-4 gap-2">
+                                        <button class="flex items-center justify-center py-2 px-3 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                                            <i class="far fa-thumbs-up mr-2"></i>
+                                            <span class="text-sm">Me gusta</span>
+                                        </button>
+                                        <button class="flex items-center justify-center py-2 px-3 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                                            <i class="far fa-comment mr-2"></i>
+                                            <span class="text-sm">Comentar</span>
+                                        </button>
+                                        <button class="flex items-center justify-center py-2 px-3 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                                            <i class="fas fa-share mr-2"></i>
+                                            <span class="text-sm">Compartir</span>
+                                        </button>
+                                        <button class="flex items-center justify-center py-2 px-3 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                                            <i class="far fa-paper-plane mr-2"></i>
+                                            <span class="text-sm">Enviar</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <!-- Post 2: Alerta de Stock -->
+                        <article class="bg-white rounded-xl shadow-sm border border-gray-200">
+                            <div class="p-6">
+                                <!-- Header del Post -->
+                                <div class="flex items-start justify-between mb-4">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center">
+                                            <span class="text-white font-semibold text-sm">PC</span>
+                                        </div>
+                                        <div>
+                                            <h3 class="font-semibold text-gray-900">Papelería Central</h3>
+                                            <div class="flex items-center text-sm text-gray-500 space-x-2">
+                                                <span>Hace 4 horas</span>
+                                                <span>•</span>
+                                                <div class="flex items-center">
+                                                    <i class="fas fa-map-marker-alt mr-1"></i>
+                                                    Bogotá
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Contenido del Post -->
+                                <div class="mb-4">
+                                    <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-3">
+                                        <div class="flex items-start space-x-3">
+                                            <i class="fas fa-exclamation-triangle text-orange-500 mt-1"></i>
+                                            <div>
+                                                <h4 class="font-semibold text-orange-800 mb-1">NUEVA LLEGADA</h4>
+                                                <p class="text-orange-700">
+                                                    📦 Papel couché brillante 150g de excelente calidad. Stock limitado con 
+                                                    15% de descuento para pedidos mayores a 200 pliegos. ¡Aprovecha esta oferta especial! 🎯
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Detalles del producto -->
+                                    <div class="bg-gray-50 rounded-lg p-4">
+                                        <div class="grid grid-cols-2 gap-4 text-sm">
+                                            <div>
+                                                <span class="font-medium text-gray-700">Gramaje:</span>
+                                                <span class="text-gray-600 ml-2">150g/m²</span>
+                                            </div>
+                                            <div>
+                                                <span class="font-medium text-gray-700">Formato:</span>
+                                                <span class="text-gray-600 ml-2">70x100cm</span>
+                                            </div>
+                                            <div>
+                                                <span class="font-medium text-gray-700">Stock:</span>
+                                                <span class="text-green-600 ml-2 font-semibold">500 pliegos</span>
+                                            </div>
+                                            <div>
+                                                <span class="font-medium text-gray-700">Precio:</span>
+                                                <span class="text-litopro-600 ml-2 font-semibold">$850/pliego</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Acciones del Post -->
+                                <div class="border-t border-gray-100 pt-4">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <div class="flex items-center space-x-4 text-sm text-gray-500">
+                                            <span>12 Me gusta</span>
+                                            <span>8 Comentarios</span>
+                                            <span>3 Hacer Pedido</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="grid grid-cols-4 gap-2">
+                                        <button class="flex items-center justify-center py-2 px-3 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                                            <i class="far fa-thumbs-up mr-2"></i>
+                                            <span class="text-sm">Me gusta</span>
+                                        </button>
+                                        <button class="flex items-center justify-center py-2 px-3 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                                            <i class="far fa-comment mr-2"></i>
+                                            <span class="text-sm">Comentar</span>
+                                        </button>
+                                        <button class="flex items-center justify-center py-2 px-3 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors font-semibold">
+                                            <i class="fas fa-shopping-cart mr-2"></i>
+                                            <span class="text-sm">Hacer Pedido</span>
+                                        </button>
+                                        <button class="flex items-center justify-center py-2 px-3 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                                            <i class="fas fa-share mr-2"></i>
+                                            <span class="text-sm">Compartir</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <!-- Load More Button -->
+                        <div class="text-center py-6">
+                            <button class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-6 py-3 rounded-lg transition-colors">
+                                <i class="fas fa-chevron-down mr-2"></i>
+                                Cargar más publicaciones
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+
+                    </div>
+
+                    <!-- Right Sidebar Dashboard -->
+                    <div class="space-y-6">
+                        <!-- Stock Alerts -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                            <div class="px-6 py-4 border-b border-gray-200">
+                                <h3 class="text-lg font-semibold text-gray-900">
+                                    <i class="fas fa-exclamation-triangle mr-2 text-red-500"></i>
+                                    Stock Crítico de Papel
+                                </h3>
+                            </div>
+                            <div class="p-6 space-y-4">
+                                <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                                    <div>
+                                        <p class="font-medium text-red-900">Bond Blanco 75g</p>
+                                        <p class="text-sm text-red-700">Stock crítico</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="text-lg font-bold text-red-900">15/50</span>
+                                        <p class="text-xs text-red-700">hojas disponibles</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                                    <div>
+                                        <p class="font-medium text-yellow-900">Couché 150g</p>
+                                        <p class="text-sm text-yellow-700">Stock bajo</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="text-lg font-bold text-yellow-900">40/200</span>
+                                        <p class="text-xs text-yellow-700">hojas disponibles</p>
+                                    </div>
+                                </div>
+                                
+                                <button class="w-full bg-litopro-600 hover:bg-litopro-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                                    <i class="fas fa-shopping-cart mr-2"></i>
+                                    Ver Marketplace Completo
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Paper Calculator -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                            <div class="px-6 py-4 border-b border-gray-200">
+                                <h3 class="text-lg font-semibold text-gray-900">
+                                    <i class="fas fa-calculator mr-2 text-green-500"></i>
+                                    Calculadora de Cortes
+                                </h3>
+                            </div>
+                            <div class="p-6">
+                                <div class="space-y-4">
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Ancho papel (cm)</label>
+                                            <input type="number" value="70" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-litopro-500">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Largo papel (cm)</label>
+                                            <input type="number" value="100" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-litopro-500">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Ancho corte (cm)</label>
+                                            <input type="number" value="10" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-litopro-500">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Largo corte (cm)</label>
+                                            <input type="number" value="15" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-litopro-500">
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Cantidad deseada (piezas)</label>
+                                        <input type="number" value="1000" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-litopro-500">
+                                    </div>
+
+                                    <div class="flex space-x-2">
+                                        <button class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition-colors">
+                                            <i class="fas fa-expand mr-1"></i>
+                                            Vertical
+                                        </button>
+                                        <button class="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition-colors">
+                                            <i class="fas fa-arrows-alt-h mr-1"></i>
+                                            Horizontal
+                                        </button>
+                                        <button class="flex-1 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition-colors">
+                                            <i class="fas fa-maximize mr-1"></i>
+                                            Óptimo
+                                        </button>
+                                    </div>
+
+                                    <button onclick="calculateCuts()" class="w-full bg-gray-800 hover:bg-gray-900 text-white font-medium py-3 rounded-lg transition-colors">
+                                        <i class="fas fa-magic mr-2"></i>
+                                        Calcular
+                                    </button>
+                                </div>
+                                
+                                <!-- Vista previa del corte -->
+                                <div id="cutPreview" class="mt-4 p-3 bg-gray-50 rounded-lg text-center">
+                                    <p class="text-sm text-gray-600 mb-1">Vista previa del corte:</p>
+                                    <p class="text-sm text-gray-500 italic">Ingresa los medidas y presiona calcular</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sugerencias de Conexión -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                            <div class="px-6 py-4 border-b border-gray-200">
+                                <h3 class="text-lg font-semibold text-gray-900">
+                                    <i class="fas fa-user-plus mr-2 text-blue-500"></i>
+                                    Empresas Sugeridas
+                                </h3>
+                            </div>
+                            <div class="p-6 space-y-4">
+                                <!-- Sugerencia 1 -->
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center">
+                                            <span class="text-white text-sm font-semibold">IG</span>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium text-gray-900 text-sm">Imprenta Gráfica</p>
+                                            <p class="text-xs text-gray-500">Medellín • 45 seguidores</p>
+                                        </div>
+                                    </div>
+                                    <button class="bg-litopro-600 hover:bg-litopro-700 text-white text-xs font-medium px-3 py-1 rounded transition-colors">
+                                        Seguir
+                                    </button>
+                                </div>
+
+                                <!-- Sugerencia 2 -->
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
+                                            <span class="text-white text-sm font-semibold">PD</span>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium text-gray-900 text-sm">Papeles y Diseños</p>
+                                            <p class="text-xs text-gray-500">Cali • 28 seguidores</p>
+                                        </div>
+                                    </div>
+                                    <button class="bg-litopro-600 hover:bg-litopro-700 text-white text-xs font-medium px-3 py-1 rounded transition-colors">
+                                        Seguir
+                                    </button>
+                                </div>
+
+                                <button class="w-full text-center text-sm text-litopro-600 hover:text-litopro-700 font-medium pt-2 border-t border-gray-100">
+                                    Ver todas las sugerencias
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Tendencias -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                            <div class="px-6 py-4 border-b border-gray-200">
+                                <h3 class="text-lg font-semibold text-gray-900">
+                                    <i class="fas fa-fire mr-2 text-red-500"></i>
+                                    Tendencias
+                                </h3>
+                            </div>
+                            <div class="p-6 space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="font-medium text-gray-900 text-sm">#ImpresionOffset</p>
+                                        <p class="text-xs text-gray-500">45 publicaciones</p>
+                                    </div>
+                                    <i class="fas fa-chevron-right text-gray-400"></i>
+                                </div>
+                                
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="font-medium text-gray-900 text-sm">#PapelCouche</p>
+                                        <p class="text-xs text-gray-500">32 publicaciones</p>
+                                    </div>
+                                    <i class="fas fa-chevron-right text-gray-400"></i>
+                                </div>
+                                
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="font-medium text-gray-900 text-sm">#ArtesGráficas</p>
+                                        <p class="text-xs text-gray-500">67 publicaciones</p>
+                                    </div>
+                                    <i class="fas fa-chevron-right text-gray-400"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chat Rápido -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                            <div class="px-6 py-4 border-b border-gray-200">
+                                <h3 class="text-lg font-semibold text-gray-900">
+                                    <i class="fas fa-comments mr-2 text-green-500"></i>
+                                    Chat Rápido
+                                </h3>
+                            </div>
+                            <div class="p-0">
+                                <!-- Lista de contactos activos -->
+                                <div class="space-y-1">
+                                    <div class="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer">
+                                        <div class="relative">
+                                            <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                                                <span class="text-white text-sm font-semibold">PC</span>
+                                            </div>
+                                            <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white"></div>
+                                        </div>
+                                        <div class="flex-1">
+                                            <p class="font-medium text-gray-900 text-sm">Papelería Central</p>
+                                            <p class="text-xs text-gray-500">En línea</p>
+                                        </div>
+                                        <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
+                                    </div>
+
+                                    <div class="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer">
+                                        <div class="relative">
+                                            <div class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
+                                                <span class="text-white text-sm font-semibold">IG</span>
+                                            </div>
+                                            <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full border-2 border-white"></div>
+                                        </div>
+                                        <div class="flex-1">
+                                            <p class="font-medium text-gray-900 text-sm">Imprenta Gráfica</p>
+                                            <p class="text-xs text-gray-500">Hace 5 min</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section> 
+        </main>
+    </div>
+
+    <!-- Archivos hidden para upload -->
+    <input type="file" id="imageUpload" accept="image/*" class="hidden" onchange="handleFileUpload(this, 'image')">
+    <input type="file" id="fileUpload" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt" class="hidden" onchange="handleFileUpload(this, 'file')">
+
+    <!-- Scripts -->
+    <script>
+        // Scroll to section functionality
+        function scrollToSection(sectionId) {
+            const element = document.getElementById(sectionId);
+            if (element) {
+                element.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start' 
+                });
+                
+                // Update tab states
+                const tabs = document.querySelectorAll('button[onclick*="scrollToSection"]');
+                tabs.forEach(tab => {
+                    tab.classList.remove('text-litopro-600', 'bg-litopro-50');
+                    tab.classList.add('text-gray-600');
+                });
+                
+                event.target.classList.remove('text-gray-600');
+                event.target.classList.add('text-litopro-600', 'bg-litopro-50');
+            }
+        }
+
+        // Calculator functionality
+        function calculateCuts() {
+            const anchoP = document.querySelector('input[value="70"]').value;
+            const largoP = document.querySelector('input[value="100"]').value;
+            const anchoC = document.querySelector('input[value="10"]').value;
+            const largoC = document.querySelector('input[value="15"]').value;
+            const cantidad = document.querySelector('input[value="1000"]').value;
+            
+            const cortesH = Math.floor(anchoP / anchoC);
+            const cortesV = Math.floor(largoP / largoC);
+            const totalPorPliego = cortesH * cortesV;
+            const pliegosNecesarios = Math.ceil(cantidad / totalPorPliego);
+            
+            const previewDiv = document.getElementById('cutPreview');
+            previewDiv.innerHTML = `
+                <p class="text-sm text-gray-600 mb-1">Resultado del cálculo:</p>
+                <div class="text-left space-y-1">
+                    <p class="text-sm"><strong>Cortes por pliego:</strong> ${totalPorPliego} (${cortesH} × ${cortesV})</p>
+                    <p class="text-sm"><strong>Pliegos necesarios:</strong> ${pliegosNecesarios}</p>
+                    <p class="text-sm"><strong>Eficiencia:</strong> ${((cantidad / (pliegosNecesarios * totalPorPliego)) * 100).toFixed(1)}%</p>
+                </div>
+            `;
+        }
+
+        // Social media functionality
+        function togglePostMenu(postId) {
+            const menu = document.getElementById(`postMenu${postId}`);
+            menu.classList.toggle('hidden');
+        }
+
+        function triggerFileUpload(type) {
+            if (type === 'image') {
+                document.getElementById('imageUpload').click();
+            } else {
+                document.getElementById('fileUpload').click();
+            }
+        }
+
+        function handleFileUpload(input, type) {
+            const file = input.files[0];
+            if (file) {
+                const preview = document.getElementById('attachmentPreview');
+                const fileName = document.getElementById('fileName');
+                
+                fileName.textContent = file.name;
+                preview.classList.remove('hidden');
+                
+                if (type === 'image') {
+                    preview.classList.remove('bg-blue-50', 'border-blue-200');
+                    preview.classList.add('bg-green-50', 'border-green-200');
+                    preview.querySelector('i').className = 'fas fa-image text-green-500 mr-2';
+                }
+            }
+        }
+
+        function removeAttachment() {
+            const preview = document.getElementById('attachmentPreview');
+            preview.classList.add('hidden');
+            document.getElementById('imageUpload').value = '';
+            document.getElementById('fileUpload').value = '';
+        }
+
+        function addPoll() {
+            alert('Funcionalidad de encuesta próximamente');
+        }
+
+        function addLocation() {
+            alert('Funcionalidad de ubicación próximamente');
+        }
+
+        function publishPost() {
+            const content = document.getElementById('postContent').value;
+            if (content.trim()) {
+                alert('¡Post publicado exitosamente!');
+                document.getElementById('postContent').value = '';
+                removeAttachment();
+            } else {
+                alert('Por favor escribe algo antes de publicar');
+            }
+        }
+
+        // Close menus when clicking outside
+        document.addEventListener('click', function(event) {
+            const menus = document.querySelectorAll('[id^="postMenu"]');
+            menus.forEach(menu => {
+                if (!menu.contains(event.target) && !event.target.closest('button[onclick*="togglePostMenu"]')) {
+                    menu.classList.add('hidden');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

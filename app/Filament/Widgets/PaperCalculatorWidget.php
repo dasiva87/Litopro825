@@ -168,6 +168,36 @@ class PaperCalculatorWidget extends Widget
         $this->calculation = null;
         $this->paperSize = 'carta';
         $this->selectedPaper = $this->paperSizes[$this->paperSize];
+        
+        // Dispatch event for UI updates
+        $this->dispatch('calculator-reset');
+    }
+    
+    public function calculateOptimized(): void
+    {
+        // Simulate processing time for UX
+        usleep(300000); // 300ms delay
+        
+        $this->calculate();
+        
+        // Dispatch event for smooth animations
+        $this->dispatch('calculation-completed');
+    }
+    
+    public function previewCutting(): void
+    {
+        if (empty($this->itemWidth) || empty($this->itemHeight)) {
+            session()->flash('calculator-error', 'Ingrese las dimensiones del item para ver la vista previa');
+            return;
+        }
+        
+        // Generate preview data (this would be used by the canvas)
+        $this->dispatch('preview-cutting', [
+            'itemWidth' => $this->itemWidth,
+            'itemHeight' => $this->itemHeight,
+            'paperWidth' => $this->selectedPaper['width'],
+            'paperHeight' => $this->selectedPaper['height']
+        ]);
     }
     
     public function getAvailablePapers(): Collection

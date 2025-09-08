@@ -228,14 +228,34 @@ class Document extends Model
                 // Para items digitales, usar total_price del DocumentItem (ya calculado)
                 $itemTotal = $item->total_price ?? 0;
             } elseif ($item->itemable && isset($item->itemable->final_price)) {
-                // Para SimpleItems y otros, usar final_price del item relacionado
-                $itemTotal = $item->itemable->final_price;
+                // Para SimpleItems y otros, calcular total incluyendo acabados
+                $hasFinishings = $item->finishings()->exists();
+                
+                if ($hasFinishings) {
+                    // Sumar precio base + acabados
+                    $basePrice = $item->itemable->final_price;
+                    $finishingsTotal = $item->finishings->sum('total_price');
+                    $itemTotal = $basePrice + $finishingsTotal;
+                    \Log::info("Document.calculateTotals() - Item {$item->id}: basePrice={$basePrice}, finishings={$finishingsTotal}, itemTotal={$itemTotal}");
+                } else {
+                    $itemTotal = $item->itemable->final_price;
+                }
             } else {
                 // Fallback: usar total_price del DocumentItem
                 $itemTotal = $item->total_price ?? 0;
             }
             
             $subtotal += $itemTotal;
+            
+            // Actualizar el total_price del DocumentItem si es diferente del calculado
+            \Log::info("Document.calculateTotals() - Item {$item->id} comparison: current={$item->total_price}, calculated={$itemTotal}, diff=" . abs((float)$item->total_price - (float)$itemTotal));
+            if (abs((float)$item->total_price - (float)$itemTotal) > 0.01) {
+                $item->update(['total_price' => $itemTotal]);
+                \Log::info("Document.calculateTotals() - Updated DocumentItem {$item->id} total_price to {$itemTotal}");
+                // Verificar que se actualizó
+                $item->refresh();
+                \Log::info("Document.calculateTotals() - After refresh: DocumentItem {$item->id} total_price = {$item->total_price}");
+            }
         }
         $this->subtotal = $subtotal;
         

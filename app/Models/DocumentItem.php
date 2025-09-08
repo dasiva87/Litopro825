@@ -306,6 +306,22 @@ class DocumentItem extends Model
             return;
         }
 
+        // Para SimpleItems, incluir acabados si existen
+        if ($this->itemable_type === 'App\\Models\\SimpleItem') {
+            if ($this->itemable && $this->finishings()->exists()) {
+                // Usar precio base del SimpleItem + acabados
+                $basePrice = $this->itemable->final_price ?? 0;
+                $finishingsCost = $this->finishings->sum('total_price');
+                $totalPrice = $basePrice + $finishingsCost;
+                
+                $this->unit_price = $this->quantity > 0 ? $totalPrice / $this->quantity : $totalPrice;
+                $this->total_price = $totalPrice;
+                
+                \Log::info("DocumentItem.calculateTotals() - SimpleItem {$this->id}: basePrice={$basePrice}, finishings={$finishingsCost}, total={$totalPrice}");
+                return;
+            }
+        }
+
         // Para otros tipos de items, usar el cálculo original
         // Calcular costos base si no están definidos
         if ($this->paper_cost == 0 && $this->paper) {

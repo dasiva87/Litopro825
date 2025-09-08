@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LitoPro 3.0 - Dashboard Mejorado</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'litopro': {
+                            50: '#eff6ff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a'
+                        }
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 px-6 py-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-litopro-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-print text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-900">LitoPro</h1>
+                        <p class="text-sm text-gray-500">Panel de Control</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Search Bar -->
+            <div class="flex-1 max-w-lg mx-8">
+                <div class="relative">
+                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" 
+                           class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-litopro-500 focus:border-litopro-500" 
+                           placeholder="Buscar cotizaciones, clientes, órdenes...">
+                </div>
+            </div>
+            
+            <!-- User Menu -->
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <button class="relative p-2 text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-bell text-xl"></i>
+                        <span class="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center">3</span>
+                    </button>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+                        <span class="text-white font-semibold text-sm">CV</span>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700">Carlos Ventas</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white border-r border-gray-200 min-h-screen">
+            <div class="p-6">
+                <nav class="space-y-6">
+                    <!-- Cotizaciones y Ventas -->
+                    <div>
+                        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Cotizaciones y Ventas</h3>
+                        <ul class="space-y-2">
+                            <li>
+                                <a href="#" class="flex items-center px-3 py-2 text-sm font-medium text-litopro-700 bg-litopro-50 rounded-lg">
+                                    <i class="fas fa-file-invoice-dollar w-5 h-5 mr-3"></i>
+                                    Cotizaciones
+                                    <span class="ml-auto bg-litopro-100 text-litopro-800 text-xs px-2 py-1 rounded-full">24</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+                                    <i class="fas fa-plus-circle w-5 h-5 mr-3"></i>
+                                    Nueva Cotización
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+                                    <i class="fas fa-users w-5 h-5 mr-3"></i>
+                                    Clientes
+                                    <span class="ml-auto bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full">156</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Producción -->
+                    <div>
+                        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Producción</h3>
+                        <ul class="space-y-2">
+                            <li>
+                                <a href="#" class="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+                                    <i class="fas fa-clipboard-list w-5 h-5 mr-3"></i>
+                                    Órdenes de Producción
+                                    <span class="ml-auto bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full">8</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+                                    <i class="fas fa-cog w-5 h-5 mr-3"></i>
+                                    Estado Producción
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+                                    <i class="fas fa-book w-5 h-5 mr-3"></i>
+                                    Revistas
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Inventario & Papel -->
+                    <div>
+                        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Inventario & Papel</h3>
+                        <ul class="space-y-2">
+                            <li>
+                                <a href="#" class="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+                                    <i class="fas fa-boxes w-5 h-5 mr-3"></i>
+                                    Stock de Papel
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+                                    <i class="fas fa-shopping-cart w-5 h-5 mr-3"></i>
+                                    Pedidos de Papel
+                                    <span class="ml-auto bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">!</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-8">
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <!-- Cotizaciones Activas -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600 mb-1">Cotizaciones Activas</p>
+                            <p class="text-3xl font-bold text-gray-900">24</p>
+                            <p class="text-sm text-green-600 font-medium">
+                                <i class="fas fa-arrow-up mr-1"></i>
+                                +12% vs mes anterior
+                            </p>
+                        </div>
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-file-invoice text-blue-600 text-lg"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Órdenes en Producción -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600 mb-1">Órdenes en Producción</p>
+                            <p class="text-3xl font-bold text-gray-900">8</p>
+                            <p class="text-sm text-orange-600 font-medium">
+                                <i class="fas fa-clock mr-1"></i>
+                                3 próximas a vencer
+                            </p>
+                        </div>
+                        <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-cogs text-orange-600 text-lg"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ingresos del Mes -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600 mb-1">Ingresos del Mes</p>
+                            <p class="text-3xl font-bold text-gray-900">$18.5M</p>
+                            <p class="text-sm text-green-600 font-medium">
+                                <i class="fas fa-arrow-up mr-1"></i>
+                                +23% vs mes anterior
+                            </p>
+                        </div>
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-dollar-sign text-green-600 text-lg"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Clientes Activos -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600 mb-1">Clientes Activos</p>
+                            <p class="text-3xl font-bold text-gray-900">156</p>
+                            <p class="text-sm text-blue-600 font-medium">
+                                <i class="fas fa-user-plus mr-1"></i>
+                                +8 nuevos este mes
+                            </p>
+                        </div>
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-users text-purple-600 text-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-bolt mr-2 text-yellow-500"></i>
+                    Acciones Rápidas
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <button class="flex flex-col items-center p-6 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors group">
+                        <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                            <i class="fas fa-file-plus text-white text-lg"></i>
+                        </div>
+                        <span class="font-medium text-gray-900">Nueva Cotización</span>
+                        <span class="text-sm text-gray-500 mt-1">Crear cotización para cliente</span>
+                    </button>
+
+                    <button class="flex flex-col items-center p-6 bg-green-50 hover:bg-green-100 rounded-lg transition-colors group">
+                        <div class="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                            <i class="fas fa-user-plus text-white text-lg"></i>
+                        </div>
+                        <span class="font-medium text-gray-900">Nuevo Cliente</span>
+                        <span class="text-sm text-gray-500 mt-1">Registrar cliente nuevo</span>
+                    </button>
+
+                    <button class="flex flex-col items-center p-6 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors group">
+                        <div class="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                            <i class="fas fa-shopping-cart text-white text-lg"></i>
+                        </div>
+                        <span class="font-medium text-gray-900">Pedir Papel</span>
+                        <span class="text-sm text-gray-500 mt-1">Nueva orden a proveedor</span>
+                    </button>
+
+                    <button class="flex flex-col items-center p-6 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors group">
+                        <div class="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                            <i class="fas fa-chart-bar text-white text-lg"></i>
+                        </div>
+                        <span class="font-medium text-gray-900">Ver Producción</span>
+                        <span class="text-sm text-gray-500 mt-1">Estado de trabajos</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Content Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Recent Activity -->
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h3 class="text-lg font-semibold text-gray-900">
+                                <i class="fas fa-clock mr-2 text-blue-500"></i>
+                                Actividad Reciente
+                            </h3>
+                        </div>
+                        <div class="p-0">
+                            <div class="overflow-hidden">
+                                <table class="w-full">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="flex items-center">
+                                                    <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                                        <i class="fas fa-file-invoice text-blue-600 text-sm"></i>
+                                                    </div>
+                                                    <span class="ml-3 text-sm font-medium text-gray-900">Cotización</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <div class="text-sm font-medium text-gray-900">COT-2024-069</div>
+                                                <div class="text-sm text-gray-500">Volantes promocionales</div>
+                                            </td>
+                                            <td class="px-6 py-4 text-sm text-gray-900">Restaurante La Bogotá</td>
+                                            <td class="px-6 py-4">
+                                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                                    ENVIADA
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-4 text-sm font-semibold text-gray-900">$950,000</td>
+                                        </tr>
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="flex items-center">
+                                                    <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                                                        <i class="fas fa-cogs text-orange-600 text-sm"></i>
+                                                    </div>
+                                                    <span class="ml-3 text-sm font-medium text-gray-900">Producción</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <div class="text-sm font-medium text-gray-900">ORD-2024-034</div>
+                                                <div class="text-sm text-gray-500">Tarjetas corporativas</div>
+                                            </td>
+                                            <td class="px-6 py-4 text-sm text-gray-900">Empresa ABC S.A.S.</td>
+                                            <td class="px-6 py-4">
+                                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
+                                                    EN PRODUCCIÓN
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-4 text-sm font-semibold text-gray-900">$1,200,000</td>
+                                        </tr>
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="flex items-center">
+                                                    <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                                                        <i class="fas fa-check-circle text-green-600 text-sm"></i>
+                                                    </div>
+                                                    <span class="ml-3 text-sm font-medium text-gray-900">Completado</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <div class="text-sm font-medium text-gray-900">COT-2024-067</div>
+                                                <div class="text-sm text-gray-500">Catálogo de productos</div>
+                                            </td>
+                                            <td class="px-6 py-4 text-sm text-gray-900">Tienda Fashion</td>
+                                            <td class="px-6 py-4">
+                                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                                    APROBADA
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-4 text-sm font-semibold text-gray-900">$3,400,000</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Sidebar -->
+                <div class="space-y-6">
+                    <!-- Stock Alerts -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h3 class="text-lg font-semibold text-gray-900">
+                                <i class="fas fa-exclamation-triangle mr-2 text-red-500"></i>
+                                Stock Crítico de Papel
+                            </h3>
+                        </div>
+                        <div class="p-6 space-y-4">
+                            <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                                <div>
+                                    <p class="font-medium text-red-900">Bond Blanco 75g</p>
+                                    <p class="text-sm text-red-700">Stock crítico</p>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-lg font-bold text-red-900">15/50</span>
+                                    <p class="text-xs text-red-700">hojas disponibles</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                                <div>
+                                    <p class="font-medium text-yellow-900">Couché 150g</p>
+                                    <p class="text-sm text-yellow-700">Stock bajo</p>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-lg font-bold text-yellow-900">40/200</span>
+                                    <p class="text-xs text-yellow-700">hojas disponibles</p>
+                                </div>
+                            </div>
+                            
+                            <button class="w-full bg-litopro-600 hover:bg-litopro-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                                <i class="fas fa-shopping-cart mr-2"></i>
+                                Ver Marketplace Completo
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Paper Calculator -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h3 class="text-lg font-semibold text-gray-900">
+                                <i class="fas fa-calculator mr-2 text-green-500"></i>
+                                Calculadora de Cortes
+                            </h3>
+                        </div>
+                        <div class="p-6">
+                            <div class="space-y-4">
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Ancho papel (cm)</label>
+                                        <input type="number" value="70" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-litopro-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Largo papel (cm)</label>
+                                        <input type="number" value="100" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-litopro-500">
+                                    </div>
+                                </div>
+                                
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Ancho corte (cm)</label>
+                                        <input type="number" value="10" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-litopro-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Largo corte (cm)</label>
+                                        <input type="number" value="15" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-litopro-500">
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Cantidad deseada (piezas)</label>
+                                    <input type="number" value="1000" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-litopro-500">
+                                </div>
+
+                                <div class="flex space-x-2">
+                                    <button class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition-colors">
+                                        <i class="fas fa-expand mr-1"></i>
+                                        Vertical
+                                    </button>
+                                    <button class="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition-colors">
+                                        <i class="fas fa-arrows-alt-h mr-1"></i>
+                                        Horizontal
+                                    </button>
+                                    <button class="flex-1 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition-colors">
+                                        <i class="fas fa-maximize mr-1"></i>
+                                        Óptimo
+                                    </button>
+                                </div>
+
+                                <button class="w-full bg-gray-800 hover:bg-gray-900 text-white font-medium py-3 rounded-lg transition-colors">
+                                    <i class="fas fa-magic mr-2"></i>
+                                    Calcular
+                                </button>
+                            </div>
+                            
+                            <!-- Vista previa del corte -->
+                            <div class="mt-4 p-3 bg-gray-50 rounded-lg text-center">
+                                <p class="text-sm text-gray-600 mb-1">Vista previa del corte:</p>
+                                <p class="text-sm text-gray-500 italic">Ingresa los medidas y presiona un botón de cálculo</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Upcoming Deadlines -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h3 class="text-lg font-semibold text-gray-900">
+                                <i class="fas fa-calendar-alt mr-2 text-purple-500"></i>
+                                Próximos Vencimientos
+                            </h3>
+                        </div>
+                        <div class="p-6 space-y-3">
+                            <div class="flex items-center justify-between p-3 border-l-4 border-red-400 bg-red-50 rounded-r-lg">
+                                <div>
+                                    <p class="font-medium text-red-900">Volantes Restaurante</p>
+                                    <p class="text-sm text-red-700">Entrega mañana</p>
+                                </div>
+                                <span class="text-xs font-semibold text-red-800 bg-red-200 px-2 py-1 rounded">Mañana</span>
+                            </div>
+                            
+                            <div class="flex items-center justify-between p-3 border-l-4 border-yellow-400 bg-yellow-50 rounded-r-lg">
+                                <div>
+                                    <p class="font-medium text-yellow-900">Catálogo Fashion</p>
+                                    <p class="text-sm text-yellow-700">Revisión diseño</p>
+                                </div>
+                                <span class="text-xs font-semibold text-yellow-800 bg-yellow-200 px-2 py-1 rounded">2d Jun</span>
+                            </div>
+                            
+                            <div class="flex items-center justify-between p-3 border-l-4 border-green-400 bg-green-50 rounded-r-lg">
+                                <div>
+                                    <p class="font-medium text-green-900">Folletos Clínica</p>
+                                    <p class="text-sm text-green-700">Producción programada</p>
+                                </div>
+                                <span class="text-xs font-semibold text-green-800 bg-green-200 px-2 py-1 rounded">5d Jun</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts para interactividad -->
+    <script>
+        // Simulador básico de calculadora
+        document.addEventListener('DOMContentLoaded', function() {
+            const calculateBtn = document.querySelector('button[onclick*="Calcular"]');
+            const previewDiv = document.querySelector('.text-gray-500.italic').parentElement;
+            
+            if (calculateBtn) {
+                calculateBtn.onclick = function() {
+                    const anchoP = document.querySelector('input[value="70"]').value;
+                    const largoP = document.querySelector('input[value="100"]').value;
+                    const anchoC = document.querySelector('input[value="10"]').value;
+                    const largoC = document.querySelector('input[value="15"]').value;
+                    const cantidad = document.querySelector('input[value="1000"]').value;
+                    
+                    const cortesH = Math.floor(anchoP / anchoC);
+                    const cortesV = Math.floor(largoP / largoC);
+                    const totalPorPliego = cortesH * cortesV;
+                    const pliegosNecesarios = Math.ceil(cantidad / totalPorPliego);
+                    
+                    previewDiv.innerHTML = `
+                        <p class="text-sm text-gray-600 mb-1">Resultado del cálculo:</p>
+                        <div class="text-left space-y-1">
+                            <p class="text-sm"><strong>Cortes por pliego:</strong> ${totalPorPliego} (${cortesH} × ${cortesV})</p>
+                            <p class="text-sm"><strong>Pliegos necesarios:</strong> ${pliegosNecesarios}</p>
+                            <p class="text-sm"><strong>Eficiencia:</strong> ${((cantidad / (pliegosNecesarios * totalPorPliego)) * 100).toFixed(1)}%</p>
+                        </div>
+                    `;
+                };
+            }
+        });
+    </script>
+</body>
+</html>

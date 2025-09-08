@@ -25,16 +25,30 @@ class Company extends Model
         'country_id',
         'tax_id',
         'logo',
+        'profile_image',
         'website',
         'subscription_plan',
         'subscription_expires_at',
         'max_users',
         'is_active',
+        // Configuración adicional
+        'fiscal_regime',
+        'invoice_auto_numbering',
+        'default_profit_margin',
+        'default_tax_rate',
+        'quote_validity_days',
+        'production_lead_time',
+        'stock_alerts_enabled',
+        'low_stock_threshold',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'subscription_expires_at' => 'datetime',
+        'invoice_auto_numbering' => 'boolean',
+        'stock_alerts_enabled' => 'boolean',
+        'default_profit_margin' => 'decimal:2',
+        'default_tax_rate' => 'decimal:2',
     ];
 
     protected static function boot()
@@ -126,5 +140,17 @@ class Company extends Model
     {
         return $this->subscription_expires_at === null || 
                $this->subscription_expires_at->isFuture();
+    }
+    
+    // Helper para obtener URL de imagen de perfil
+    public function getProfileImageUrlAttribute(): ?string
+    {
+        return $this->profile_image ? asset('storage/' . $this->profile_image) : null;
+    }
+    
+    // Helper para obtener URL del logo
+    public function getLogoUrlAttribute(): ?string
+    {
+        return $this->logo ? asset('storage/' . $this->logo) : null;
     }
 }

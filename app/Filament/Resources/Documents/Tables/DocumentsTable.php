@@ -19,6 +19,10 @@ use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
+use App\Mail\DocumentEmail;
+use Illuminate\Support\Facades\Mail;
 
 class DocumentsTable
 {
@@ -127,10 +131,57 @@ class DocumentsTable
                     EditAction::make()
                         ->visible(fn ($record) => $record->canEdit()),
                     
-                    Action::make('send')
-                        ->label('Enviar')
-                        ->icon('heroicon-o-paper-airplane')
+                    Action::make('email')
+                        ->label('Enviar por Email')
+                        ->icon('heroicon-o-envelope')
                         ->color('primary')
+                        ->visible(fn ($record) => $record->contact && $record->contact->email)
+                        ->form([
+                            TextInput::make('recipient_email')
+                                ->label('Email Destinatario')
+                                ->email()
+                                ->required()
+                                ->default(fn ($record) => $record->contact->email),
+                                
+                            TextInput::make('subject')
+                                ->label('Asunto')
+                                ->default(fn ($record) => "{$record->documentType->name} {$record->document_number}"),
+                                
+                            Textarea::make('custom_message')
+                                ->label('Mensaje Personalizado (Opcional)')
+                                ->rows(4)
+                                ->placeholder('Mensaje adicional que aparecerá en el email...'),
+                        ])
+                        ->action(function ($record, array $data) {
+                            try {
+                                // Enviar el email
+                                Mail::to($data['recipient_email'])
+                                    ->send(new DocumentEmail($record, $data));
+                                
+                                // Marcar como enviado si es una cotización en borrador
+                                if ($record->canSend()) {
+                                    $record->markAsSent();
+                                }
+                                
+                                Notification::make()
+                                    ->title('Email enviado')
+                                    ->body("El documento se ha enviado correctamente a {$data['recipient_email']}")
+                                    ->success()
+                                    ->send();
+                                    
+                            } catch (\Exception $e) {
+                                Notification::make()
+                                    ->title('Error al enviar email')
+                                    ->body('Ocurrió un error al enviar el email: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        }),
+                        
+                    Action::make('send')
+                        ->label('Marcar como Enviado')
+                        ->icon('heroicon-o-paper-airplane')
+                        ->color('warning')
                         ->visible(fn ($record) => $record->canSend())
                         ->requiresConfirmation()
                         ->action(fn ($record) => $record->markAsSent()),

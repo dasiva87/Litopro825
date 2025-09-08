@@ -162,6 +162,192 @@ class SimpleItemForm
                             ]),
                     ]),
                     
+                // Sección de Acabados para SimpleItem
+                Section::make('🎨 Acabados Opcionales')
+                    ->description('Agrega acabados adicionales que se calcularán automáticamente')
+                    ->schema([
+                        \Filament\Forms\Components\Repeater::make('finishings')
+                            ->label('Acabados')
+                            ->schema([
+                                Select::make('finishing_id')
+                                    ->label('Acabado')
+                                    ->options(function () {
+                                        return \App\Models\Finishing::where('active', true)
+                                            ->where('company_id', auth()->user()->company_id)
+                                            ->get()
+                                            ->mapWithKeys(function ($finishing) {
+                                                return [
+                                                    $finishing->id => $finishing->code . ' - ' . $finishing->name . ' (' . $finishing->measurement_unit->label() . ')'
+                                                ];
+                                            });
+                                    })
+                                    ->required()
+                                    ->live()
+                                    ->searchable()
+                                    ->afterStateUpdated(function ($set, $get, $state) {
+                                        // Trigger finishing cost calculation
+                                        if ($state) {
+                                            $finishing = \App\Models\Finishing::find($state);
+                                            if ($finishing) {
+                                                $params = [
+                                                    'quantity' => $get('quantity') ?? 1,
+                                                    'width' => 0,
+                                                    'height' => 0,
+                                                ];
+                                                
+                                                // For size-based finishings, get dimensions from parent SimpleItem
+                                                if ($finishing->measurement_unit === \App\Enums\FinishingMeasurementUnit::TAMAÑO) {
+                                                    $params['width'] = $get('../../horizontal_size') ?? 0;
+                                                    $params['height'] = $get('../../vertical_size') ?? 0;
+                                                }
+                                                
+                                                $calculator = app(\App\Services\FinishingCalculatorService::class);
+                                                $cost = $calculator->calculateCost($finishing, $params);
+                                                
+                                                \Log::info('SimpleItemForm - Finishing cost calculated', [
+                                                    'finishing_id' => $state,
+                                                    'finishing_name' => $finishing->name,
+                                                    'params' => $params,
+                                                    'calculated_cost' => $cost
+                                                ]);
+                                                
+                                                $set('calculated_cost', $cost);
+                                            }
+                                        }
+                                    }),
+                                    
+                                Grid::make(3)
+                                    ->schema([
+                                        TextInput::make('quantity')
+                                            ->label('Cantidad')
+                                            ->numeric()
+                                            ->default(1)
+                                            ->required()
+                                            ->live()
+                                            ->afterStateUpdated(function ($set, $get, $state) {
+                                                $finishingId = $get('finishing_id');
+                                                if ($finishingId && $state > 0) {
+                                                    $finishing = \App\Models\Finishing::find($finishingId);
+                                                    if ($finishing) {
+                                                        $params = [
+                                                            'quantity' => $state,
+                                                            'width' => $get('width') ?? ($get('../../horizontal_size') ?? 0),
+                                                            'height' => $get('height') ?? ($get('../../vertical_size') ?? 0),
+                                                        ];
+                                                        
+                                                        $calculator = app(\App\Services\FinishingCalculatorService::class);
+                                                        $cost = $calculator->calculateCost($finishing, $params);
+                                                        $set('calculated_cost', $cost);
+                                                    }
+                                                }
+                                            }),
+                                            
+                                        TextInput::make('width')
+                                            ->label('Ancho (cm)')
+                                            ->numeric()
+                                            ->step(0.01)
+                                            ->live()
+                                            ->visible(function ($get) {
+                                                $finishingId = $get('finishing_id');
+                                                if ($finishingId) {
+                                                    $finishing = \App\Models\Finishing::find($finishingId);
+                                                    return $finishing && $finishing->measurement_unit === \App\Enums\FinishingMeasurementUnit::TAMAÑO;
+                                                }
+                                                return false;
+                                            })
+                                            ->afterStateUpdated(function ($set, $get, $state) {
+                                                $finishingId = $get('finishing_id');
+                                                if ($finishingId && $state > 0) {
+                                                    $finishing = \App\Models\Finishing::find($finishingId);
+                                                    if ($finishing) {
+                                                        $params = [
+                                                            'quantity' => $get('quantity') ?? 1,
+                                                            'width' => $state,
+                                                            'height' => $get('height') ?? 0,
+                                                        ];
+                                                        
+                                                        $calculator = app(\App\Services\FinishingCalculatorService::class);
+                                                        $cost = $calculator->calculateCost($finishing, $params);
+                                                        $set('calculated_cost', $cost);
+                                                    }
+                                                }
+                                            }),
+                                            
+                                        TextInput::make('height')
+                                            ->label('Alto (cm)')
+                                            ->numeric()
+                                            ->step(0.01)
+                                            ->live()
+                                            ->visible(function ($get) {
+                                                $finishingId = $get('finishing_id');
+                                                if ($finishingId) {
+                                                    $finishing = \App\Models\Finishing::find($finishingId);
+                                                    return $finishing && $finishing->measurement_unit === \App\Enums\FinishingMeasurementUnit::TAMAÑO;
+                                                }
+                                                return false;
+                                            })
+                                            ->afterStateUpdated(function ($set, $get, $state) {
+                                                $finishingId = $get('finishing_id');
+                                                if ($finishingId && $state > 0) {
+                                                    $finishing = \App\Models\Finishing::find($finishingId);
+                                                    if ($finishing) {
+                                                        $params = [
+                                                            'quantity' => $get('quantity') ?? 1,
+                                                            'width' => $get('width') ?? 0,
+                                                            'height' => $state,
+                                                        ];
+                                                        
+                                                        $calculator = app(\App\Services\FinishingCalculatorService::class);
+                                                        $cost = $calculator->calculateCost($finishing, $params);
+                                                        $set('calculated_cost', $cost);
+                                                    }
+                                                }
+                                            }),
+                                    ]),
+                                    
+                                Placeholder::make('calculated_cost_display')
+                                    ->label('Costo Calculado')
+                                    ->content(function ($get) {
+                                        $finishingId = $get('finishing_id');
+                                        $quantity = $get('quantity') ?? 0;
+                                        $width = $get('width') ?? ($get('../../horizontal_size') ?? 0);
+                                        $height = $get('height') ?? ($get('../../vertical_size') ?? 0);
+                                        
+                                        if (!$finishingId || $quantity <= 0) {
+                                            return '$0.00';
+                                        }
+                                        
+                                        try {
+                                            $finishing = \App\Models\Finishing::find($finishingId);
+                                            if (!$finishing) {
+                                                return 'Acabado no encontrado';
+                                            }
+                                            
+                                            $calculator = app(\App\Services\FinishingCalculatorService::class);
+                                            $cost = $calculator->calculateCost($finishing, [
+                                                'quantity' => $quantity,
+                                                'width' => $width,
+                                                'height' => $height,
+                                            ]);
+                                            
+                                            return '$' . number_format($cost, 2);
+                                        } catch (\Exception $e) {
+                                            return 'Error: ' . $e->getMessage();
+                                        }
+                                    })
+                                    ->live(),
+                                    
+                                \Filament\Forms\Components\Hidden::make('calculated_cost')
+                                    ->live(),
+                            ])
+                            ->defaultItems(0)
+                            ->reorderable()
+                            ->collapsible()
+                            ->columnSpanFull(),
+                    ])
+                    ->collapsible()
+                    ->persistCollapsed(false),
+                    
                 Section::make('Opciones de Montaje')
                     ->description('Diferentes formas de aprovechar el papel')
                     ->schema([
