@@ -1,0 +1,83 @@
+[33mcommit 2e9ef05f3d3a5f317c1b1ba91a78a3b20bdaede4[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
+Author: Darwin Silva <dasiva87@hotmail.com>
+Date:   Sun Sep 7 22:40:06 2025 -0500
+
+    avance en el diseño del dashboard
+
+[33mcommit 4f7fa0716b13d22c3a5cf3b6bddf9588cae2a404[m
+Author: Darwin Silva <dasiva87@hotmail.com>
+Date:   Fri Sep 5 05:58:24 2025 -0500
+
+    avance en item senciollo y talonario
+
+[33mcommit 06aec3fd1a549fbee300d61bf021a3422c1f2932[m
+Author: Darwin Silva <dasiva87@hotmail.com>
+Date:   Wed Sep 3 22:29:43 2025 -0500
+
+    se avanzo en item revista y talonario funcionando al 100 el dashboad aun no se ve bien
+
+[33mcommit 6d8823d635de4a3647e2b13e407bc6c86a2650f9[m
+Author: Darwin Silva <dasiva87@hotmail.com>
+Date:   Mon Sep 1 21:58:38 2025 -0500
+
+    se agregaron los acabados estos se pueden agregar solo a item digital, por el momento, al crear un item digital se pueden agregar todos acabados necesarios, pero no está aciendo los calculos bien ni sumandolos al item
+
+[33mcommit a7626cc7eea08bcb1ba6dedade5404f2ee5ddbba[m
+Author: Darwin Silva <dasiva87@hotmail.com>
+Date:   Sun Aug 31 22:26:20 2025 -0500
+
+    se agt¡rega lel item digital, funciona bien al crearlo y agregarlo a la cotizacion, solo falta que salga la cantidad del item en el documento
+
+[33mcommit ff92c96ec6d11a4de3ccbef643760d5920430f51[m
+Author: Darwin Silva <dasiva87@hotmail.com>
+Date:   Thu Aug 28 23:12:42 2025 -0500
+
+    se ha iniciado a desarrollar el item revista
+
+[33mcommit 7bb000e81ae36b10557a9f37d3c3978784861a49[m
+Author: Darwin Silva <dasiva87@hotmail.com>
+Date:   Wed Aug 27 23:20:02 2025 -0500
+
+    he iniciado el dashboar funciones 3 widget y hace publicaciones
+
+[33mcommit de76a9ab933c9f6b124453718e712a69b9dfcbb3[m
+Author: Darwin Silva <dasiva87@hotmail.com>
+Date:   Tue Aug 26 23:13:53 2025 -0500
+
+    pdf realizado
+
+[33mcommit abcd9a9b5606119098eb722249560e424f827607[m
+Author: Darwin Silva <dasiva87@hotmail.com>
+Date:   Sun Aug 24 23:52:29 2025 -0500
+
+    ya se puede agregar item producto en al cotizacion y se pueden editar
+
+[33mcommit 43b74ab19e8dd8fd5e630f005933ffcce66da4ee[m
+Author: Darwin Silva <dasiva87@hotmail.com>
+Date:   Sun Aug 24 17:43:05 2025 -0500
+
+    ya se puede agregar item sencillo a la cotizacion pero el calculo nosale bien
+
+[33mcommit b878023939e8ffc4be3693feda987444aafc97ed[m
+Author: Darwin Silva <dasiva87@hotmail.com>
+Date:   Sun Aug 24 14:46:53 2025 -0500
+
+    fucionan los docuemntos, por el momneto no se pueden agregar item, funcionan los tipos de maquinas y los tipos de papel
+
+[33mcommit 48ebbcd5defd758d327a7dd3fa5208e0e1839c65[m
+Author: Darwin Silva <dasiva87@hotmail.com>
+Date:   Sat Aug 23 19:16:59 2025 -0500
+
+    la calculadora funciona bien pero no se dibujar el corte
+
+[33mcommit e6aed687723b342a95655e4fc41399f4033abf51[m
+Author: Darwin Silva <dasiva87@hotmail.com>
+Date:   Fri Aug 22 23:11:39 2025 -0500
+
+    se puede crear empresa, usuario y perfiles
+
+[33mcommit 6c9b3e57bec5bf4bb55e6c324eca803f13fe9a13[m
+Author: Darwin Silva <dasiva87@hotmail.com>
+Date:   Fri Aug 22 21:41:40 2025 -0500
+
+    first commit
