@@ -1,6 +1,15 @@
 <div class="litopro-dashboard-container">
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
     <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* FontAwesome Icons */
+.fas, .fa {
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+}
 
 /* Force full layout override */
 .fi-main {
@@ -181,69 +190,125 @@
 
     <div class="flex h-screen pt-14">
         <!-- Sidebar -->
-        <aside class="w-64 sidebar-gradient text-white flex-shrink-0">
-            <div class="p-4 space-y-2">
-                <!-- Navegación Principal -->
-                <div class="space-y-1">
-                    <h3 class="text-xs font-semibold text-blue-200 uppercase tracking-wider mb-3">COTIZACIONES & VENTAS</h3>
-                    
-                    <a href="{{ route('filament.admin.resources.documents.index') }}" 
-                       class="flex items-center px-3 py-2 text-sm font-medium rounded-md bg-blue-800 text-white">
-                        <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
-                        Cotizaciones
-                        <span class="ml-auto bg-orange-600 text-white text-xs rounded-full px-2 py-1">{{ $this->getActiveQuotations() }}</span>
-                    </a>
-                    
-                    <a href="{{ route('filament.admin.resources.documents.create-quotation') }}" 
-                       class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-blue-100 hover:bg-blue-800 hover:text-white transition-colors">
-                        <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
-                        </svg>
-                        Nueva Cotización
-                    </a>
-                    
-                    <a href="{{ route('filament.admin.resources.contacts.index') }}" 
-                       class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-blue-100 hover:bg-blue-800 hover:text-white transition-colors">
-                        <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
-                        </svg>
-                        Clientes
-                        <span class="ml-auto bg-green-600 text-white text-xs rounded-full px-2 py-1">{{ $this->getActiveClients() }}</span>
-                    </a>
-                </div>
-                
-                <!-- Producción -->
-                <div class="space-y-1 pt-4">
-                    <h3 class="text-xs font-semibold text-blue-200 uppercase tracking-wider mb-3">PRODUCCIÓN</h3>
-                    
-                    <a href="{{ route('filament.admin.resources.documents.index', ['tableFilters[status][value]' => 'in_production']) }}" 
-                       class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-blue-100 hover:bg-blue-800 hover:text-white transition-colors">
-                        <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        </svg>
-                        Órdenes de Producción
-                        <span class="ml-auto bg-yellow-600 text-white text-xs rounded-full px-2 py-1">{{ $this->getProductionOrders() }}</span>
-                    </a>
-                </div>
-                
-                <!-- Inventario & Papel -->
-                <div class="space-y-1 pt-4">
-                    <h3 class="text-xs font-semibold text-blue-200 uppercase tracking-wider mb-3">INVENTARIO</h3>
-                    
-                    <a href="{{ route('filament.admin.resources.papers.index') }}" 
-                       class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-blue-100 hover:bg-blue-800 hover:text-white transition-colors">
-                        <svg class="mr-3 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                        </svg>
-                        Stock de Papel
-                        @if($this->getCriticalStock() > 0)
-                        <span class="ml-auto bg-red-600 text-white text-xs rounded-full px-2 py-1">!</span>
-                        @endif
-                    </a>
-                </div>
+        <aside class="w-64 bg-white border-r border-gray-200 min-h-screen sticky top-14">
+            <div class="p-6">
+                <nav class="space-y-6">
+                    <!-- Dashboard -->
+                    <div>
+                        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Dashboard</h3>
+                        <ul class="space-y-2">
+                            <li>
+                                <a href="{{ route('filament.admin.pages.dashboard') }}" class="flex items-center w-full px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 rounded-lg">
+                                    <i class="fas fa-chart-bar w-5 h-5 mr-3"></i>
+                                    Panel Principal
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Cotizaciones y Ventas -->
+                    <div>
+                        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Cotizaciones y Ventas</h3>
+                        <ul class="space-y-2">
+                            <li>
+                                <a href="{{ route('filament.admin.resources.documents.index') }}"
+                                   class="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+                                    <i class="fas fa-file-invoice-dollar w-5 h-5 mr-3"></i>
+                                    Cotizaciones
+                                    <span class="ml-auto bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full">{{ $this->getActiveQuotations() }}</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ route('filament.admin.resources.documents.create') }}"
+                                   class="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+                                    <i class="fas fa-plus-circle w-5 h-5 mr-3"></i>
+                                    Nueva Cotización
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ route('filament.admin.resources.contacts.index') }}"
+                                   class="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+                                    <i class="fas fa-users w-5 h-5 mr-3"></i>
+                                    Clientes
+                                    <span class="ml-auto bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full">{{ $this->getActiveClients() }}</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Producción -->
+                    <div>
+                        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Producción</h3>
+                        <ul class="space-y-2">
+                            <li>
+                                <a href="{{ route('filament.admin.resources.documents.index', ['tableFilters[status][value]' => 'in_production']) }}"
+                                   class="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+                                    <i class="fas fa-clipboard-list w-5 h-5 mr-3"></i>
+                                    Órdenes de Producción
+                                    <span class="ml-auto bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full">{{ $this->getProductionOrders() }}</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ route('filament.admin.resources.documents.index', ['tableFilters[status][value]' => 'in_production']) }}"
+                                   class="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+                                    <i class="fas fa-cog w-5 h-5 mr-3"></i>
+                                    Estado Producción
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Red Social -->
+                    <div>
+                        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Red Social</h3>
+                        <ul class="space-y-2">
+                            <li>
+                                <button onclick="scrollToSection('social')" class="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+                                    <i class="fas fa-share-alt w-5 h-5 mr-3"></i>
+                                    Feed Principal
+                                </button>
+                            </li>
+                            <li>
+                                <a href="#" class="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+                                    <i class="fas fa-users w-5 h-5 mr-3"></i>
+                                    Mi Red
+                                    <span class="ml-auto bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">45</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+                                    <i class="fas fa-comments w-5 h-5 mr-3"></i>
+                                    Mensajes
+                                    <span class="ml-auto bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">3</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Inventario & Papel -->
+                    <div>
+                        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Inventario & Papel</h3>
+                        <ul class="space-y-2">
+                            <li>
+                                <a href="{{ route('filament.admin.resources.papers.index') }}"
+                                   class="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+                                    <i class="fas fa-boxes w-5 h-5 mr-3"></i>
+                                    Stock de Papel
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ route('filament.admin.resources.products.index') }}"
+                                   class="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+                                    <i class="fas fa-shopping-cart w-5 h-5 mr-3"></i>
+                                    Pedidos de Papel
+                                    @if($this->getCriticalStock() > 0)
+                                    <span class="ml-auto bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">!</span>
+                                    @endif
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
             </div>
         </aside>
 

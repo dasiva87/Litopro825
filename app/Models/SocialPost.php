@@ -54,14 +54,48 @@ class SocialPost extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    public function likes(): HasMany
+    public function reactions(): HasMany
     {
-        return $this->hasMany(SocialLike::class, 'post_id');
+        return $this->hasMany(SocialPostReaction::class, 'post_id');
     }
 
     public function comments(): HasMany
     {
-        return $this->hasMany(SocialComment::class, 'post_id');
+        return $this->hasMany(SocialPostComment::class, 'post_id');
+    }
+
+    public function likes(): HasMany
+    {
+        return $this->reactions()->where('reaction_type', SocialPostReaction::TYPE_LIKE);
+    }
+
+    // Helper methods for reactions count
+    public function getLikesCountAttribute(): int
+    {
+        return $this->reactions()->where('reaction_type', SocialPostReaction::TYPE_LIKE)->count();
+    }
+
+    public function getCommentsCountAttribute(): int
+    {
+        return $this->comments()->count();
+    }
+
+    public function getReactionsCounts(): array
+    {
+        return $this->reactions()
+            ->selectRaw('reaction_type, count(*) as count')
+            ->groupBy('reaction_type')
+            ->pluck('count', 'reaction_type')
+            ->toArray();
+    }
+
+    public function hasUserReacted($userId, $reactionType = null): bool
+    {
+        $query = $this->reactions()->where('user_id', $userId);
+        if ($reactionType) {
+            $query->where('reaction_type', $reactionType);
+        }
+        return $query->exists();
     }
 
     public function scopePublic($query)
