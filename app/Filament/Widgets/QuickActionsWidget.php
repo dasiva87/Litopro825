@@ -134,6 +134,26 @@ class QuickActionsWidget extends Widget
             ->color('secondary')
             ->button(),
             
+            ActionGroup::make([
+                Action::make('new_magazine')
+                    ->label('Nueva Publicación')
+                    ->icon('heroicon-o-rectangle-stack')
+                    ->color('purple')
+                    ->url(fn () => route('filament.admin.resources.magazine-items.create'))
+                    ->openUrlInNewTab(false),
+                    
+                Action::make('view_magazines')
+                    ->label('Ver Publicaciones')
+                    ->icon('heroicon-o-book-open')
+                    ->color('secondary')
+                    ->url(fn () => route('filament.admin.resources.magazine-items.index'))
+                    ->openUrlInNewTab(false),
+            ])
+            ->label('📖 Publicaciones')
+            ->icon('heroicon-o-rectangle-stack')
+            ->color('purple')
+            ->button(),
+            
             Action::make('paper_calculator')
                 ->label('Calculadora de Papel')
                 ->icon('heroicon-o-calculator')

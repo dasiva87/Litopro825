@@ -44,6 +44,7 @@ class AdminPanelProvider extends PanelProvider
             ->pages([
                 \App\Filament\Pages\LitoproDashboard::class,
             ])
+            ->homeUrl('/admin/dashboard')
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
                 // Default Filament Widgets

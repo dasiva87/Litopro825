@@ -13,9 +13,10 @@ use App\Services\MagazineCalculatorService;
 
 class MagazineItem extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, BelongsToTenant;
 
     protected $fillable = [
+        'company_id',
         'description',
         'quantity',
         'closed_width',

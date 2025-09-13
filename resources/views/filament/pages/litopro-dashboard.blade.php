@@ -65,8 +65,8 @@
     .dashboard-sidebar {
         position: fixed;
         left: -256px;
-        top: 80px;
-        height: calc(100vh - 80px);
+        top: 70px;
+        height: calc(100vh - 70px);
         z-index: 40;
         transition: left 0.3s ease;
     }
@@ -77,6 +77,16 @@
     
     .dashboard-main {
         width: 100%;
+    }
+    
+    /* Hide some elements on mobile */
+    .mobile-hide {
+        display: none;
+    }
+    
+    /* Adjust spacing on mobile */
+    .topbar-mobile {
+        padding: 0.5rem 1rem;
     }
 }
 
@@ -94,69 +104,82 @@
 
     <!-- Header -->
     <header class="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div class="px-6 py-4">
+        <div class="px-6 py-3">
             <div class="flex items-center justify-between">
                 <!-- Mobile menu button -->
-                <button class="mobile-menu-button p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 mr-2" onclick="toggleMobileMenu()">
+                <button class="lg:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 mr-2" onclick="toggleMobileMenu()">
                     <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                     </svg>
                 </button>
-                
-                <!-- Logo y Título -->
-                <div class="flex items-center space-x-4">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                            <span class="text-white font-bold text-sm">L</span>
-                        </div>
+
+                <!-- Logo LitoPro -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+                        </svg>
+                    </div>
+                    <div class="hidden sm:block">
                         <h1 class="text-xl font-bold text-gray-900">LitoPro</h1>
-                        <span class="text-sm text-gray-500">Panel de Control - Litografía</span>
+                        <p class="text-xs text-gray-500">Panel de Control</p>
                     </div>
                 </div>
                 
                 <!-- Search Bar -->
                 <div class="flex-1 max-w-lg mx-8">
                     <div class="relative">
-                        <input type="text" placeholder="Buscar cotizaciones, clientes, órdenes..." 
-                               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         <svg class="absolute left-3 top-2.5 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                         </svg>
+                        <input type="text" placeholder="Buscar cotizaciones, clientes, órdenes..." 
+                               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
                     </div>
                 </div>
                 
-                <!-- Notifications y User -->
-                <div class="flex items-center space-x-4">
-                    <!-- User Menu -->
-                    <div class="flex items-center space-x-3">
-                        <div class="text-right">
-                            <p class="text-sm font-medium text-gray-900">{{ auth()->user()->name }}</p>
-                            <p class="text-xs text-gray-500">{{ auth()->user()->company->name }}</p>
-                        </div>
-                        <img class="h-8 w-8 rounded-full" 
-                             src="https://ui-avatars.com/api/?name={{ urlencode(auth()->user()->name) }}&background=3b82f6&color=fff" 
-                             alt="User">
+                <!-- Right Side Actions -->
+                <div class="flex items-center space-x-2 md:space-x-4">
+                    <!-- Dashboard Button -->
+                    <button class="hidden md:flex items-center space-x-2 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                        </svg>
+                        <span>Dashboard</span>
+                    </button>
+                    
+                    <!-- Red Social Button -->
+                    <button class="hidden md:flex items-center space-x-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"/>
+                        </svg>
+                        <span>Red Social</span>
+                    </button>
+                    
+                    <!-- Notifications -->
+                    <div class="relative">
+                        <button class="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM21 12.3c-.6 0-1-.4-1-1V8.5c0-1.4-.6-2.8-1.6-3.7-1-.9-2.4-1.4-3.8-1.4s-2.8.5-3.8 1.4c-1 .9-1.6 2.3-1.6 3.7v2.8c0 .6-.4 1-1 1s-1-.4-1-1V8.5c0-2.1.8-4.1 2.3-5.6C10.9 1.4 12.9.6 15 .6s4.1.8 5.6 2.3c1.5 1.5 2.3 3.5 2.3 5.6v2.8c0 .6-.4 1-1 1z"/>
+                            </svg>
+                            <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">3</span>
+                        </button>
                     </div>
                     
-                    <!-- Alert Banner -->
-                    @if($this->getCriticalStock() > 0)
-                    <div class="bg-orange-100 border border-orange-200 rounded-lg px-3 py-2">
-                        <div class="flex items-center space-x-2">
-                            <svg class="h-4 w-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-                            </svg>
-                            <span class="text-sm font-medium text-orange-800">
-                                Stock crítico: {{ $this->getCriticalStock() }} tipos de papel
+                    <!-- User Avatar -->
+                    <div class="flex items-center space-x-2">
+                        <div class="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+                            <span class="text-white text-sm font-semibold">
+                                {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}{{ strtoupper(substr(explode(' ', auth()->user()->name)[1] ?? '', 0, 1)) }}
                             </span>
                         </div>
+                        <span class="hidden sm:inline text-sm font-medium text-gray-900">{{ auth()->user()->name }}</span>
                     </div>
-                    @endif
                 </div>
             </div>
         </div>
     </header>
 
-    <div class="flex h-screen pt-16">
+    <div class="flex h-screen pt-14">
         <!-- Sidebar -->
         <aside class="w-64 sidebar-gradient text-white flex-shrink-0">
             <div class="p-4 space-y-2">
@@ -302,7 +325,7 @@
                 <!-- Quick Actions -->
                 <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
                     <h3 class="text-lg font-semibold text-gray-900 mb-4">🚀 Acciones Rápidas</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                         <a href="{{ route('filament.admin.resources.documents.create-quotation') }}" 
                            class="bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg p-4 text-center transition-colors">
                             <div class="text-blue-600 text-2xl mb-2">📝</div>
@@ -317,6 +340,11 @@
                            class="bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg p-4 text-center transition-colors">
                             <div class="text-purple-600 text-2xl mb-2">📦</div>
                             <div class="text-sm font-medium text-purple-900">Nuevo Producto</div>
+                        </a>
+                        <a href="{{ route('filament.admin.resources.magazine-items.create') }}" 
+                           class="bg-pink-50 hover:bg-pink-100 border border-pink-200 rounded-lg p-4 text-center transition-colors">
+                            <div class="text-pink-600 text-2xl mb-2">📖</div>
+                            <div class="text-sm font-medium text-pink-900">Nueva Publicación</div>
                         </a>
                         <a href="{{ route('filament.admin.pages.cutting-calculator') }}" 
                            class="bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-lg p-4 text-center transition-colors">

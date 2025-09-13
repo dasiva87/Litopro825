@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LitoPro 3.0 - Sección Red Social</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'litopro': {
+                            50: '#eff6ff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a'
+                        }
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 font-sans">
+
+    <div class="max-w-6xl mx-auto p-6">
+        <!-- Header de la Sección -->
+        <div class="mb-8">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900 flex items-center">
+                            <i class="fas fa-share-alt mr-3 text-litopro-600"></i>
+                            Red Social LitoPro
+                        </h1>
+                        <p class="text-gray-600 mt-1">Conecta con el gremio de artes gráficas en Colombia</p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="flex -space-x-2">
+                            <div class="w-8 h-8 bg-blue-500 rounded-full border-2 border-white flex items-center justify-center">
+                                <span class="text-white text-xs font-semibold">LG</span>
+                            </div>
+                            <div class="w-8 h-8 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                                <span class="text-white text-xs font-semibold">PC</span>
+                            </div>
+                            <div class="w-8 h-8 bg-purple-500 rounded-full border-2 border-white flex items-center justify-center">
+                                <span class="text-white text-xs font-semibold">TD</span>
+                            </div>
+                            <div class="w-8 h-8 bg-orange-500 rounded-full border-2 border-white flex items-center justify-center">
+                                <span class="text-white text-xs font-semibold">+12</span>
+                            </div>
+                        </div>
+                        <span class="text-sm text-gray-600">156 empresas conectadas</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Feed Principal (Columna Izquierda y Central) -->
+            <div class="lg:col-span-2 space-y-6">
+
+                <!-- Formulario para Publicar -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                    <div class="p-6">
+                        <div class="flex items-start space-x-4">
+                            <div class="w-12 h-12 bg-litopro-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                <span class="text-white font-semibold">CV</span>
+                            </div>
+                            <div class="flex-1">
+                                <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                                    <textarea 
+                                        id="postContent"
+                                        placeholder="¿Qué quieres compartir con la comunidad de LitoPro? Promociones, trabajos terminados, consejos técnicos..." 
+                                        class="w-full bg-transparent border-none resize-none placeholder-gray-500 text-gray-900 focus:outline-none"
+                                        rows="3"></textarea>
+                                </div>
+                                
+                                <!-- Opciones de Contenido -->
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-4">
+                                        <button class="flex items-center px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" onclick="triggerFileUpload('image')">
+                                            <i class="fas fa-image mr-2 text-green-500"></i>
+                                            <span class="text-sm">Imagen</span>
+                                        </button>
+                                        <button class="flex items-center px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" onclick="triggerFileUpload('file')">
+                                            <i class="fas fa-paperclip mr-2 text-blue-500"></i>
+                                            <span class="text-sm">Archivo</span>
+                                        </button>
+                                        <button class="flex items-center px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" onclick="addPoll()">
+                                            <i class="fas fa-poll mr-2 text-purple-500"></i>
+                                            <span class="text-sm">Encuesta</span>
+                                        </button>
+                                        <button class="flex items-center px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" onclick="addLocation()">
+                                            <i class="fas fa-map-marker-alt mr-2 text-red-500"></i>
+                                            <span class="text-sm">Ubicación</span>
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Configuración de Privacidad -->
+                                    <div class="flex items-center space-x-3">
+                                        <select class="text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-litopro-500">
+                                            <option value="public">🌍 Público</option>
+                                            <option value="network">👥 Mi Red</option>
+                                            <option value="city">🏙️ Mi Ciudad</option>
+                                            <option value="private">🔒 Solo Yo</option>
+                                        </select>
+                                        
+                                        <button 
+                                            onclick="publishPost()"
+                                            class="bg-litopro-600 hover:bg-litopro-700 text-white font-semibold px-6 py-2 rounded-lg transition-colors flex items-center">
+                                            <i class="fas fa-paper-plane mr-2"></i>
+                                            Publicar
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Preview de archivos adjuntos -->
+                                <div id="attachmentPreview" class="hidden mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-file text-blue-500 mr-2"></i>
+                                            <span class="text-sm text-blue-700" id="fileName">archivo_adjunto.pdf</span>
+                                        </div>
+                                        <button onclick="removeAttachment()" class="text-red-500 hover:text-red-700">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Posts del Feed -->
+                <!-- Post 1: Trabajo Completado -->
+                <article class="bg-white rounded-xl shadow-sm border border-gray-200">
+                    <div class="p-6">
+                        <!-- Header del Post -->
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
+                                    <span class="text-white font-semibold text-sm">CV</span>
+                                </div>
+                                <div>
+                                    <h3 class="font-semibold text-gray-900">Carlos Ventas - Litografía Demo</h3>
+                                    <div class="flex items-center text-sm text-gray-500 space-x-2">
+                                        <span>Hace 2 horas</span>
+                                        <span>•</span>
+                                        <div class="flex items-center">
+                                            <i class="fas fa-globe-americas mr-1"></i>
+                                            Público
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="relative">
+                                <button class="text-gray-400 hover:text-gray-600 p-2" onclick="togglePostMenu(1)">
+                                    <i class="fas fa-ellipsis-h"></i>
+                                </button>
+                                <div id="postMenu1" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                                    <a href="#" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-50">
+                                        <i class="fas fa-bookmark mr-2"></i>
+                                        Guardar post
+                                    </a>
+                                    <a href="#" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-50">
+                                        <i class="fas fa-flag mr-2"></i>
+                                        Reportar
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Contenido del Post -->
+                        <div class="mb-4">
+                            <p class="text-gray-900 mb-3">
+                                🎉 ¡Excelente mes de junio! Hemos superado nuestra meta de ventas en un 23%. Gracias a 
+                                todos nuestros clientes que confían en nosotros para sus proyectos de impresión. 
+                                ¡Seguimos creciendo juntos! 📈✨
+                            </p>
+                            
+                            <!-- Imagen del post -->
+                            <div class="rounded-lg overflow-hidden bg-gray-100">
+                                <div class="aspect-w-16 aspect-h-9 bg-gradient-to-br from-blue-400 to-purple-600 flex items-center justify-center">
+                                    <div class="text-center text-white">
+                                        <i class="fas fa-chart-line text-6xl mb-4 opacity-80"></i>
+                                        <p class="text-xl font-semibold">Reporte de Ventas - Junio 2025</p>
+                                        <p class="text-blue-100">+23% vs mes anterior</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Acciones del Post -->
+                        <div class="border-t border-gray-100 pt-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center space-x-4 text-sm text-gray-500">
+                                    <span class="flex items-center">
+                                        <i class="fas fa-thumbs-up text-blue-500 mr-1"></i>
+                                        13 Me gusta
+                                    </span>
+                                    <span>5 Comentarios</span>
+                                    <span>2 Compartir</span>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-4 gap-2">
+                                <button class="flex items-center justify-center py-2 px-3 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                                    <i class="far fa-thumbs-up mr-2"></i>
+                                    <span class="text-sm">Me gusta</span>
+                                </button>
+                                <button class="flex items-center justify-center py-2 px-3 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                                    <i class="far fa-comment mr-2"></i>
+                                    <span class="text-sm">Comentar</span>
+                                </button>
+                                <button class="flex items-center justify-center py-2 px-3 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                                    <i class="fas fa-share mr-2"></i>
+                                    <span class="text-sm">Compartir</span>
+                                </button>
+                                <button class="flex items-center justify-center py-2 px-3 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                                    <i class="far fa-paper-plane mr-2"></i>
+                                    <span class="text-sm">Enviar</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Post 2: Alerta de Stock -->
+                <article class="bg-white rounded-xl shadow-sm border border-gray-200">
+                    <div class="p-6">
+                        <!-- Header del Post -->
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center">
+                                    <span class="text-white font-semibold text-sm">PC</span>
+                                </div>
+                                <div>
+                                    <h3 class="font-semibold text-gray-900">Papelería Central</h3>
+                                    <div class="flex items-center text-sm text-gray-500 space-x-2">
+                                        <span>Hace 4 horas</span>
+                                        <span>•</span>
+                                        <div class="flex items-center">
+                                            <i class="fas fa-map-marker-alt mr-1"></i>
+                                            Bogotá
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Contenido del Post -->
+                        <div class="mb-4">
+                            <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-3">
+                                <div class="flex items-start space-x-3">
+                                    <i class="fas fa-exclamation-triangle text-orange-500 mt-1"></i>
+                                    <div>
+                                        <h4 class="font-semibold text-orange-800 mb-1">NUEVA LLEGADA</h4>
+                                        <p class="text-orange-700">
+                                            📦 Papel couché brillante 150g de excelente calidad. Stock limitado con 
+                                            15% de descuento para pedidos mayores a 200 pliegos. ¡Aprovecha esta oferta especial! 🎯
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Detalles del producto -->
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <div class="grid grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <span class="font-medium text-gray-700">Gramaje:</span>
+                                        <span class="text-gray-600 ml-2">150g/m²</span>
+                                    </div>
+                                    <div>
+                                        <span class="font-medium text-gray-700">Formato:</span>
+                                        <span class="text-gray-600 ml-2">70x100cm</span>
+                                    </div>
+                                    <div>
+                                        <span class="font-medium text-gray-700">Stock:</span>
+                                        <span class="text-green-600 ml-2 font-semibold">500 pliegos</span>
+                                    </div>
+                                    <div>
+                                        <span class="font-medium text-gray-700">Precio:</span>
+                                        <span class="text-litopro-600 ml-2 font-semibold">$850/pliego</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Acciones del Post -->
+                        <div class="border-t border-gray-100 pt-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center space-x-4 text-sm text-gray-500">
+                                    <span>12 Me gusta</span>
+                                    <span>8 Comentarios</span>
+                                    <span>3 Hacer Pedido</span>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-4 gap-2">
+                                <button class="flex items-center justify-center py-2 px-3 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                                    <i class="far fa-thumbs-up mr-2"></i>
+                                    <span class="text-sm">Me gusta</span>
+                                </button>
+                                <button class="flex items-center justify-center py-2 px-3 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                                    <i class="far fa-comment mr-2"></i>
+                                    <span class="text-sm">Comentar</span>
+                                </button>
+                                <button class="flex items-center justify-center py-2 px-3 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors font-semibold">
+                                    <i class="fas fa-shopping-cart mr-2"></i>
+                                    <span class="text-sm">Hacer Pedido</span>
+                                </button>
+                                <button class="flex items-center justify-center py-2 px-3 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                                    <i class="fas fa-share mr-2"></i>
+                                    <span class="text-sm">Compartir</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Post 3: Trabajo Terminado -->
+                <article class="bg-white rounded-xl shadow-sm border border-gray-200">
+                    <div class="p-6">
+                        <!-- Header del Post -->
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center">
+                                    <span class="text-white font-semibold text-sm">JP</span>
+                                </div>
+                                <div>
+                                    <h3 class="font-semibold text-gray-900">José Producción - Litografía Demo</h3>
+                                    <div class="flex items-center text-sm text-gray-500 space-x-2">
+                                        <span>Hace 6 horas</span>
+                                        <span>•</span>
+                                        <div class="flex items-center">
+                                            <i class="fas fa-users mr-1"></i>
+                                            Mi Red
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Contenido del Post -->
+                        <div class="mb-4">
+                            <p class="text-gray-900 mb-3">
+                                ✅ ¡Trabajo terminado! Acabamos de finalizar la impresión de 50.000 volantes para la campaña 
+                                de verano del cliente. Calidad offset en papel couché 150g con acabado brillante. El cliente 
+                                quedó muy satisfecho con el resultado. 👍💼
+                            </p>
+                            
+                            <!-- Grid de imágenes -->
+                            <div class="grid grid-cols-2 gap-2 rounded-lg overflow-hidden">
+                                <div class="aspect-square bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center">
+                                    <div class="text-center text-white">
+                                        <i class="fas fa-print text-3xl mb-2"></i>
+                                        <p class="text-sm font-semibold">Volantes Impresos</p>
+                                    </div>
+                                </div>
+                                <div class="aspect-square bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center">
+                                    <div class="text-center text-white">
+                                        <i class="fas fa-check-circle text-3xl mb-2"></i>
+                                        <p class="text-sm font-semibold">50,000 uds</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Acciones del Post -->
+                        <div class="border-t border-gray-100 pt-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center space-x-4 text-sm text-gray-500">
+                                    <span>22 Me gusta</span>
+                                    <span>12 Comentarios</span>
+                                    <span>4 Compartir</span>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-4 gap-2">
+                                <button class="flex items-center justify-center py-2 px-3 text-blue-600 bg-blue-50 rounded-lg transition-colors">
+                                    <i class="fas fa-thumbs-up mr-2"></i>
+                                    <span class="text-sm">Me gusta</span>
+                                </button>
+                                <button class="flex items-center justify-center py-2 px-3 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                                    <i class="far fa-comment mr-2"></i>
+                                    <span class="text-sm">Comentar</span>
+                                </button>
+                                <button class="flex items-center justify-center py-2 px-3 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                                    <i class="fas fa-share mr-2"></i>
+                                    <span class="text-sm">Compartir</span>
+                                </button>
+                                <button class="flex items-center justify-center py-2 px-3 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                                    <i class="fas fa-award mr-2"></i>
+                                    <span class="text-sm">Felicitar</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Sección de Comentarios -->
+                        <div class="mt-4 pt-4 border-t border-gray-100">
+                            <div class="space-y-3">
+                                <!-- Comentario 1 -->
+                                <div class="flex space-x-3">
+                                    <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                        <span class="text-white text-xs font-semibold">CV</span>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="bg-gray-50 rounded-lg p-3">
+                                            <p class="text-sm">
+                                                <span class="font-semibold text-gray-900">Carlos Ventas</span>
+                                                <span class="text-gray-700 ml-1">Excelente trabajo! Se ve la calidad en cada detalle 👏</span>
+                                            </p>
+                                        </div>
+                                        <div class="flex items-center space-x-4 mt-1 text-xs text-gray-500">
+                                            <button class="hover:text-gray-700">Me gusta</button>
+                                            <button class="hover:text-gray-700">Responder</button>
+                                            <span>Hace 2h</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Formulario para comentar -->
+                                <div class="flex space-x-3">
+                                    <div class="w-8 h-8 bg-litopro-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                        <span class="text-white text-xs font-semibold">TU</span>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="bg-gray-50 rounded-lg p-3">
+                                            <input 
+                                                type="text" 
+                                                placeholder="Escribe un comentario..." 
+                                                class="w-full bg-transparent text-sm placeholder-gray-500 focus:outline-none">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Load More Button -->
+                <div class="text-center py-6">
+                    <button class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-6 py-3 rounded-lg transition-colors">
+                        <i class="fas fa-chevron-down mr-2"></i>
+                        Cargar más publicaciones
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sidebar Derecho -->
+            <div class="space-y-6">
+                <!-- Sugerencias de Conexión -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <i class="fas fa-user-plus mr-2 text-blue-500"></i>
+                            Empresas Sugeridas
+                        </h3>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <!-- Sugerencia 1 -->
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center">
+                                    <span class="text-white text-sm font-semibold">IG</span>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-900 text-sm">Imprenta Gráfica</p>
+                                    <p class="text-xs text-gray-500">Medellín • 45 seguidores</p>
+                                </div>
+                            </div>
+                            <button class="bg-litopro-600 hover:bg-litopro-700 text-white text-xs font-medium px-3 py-1 rounded transition-colors">
+                                Seguir
+                            </button>
+                        </div>
+
+                        <!-- Sugerencia 2 -->
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
+                                    <span class="text-white text-sm font-semibold">PD</span>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-900 text-sm">Papeles y Diseños</p>
+                                    <p class="text-xs text-gray-500">Cali • 28 seguidores</p>
+                                </div>
+                            </div>
+                            <button class="bg-litopro-600 hover:bg-litopro-700 text-white text-xs font-medium px-3 py-1 rounded transition-colors">
+                                Seguir
+                            </button>
+                        </div>
+
+                        <!-- Sugerencia 3 -->
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center">
+                                    <span class="text-white text-sm font-semibold">DM</span>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-900 text-sm">Diseño & Marketing</p>
+                                    <p class="text-xs text-gray-500">Barranquilla • 67 seguidores</p>
+                                </div>
+                            </div>
+                            <button class="bg-litopro-600 hover:bg-litopro-700 text-white text-xs font-medium px-3 py-1 rounded transition-colors">
+                                Seguir
+                            </button>
+                        </div>
+
+                        <button class="w-full text-center text-sm text-litopro-600 hover:text-litopro-700 font-medium pt-2 border-t border-gray-100">
+                            Ver todas las sugerencias
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tendencias -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <i class="fas fa-fire mr-2 text-red-500"></i>
+                            Tendencias
+                        </h3>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="font-medium text-gray-900 text-sm">#ImpresionOffset</p>
+                                <p class="text-xs text-gray-500">45 publicaciones</p>
+                            </div>
+                            <i class="fas fa-chevron-right text-gray-400"></i>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="font-medium text-gray-900 text-sm">#PapelCouche</p>
+                                <p class="text-xs text-gray-500">32 publicaciones</p>
+                            </div>
+                            <i class="fas fa-chevron-right text-gray-400"></i>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="font-medium text-gray-900 text-sm">#Serigrafía</p>
+                                <p class="text-xs text-gray-500">28 publicaciones</p>
+                            </div>
+                            <i class="fas fa-chevron-right text-gray-400"></i>
+                        </div>
+
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="font-medium text-gray-900 text-sm">#ArtesGráficas</p>
+                                <p class="text-xs text-gray-500">67 publicaciones</p>
+                            </div>
+                            <i class="fas fa-chevron-right text-gray-400"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Rápido -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <i class="fas fa-comments mr-2 text-green-500"></i>
+                            Chat Rápido
+                        </h3>
+                    </div>
+                    <div class="p-0">
+                        <!-- Lista de contactos activos -->
+                        <div class="space-y-1">
+                            <div class="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer">
+                                <div class="relative">
+                                    <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                                        <span class="text-white text-sm font-semibold">PC</span>
+                                    </div>
+                                    <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white"></div>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="font-medium text-gray-900 text-sm">Papelería Central</p>
+                                    <p class="text-xs text-gray-500">En línea</p>
+                                </div>
+                                <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
+                            </div>
+
+                            <div class="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer">
+                                <div class="relative">
+                                    <div class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
+                                        <span class="text-white text-sm font-semibold">IG</span>
+                                    </div>
+                                    <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full border-2 border-white"></div>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="font-medium text-gray-900 text-sm">Imprenta Gráfica</p>
+                                    <p class="text-xs text-gray-500">Hace 5 min</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center space-x-3 p-3 hover:bg-gray-50 cursor-pointer">
+                                <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                                    <span class="text-white text-sm font-semibold">TD</span>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="font-medium text-gray-900 text-sm">Tintas y Diseños</p>
+                                    <p class="text-xs text-gray-500">Hace 1 hora</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Archivos hidden para upload -->
+    <input type="file" id="imageUpload" accept="image/*" class="hidden" onchange="handleFileUpload(this, 'image')">
+    <input type="file" id="fileUpload" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt" class="hidden" onchange="handleFileUpload(this, 'file')">
+
+    <!-- Scripts -->
+    <script>
+        // Toggle post menu
+        function togglePostMenu(postId) {
+            const menu = document.getElementById(`postMenu${postId}`);
+            menu.classList.toggle('hidden');
+        }
+
+        // Trigger file uploads
+        function triggerFileUpload(type) {
+            if (type === 'image') {
+                document.getElementById('imageUpload').click();
+            } else {
+                document.getElementById('fileUpload').click();
+            }
+        }
+
+        // Handle file upload
+        function handleFileUpload(input, type) {
+            const file = input.files[0];
+            if (file) {
+                const preview = document.getElementById('attachmentPreview');
+                const fileName = document.getElementById('fileName');
+                
+                fileName.textContent = file.name;
+                preview.classList.remove('hidden');
+                
+                if (type === 'image') {
+                    preview.classList.remove('bg-blue-50', 'border-blue-200');
+                    preview.classList.add('bg-green-50', 'border-green-200');
+                    preview.querySelector('i').className = 'fas fa-image text-green-500 mr-2';
+                }
+            }
+        }
+
+        // Remove attachment
+        function removeAttachment() {
+            const preview = document.getElementById('attachmentPreview');
+            preview.classList.add('hidden');
+            document.getElementById('imageUpload').value = '';
+            document.getElementById('fileUpload').value = '';
+        }
+
+        // Add poll functionality
+        function addPoll() {
+            alert('Funcionalidad de encuesta próximamente');
+        }
+
+        // Add location
+        function addLocation() {
+            alert('Funcionalidad de ubicación próximamente');
+        }
+
+        // Publish post
+        function publishPost() {
+            const content = document.getElementById('postContent').value;
+            if (content.trim()) {
+                alert('¡Post publicado exitosamente!');
+                document.getElementById('postContent').value = '';
+                removeAttachment();
+            } else {
+                alert('Por favor escribe algo antes de publicar');
+            }
+        }
+
+        // Close menus when clicking outside
+        document.addEventListener('click', function(event) {
+            const menus = document.querySelectorAll('[id^="postMenu"]');
+            menus.forEach(menu => {
+                if (!menu.contains(event.target) && !event.target.closest('button[onclick*="togglePostMenu"]')) {
+                    menu.classList.add('hidden');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

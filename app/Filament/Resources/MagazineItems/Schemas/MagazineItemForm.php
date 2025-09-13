@@ -404,9 +404,8 @@ class MagazineItemForm
                     
                 Section::make('Acabados')
                     ->schema([
-                        CheckboxList::make('finishings')
+                        CheckboxList::make('selected_finishings')
                             ->label('Acabados Disponibles')
-                            ->relationship('finishings', 'name')
                             ->options(
                                 Finishing::query()
                                     ->where('active', true)
@@ -419,6 +418,9 @@ class MagazineItemForm
                                     ->pluck('description', 'id')
                                     ->toArray()
                             )
+                            ->default(function ($record) {
+                                return $record && $record->finishings ? $record->finishings->pluck('id')->toArray() : [];
+                            })
                             ->columns(2)
                             ->columnSpanFull()
                             ->helperText('Seleccione los acabados que requiere la revista'),

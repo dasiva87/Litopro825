@@ -22,6 +22,26 @@ use App\Enums\FinishingMeasurementUnit;
 
 class TalonarioItemForm
 {
+    /**
+     * Helper para obtener el TalonarioItem correcto desde cualquier tipo de record
+     */
+    private static function getTalonarioItem($record): ?\App\Models\TalonarioItem
+    {
+        if (!$record) {
+            return null;
+        }
+        
+        if ($record instanceof \App\Models\TalonarioItem) {
+            return $record;
+        }
+        
+        if ($record instanceof \App\Models\DocumentItem && $record->itemable_type === 'App\\Models\\TalonarioItem') {
+            return $record->itemable;
+        }
+        
+        return null;
+    }
+
     public static function configure(Schema $schema): Schema
     {
         return $schema
@@ -167,11 +187,13 @@ class TalonarioItemForm
                         Placeholder::make('existing_sheets_table')
                             ->label('Hojas Actuales')
                             ->content(function ($record) {
-                                if (!$record) {
+                                $talonarioItem = self::getTalonarioItem($record);
+                                
+                                if (!$talonarioItem) {
                                     return '📋 No hay hojas agregadas. Guarde el talonario para comenzar a agregar hojas.';
                                 }
 
-                                $sheets = $record->getSheetsTableData();
+                                $sheets = $talonarioItem->getSheetsTableData();
                                 
                                 if (empty($sheets)) {
                                     return '📋 No hay hojas agregadas. Use el botón "Agregar Hoja" para crear la primera hoja.';
@@ -344,14 +366,20 @@ class TalonarioItemForm
                                         ]),
                                 ])
                                 ->action(function (array $data, $record) {
+                                    $talonarioItem = self::getTalonarioItem($record);
+                                    
+                                    if (!$talonarioItem) {
+                                        throw new \Exception('No se puede agregar hoja: Talonario no encontrado');
+                                    }
+                                    
                                     // Extraer datos específicos de la hoja
                                     $sheetType = $data['sheet_type'] ?? 'original';
                                     $paperColor = $data['paper_color'] ?? 'blanco';
                                     $sheetOrder = $data['sheet_order'] ?? 1;
                                     
                                     // Calcular cantidad correcta basada en el talonario
-                                    $totalNumbers = ($record->numero_final - $record->numero_inicial) + 1;
-                                    $correctQuantity = $totalNumbers * $record->quantity;
+                                    $totalNumbers = ($talonarioItem->numero_final - $talonarioItem->numero_inicial) + 1;
+                                    $correctQuantity = $totalNumbers * $talonarioItem->quantity;
                                     
                                     // Preparar datos del SimpleItem (sin campos de hoja)
                                     $simpleItemData = $data;
@@ -359,8 +387,8 @@ class TalonarioItemForm
                                     
                                     // Configurar dimensiones y cantidad automáticamente
                                     $simpleItemData['quantity'] = $correctQuantity;
-                                    $simpleItemData['horizontal_size'] = $record->ancho;
-                                    $simpleItemData['vertical_size'] = $record->alto;
+                                    $simpleItemData['horizontal_size'] = $talonarioItem->ancho;
+                                    $simpleItemData['vertical_size'] = $talonarioItem->alto;
                                     $simpleItemData['profit_percentage'] = 25;
                                     
                                     // Asegurar que front_back_plate sea boolean
@@ -375,7 +403,7 @@ class TalonarioItemForm
 
                                     // Crear la hoja del talonario
                                     TalonarioSheet::create([
-                                        'talonario_item_id' => $record->id,
+                                        'talonario_item_id' => $talonarioItem->id,
                                         'simple_item_id' => $simpleItem->id,
                                         'sheet_type' => $sheetType,
                                         'sheet_order' => $sheetOrder,
@@ -384,8 +412,8 @@ class TalonarioItemForm
                                     ]);
 
                                     // Recalcular precios del talonario
-                                    $record->calculateAll();
-                                    $record->save();
+                                    $talonarioItem->calculateAll();
+                                    $talonarioItem->save();
 
                                     // Notificación de éxito
                                     Notification::make()
@@ -403,9 +431,8 @@ class TalonarioItemForm
                     
                 Section::make('Acabados Específicos')
                     ->schema([
-                        CheckboxList::make('finishings')
+                        CheckboxList::make('selected_finishings')
                             ->label('Acabados para Talonarios')
-                            ->relationship('finishings', 'name')
                             ->options(
                                 Finishing::query()
                                     ->where('active', true)
@@ -434,7 +461,14 @@ class TalonarioItemForm
                             )
                             ->columns(2)
                             ->columnSpanFull()
-                            ->helperText('Seleccione los acabados específicos que requiere el talonario'),
+                            ->helperText('Seleccione los acabados específicos que requiere el talonario')
+                            ->default(function ($record) {
+                                $talonarioItem = self::getTalonarioItem($record);
+                                if ($talonarioItem && $talonarioItem->finishings) {
+                                    return $talonarioItem->finishings->pluck('id')->toArray();
+                                }
+                                return [];
+                            }),
                     ]),
                     
                 Section::make('Costos Adicionales')
@@ -466,22 +500,25 @@ class TalonarioItemForm
                                 Placeholder::make('sheets_total_cost')
                                     ->label('Costo Total de Hojas')
                                     ->content(function ($get, $record) {
-                                        if (!$record) return '$0.00';
-                                        return '$' . number_format($record->sheets_total_cost ?? 0, 2);
+                                        $talonarioItem = self::getTalonarioItem($record);
+                                        if (!$talonarioItem) return '$0.00';
+                                        return '$' . number_format($talonarioItem->sheets_total_cost ?? 0, 2);
                                     }),
                                     
                                 Placeholder::make('finishing_cost')
                                     ->label('Costo Acabados')
                                     ->content(function ($get, $record) {
-                                        if (!$record) return '$0.00';
-                                        return '$' . number_format($record->finishing_cost ?? 0, 2);
+                                        $talonarioItem = self::getTalonarioItem($record);
+                                        if (!$talonarioItem) return '$0.00';
+                                        return '$' . number_format($talonarioItem->finishing_cost ?? 0, 2);
                                     }),
                                     
                                 Placeholder::make('total_cost')
                                     ->label('Costo Total')
                                     ->content(function ($get, $record) {
-                                        if (!$record) return '$0.00';
-                                        return '$' . number_format($record->total_cost ?? 0, 2);
+                                        $talonarioItem = self::getTalonarioItem($record);
+                                        if (!$talonarioItem) return '$0.00';
+                                        return '$' . number_format($talonarioItem->total_cost ?? 0, 2);
                                     }),
                             ]),
                             
@@ -490,15 +527,17 @@ class TalonarioItemForm
                                 Placeholder::make('final_price')
                                     ->label('Precio Final')
                                     ->content(function ($get, $record) {
-                                        if (!$record) return '$0.00';
-                                        return '$' . number_format($record->final_price ?? 0, 2);
+                                        $talonarioItem = self::getTalonarioItem($record);
+                                        if (!$talonarioItem) return '$0.00';
+                                        return '$' . number_format($talonarioItem->final_price ?? 0, 2);
                                     }),
                                     
                                 Placeholder::make('unit_price')
                                     ->label('Precio Unitario')
                                     ->content(function ($get, $record) {
-                                        if (!$record || !$record->quantity) return '$0.00';
-                                        $unitPrice = $record->final_price / $record->quantity;
+                                        $talonarioItem = self::getTalonarioItem($record);
+                                        if (!$talonarioItem || !$talonarioItem->quantity) return '$0.00';
+                                        $unitPrice = $talonarioItem->final_price / $talonarioItem->quantity;
                                         return '$' . number_format($unitPrice, 2) . ' / talonario';
                                     }),
                             ]),

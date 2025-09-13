@@ -27,6 +27,8 @@ class LitoproDashboard extends Page
     
     protected static ?int $navigationSort = 1;
     
+    protected static ?string $slug = 'dashboard';
+    
     protected static bool $shouldRegisterNavigation = true;
     
     public function getMainWidgets(): array
