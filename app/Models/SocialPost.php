@@ -19,6 +19,7 @@ class SocialPost extends Model
         'post_type',
         'title',
         'content',
+        'image_path',
         'metadata',
         'is_public',
         'is_featured',
@@ -167,5 +168,19 @@ class SocialPost extends Model
             self::TYPE_MATERIALS => 'Materiales',
             self::TYPE_COLLABORATION => 'Colaboración',
         ];
+    }
+
+    public function hasImage(): bool
+    {
+        return !empty($this->image_path);
+    }
+
+    public function getImageUrl(): ?string
+    {
+        if (!$this->hasImage()) {
+            return null;
+        }
+
+        return asset('storage/' . $this->image_path);
     }
 }

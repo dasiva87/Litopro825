@@ -1,4 +1,95 @@
 <div style="space-y: 24px;">
+    <!-- Panel de Filtros -->
+    <div style="background: white; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+            <svg style="width: 20px; height: 20px; color: #3b82f6;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z"/>
+            </svg>
+            <h3 style="font-size: 16px; font-weight: 600; color: #111827; margin: 0;">Filtros del Feed</h3>
+        </div>
+
+        <!-- Campo de Búsqueda Principal -->
+        <div style="margin-bottom: 20px;">
+            <div style="position: relative; max-width: 500px; margin: 0 auto;">
+                <svg style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; color: #9ca3af;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <input
+                    type="text"
+                    wire:model.live.debounce.300ms="filterSearch"
+                    placeholder="Buscar en publicaciones (título, contenido, hashtags...)..."
+                    style="width: 100%; padding: 12px 16px 12px 48px; border: 2px solid #e5e7eb; border-radius: 24px; font-size: 15px; background: white; color: #374151; transition: border-color 0.2s, box-shadow 0.2s;"
+                    onfocus="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 0 0 3px rgba(59,130,246,0.1)'"
+                    onblur="this.style.borderColor='#e5e7eb'; this.style.boxShadow='none'"
+                >
+                @if(!empty($filterSearch))
+                    <button
+                        wire:click="$set('filterSearch', '')"
+                        style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; background: #f3f4f6; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #6b7280; transition: background-color 0.2s;"
+                        onmouseover="this.style.backgroundColor='#e5e7eb'"
+                        onmouseout="this.style.backgroundColor='#f3f4f6'"
+                        title="Limpiar búsqueda"
+                    >
+                        ×
+                    </button>
+                @endif
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+            <!-- Filtro por Tipo -->
+            <div>
+                <label style="display: block; font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 4px;">Tipo de Post</label>
+                <select wire:model.live="filterType" style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; color: #374151; background: white; cursor: pointer;">
+                    <option value="">Todos los tipos</option>
+                    @foreach($this->getPostTypes() as $type => $label)
+                        <option value="{{ $type }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <!-- Filtro por Ciudad -->
+            <div>
+                <label style="display: block; font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 4px;">Ciudad</label>
+                <select wire:model.live="filterCity" style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; color: #374151; background: white; cursor: pointer;">
+                    <option value="">Todas las ciudades</option>
+                    @foreach($this->getCities() as $cityId => $cityName)
+                        <option value="{{ $cityId }}">{{ $cityName }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <!-- Filtro por Fecha Desde -->
+            <div>
+                <label style="display: block; font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 4px;">Desde</label>
+                <input type="date" wire:model.live="filterDateFrom" style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; color: #374151; background: white;">
+            </div>
+
+            <!-- Filtro por Fecha Hasta -->
+            <div>
+                <label style="display: block; font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 4px;">Hasta</label>
+                <input type="date" wire:model.live="filterDateTo" style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; color: #374151; background: white;">
+            </div>
+        </div>
+
+        <!-- Botón Limpiar Filtros -->
+        @if(!empty($filterType) || !empty($filterCity) || !empty($filterDateFrom) || !empty($filterDateTo) || !empty($filterSearch))
+            <div style="margin-top: 16px; text-align: center;">
+                <button wire:click="clearFilters" style="padding: 8px 16px; background: #f3f4f6; color: #6b7280; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#e5e7eb'" onmouseout="this.style.backgroundColor='#f3f4f6'">
+                    <svg style="width: 16px; height: 16px; display: inline-block; margin-right: 6px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                    Limpiar Filtros
+                </button>
+            </div>
+        @endif
+
+        <!-- Contador de resultados -->
+        <div style="margin-top: 12px; text-align: center; font-size: 13px; color: #6b7280;">
+            Mostrando {{ $this->getSocialPosts()->count() }} publicaciones
+        </div>
+    </div>
+
     @foreach($this->getSocialPosts() as $post)
         <div style="background: white; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px;">
             <!-- Header del post -->
@@ -19,6 +110,16 @@
                         <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
                             <span style="font-size: 13px; color: #6b7280;">{{ $post->created_at->diffForHumans() }}</span>
                             <span style="color: #6b7280;">•</span>
+                            @if($post->author->company->city)
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <svg style="width: 12px; height: 12px; color: #6b7280;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    </svg>
+                                    <span style="font-size: 13px; color: #6b7280;">{{ $post->author->company->city->name }}</span>
+                                </div>
+                                <span style="color: #6b7280;">•</span>
+                            @endif
                             <div style="display: flex; align-items: center; gap: 4px;">
                                 <svg style="width: 12px; height: 12px; color: #6b7280;" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clip-rule="evenodd"/>
@@ -48,6 +149,17 @@
             <div style="margin-bottom: 16px;">
                 <p style="font-size: 15px; line-height: 1.5; color: #111827; margin: 0; white-space: pre-wrap;">{{ $post->content }}</p>
             </div>
+
+            <!-- Imagen del post (si existe) -->
+            @if($post->hasImage())
+                <div style="margin-bottom: 16px;">
+                    <div style="border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb;">
+                        <img src="{{ $post->getImageUrl() }}"
+                             style="width: 100%; height: auto; max-height: 400px; object-fit: cover; display: block;"
+                             alt="Imagen del post">
+                    </div>
+                </div>
+            @endif
 
             <!-- Adjunto (Reporte) si tiene metadata -->
             @if($post->metadata && isset($post->metadata['attachment_type']) && $post->metadata['attachment_type'] === 'report')

@@ -1,4 +1,13 @@
 <div style="background: white; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px;">
+    <!-- Input de imagen fuera del form -->
+    <input
+        type="file"
+        wire:model="image"
+        accept="image/*"
+        id="image-upload-input"
+        style="display: none;"
+    >
+
     <form wire:submit="createPost">
         <!-- Header con avatar y textarea -->
         <div style="display: flex; gap: 12px; align-items: flex-start; margin-bottom: 16px;">
@@ -31,6 +40,23 @@
             </div>
         </div>
 
+        <!-- Vista previa de imagen -->
+        @if($image)
+            <div style="margin: 16px 0;">
+                <div style="position: relative; display: inline-block;">
+                    <img src="{{ $image->temporaryUrl() }}" style="max-width: 300px; max-height: 200px; border-radius: 8px; border: 1px solid #e5e7eb;" alt="Vista previa">
+                    <button
+                        type="button"
+                        wire:click="removeImage"
+                        style="position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; background: rgba(0,0,0,0.7); color: white; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px;"
+                        title="Quitar imagen"
+                    >
+                        ×
+                    </button>
+                </div>
+            </div>
+        @endif
+
         <!-- Separador -->
         <div style="border-top: 1px solid #f3f4f6; margin: 16px 0;"></div>
 
@@ -39,7 +65,13 @@
             <!-- Botones de acciones izquierda -->
             <div style="display: flex; align-items: center; gap: 16px;">
                 <!-- Imagen -->
-                <button type="button" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: transparent; border: none; border-radius: 8px; cursor: pointer; color: #059669; font-size: 14px; font-weight: 500; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f0fdf4'" onmouseout="this.style.backgroundColor='transparent'">
+                <button
+                    type="button"
+                    onclick="document.getElementById('image-upload-input').click()"
+                    style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: transparent; border: none; border-radius: 8px; cursor: pointer; color: #059669; font-size: 14px; font-weight: 500; transition: background-color 0.2s;"
+                    onmouseover="this.style.backgroundColor='#f0fdf4'"
+                    onmouseout="this.style.backgroundColor='transparent'"
+                >
                     <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                     </svg>

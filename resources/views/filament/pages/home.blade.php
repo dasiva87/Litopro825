@@ -62,6 +62,20 @@
             z-index: 10 !important;
             overflow-y: auto !important;
         }
+
+        /* Dark theme styles */
+        .dark .custom-topbar {
+            background: #1f2937 !important;
+            border-bottom-color: #374151 !important;
+        }
+
+        .dark .home-layout {
+            background-color: #111827 !important;
+        }
+
+        .dark .home-content {
+            background-color: #111827 !important;
+        }
     </style>
 
     <!-- Topbar personalizado -->
@@ -112,21 +126,73 @@
             </button>
 
             <!-- Notificaciones -->
-            <div style="position: relative;">
-                <button style="padding: 8px; background: transparent; border: none; border-radius: 8px; cursor: pointer;">
-                    <svg style="width: 20px; height: 20px; color: #6b7280;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM21 12.3c-.6 0-1-.4-1-1V8.5c0-1.4-.6-2.8-1.6-3.7-1-.9-2.4-1.4-3.8-1.4s-2.8.5-3.8 1.4c-1 .9-1.6 2.3-1.6 3.7v2.8c0 .6-.4 1-1 1s-1-.4-1-1V8.5c0-2.1.8-4.1 2.3-5.6C10.9 1.4 12.9.6 15 .6s4.1.8 5.6 2.3c1.5 1.5 2.3 3.5 2.3 5.6v2.8c0 .6-.4 1-1 1z"/>
+            @livewire(\App\Filament\Widgets\NotificationDropdownWidget::class)
+
+            <!-- Avatar Usuario con Dropdown -->
+            <div style="position: relative;" x-data="{ userDropdown: false }">
+                <button
+                    @click="userDropdown = !userDropdown"
+                    style="display: flex; align-items: center; gap: 8px; background: none; border: none; cursor: pointer; padding: 6px 8px; border-radius: 8px; transition: background-color 0.2s;"
+                    onmouseover="this.style.backgroundColor='#f3f4f6'"
+                    onmouseout="this.style.backgroundColor='transparent'"
+                >
+                    <div style="width: 36px; height: 36px; background: #f97316; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <span style="color: white; font-size: 14px; font-weight: 600; line-height: 1;">{{ strtoupper(substr(auth()->user()->name, 0, 2)) }}</span>
+                    </div>
+                    <span style="font-size: 14px; font-weight: 500; color: #374151;">{{ auth()->user()->name }}</span>
+                    <svg style="width: 10px; height: 10px; color: #6b7280; transition: transform 0.2s; flex-shrink: 0;" :style="userDropdown ? 'transform: rotate(180deg)' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                     </svg>
                 </button>
-                <div style="position: absolute; top: 4px; right: 4px; width: 18px; height: 18px; background: #ef4444; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600;">3</div>
-            </div>
 
-            <!-- Avatar Usuario -->
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <div style="width: 32px; height: 32px; background: #f97316; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                    <span style="color: white; font-size: 12px; font-weight: 600;">CV</span>
+                <!-- Dropdown Menu -->
+                <div
+                    x-show="userDropdown"
+                    x-transition
+                    @click.away="userDropdown = false"
+                    style="position: absolute; right: 0; top: 100%; width: 200px; background: white; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 50; margin-top: 8px;"
+                >
+                    <!-- User Info Header -->
+                    <div style="padding: 12px 16px; border-bottom: 1px solid #f3f4f6;">
+                        <div style="font-size: 14px; font-weight: 500; color: #111827;">{{ auth()->user()->name }}</div>
+                        <div style="font-size: 12px; color: #6b7280;">{{ auth()->user()->email }}</div>
+                    </div>
+
+                    <!-- Menu Items -->
+                    <div style="padding: 8px 0;">
+                        <!-- Theme Toggle -->
+                        <button
+                            onclick="toggleTheme()"
+                            style="width: 100%; display: flex; align-items: center; gap: 12px; padding: 8px 16px; background: none; border: none; cursor: pointer; font-size: 14px; color: #374151; transition: background-color 0.2s;"
+                            onmouseover="this.style.backgroundColor='#f9fafb'"
+                            onmouseout="this.style.backgroundColor='transparent'"
+                        >
+                            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                            </svg>
+                            <span>Tema Oscuro</span>
+                        </button>
+
+                        <!-- Divider -->
+                        <div style="height: 1px; background: #f3f4f6; margin: 4px 0;"></div>
+
+                        <!-- Logout -->
+                        <form method="POST" action="{{ route('filament.admin.auth.logout') }}" style="margin: 0;">
+                            @csrf
+                            <button
+                                type="submit"
+                                style="width: 100%; display: flex; align-items: center; gap: 12px; padding: 8px 16px; background: none; border: none; cursor: pointer; font-size: 14px; color: #dc2626; transition: background-color 0.2s;"
+                                onmouseover="this.style.backgroundColor='#fef2f2'"
+                                onmouseout="this.style.backgroundColor='transparent'"
+                            >
+                                <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                                </svg>
+                                <span>Cerrar Sesión</span>
+                            </button>
+                        </form>
+                    </div>
                 </div>
-                <span style="font-size: 14px; font-weight: 500; color: #374151;">Carlos Ventas</span>
             </div>
         </div>
     </div>
@@ -157,4 +223,52 @@
             </div>
         </aside>
     </div>
+
+    <!-- Theme Toggle JavaScript -->
+    <script>
+        function toggleTheme() {
+            const body = document.body;
+            const html = document.documentElement;
+
+            if (body.classList.contains('dark')) {
+                // Switch to light mode
+                body.classList.remove('dark');
+                html.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+
+                // Update button text
+                updateThemeButtonText('Tema Oscuro');
+            } else {
+                // Switch to dark mode
+                body.classList.add('dark');
+                html.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+
+                // Update button text
+                updateThemeButtonText('Tema Claro');
+            }
+        }
+
+        function updateThemeButtonText(text) {
+            const themeButton = document.querySelector('[onclick="toggleTheme()"] span');
+            if (themeButton) {
+                themeButton.textContent = text;
+            }
+        }
+
+        // Initialize theme on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('theme');
+            const body = document.body;
+            const html = document.documentElement;
+
+            if (savedTheme === 'dark') {
+                body.classList.add('dark');
+                html.classList.add('dark');
+                updateThemeButtonText('Tema Claro');
+            } else {
+                updateThemeButtonText('Tema Oscuro');
+            }
+        });
+    </script>
 </div>

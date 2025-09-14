@@ -4,8 +4,11 @@ namespace App\Filament\Widgets;
 
 use App\Models\SocialPost;
 use App\Models\SocialPostReaction;
+use App\Models\City;
+use App\Services\NotificationService;
 use Filament\Widgets\Widget;
 use Livewire\Component;
+use Carbon\Carbon;
 
 class SocialPostWidget extends Widget
 {
@@ -15,13 +18,52 @@ class SocialPostWidget extends Widget
 
     protected $listeners = ['post-created' => 'refreshPosts'];
 
+    // Filtros
+    public $filterType = '';
+    public $filterCity = '';
+    public $filterDateFrom = '';
+    public $filterDateTo = '';
+    public $filterSearch = '';
+
     public function getSocialPosts()
     {
-        return SocialPost::with(['author', 'reactions', 'comments.author'])
+        $query = SocialPost::with(['author.company.city', 'reactions', 'comments.author'])
             ->public()
-            ->notExpired()
-            ->recent()
-            ->limit(10)
+            ->notExpired();
+
+        // Filtro por tipo de post
+        if (!empty($this->filterType)) {
+            $query->where('post_type', $this->filterType);
+        }
+
+        // Filtro por ciudad
+        if (!empty($this->filterCity)) {
+            $query->whereHas('author.company', function ($q) {
+                $q->where('city_id', $this->filterCity);
+            });
+        }
+
+        // Filtro por fecha desde
+        if (!empty($this->filterDateFrom)) {
+            $query->whereDate('created_at', '>=', $this->filterDateFrom);
+        }
+
+        // Filtro por fecha hasta
+        if (!empty($this->filterDateTo)) {
+            $query->whereDate('created_at', '<=', $this->filterDateTo);
+        }
+
+        // Filtro por búsqueda en contenido
+        if (!empty($this->filterSearch)) {
+            $searchTerm = '%' . $this->filterSearch . '%';
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('content', 'LIKE', $searchTerm)
+                  ->orWhere('title', 'LIKE', $searchTerm);
+            });
+        }
+
+        return $query->recent()
+            ->limit(20)
             ->get();
     }
 
@@ -36,7 +78,8 @@ class SocialPostWidget extends Widget
     {
         $post = SocialPost::findOrFail($postId);
         $userId = auth()->id();
-        $companyId = auth()->user()->company_id;
+        $user = auth()->user();
+        $companyId = $user->company_id;
 
         // Verificar si ya tiene esta reacción
         $existingReaction = $post->reactions()
@@ -58,6 +101,13 @@ class SocialPostWidget extends Widget
                 'user_id' => $userId,
                 'reaction_type' => $reactionType
             ]);
+
+            // Enviar notificación al autor del post
+            $notificationService = app(NotificationService::class);
+            $notificationService->notifyNewReaction($post, $reactionType, $user);
+
+            // Emitir evento para actualizar notificaciones
+            $this->dispatch('notifications-updated');
         }
 
         // Recargar el componente
@@ -71,13 +121,24 @@ class SocialPostWidget extends Widget
         }
 
         $post = SocialPost::findOrFail($postId);
+        $user = auth()->user();
 
-        $post->comments()->create([
-            'company_id' => auth()->user()->company_id,
+        $newComment = $post->comments()->create([
+            'company_id' => $user->company_id,
             'user_id' => auth()->id(),
             'content' => trim($comment),
             'is_private' => false
         ]);
+
+        // Enviar notificación al autor del post
+        $notificationService = app(NotificationService::class);
+        $notificationService->notifyNewComment($post, [
+            'id' => $newComment->id,
+            'content' => trim($comment)
+        ], $user);
+
+        // Emitir evento para actualizar notificaciones
+        $this->dispatch('notifications-updated');
 
         // Recargar el componente
         $this->dispatch('$refresh');
@@ -99,6 +160,36 @@ class SocialPostWidget extends Widget
             ->selectRaw('reaction_type, count(*) as count')
             ->groupBy('reaction_type')
             ->pluck('count', 'reaction_type')
+            ->toArray();
+    }
+
+    public function clearFilters()
+    {
+        $this->filterType = '';
+        $this->filterCity = '';
+        $this->filterDateFrom = '';
+        $this->filterDateTo = '';
+        $this->filterSearch = '';
+        $this->dispatch('$refresh');
+    }
+
+    public function getPostTypes()
+    {
+        return [
+            'news' => 'Noticia',
+            'offer' => 'Oferta de Servicios',
+            'request' => 'Solicitud',
+            'equipment' => 'Equipo',
+            'materials' => 'Materiales',
+            'collaboration' => 'Colaboración'
+        ];
+    }
+
+    public function getCities()
+    {
+        return City::where('is_active', 1)
+            ->orderBy('name')
+            ->pluck('name', 'id')
             ->toArray();
     }
 }
