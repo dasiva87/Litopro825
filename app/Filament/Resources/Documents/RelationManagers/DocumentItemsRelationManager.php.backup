@@ -5,6 +5,9 @@ namespace App\Filament\Resources\Documents\RelationManagers;
 use App\Models\SimpleItem;
 use App\Models\DocumentItem;
 use App\Filament\Resources\SimpleItems\Schemas\SimpleItemForm;
+use App\Filament\Resources\Documents\RelationManagers\Handlers\MagazineItemHandler;
+use App\Filament\Resources\Documents\RelationManagers\Handlers\TalonarioItemHandler;
+use App\Filament\Resources\TalonarioItems\Schemas\TalonarioItemForm;
 use Filament\Forms;
 use Filament\Schemas\Schema;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -18,6 +21,7 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
@@ -48,33 +52,19 @@ class DocumentItemsRelationManager extends RelationManager
         $finishing = \App\Models\Finishing::find($finishingId);
         return $finishing && $finishing->measurement_unit->value === 'tamaño';
     }
-    
-
 
     private function calculateFinishingCost($set, $get): void
     {
-        \Log::info('calculateFinishingCost method called');
-        
         $finishingId = $get('finishing_id');
         $quantity = $get('quantity') ?? 0;
         $width = $get('width') ?? 0;
         $height = $get('height') ?? 0;
         
-        // Para acabados de SimpleItem, usar las dimensiones del item si no se especifican
-        if ($width == 0) {
-            $width = $get('../../horizontal_size') ?? 0;
-        }
-        if ($height == 0) {
-            $height = $get('../../vertical_size') ?? 0;
-        }
-        
         \Log::info('calculateFinishingCost called', [
             'finishing_id' => $finishingId,
             'quantity' => $quantity,
             'width' => $width,
-            'height' => $height,
-            'horizontal_size_path' => $get('../../horizontal_size'),
-            'vertical_size_path' => $get('../../vertical_size')
+            'height' => $height
         ]);
         
         if ($finishingId && $quantity > 0) {
@@ -90,6 +80,9 @@ class DocumentItemsRelationManager extends RelationManager
                     
                     \Log::info('Calculated cost', ['cost' => $cost]);
                     $set('calculated_cost', $cost);
+                    
+                    // Recalcular el total del item incluyendo todos los acabados
+                    $this->recalculateItemTotal($set, $get);
                 }
             } catch (\Exception $e) {
                 \Log::error('Error calculating finishing cost', ['error' => $e->getMessage()]);
@@ -104,33 +97,16 @@ class DocumentItemsRelationManager extends RelationManager
     
     private function recalculateItemTotal($set, $get): void
     {
-        \Log::info('recalculateItemTotal method called');
-        
         try {
             // Determinar la ruta de acceso basado en el contexto (desde repeater o desde form principal)
             $isFromRepeater = str_contains(json_encode(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS)), 'calculateFinishingCost');
             $pathPrefix = $isFromRepeater ? '../../' : '';
             
-            \Log::info('recalculateItemTotal context', [
-                'isFromRepeater' => $isFromRepeater,
-                'pathPrefix' => $pathPrefix
-            ]);
-            
             // Obtener el precio base del item
             $basePrice = 0;
             $quantity = $get($pathPrefix . 'quantity') ?? 1;
             
-            $itemType = $get($pathPrefix . 'item_type');
-            
-            \Log::info('recalculateItemTotal data check', [
-                'item_type' => $itemType,
-                'quantity' => $quantity,
-                'horizontal_size' => $get($pathPrefix . 'horizontal_size'),
-                'paper_id' => $get($pathPrefix . 'paper_id'),
-                'finishings_count' => count($get($pathPrefix . 'finishings') ?? [])
-            ]);
-            
-            if ($itemType === 'digital') {
+            if ($get($pathPrefix . 'item_type') === 'digital') {
                 // Para items digitales, obtener el precio base del DigitalItem
                 $itemableId = $get($pathPrefix . 'itemable_id');
                 
@@ -148,41 +124,6 @@ class DocumentItemsRelationManager extends RelationManager
                             $basePrice = $unitValue * $quantity;
                         }
                     }
-                }
-            } elseif ($itemType === 'simple' || ($itemType === null && $get($pathPrefix . 'horizontal_size') !== null)) {
-                // Para items sencillos, calcular precio usando SimpleItemCalculatorService
-                try {
-                    $simpleItemData = [
-                        'description' => $get($pathPrefix . 'description') ?? '',
-                        'quantity' => $quantity,
-                        'horizontal_size' => $get($pathPrefix . 'horizontal_size') ?? 0,
-                        'vertical_size' => $get($pathPrefix . 'vertical_size') ?? 0,
-                        'paper_id' => $get($pathPrefix . 'paper_id'),
-                        'printing_machine_id' => $get($pathPrefix . 'printing_machine_id'),
-                        'ink_front_count' => $get($pathPrefix . 'ink_front_count') ?? 4,
-                        'ink_back_count' => $get($pathPrefix . 'ink_back_count') ?? 0,
-                        'front_back_plate' => $get($pathPrefix . 'front_back_plate') ?? false,
-                        'design_value' => $get($pathPrefix . 'design_value') ?? 0,
-                        'transport_value' => $get($pathPrefix . 'transport_value') ?? 0,
-                        'rifle_value' => $get($pathPrefix . 'rifle_value') ?? 0,
-                        'profit_percentage' => $get($pathPrefix . 'profit_percentage') ?? 30,
-                    ];
-                    
-                    // Crear un objeto temporal para calcular el precio
-                    $tempSimpleItem = new \App\Models\SimpleItem();
-                    $tempSimpleItem->fill($simpleItemData);
-                    
-                    // Usar el calculador para obtener precio base (sin acabados)
-                    $calculator = app(\App\Services\SimpleItemCalculatorService::class);
-                    $calculation = $calculator->calculatePrice($tempSimpleItem);
-                    $basePrice = $calculation->totalCostWithProfit ?? 0;
-                    
-                } catch (\Exception $e) {
-                    \Log::error('Error calculating SimpleItem base price', [
-                        'error' => $e->getMessage(),
-                        'data' => $simpleItemData ?? []
-                    ]);
-                    $basePrice = 0;
                 }
             }
             
@@ -252,191 +193,10 @@ class DocumentItemsRelationManager extends RelationManager
                                     Forms\Components\Hidden::make('itemable_type')
                                         ->default('App\\Models\\SimpleItem'),
                                         
-                                    // Campos para el recálculo de totales
-                                    Forms\Components\Hidden::make('unit_price')
-                                        ->default(0),
-                                        
-                                    Forms\Components\Hidden::make('total_price')
-                                        ->default(0),
-                                        
-                                    // Incluir formulario de SimpleItem inline - usando array directo
-                                    ...array_merge(
-                                            // Componentes base del SimpleItem (sin la sección de acabados)
-                                            array_filter(SimpleItemForm::configure(new \Filament\Schemas\Schema())->getComponents(), function($component) {
-                                                return !($component instanceof \Filament\Schemas\Components\Section && 
-                                                        str_contains($component->getLabel(), 'Acabados'));
-                                            }),
-                                            // Agregar sección de acabados con callbacks específicos para wizard
-                                            [
-                                                \Filament\Schemas\Components\Section::make('🎨 Acabados Opcionales')
-                                                    ->description('Agrega acabados adicionales que se calcularán automáticamente')
-                                                    ->schema([
-                                                        \Filament\Forms\Components\Repeater::make('finishings')
-                                                            ->label('Acabados')
-                                                            ->schema([
-                                                                \Filament\Forms\Components\Select::make('finishing_id')
-                                                                    ->label('Acabado')
-                                                                    ->options(function () {
-                                                                        return \App\Models\Finishing::where('active', true)
-                                                                            ->where('company_id', auth()->user()->company_id)
-                                                                            ->get()
-                                                                            ->mapWithKeys(function ($finishing) {
-                                                                                return [
-                                                                                    $finishing->id => $finishing->code . ' - ' . $finishing->name . ' (' . $finishing->measurement_unit->label() . ')'
-                                                                                ];
-                                                                            });
-                                                                    })
-                                                                    ->required()
-                                                                    ->live()
-                                                                    ->searchable()
-                                                                    ->afterStateUpdated(function ($set, $get, $state) {
-                                                                        \Log::info('SimpleItem finishing_id callback triggered', ['state' => $state]);
-                                                                        $this->calculateFinishingCost($set, $get);
-                                                                        $this->recalculateItemTotal($set, $get);
-                                                                    }),
-                                                                    
-                                                                \Filament\Schemas\Components\Grid::make(3)
-                                                                    ->schema([
-                                                                        \Filament\Forms\Components\TextInput::make('quantity')
-                                                                            ->label('Cantidad')
-                                                                            ->numeric()
-                                                                            ->default(1)
-                                                                            ->required()
-                                                                            ->live()
-                                                                            ->afterStateUpdated(function ($set, $get, $state) {
-                                                                                $this->calculateFinishingCost($set, $get);
-                                                                                $this->recalculateItemTotal($set, $get);
-                                                                            }),
-                                                                            
-                                                                        \Filament\Forms\Components\TextInput::make('width')
-                                                                            ->label('Ancho (cm)')
-                                                                            ->numeric()
-                                                                            ->step(0.01)
-                                                                            ->live()
-                                                                            ->visible(fn ($get) => $this->shouldShowSizeFields($get('finishing_id')))
-                                                                            ->afterStateUpdated(function ($set, $get, $state) {
-                                                                                $this->calculateFinishingCost($set, $get);
-                                                                                $this->recalculateItemTotal($set, $get);
-                                                                            }),
-                                                                            
-                                                                        \Filament\Forms\Components\TextInput::make('height')
-                                                                            ->label('Alto (cm)')
-                                                                            ->numeric()
-                                                                            ->step(0.01)
-                                                                            ->live()
-                                                                            ->visible(fn ($get) => $this->shouldShowSizeFields($get('finishing_id')))
-                                                                            ->afterStateUpdated(function ($set, $get, $state) {
-                                                                                $this->calculateFinishingCost($set, $get);
-                                                                                $this->recalculateItemTotal($set, $get);
-                                                                            }),
-                                                                    ]),
-                                                                    
-                                                                \Filament\Forms\Components\Placeholder::make('calculated_cost_display')
-                                                                    ->label('Costo Calculado')
-                                                                    ->content(function ($get) {
-                                                                        $finishingId = $get('finishing_id');
-                                                                        $quantity = $get('quantity') ?? 0;
-                                                                        $width = $get('width') ?? ($get('../../horizontal_size') ?? 0);
-                                                                        $height = $get('height') ?? ($get('../../vertical_size') ?? 0);
-                                                                        
-                                                                        if (!$finishingId || $quantity <= 0) {
-                                                                            return '$0.00';
-                                                                        }
-                                                                        
-                                                                        try {
-                                                                            $finishing = \App\Models\Finishing::find($finishingId);
-                                                                            if (!$finishing) {
-                                                                                return 'Acabado no encontrado';
-                                                                            }
-                                                                            
-                                                                            $calculator = app(\App\Services\FinishingCalculatorService::class);
-                                                                            $cost = $calculator->calculateCost($finishing, [
-                                                                                'quantity' => $quantity,
-                                                                                'width' => $width,
-                                                                                'height' => $height,
-                                                                            ]);
-                                                                            
-                                                                            return '$' . number_format($cost, 2);
-                                                                        } catch (\Exception $e) {
-                                                                            return 'Error: ' . $e->getMessage();
-                                                                        }
-                                                                    })
-                                                                    ->live(),
-                                                                    
-                                                                \Filament\Forms\Components\Hidden::make('calculated_cost')
-                                                                    ->live(),
-                                                            ])
-                                                            ->defaultItems(0)
-                                                            ->reorderable()
-                                                            ->collapsible()
-                                                            ->columnSpanFull(),
-                                                    ])
-                                                    ->collapsible()
-                                                    ->persistCollapsed(false),
-                                                    
-                                                // Sección de resumen de precios
-                                                \Filament\Schemas\Components\Section::make('💰 Resumen de Precios')
-                                                    ->description('Precio total calculado incluyendo acabados')
-                                                    ->schema([
-                                                        \Filament\Forms\Components\Placeholder::make('price_summary')
-                                                            ->label('Total Calculado')
-                                                            ->content(function ($get) {
-                                                                // Debug para ver todos los valores
-                                                                $allData = [
-                                                                    'total_price' => $get('total_price'),
-                                                                    'unit_price' => $get('unit_price'),
-                                                                    'quantity' => $get('quantity'),
-                                                                    'horizontal_size' => $get('horizontal_size'),
-                                                                    'vertical_size' => $get('vertical_size'),
-                                                                    'paper_id' => $get('paper_id'),
-                                                                    'finishings' => $get('finishings'),
-                                                                ];
-                                                                
-                                                                \Log::info('Price summary debug', $allData);
-                                                                
-                                                                $totalPrice = $get('total_price') ?? 0;
-                                                                $unitPrice = $get('unit_price') ?? 0;
-                                                                $quantity = $get('quantity') ?? 1;
-                                                                $finishings = $get('finishings') ?? [];
-                                                                
-                                                                // Calcular manualmente si no hay total_price
-                                                                if ($totalPrice <= 0) {
-                                                                    // Calcular acabados manualmente
-                                                                    $finishingsCost = 0;
-                                                                    foreach ($finishings as $finishing) {
-                                                                        if (isset($finishing['calculated_cost'])) {
-                                                                            $finishingsCost += (float) $finishing['calculated_cost'];
-                                                                        }
-                                                                    }
-                                                                    
-                                                                    if ($finishingsCost > 0) {
-                                                                        return '<div class="space-y-2">
-                                                                            <div class="text-lg text-orange-600">Total Acabados: <strong>$' . number_format($finishingsCost, 2) . '</strong></div>
-                                                                            <div class="text-sm text-gray-600">
-                                                                                Complete los datos del SimpleItem para ver el precio total<br>
-                                                                                Acabados detectados: ' . count($finishings) . '
-                                                                            </div>
-                                                                        </div>';
-                                                                    }
-                                                                    
-                                                                    return 'Complete el formulario para ver el precio calculado';
-                                                                }
-                                                                
-                                                                return '<div class="space-y-2">
-                                                                    <div class="text-2xl font-bold text-blue-600">$' . number_format($totalPrice, 2) . '</div>
-                                                                    <div class="text-sm text-gray-600">
-                                                                        Precio por unidad: <strong>$' . number_format($unitPrice, 4) . '</strong><br>
-                                                                        Cantidad: <strong>' . number_format($quantity) . ' unidades</strong>
-                                                                    </div>
-                                                                </div>';
-                                                            })
-                                                            ->html()
-                                                            ->live(),
-                                                    ])
-                                                    ->collapsible()
-                                                    ->persistCollapsed(false),
-                                            ]
-                                        ),
+                                    // Incluir formulario de SimpleItem inline
+                                    Group::make()
+                                        ->schema(SimpleItemForm::configure(new \Filament\Schemas\Schema())->getComponents())
+                                        ->columnSpanFull(),
                                 ];
                             }
                             
@@ -874,428 +634,6 @@ class DocumentItemsRelationManager extends RelationManager
                                 ];
                             }
                             
-                            if ($itemType === 'magazine') {
-                                return [
-                                    Forms\Components\Hidden::make('itemable_type')
-                                        ->default('App\\Models\\MagazineItem'),
-                                        
-                                    \Filament\Schemas\Components\Section::make('Información de la Revista')
-                                        ->description('Configurar los detalles básicos de la revista')
-                                        ->schema([
-                                            Forms\Components\Textarea::make('description')
-                                                ->label('Descripción')
-                                                ->required()
-                                                ->rows(2)
-                                                ->placeholder('Revista corporativa, catálogo de productos, manual, etc.')
-                                                ->columnSpanFull(),
-                                                
-                                            \Filament\Schemas\Components\Grid::make(3)
-                                                ->schema([
-                                                    Forms\Components\TextInput::make('quantity')
-                                                        ->label('Cantidad')
-                                                        ->numeric()
-                                                        ->required()
-                                                        ->default(100)
-                                                        ->minValue(1)
-                                                        ->suffix('revistas')
-                                                        ->live(),
-                                                        
-                                                    Forms\Components\TextInput::make('closed_width')
-                                                        ->label('Ancho Cerrado (cm)')
-                                                        ->numeric()
-                                                        ->required()
-                                                        ->default(21)
-                                                        ->step(0.1)
-                                                        ->minValue(1)
-                                                        ->suffix('cm')
-                                                        ->live(),
-                                                        
-                                                    Forms\Components\TextInput::make('closed_height')
-                                                        ->label('Alto Cerrado (cm)')
-                                                        ->numeric()
-                                                        ->required()
-                                                        ->default(29.7)
-                                                        ->step(0.1)
-                                                        ->minValue(1)
-                                                        ->suffix('cm')
-                                                        ->live(),
-                                                ]),
-                                                
-                                            \Filament\Schemas\Components\Grid::make(2)
-                                                ->schema([
-                                                    Forms\Components\Select::make('binding_type')
-                                                        ->label('Tipo de Encuadernación')
-                                                        ->required()
-                                                        ->options([
-                                                            'grapado' => 'Grapado',
-                                                            'plegado' => 'Plegado',
-                                                            'anillado' => 'Anillado',
-                                                            'cosido' => 'Cosido',
-                                                            'caballete' => 'Caballete',
-                                                            'lomo' => 'Lomo',
-                                                            'espiral' => 'Espiral',
-                                                            'wire_o' => 'Wire-O',
-                                                            'hotmelt' => 'Hot Melt',
-                                                        ])
-                                                        ->default('grapado')
-                                                        ->live(),
-                                                        
-                                                    Forms\Components\Select::make('binding_side')
-                                                        ->label('Lado de Encuadernación')
-                                                        ->required()
-                                                        ->options([
-                                                            'izquierda' => 'Izquierda',
-                                                            'derecha' => 'Derecha',
-                                                            'arriba' => 'Arriba',
-                                                            'abajo' => 'Abajo',
-                                                        ])
-                                                        ->default('izquierda')
-                                                        ->live(),
-                                                ]),
-                                        ]),
-                                        
-                                    \Filament\Schemas\Components\Section::make('Costos Adicionales')
-                                        ->description('Valores opcionales que se sumarán al costo final')
-                                        ->schema([
-                                            \Filament\Schemas\Components\Grid::make(3)
-                                                ->schema([
-                                                    Forms\Components\TextInput::make('design_value')
-                                                        ->label('Valor Diseño')
-                                                        ->numeric()
-                                                        ->default(0)
-                                                        ->prefix('$')
-                                                        ->step(0.01)
-                                                        ->live(),
-                                                        
-                                                    Forms\Components\TextInput::make('transport_value')
-                                                        ->label('Valor Transporte')
-                                                        ->numeric()
-                                                        ->default(0)
-                                                        ->prefix('$')
-                                                        ->step(0.01)
-                                                        ->live(),
-                                                        
-                                                    Forms\Components\TextInput::make('profit_percentage')
-                                                        ->label('% Ganancia')
-                                                        ->numeric()
-                                                        ->default(25)
-                                                        ->suffix('%')
-                                                        ->step(0.1)
-                                                        ->minValue(0)
-                                                        ->live(),
-                                                ]),
-                                        ])
-                                        ->collapsible(),
-                                        
-                                    \Filament\Schemas\Components\Section::make('Páginas de la Revista')
-                                        ->description('Configure las páginas individuales como SimpleItems')
-                                        ->schema([
-                                            \Filament\Forms\Components\Repeater::make('magazine_pages')
-                                                ->label('Páginas')
-                                                ->schema([
-                                                    \Filament\Schemas\Components\Section::make('Información Básica')
-                                                        ->schema([
-                                                            \Filament\Schemas\Components\Grid::make(3)
-                                                                ->schema([
-                                                                    Forms\Components\Select::make('page_type')
-                                                                        ->label('Tipo de Página')
-                                                                        ->required()
-                                                                        ->options([
-                                                                            'portada' => 'Portada',
-                                                                            'contraportada' => 'Contraportada',
-                                                                            'interior' => 'Interior',
-                                                                            'inserto' => 'Inserto',
-                                                                            'separador' => 'Separador',
-                                                                            'anexo' => 'Anexo',
-                                                                        ])
-                                                                        ->default('interior')
-                                                                        ->live(),
-                                                                        
-                                                                    Forms\Components\TextInput::make('page_quantity')
-                                                                        ->label('Cantidad')
-                                                                        ->numeric()
-                                                                        ->required()
-                                                                        ->default(1)
-                                                                        ->minValue(1)
-                                                                        ->suffix('páginas')
-                                                                        ->live(),
-                                                                        
-                                                                    Forms\Components\TextInput::make('page_order')
-                                                                        ->label('Orden')
-                                                                        ->numeric()
-                                                                        ->required()
-                                                                        ->default(1)
-                                                                        ->minValue(1)
-                                                                        ->live(),
-                                                                ]),
-                                                                
-                                                            Forms\Components\Textarea::make('page_description')
-                                                                ->label('Descripción de la Página')
-                                                                ->placeholder('Ej: Portada con logo corporativo, páginas interiores con contenido...')
-                                                                ->rows(2)
-                                                                ->columnSpanFull(),
-                                                        ]),
-                                                        
-                                                    \Filament\Schemas\Components\Section::make('Dimensiones')
-                                                        ->schema([
-                                                            \Filament\Schemas\Components\Grid::make(3)
-                                                                ->schema([
-                                                                    Forms\Components\TextInput::make('horizontal_size')
-                                                                        ->label('Tamaño Horizontal')
-                                                                        ->numeric()
-                                                                        ->suffix('cm')
-                                                                        ->step(0.1)
-                                                                        ->placeholder('21.0')
-                                                                        ->helperText('Deja vacío para usar dimensiones de la revista')
-                                                                        ->live(),
-                                                                        
-                                                                    Forms\Components\TextInput::make('vertical_size')
-                                                                        ->label('Tamaño Vertical')
-                                                                        ->numeric()
-                                                                        ->suffix('cm')
-                                                                        ->step(0.1)
-                                                                        ->placeholder('29.7')
-                                                                        ->helperText('Deja vacío para usar dimensiones de la revista')
-                                                                        ->live(),
-                                                                        
-                                                                    Forms\Components\Placeholder::make('page_area')
-                                                                        ->label('Área')
-                                                                        ->content(function ($get) {
-                                                                            $h = $get('horizontal_size') ?: $get('../closed_width') ?: 21;
-                                                                            $v = $get('vertical_size') ?: $get('../closed_height') ?: 29.7;
-                                                                            return number_format($h * $v, 2) . ' cm²';
-                                                                        }),
-                                                                ]),
-                                                        ])
-                                                        ->collapsible(),
-                                                        
-                                                    \Filament\Schemas\Components\Section::make('Papel y Máquina')
-                                                        ->schema([
-                                                            \Filament\Schemas\Components\Grid::make(2)
-                                                                ->schema([
-                                                                    Forms\Components\Select::make('paper_id')
-                                                                        ->label('Papel')
-                                                                        ->options(function () {
-                                                                            return \App\Models\Paper::where('company_id', auth()->user()->company_id)
-                                                                                ->get()
-                                                                                ->mapWithKeys(function ($paper) {
-                                                                                    return [
-                                                                                        $paper->id => $paper->code . ' - ' . $paper->name . 
-                                                                                        ' (' . $paper->width . 'x' . $paper->height . 'cm)'
-                                                                                    ];
-                                                                                });
-                                                                        })
-                                                                        ->searchable()
-                                                                        ->preload()
-                                                                        ->placeholder('Seleccionar papel'),
-                                                                        
-                                                                    Forms\Components\Select::make('printing_machine_id')
-                                                                        ->label('Máquina de Impresión')
-                                                                        ->options(function () {
-                                                                            return \App\Models\PrintingMachine::where('company_id', auth()->user()->company_id)
-                                                                                ->get()
-                                                                                ->mapWithKeys(function ($machine) {
-                                                                                    return [
-                                                                                        $machine->id => $machine->name . ' - ' . ucfirst($machine->type) .
-                                                                                        ' (Max: ' . $machine->max_colors . ' colores)'
-                                                                                    ];
-                                                                                });
-                                                                        })
-                                                                        ->searchable()
-                                                                        ->preload()
-                                                                        ->placeholder('Seleccionar máquina'),
-                                                                ]),
-                                                        ])
-                                                        ->collapsible(),
-                                                        
-                                                    \Filament\Schemas\Components\Section::make('Información de Tintas')
-                                                        ->schema([
-                                                            \Filament\Schemas\Components\Grid::make(3)
-                                                                ->schema([
-                                                                    Forms\Components\TextInput::make('ink_front_count')
-                                                                        ->label('Tintas Tiro')
-                                                                        ->numeric()
-                                                                        ->default(4)
-                                                                        ->minValue(0)
-                                                                        ->maxValue(8)
-                                                                        ->helperText('Número de tintas en la cara frontal'),
-                                                                        
-                                                                    Forms\Components\TextInput::make('ink_back_count')
-                                                                        ->label('Tintas Retiro')
-                                                                        ->numeric()
-                                                                        ->default(0)
-                                                                        ->minValue(0)
-                                                                        ->maxValue(8)
-                                                                        ->helperText('Número de tintas en la cara posterior'),
-                                                                        
-                                                                    Forms\Components\Toggle::make('front_back_plate')
-                                                                        ->label('Tiro y Retiro Plancha')
-                                                                        ->helperText('¿Misma plancha para tiro y retiro?'),
-                                                                ]),
-                                                        ])
-                                                        ->collapsible(),
-                                                        
-                                                    \Filament\Schemas\Components\Section::make('Costos Adicionales por Página')
-                                                        ->schema([
-                                                            \Filament\Schemas\Components\Grid::make(2)
-                                                                ->schema([
-                                                                    Forms\Components\TextInput::make('design_value')
-                                                                        ->label('Valor Diseño')
-                                                                        ->numeric()
-                                                                        ->prefix('$')
-                                                                        ->default(0)
-                                                                        ->step(0.01),
-                                                                        
-                                                                    Forms\Components\TextInput::make('transport_value')
-                                                                        ->label('Valor Transporte')
-                                                                        ->numeric()
-                                                                        ->prefix('$')
-                                                                        ->default(0)
-                                                                        ->step(0.01),
-                                                                        
-                                                                    Forms\Components\TextInput::make('rifle_value')
-                                                                        ->label('Valor Rifle/Doblez')
-                                                                        ->numeric()
-                                                                        ->prefix('$')
-                                                                        ->default(0)
-                                                                        ->step(0.01),
-                                                                        
-                                                                    Forms\Components\TextInput::make('profit_percentage')
-                                                                        ->label('% Ganancia Página')
-                                                                        ->numeric()
-                                                                        ->suffix('%')
-                                                                        ->default(30)
-                                                                        ->minValue(0)
-                                                                        ->maxValue(100)
-                                                                        ->step(0.1),
-                                                                ]),
-                                                        ])
-                                                        ->collapsible(),
-                                                        
-                                                    \Filament\Schemas\Components\Section::make('📊 Cálculo Estimado de Página')
-                                                        ->schema([
-                                                            Forms\Components\Placeholder::make('page_cost_preview')
-                                                                ->label('Costo Estimado por Página')
-                                                                ->content(function ($get) {
-                                                                    // Obtener datos de la página
-                                                                    $pageQuantity = $get('page_quantity') ?? 1;
-                                                                    $paperId = $get('paper_id');
-                                                                    $machineId = $get('printing_machine_id');
-                                                                    $inkFront = $get('ink_front_count') ?? 4;
-                                                                    $inkBack = $get('ink_back_count') ?? 0;
-                                                                    $profitPercentage = $get('profit_percentage') ?? 30;
-                                                                    
-                                                                    // Obtener dimensiones
-                                                                    $h = $get('horizontal_size') ?: $get('../closed_width') ?: 21;
-                                                                    $v = $get('vertical_size') ?: $get('../closed_height') ?: 29.7;
-                                                                    $magazineQuantity = $get('../quantity') ?? 100;
-                                                                    
-                                                                    // Calcular cantidad total de páginas
-                                                                    $totalQuantity = $pageQuantity * $magazineQuantity;
-                                                                    
-                                                                    try {
-                                                                        // Si hay papel y máquina, hacer un cálculo básico
-                                                                        if ($paperId && $machineId) {
-                                                                            $paper = \App\Models\Paper::find($paperId);
-                                                                            $machine = \App\Models\PrintingMachine::find($machineId);
-                                                                            
-                                                                            if ($paper && $machine) {
-                                                                                // Cálculo básico simplificado
-                                                                                $area = $h * $v;
-                                                                                $paperCost = $paper->cost_per_sheet ?? 1000;
-                                                                                $machineCost = $machine->cost_per_impression ?? 200;
-                                                                                $setupCost = $machine->setup_cost ?? 15000;
-                                                                                
-                                                                                // Estimación básica
-                                                                                $totalCost = ($paperCost + $machineCost * ($inkFront + $inkBack) + $setupCost) * ($totalQuantity / 100);
-                                                                                $profitCost = $totalCost * (1 + ($profitPercentage / 100));
-                                                                                $unitCost = $profitCost / $totalQuantity;
-                                                                                
-                                                                                return '<div class="space-y-2">
-                                                                                    <div class="text-lg font-semibold text-green-600">$' . number_format($profitCost, 2) . '</div>
-                                                                                    <div class="text-sm text-gray-600">
-                                                                                        <div><strong>Cantidad total:</strong> ' . number_format($totalQuantity) . ' páginas</div>
-                                                                                        <div><strong>Costo unitario:</strong> $' . number_format($unitCost, 4) . ' por página</div>
-                                                                                        <div><strong>Área:</strong> ' . number_format($area, 2) . ' cm²</div>
-                                                                                        <div><strong>Papel:</strong> ' . $paper->name . '</div>
-                                                                                        <div><strong>Máquina:</strong> ' . $machine->name . '</div>
-                                                                                        <div><strong>Tintas:</strong> ' . $inkFront . ' tiro + ' . $inkBack . ' retiro</div>
-                                                                                    </div>
-                                                                                </div>';
-                                                                            }
-                                                                        }
-                                                                        
-                                                                        // Si no hay suficientes datos, mostrar info básica
-                                                                        return '<div class="space-y-2">
-                                                                            <div class="text-lg font-semibold text-blue-600">Configurar papel y máquina</div>
-                                                                            <div class="text-sm text-gray-600">
-                                                                                <div><strong>Cantidad total:</strong> ' . number_format($totalQuantity) . ' páginas</div>
-                                                                                <div><strong>Área:</strong> ' . number_format($h * $v, 2) . ' cm²</div>
-                                                                                <div><strong>Tintas:</strong> ' . $inkFront . ' tiro + ' . $inkBack . ' retiro</div>
-                                                                                <div class="text-orange-600 mt-2">💡 Selecciona papel y máquina para ver costo estimado</div>
-                                                                            </div>
-                                                                        </div>';
-                                                                        
-                                                                    } catch (\Exception $e) {
-                                                                        return '<div class="text-red-600">Error en cálculo: ' . $e->getMessage() . '</div>';
-                                                                    }
-                                                                })
-                                                                ->html()
-                                                                ->columnSpanFull(),
-                                                        ])
-                                                        ->collapsible()
-                                                        ->persistCollapsed(false),
-                                                ])
-                                                ->defaultItems(3)
-                                                ->default([
-                                                    [
-                                                        'page_type' => 'portada',
-                                                        'page_quantity' => 1,
-                                                        'page_order' => 1,
-                                                        'page_description' => 'Portada de la revista'
-                                                    ],
-                                                    [
-                                                        'page_type' => 'interior',
-                                                        'page_quantity' => 8,
-                                                        'page_order' => 2,
-                                                        'page_description' => 'Páginas interiores'
-                                                    ],
-                                                    [
-                                                        'page_type' => 'contraportada',
-                                                        'page_quantity' => 1,
-                                                        'page_order' => 3,
-                                                        'page_description' => 'Contraportada de la revista'
-                                                    ]
-                                                ])
-                                                ->collapsible()
-                                                ->columnSpanFull(),
-                                                
-                                            Forms\Components\Placeholder::make('pages_summary')
-                                                ->content(function ($get) {
-                                                    $pages = $get('magazine_pages') ?? [];
-                                                    $totalPages = 0;
-                                                    $pageTypes = [];
-                                                    
-                                                    foreach ($pages as $page) {
-                                                        $quantity = intval($page['page_quantity'] ?? 1);
-                                                        $totalPages += $quantity;
-                                                        $pageTypes[] = ($page['page_type'] ?? 'interior') . ' (' . $quantity . ')';
-                                                    }
-                                                    
-                                                    return '<div class="p-4 bg-blue-50 rounded space-y-2">
-                                                        <h4 class="font-semibold text-blue-800">📄 Resumen de Páginas</h4>
-                                                        <div><strong>Total de páginas:</strong> ' . $totalPages . '</div>
-                                                        <div><strong>Tipos configurados:</strong> ' . implode(', ', $pageTypes) . '</div>
-                                                        <div class="text-sm text-blue-600 mt-2">💡 <strong>Nota:</strong> Cada página se creará como un SimpleItem independiente con costos propios</div>
-                                                    </div>';
-                                                })
-                                                ->html()
-                                                ->columnSpanFull(),
-                                        ])
-                                        ->collapsible(),
-                                ];
-                            }
-                            
                             // Para otros tipos de item, mostrar mensaje temporal
                             return [
                                 Forms\Components\Placeholder::make('not_implemented')
@@ -1467,26 +805,11 @@ class DocumentItemsRelationManager extends RelationManager
                         if ($data['item_type'] === 'simple' && $data['itemable_type'] === 'App\\Models\\SimpleItem') {
                             // Extraer datos del SimpleItem del formulario anidado
                             $simpleItemData = array_filter($data, function($key) {
-                                return !in_array($key, ['item_type', 'itemable_type', 'itemable_id', 'quantity', 'unit_price', 'total_price', 'finishings']);
+                                return !in_array($key, ['item_type', 'itemable_type', 'itemable_id', 'quantity', 'unit_price', 'total_price']);
                             }, ARRAY_FILTER_USE_KEY);
                             
                             // Crear el SimpleItem
                             $simpleItem = SimpleItem::create($simpleItemData);
-                            
-                            // Procesar acabados si existen
-                            $finishings = $data['finishings'] ?? [];
-                            $finishingsCost = 0;
-                            
-                            foreach ($finishings as $finishing) {
-                                if (isset($finishing['calculated_cost']) && $finishing['calculated_cost'] > 0) {
-                                    $finishingsCost += (float) $finishing['calculated_cost'];
-                                }
-                            }
-                            
-                            // Calcular precio total incluyendo acabados
-                            $basePriceTotal = $simpleItem->final_price ?? 0;
-                            $totalPriceWithFinishings = $basePriceTotal + $finishingsCost;
-                            $unitPriceWithFinishings = $totalPriceWithFinishings / max($simpleItem->quantity, 1);
                             
                             // Configurar datos para DocumentItem
                             $data = [
@@ -1494,10 +817,9 @@ class DocumentItemsRelationManager extends RelationManager
                                 'itemable_id' => $simpleItem->id,
                                 'description' => 'SimpleItem: ' . $simpleItem->description,
                                 'quantity' => $simpleItem->quantity,
-                                'unit_price' => $unitPriceWithFinishings,
-                                'total_price' => $totalPriceWithFinishings,
-                                'item_type' => 'simple',
-                                'finishings_data' => !empty($finishings) ? json_encode($finishings) : null,
+                                'unit_price' => $simpleItem->final_price / $simpleItem->quantity,
+                                'total_price' => $simpleItem->final_price,
+                                'item_type' => 'simple'
                             ];
                         }
                         
@@ -1586,81 +908,6 @@ class DocumentItemsRelationManager extends RelationManager
                             ];
                         }
                         
-                        // Manejar revistas
-                        elseif ($data['item_type'] === 'magazine' && $data['itemable_type'] === 'App\\Models\\MagazineItem') {
-                            // Extraer datos del MagazineItem
-                            $magazineData = [
-                                'company_id' => auth()->user()->company_id,
-                                'description' => $data['description'],
-                                'quantity' => $data['quantity'],
-                                'closed_width' => $data['closed_width'],
-                                'closed_height' => $data['closed_height'],
-                                'binding_type' => $data['binding_type'],
-                                'binding_side' => $data['binding_side'],
-                                'design_value' => $data['design_value'] ?? 0,
-                                'transport_value' => $data['transport_value'] ?? 0,
-                                'profit_percentage' => $data['profit_percentage'] ?? 25,
-                            ];
-                            
-                            // Crear el MagazineItem
-                            $magazine = \App\Models\MagazineItem::create($magazineData);
-                            
-                            // Crear las páginas como SimpleItems si se proporcionaron
-                            $magazinePages = $data['magazine_pages'] ?? [];
-                            foreach ($magazinePages as $pageData) {
-                                if (!empty($pageData['page_type']) && !empty($pageData['page_quantity'])) {
-                                    // Determinar dimensiones (usar de la página si están definidas, sino de la revista)
-                                    $horizontalSize = !empty($pageData['horizontal_size']) ? 
-                                        $pageData['horizontal_size'] : $magazine->closed_width;
-                                    $verticalSize = !empty($pageData['vertical_size']) ? 
-                                        $pageData['vertical_size'] : $magazine->closed_height;
-                                        
-                                    // Crear SimpleItem completo para cada página con todos los parámetros
-                                    $simpleItem = \App\Models\SimpleItem::create([
-                                        'company_id' => auth()->user()->company_id,
-                                        'description' => $pageData['page_description'] ?: ('Página ' . $pageData['page_type']),
-                                        'quantity' => $pageData['page_quantity'] * $magazine->quantity, // Multiplicar por cantidad de revistas
-                                        'horizontal_size' => $horizontalSize,
-                                        'vertical_size' => $verticalSize,
-                                        'paper_id' => $pageData['paper_id'] ?? null,
-                                        'printing_machine_id' => $pageData['printing_machine_id'] ?? null,
-                                        'ink_front_count' => $pageData['ink_front_count'] ?? 4,
-                                        'ink_back_count' => $pageData['ink_back_count'] ?? 0,
-                                        'front_back_plate' => $pageData['front_back_plate'] ?? false,
-                                        'design_value' => $pageData['design_value'] ?? 0,
-                                        'transport_value' => $pageData['transport_value'] ?? 0,
-                                        'rifle_value' => $pageData['rifle_value'] ?? 0,
-                                        'profit_percentage' => $pageData['profit_percentage'] ?? 30,
-                                    ]);
-                                    
-                                    // Crear la relación MagazinePage
-                                    \App\Models\MagazinePage::create([
-                                        'magazine_item_id' => $magazine->id,
-                                        'simple_item_id' => $simpleItem->id,
-                                        'page_type' => $pageData['page_type'],
-                                        'page_order' => $pageData['page_order'] ?? 1,
-                                        'page_quantity' => $pageData['page_quantity'],
-                                        'page_notes' => $pageData['page_description'] ?? null,
-                                    ]);
-                                }
-                            }
-                            
-                            // Recalcular precios del magazine después de agregar páginas
-                            $magazine->refresh();
-                            $magazine->calculateAll();
-                            
-                            // Configurar datos para DocumentItem
-                            $data = [
-                                'itemable_type' => 'App\\Models\\MagazineItem',
-                                'itemable_id' => $magazine->id,
-                                'description' => 'Revista: ' . $magazine->description . ' (' . $magazine->pages->sum('page_quantity') . ' páginas)',
-                                'quantity' => $magazine->quantity,
-                                'unit_price' => $magazine->final_price > 0 ? $magazine->final_price / $magazine->quantity : 0,
-                                'total_price' => $magazine->final_price,
-                                'item_type' => 'magazine'
-                            ];
-                        }
-                        
                         // Manejar productos del inventario
                         elseif ($data['item_type'] === 'product' && $data['itemable_type'] === 'App\\Models\\Product') {
                             // El producto ya existe, solo necesitamos crear la referencia en DocumentItem
@@ -1691,31 +938,6 @@ class DocumentItemsRelationManager extends RelationManager
                         return $data;
                     })
                     ->after(function ($record, array $data) {
-                        // Manejar acabados para SimpleItem si existen
-                        if (isset($data['finishings_data']) && !empty($data['finishings_data'])) {
-                            $finishingsData = json_decode($data['finishings_data'], true);
-                            if (is_array($finishingsData)) {
-                                foreach ($finishingsData as $finishingData) {
-                                    if (isset($finishingData['finishing_id']) && 
-                                        isset($finishingData['calculated_cost']) &&
-                                        $finishingData['calculated_cost'] > 0) {
-                                        
-                                        $finishing = \App\Models\Finishing::find($finishingData['finishing_id']);
-                                        if ($finishing) {
-                                            \App\Models\DocumentItemFinishing::create([
-                                                'document_item_id' => $record->id,
-                                                'finishing_name' => $finishing->name,
-                                                'quantity' => $finishingData['quantity'] ?? 1,
-                                                'is_double_sided' => false, // Para SimpleItem por defecto
-                                                'unit_price' => $finishingData['calculated_cost'] / max($finishingData['quantity'] ?? 1, 1),
-                                                'total_price' => $finishingData['calculated_cost'],
-                                            ]);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        
                         // Manejar acabados para DigitalItem si existen
                         if (isset($data['_temp_finishings_data']) && !empty($data['_temp_finishings_data'])) {
                             $digitalItem = $record->itemable;
@@ -1759,75 +981,18 @@ class DocumentItemsRelationManager extends RelationManager
                             ->schema(SimpleItemForm::configure(new \Filament\Schemas\Schema())->getComponents())
                     ])
                     ->action(function (array $data) {
-                        \Log::info('Item Sencillo Rápido - Action called', [
-                            'has_finishings' => isset($data['finishings']),
-                            'finishings_count' => count($data['finishings'] ?? []),
-                            'finishings_data' => $data['finishings'] ?? 'NO FINISHINGS'
-                        ]);
-                        
-                        // Extraer acabados si existen
-                        $finishings = $data['finishings'] ?? [];
-                        $finishingsData = [];
-                        
-                        // Filtrar acabados del data para crear SimpleItem
-                        $simpleItemData = array_filter($data, function($key) {
-                            return $key !== 'finishings';
-                        }, ARRAY_FILTER_USE_KEY);
-                        
                         // Crear el SimpleItem
-                        $simpleItem = SimpleItem::create($simpleItemData);
-                        
-                        // Calcular costos de acabados
-                        $finishingsCost = 0;
-                        foreach ($finishings as $finishing) {
-                            \Log::info('Processing finishing in SimpleItem Rápido', [
-                                'finishing' => $finishing,
-                                'has_calculated_cost' => isset($finishing['calculated_cost']),
-                                'calculated_cost' => $finishing['calculated_cost'] ?? 'NONE'
-                            ]);
-                            
-                            if (isset($finishing['calculated_cost']) && $finishing['calculated_cost'] > 0) {
-                                $finishingsCost += (float) $finishing['calculated_cost'];
-                                $finishingsData[] = $finishing;
-                            }
-                        }
-                        
-                        \Log::info('Total finishings cost calculated', [
-                            'finishings_cost' => $finishingsCost,
-                            'finishings_data_count' => count($finishingsData)
-                        ]);
-                        
-                        // Calcular precio total incluyendo acabados
-                        $basePriceTotal = $simpleItem->final_price ?? 0;
-                        $totalPriceWithFinishings = $basePriceTotal + $finishingsCost;
-                        $unitPriceWithFinishings = $totalPriceWithFinishings / max($simpleItem->quantity, 1);
+                        $simpleItem = SimpleItem::create($data);
                         
                         // Crear el DocumentItem asociado con todos los campos requeridos
-                        $documentItem = $this->getOwnerRecord()->items()->create([
+                        $this->getOwnerRecord()->items()->create([
                             'itemable_type' => 'App\\Models\\SimpleItem',
                             'itemable_id' => $simpleItem->id,
                             'description' => 'SimpleItem: ' . $simpleItem->description,
                             'quantity' => $simpleItem->quantity,
-                            'unit_price' => $unitPriceWithFinishings,
-                            'total_price' => $totalPriceWithFinishings
+                            'unit_price' => $simpleItem->final_price / $simpleItem->quantity,
+                            'total_price' => $simpleItem->final_price
                         ]);
-                        
-                        // Crear los acabados asociados
-                        foreach ($finishingsData as $finishingData) {
-                            if (isset($finishingData['finishing_id'])) {
-                                $finishing = \App\Models\Finishing::find($finishingData['finishing_id']);
-                                if ($finishing) {
-                                    \App\Models\DocumentItemFinishing::create([
-                                        'document_item_id' => $documentItem->id,
-                                        'finishing_name' => $finishing->name,
-                                        'quantity' => $finishingData['quantity'] ?? 1,
-                                        'is_double_sided' => false,
-                                        'unit_price' => $finishingData['calculated_cost'] / max($finishingData['quantity'] ?? 1, 1),
-                                        'total_price' => $finishingData['calculated_cost'],
-                                    ]);
-                                }
-                            }
-                        }
                         
                         // Recalcular totales del documento
                         $this->getOwnerRecord()->recalculateTotals();
@@ -2275,235 +1440,59 @@ class DocumentItemsRelationManager extends RelationManager
                     ->successNotificationTitle('Revista creada correctamente'),
                     
                 Action::make('quick_talonario_item')
-                    ->label('Talonario Rápido')
+                    ->label('Talonario Completo')
                     ->icon('heroicon-o-document-check')
                     ->color('warning')
-                    ->form([
-                        \Filament\Schemas\Components\Section::make('Crear Talonario')
-                            ->description('Crear un nuevo talonario con configuración básica')
-                            ->schema([
-                                Forms\Components\Textarea::make('description')
-                                    ->label('Descripción del Talonario')
-                                    ->required()
-                                    ->rows(2)
-                                    ->placeholder('Facturas, recibos, remisiones, etc.'),
-                                    
-                                Grid::make(4)
-                                    ->schema([
-                                        Forms\Components\TextInput::make('quantity')
-                                            ->label('Cantidad de Talonarios')
-                                            ->numeric()
-                                            ->required()
-                                            ->default(10)
-                                            ->minValue(1)
-                                            ->suffix('talonarios'),
-                                            
-                                        Forms\Components\TextInput::make('numbers_per_booklet')
-                                            ->label('Números por Talonario')
-                                            ->numeric()
-                                            ->required()
-                                            ->default(100)
-                                            ->minValue(1)
-                                            ->suffix('números'),
-                                            
-                                        Forms\Components\TextInput::make('ancho')
-                                            ->label('Ancho (cm)')
-                                            ->numeric()
-                                            ->required()
-                                            ->default(21)
-                                            ->minValue(1)
-                                            ->suffix('cm'),
-                                            
-                                        Forms\Components\TextInput::make('alto')
-                                            ->label('Alto (cm)')
-                                            ->numeric()
-                                            ->required()
-                                            ->default(29.7)
-                                            ->minValue(1)
-                                            ->suffix('cm'),
-                                    ]),
-                                    
-                                \Filament\Schemas\Components\Section::make('Numeración')
-                                    ->schema([
-                                        Grid::make(3)
-                                            ->schema([
-                                                Forms\Components\TextInput::make('prefix')
-                                                    ->label('Prefijo')
-                                                    ->placeholder('FAC, REC, REM')
-                                                    ->maxLength(10),
-                                                    
-                                                Forms\Components\TextInput::make('start_number')
-                                                    ->label('Número Inicial')
-                                                    ->numeric()
-                                                    ->required()
-                                                    ->default(1)
-                                                    ->minValue(1),
-                                                    
-                                                Forms\Components\TextInput::make('end_number')
-                                                    ->label('Número Final')
-                                                    ->numeric()
-                                                    ->required()
-                                                    ->default(100)
-                                                    ->minValue(1),
-                                            ]),
-                                    ])
-                                    ->collapsible(),
-                                    
-                                \Filament\Schemas\Components\Section::make('Acabados Rápidos')
-                                    ->description('Acabados comunes para talonarios')
-                                    ->schema([
-                                        Forms\Components\Checkbox::make('include_numbering')
-                                            ->label('Incluir Numeración')
-                                            ->default(true)
-                                            ->helperText('Agrega el costo de numeración automáticamente'),
-                                            
-                                        Forms\Components\Checkbox::make('include_perforation')
-                                            ->label('Incluir Perforación')
-                                            ->default(false)
-                                            ->helperText('Agrega perforación para desprendimiento fácil'),
-                                            
-                                        Forms\Components\Checkbox::make('include_gluing')
-                                            ->label('Incluir Engomado')
-                                            ->default(false)
-                                            ->helperText('Agrega engomado en el lomo del talonario'),
-                                    ])
-                                    ->collapsible(),
-                                    
-                                Forms\Components\Placeholder::make('talonario_preview')
-                                    ->content(function ($get) {
-                                        $quantity = $get('quantity') ?? 10;
-                                        $numbersPerBooklet = $get('numbers_per_booklet') ?? 100;
-                                        $startNumber = $get('start_number') ?? 1;
-                                        $prefix = $get('prefix') ?: 'SIN PREFIJO';
-                                        
-                                        $totalNumbers = $quantity * $numbersPerBooklet;
-                                        
-                                        $preview = '<div class="p-4 bg-blue-50 rounded space-y-2">';
-                                        $preview .= '<h4 class="font-semibold text-blue-800">Vista Previa del Talonario</h4>';
-                                        $preview .= '<div><strong>📋 Cantidad:</strong> ' . $quantity . ' talonarios</div>';
-                                        $preview .= '<div><strong>🔢 Números por talonario:</strong> ' . $numbersPerBooklet . '</div>';
-                                        $preview .= '<div><strong>📊 Total de números:</strong> ' . number_format($totalNumbers) . '</div>';
-                                        $preview .= '<div><strong>🏷️ Rango:</strong> ' . $prefix . '-' . str_pad($startNumber, 3, '0', STR_PAD_LEFT) . ' hasta ' . $prefix . '-' . str_pad($startNumber + $totalNumbers - 1, 3, '0', STR_PAD_LEFT) . '</div>';
-                                        $preview .= '</div>';
-                                        
-                                        return $preview;
-                                    })
-                                    ->html()
-                                    ->columnSpanFull(),
-                            ])
-                    ])
+                    ->form(TalonarioItemForm::configure(new \Filament\Schemas\Schema())->getComponents())
                     ->action(function (array $data) {
-                        // Crear el TalonarioItem con campos en español
-                        $talonario = \App\Models\TalonarioItem::create([
-                            'description' => $data['description'],
-                            'quantity' => $data['quantity'],
-                            'numeros_por_talonario' => $data['numbers_per_booklet'],
-                            'prefijo' => $data['prefix'] ?? '',
-                            'numero_inicial' => $data['start_number'],
-                            'numero_final' => $data['end_number'],
-                            'ancho' => $data['ancho'],
-                            'alto' => $data['alto'],
-                            'design_value' => 0,
-                            'transport_value' => 0,
-                            'profit_percentage' => 25,
-                        ]);
+                        // Agregar company_id para multi-tenancy
+                        $data['company_id'] = auth()->user()->company_id;
                         
-                        // Crear una hoja básica para el talonario con el papel por defecto
-                        $defaultPaper = \App\Models\Paper::where('company_id', auth()->user()->company_id)->first();
-                        $defaultMachine = \App\Models\PrintingMachine::where('company_id', auth()->user()->company_id)->first();
+                        // Separar selected_finishings antes de crear el talonario
+                        $selectedFinishings = $data['selected_finishings'] ?? [];
+                        unset($data['selected_finishings']);
                         
-                        if ($defaultPaper && $defaultMachine) {
-                            // Calcular cantidad total de talonarios que se van a producir
-                            $totalNumbers = ($data['end_number'] - $data['start_number']) + 1;
-                            $totalTalonarios = ceil($totalNumbers / $data['numbers_per_booklet']);
-                            $finalQuantity = $data['quantity']; // Cantidad solicitada por el cliente
-                            
-                            $simpleItem = \App\Models\SimpleItem::create([
-                                'description' => 'Hoja básica para ' . $data['description'],
-                                'quantity' => $finalQuantity,
-                                'horizontal_size' => $data['ancho'],
-                                'vertical_size' => $data['alto'],
-                                'paper_id' => $defaultPaper->id,
-                                'printing_machine_id' => $defaultMachine->id,
-                                'ink_front_count' => 1,
-                                'ink_back_count' => 0,
-                                'front_back_plate' => false,
-                                'design_value' => 0,
-                                'transport_value' => 0,
-                                'rifle_value' => 0,
-                                'profit_percentage' => 0, // No aplicar ganancia doble
-                            ]);
-                            
-                            // Vincular la hoja al talonario
-                            \App\Models\TalonarioSheet::create([
-                                'talonario_item_id' => $talonario->id,
-                                'simple_item_id' => $simpleItem->id,
-                                'sheet_type' => 'original',
-                                'sheet_order' => 1,
-                                'paper_color' => 'blanco',
-                                'sheet_notes' => 'Hoja básica del talonario',
-                            ]);
-                        }
+                        // Crear el TalonarioItem usando la misma lógica que talonario-items/create
+                        $talonario = \App\Models\TalonarioItem::create($data);
                         
-                        // Agregar acabados automáticamente si están seleccionados
-                        if ($data['include_numbering'] ?? false) {
-                            $numberingFinishing = \App\Models\Finishing::where('company_id', auth()->user()->company_id)
-                                ->where('name', 'LIKE', '%numeración%')
-                                ->orWhere('name', 'LIKE', '%numeracion%')
-                                ->first();
-                                
-                            if ($numberingFinishing) {
-                                $totalNumbers = ($data['end_number'] - $data['start_number']) + 1;
-                                $unitCost = $numberingFinishing->unit_price ?? 0;
-                                $talonario->finishings()->attach($numberingFinishing->id, [
-                                    'quantity' => $totalNumbers,
-                                    'unit_cost' => $unitCost,
-                                    'total_cost' => $totalNumbers * $unitCost,
-                                ]);
+                        // El talonario se crea sin hojas - el usuario las agregará manualmente
+                        
+                        // Procesar selected_finishings si se seleccionaron
+                        if (!empty($selectedFinishings)) {
+                            foreach ($selectedFinishings as $finishingId) {
+                                $finishing = \App\Models\Finishing::find($finishingId);
+                                if ($finishing) {
+                                    // Calcular cantidad y costo según el tipo de acabado
+                                    if ($finishing->measurement_unit === \App\Enums\FinishingMeasurementUnit::POR_NUMERO) {
+                                        // Por número: usar total de números
+                                        $totalNumbers = ($talonario->numero_final - $talonario->numero_inicial) + 1;
+                                        $quantity = $totalNumbers * $talonario->quantity;
+                                    } else {
+                                        // Por talonario: usar cantidad de talonarios
+                                        $totalNumbers = ($talonario->numero_final - $talonario->numero_inicial) + 1;
+                                        $totalTalonarios = ceil($totalNumbers / $talonario->numeros_por_talonario);
+                                        $quantity = $totalTalonarios * $talonario->quantity;
+                                    }
+                                    
+                                    $totalCost = $quantity * $finishing->unit_price;
+                                    
+                                    $talonario->finishings()->attach($finishingId, [
+                                        'quantity' => $quantity,
+                                        'unit_cost' => $finishing->unit_price,
+                                        'total_cost' => $totalCost,
+                                        'finishing_options' => null,
+                                        'notes' => null,
+                                    ]);
+                                }
                             }
                         }
                         
-                        if ($data['include_perforation'] ?? false) {
-                            $perforationFinishing = \App\Models\Finishing::where('company_id', auth()->user()->company_id)
-                                ->where('name', 'LIKE', '%perforación%')
-                                ->orWhere('name', 'LIKE', '%perforacion%')
-                                ->first();
-                                
-                            if ($perforationFinishing) {
-                                $totalNumbers = ($data['end_number'] - $data['start_number']) + 1;
-                                $totalTalonarios = ceil($totalNumbers / $data['numbers_per_booklet']);
-                                $unitCost = $perforationFinishing->unit_price ?? 0;
-                                $talonario->finishings()->attach($perforationFinishing->id, [
-                                    'quantity' => $totalTalonarios, // Perforación por talonario
-                                    'unit_cost' => $unitCost,
-                                    'total_cost' => $totalTalonarios * $unitCost,
-                                ]);
-                            }
-                        }
-                        
-                        if ($data['include_gluing'] ?? false) {
-                            $gluingFinishing = \App\Models\Finishing::where('company_id', auth()->user()->company_id)
-                                ->where('name', 'LIKE', '%engomado%')
-                                ->first();
-                                
-                            if ($gluingFinishing) {
-                                $totalNumbers = ($data['end_number'] - $data['start_number']) + 1;
-                                $totalTalonarios = ceil($totalNumbers / $data['numbers_per_booklet']);
-                                $unitCost = $gluingFinishing->unit_price ?? 0;
-                                $talonario->finishings()->attach($gluingFinishing->id, [
-                                    'quantity' => $totalTalonarios, // Engomado por talonario
-                                    'unit_cost' => $unitCost,
-                                    'total_cost' => $totalTalonarios * $unitCost,
-                                ]);
-                            }
-                        }
-                        
-                        // Recargar relaciones y recalcular precios del talonario
+                        // Recalcular precios del talonario
                         $talonario->load(['sheets.simpleItem', 'finishings']);
                         $talonario->calculateAll();
                         $talonario->save();
                         
-                        // Crear el DocumentItem asociado con precios correctos
+                        // Crear el DocumentItem asociado
                         $unitPrice = $talonario->quantity > 0 ? $talonario->final_price / $talonario->quantity : 0;
                         $this->getOwnerRecord()->items()->create([
                             'itemable_type' => 'App\\Models\\TalonarioItem',
@@ -2520,8 +1509,8 @@ class DocumentItemsRelationManager extends RelationManager
                         // Refrescar la tabla
                         $this->dispatch('$refresh');
                     })
-                    ->modalWidth('5xl')
-                    ->successNotificationTitle('Talonario creado correctamente'),
+                    ->modalWidth('7xl')
+                    ->successNotificationTitle('Talonario con hojas creado correctamente'),
                     
                 Action::make('quick_custom_item')
                     ->label('Item Personalizado Rápido')
@@ -2656,116 +1645,8 @@ class DocumentItemsRelationManager extends RelationManager
                         }
                         
                         if ($record->itemable_type === 'App\\Models\\MagazineItem') {
-                            return [
-                                \Filament\Schemas\Components\Section::make('Editar Revista')
-                                    ->description('Modificar los detalles de la revista y recalcular automáticamente')
-                                    ->schema([
-                                        Forms\Components\Textarea::make('description')
-                                            ->label('Descripción de la Revista')
-                                            ->required()
-                                            ->rows(3)
-                                            ->columnSpanFull()
-                                            ->placeholder('Describe la revista: temática, características especiales, etc.'),
-                                            
-                                        \Filament\Schemas\Components\Grid::make(2)
-                                            ->schema([
-                                                Forms\Components\TextInput::make('quantity')
-                                                    ->label('Cantidad')
-                                                    ->numeric()
-                                                    ->required()
-                                                    ->minValue(1)
-                                                    ->suffix('revistas'),
-                                                    
-                                                Forms\Components\TextInput::make('profit_percentage')
-                                                    ->label('Porcentaje de Ganancia')
-                                                    ->numeric()
-                                                    ->required()
-                                                    ->default(25)
-                                                    ->minValue(0)
-                                                    ->maxValue(500)
-                                                    ->suffix('%'),
-                                            ]),
-                                            
-                                        \Filament\Schemas\Components\Grid::make(2)
-                                            ->schema([
-                                                Forms\Components\TextInput::make('closed_width')
-                                                    ->label('Ancho Cerrado')
-                                                    ->numeric()
-                                                    ->required()
-                                                    ->suffix('cm')
-                                                    ->minValue(0),
-                                                    
-                                                Forms\Components\TextInput::make('closed_height')
-                                                    ->label('Alto Cerrado')
-                                                    ->numeric()
-                                                    ->required()
-                                                    ->suffix('cm')
-                                                    ->minValue(0),
-                                            ]),
-                                            
-                                        \Filament\Schemas\Components\Grid::make(2)
-                                            ->schema([
-                                                Forms\Components\Select::make('binding_type')
-                                                    ->label('Tipo de Encuadernación')
-                                                    ->required()
-                                                    ->options([
-                                                        'grapado' => 'Grapado',
-                                                        'plegado' => 'Plegado',
-                                                        'anillado' => 'Anillado',
-                                                        'cosido' => 'Cosido',
-                                                        'caballete' => 'Caballete',
-                                                        'lomo' => 'Lomo',
-                                                        'espiral' => 'Espiral',
-                                                        'wire_o' => 'Wire-O',
-                                                        'hotmelt' => 'Hot Melt',
-                                                    ])
-                                                    ->searchable(),
-                                                    
-                                                Forms\Components\Select::make('binding_side')
-                                                    ->label('Lado de Encuadernación')
-                                                    ->required()
-                                                    ->options([
-                                                        'izquierda' => 'Izquierda',
-                                                        'derecha' => 'Derecha',
-                                                        'arriba' => 'Arriba',
-                                                        'abajo' => 'Abajo',
-                                                    ]),
-                                            ]),
-                                            
-                                        \Filament\Schemas\Components\Grid::make(3)
-                                            ->schema([
-                                                Forms\Components\TextInput::make('design_value')
-                                                    ->label('Valor Diseño')
-                                                    ->numeric()
-                                                    ->default(0)
-                                                    ->minValue(0)
-                                                    ->prefix('$'),
-                                                    
-                                                Forms\Components\TextInput::make('transport_value')
-                                                    ->label('Valor Transporte')
-                                                    ->numeric()
-                                                    ->default(0)
-                                                    ->minValue(0)
-                                                    ->prefix('$'),
-                                                    
-                                                Forms\Components\Placeholder::make('pages_count')
-                                                    ->label('Total Páginas')
-                                                    ->content(function ($record) {
-                                                        if (!$record || !$record->itemable) {
-                                                            return '0 páginas';
-                                                        }
-                                                        $totalPages = $record->itemable->pages->sum('page_quantity');
-                                                        return $totalPages . ' páginas';
-                                                    }),
-                                            ]),
-                                            
-                                        Forms\Components\Textarea::make('notes')
-                                            ->label('Notas Adicionales')
-                                            ->rows(2)
-                                            ->columnSpanFull()
-                                            ->placeholder('Notas adicionales sobre la revista...'),
-                                    ])
-                            ];
+                            $handler = new MagazineItemHandler();
+                            return $handler->getEditForm($record)->getComponents();
                         }
                         
                         if ($record->itemable_type === 'App\\Models\\CustomItem') {
@@ -2826,307 +1707,9 @@ class DocumentItemsRelationManager extends RelationManager
                         }
                         
                         // TalonarioItem - Con gestión de hojas
-                        if ($record->itemable_type === 'App\\Models\\TalonarioItem') {
-                            return [
-                                \Filament\Schemas\Components\Section::make('Información Básica')
-                                    ->schema([
-                                        Forms\Components\Textarea::make('description')
-                                            ->label('Descripción del Talonario')
-                                            ->required()
-                                            ->rows(3)
-                                            ->columnSpanFull()
-                                            ->placeholder('Ej: Recibos de caja, Facturas comerciales, Remisiones de entrega...'),
-                                            
-                                        \Filament\Schemas\Components\Grid::make(2)
-                                            ->schema([
-                                                Forms\Components\TextInput::make('quantity')
-                                                    ->label('Cantidad de Talonarios')
-                                                    ->numeric()
-                                                    ->required()
-                                                    ->default(10)
-                                                    ->minValue(1)
-                                                    ->suffix('talonarios'),
-                                                    
-                                                Forms\Components\TextInput::make('profit_percentage')
-                                                    ->label('Margen de Ganancia')
-                                                    ->numeric()
-                                                    ->required()
-                                                    ->default(25)
-                                                    ->minValue(0)
-                                                    ->maxValue(500)
-                                                    ->suffix('%'),
-                                            ]),
-                                    ]),
-                                    
-                                \Filament\Schemas\Components\Section::make('Configuración de Numeración')
-                                    ->schema([
-                                        \Filament\Schemas\Components\Grid::make(3)
-                                            ->schema([
-                                                Forms\Components\TextInput::make('prefijo')
-                                                    ->label('Prefijo')
-                                                    ->default('Nº')
-                                                    ->maxLength(10)
-                                                    ->placeholder('Nº, Rec., Fact., Rem.')
-                                                    ->helperText('Prefijo que aparece antes del número'),
-                                                    
-                                                Forms\Components\TextInput::make('numero_inicial')
-                                                    ->label('Número Inicial')
-                                                    ->numeric()
-                                                    ->required()
-                                                    ->default(1)
-                                                    ->minValue(1),
-                                                    
-                                                Forms\Components\TextInput::make('numero_final')
-                                                    ->label('Número Final')
-                                                    ->numeric()
-                                                    ->required()
-                                                    ->default(1000)
-                                                    ->minValue(2),
-                                            ]),
-                                            
-                                        \Filament\Schemas\Components\Grid::make(2)
-                                            ->schema([
-                                                Forms\Components\TextInput::make('numeros_por_talonario')
-                                                    ->label('Números por Talonario')
-                                                    ->numeric()
-                                                    ->required()
-                                                    ->default(25)
-                                                    ->minValue(1)
-                                                    ->maxValue(100)
-                                                    ->helperText('Cantidad de números en cada talonario'),
-                                                    
-                                                Forms\Components\Placeholder::make('numbering_preview')
-                                                    ->label('Vista Previa')
-                                                    ->content(function ($get, $record) {
-                                                        if (!$record || !$record->itemable) return '📋 Guardando...';
-                                                        
-                                                        $prefijo = $get('prefijo') ?? $record->itemable->prefijo ?? 'Nº';
-                                                        $inicial = $get('numero_inicial') ?? $record->itemable->numero_inicial ?? 1;
-                                                        $final = $get('numero_final') ?? $record->itemable->numero_final ?? 1000;
-                                                        
-                                                        if ($final <= $inicial) {
-                                                            return '⚠️ El número final debe ser mayor al inicial';
-                                                        }
-                                                        
-                                                        $totalNumbers = ($final - $inicial) + 1;
-                                                        $numerosporTalonario = $get('numeros_por_talonario') ?? $record->itemable->numeros_por_talonario ?? 25;
-                                                        $totalTalonarios = ceil($totalNumbers / $numerosporTalonario);
-                                                        
-                                                        return "📊 Rango: Del {$prefijo}{$inicial} al {$prefijo}{$final}<br>" .
-                                                               "📈 Total: {$totalNumbers} números • {$totalTalonarios} talonarios";
-                                                    })
-                                                    ->html(),
-                                            ]),
-                                    ]),
-                                    
-                                \Filament\Schemas\Components\Section::make('Dimensiones del Talonario')
-                                    ->schema([
-                                        \Filament\Schemas\Components\Grid::make(2)
-                                            ->schema([
-                                                Forms\Components\TextInput::make('ancho')
-                                                    ->label('Ancho')
-                                                    ->numeric()
-                                                    ->required()
-                                                    ->suffix('cm')
-                                                    ->minValue(0)
-                                                    ->step(0.1)
-                                                    ->helperText('Ancho del talonario completo'),
-                                                    
-                                                Forms\Components\TextInput::make('alto')
-                                                    ->label('Alto')
-                                                    ->numeric()
-                                                    ->required()
-                                                    ->suffix('cm')
-                                                    ->minValue(0)
-                                                    ->step(0.1)
-                                                    ->helperText('Alto del talonario completo'),
-                                            ]),
-                                            
-                                        Forms\Components\Placeholder::make('dimensions_preview')
-                                            ->label('Área Total')
-                                            ->content(function ($get, $record) {
-                                                if (!$record || !$record->itemable) return '📐 Guardando...';
-                                                
-                                                $ancho = $get('ancho') ?? $record->itemable->ancho ?? 0;
-                                                $alto = $get('alto') ?? $record->itemable->alto ?? 0;
-                                                
-                                                if ($ancho > 0 && $alto > 0) {
-                                                    $area = $ancho * $alto;
-                                                    return "📐 Dimensiones: {$ancho}cm × {$alto}cm = {$area}cm²";
-                                                }
-                                                
-                                                return '📐 Ingrese las dimensiones para ver el área';
-                                            })
-                                            ->columnSpanFull(),
-                                    ]),
-                                    
-                                \Filament\Schemas\Components\Section::make('Hojas del Talonario')
-                                    ->description('Gestión de hojas que componen el talonario')
-                                    ->schema([
-                                        Forms\Components\Placeholder::make('existing_sheets_table')
-                                            ->label('Hojas Actuales')
-                                            ->content(function ($record) {
-                                                if (!$record || !$record->itemable) {
-                                                    return '📋 Guardando talonario...';
-                                                }
-
-                                                $sheets = $record->itemable->getSheetsTableData();
-                                                
-                                                if (empty($sheets)) {
-                                                    return '📋 No hay hojas agregadas. Use el botón "Agregar Hoja" para crear la primera hoja.';
-                                                }
-
-                                                $content = '<div class="overflow-x-auto">';
-                                                $content .= '<table class="min-w-full divide-y divide-gray-200">';
-                                                $content .= '<thead class="bg-gray-50">';
-                                                $content .= '<tr>';
-                                                $content .= '<th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Orden</th>';
-                                                $content .= '<th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>';
-                                                $content .= '<th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Color</th>';
-                                                $content .= '<th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Descripción</th>';
-                                                $content .= '<th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Precio Unit.</th>';
-                                                $content .= '<th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total</th>';
-                                                $content .= '</tr>';
-                                                $content .= '</thead>';
-                                                $content .= '<tbody class="bg-white divide-y divide-gray-200">';
-
-                                                foreach ($sheets as $sheet) {
-                                                    $content .= '<tr>';
-                                                    $content .= '<td class="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">' . $sheet['order'] . '</td>';
-                                                    $content .= '<td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">';
-                                                    $content .= '<span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">' . $sheet['type'] . '</span>';
-                                                    $content .= '</td>';
-                                                    $content .= '<td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">';
-                                                    $content .= '<span class="inline-flex px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">' . ucfirst($sheet['color']) . '</span>';
-                                                    $content .= '</td>';
-                                                    $content .= '<td class="px-3 py-2 text-sm text-gray-900">' . substr($sheet['description'], 0, 50) . '...</td>';
-                                                    $content .= '<td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">$' . $sheet['unit_price'] . '</td>';
-                                                    $content .= '<td class="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">$' . $sheet['total_cost'] . '</td>';
-                                                    $content .= '</tr>';
-                                                }
-
-                                                $content .= '</tbody>';
-                                                $content .= '</table>';
-                                                $content .= '</div>';
-
-                                                return $content;
-                                            })
-                                            ->html()
-                                            ->columnSpanFull(),
-                                            
-                                        Forms\Components\Placeholder::make('sheet_management_info')
-                                            ->label('Gestión de Hojas')
-                                            ->content(function ($record) {
-                                                if (!$record || !$record->itemable) {
-                                                    return '📋 Guarde el talonario para gestionar hojas';
-                                                }
-                                                
-                                                return '✅ Use el botón verde ➕ en la esquina superior derecha para agregar hojas';
-                                            })
-                                            ->columnSpanFull(),
-                                    ]),
-                                    
-                                \Filament\Schemas\Components\Section::make('Acabados Específicos')
-                                    ->schema([
-                                        Forms\Components\CheckboxList::make('finishing_ids')
-                                            ->label('Acabados para Talonarios')
-                                            ->options(function () {
-                                                return \App\Models\Finishing::query()
-                                                    ->where('active', true)
-                                                    ->whereIn('measurement_unit', [
-                                                        \App\Enums\FinishingMeasurementUnit::POR_NUMERO->value,
-                                                        \App\Enums\FinishingMeasurementUnit::POR_TALONARIO->value
-                                                    ])
-                                                    ->pluck('name', 'id')
-                                                    ->toArray();
-                                            })
-                                            ->descriptions(function () {
-                                                return \App\Models\Finishing::query()
-                                                    ->where('active', true)
-                                                    ->whereIn('measurement_unit', [
-                                                        \App\Enums\FinishingMeasurementUnit::POR_NUMERO->value,
-                                                        \App\Enums\FinishingMeasurementUnit::POR_TALONARIO->value
-                                                    ])
-                                                    ->get()
-                                                    ->mapWithKeys(function ($finishing) {
-                                                        $description = $finishing->description;
-                                                        $price = '$' . number_format($finishing->unit_price, 0);
-                                                        $unit = $finishing->measurement_unit->label();
-                                                        return [$finishing->id => "{$description} - {$price} {$unit}"];
-                                                    })
-                                                    ->toArray();
-                                            })
-                                            ->columns(2)
-                                            ->columnSpanFull()
-                                            ->helperText('Seleccione los acabados específicos que requiere el talonario')
-                                            ->afterStateHydrated(function (Forms\Components\CheckboxList $component, $state, $record) {
-                                                if ($record && $record->itemable) {
-                                                    $finishingIds = $record->itemable->finishings()->pluck('finishings.id')->toArray();
-                                                    $component->state($finishingIds);
-                                                }
-                                            }),
-                                    ]),
-                                    
-                                \Filament\Schemas\Components\Section::make('Costos Adicionales')
-                                    ->schema([
-                                        \Filament\Schemas\Components\Grid::make(2)
-                                            ->schema([
-                                                Forms\Components\TextInput::make('design_value')
-                                                    ->label('Valor Diseño')
-                                                    ->numeric()
-                                                    ->default(0)
-                                                    ->minValue(0)
-                                                    ->prefix('$'),
-                                                    
-                                                Forms\Components\TextInput::make('transport_value')
-                                                    ->label('Valor Transporte')
-                                                    ->numeric()
-                                                    ->default(0)
-                                                    ->minValue(0)
-                                                    ->prefix('$'),
-                                            ]),
-                                    ]),
-                                    
-                                Forms\Components\Textarea::make('notes')
-                                    ->label('Notas Adicionales')
-                                    ->rows(2)
-                                    ->columnSpanFull(),
-                            ];
+                        if ($record->itemable_type === 'App\Models\TalonarioItem') {
+                            return TalonarioItemForm::configure(new \Filament\Schemas\Schema())->getComponents();
                         }
-                        
-                        // Para otros tipos de items, mostrar formulario básico
-                        return [
-                            \Filament\Schemas\Components\Section::make('Editar Item - ' . class_basename($record->itemable_type))
-                                ->description('Este tipo de item tiene opciones de edición limitadas')
-                                ->schema([
-                                    Forms\Components\Textarea::make('description')
-                                        ->label('Descripción')
-                                        ->required()
-                                        ->rows(3)
-                                        ->columnSpanFull(),
-                                        
-                                    Forms\Components\TextInput::make('quantity')
-                                        ->label('Cantidad')
-                                        ->numeric()
-                                        ->required()
-                                        ->minValue(1),
-                                        
-                                    Forms\Components\TextInput::make('unit_price')
-                                        ->label('Precio Unitario')
-                                        ->numeric()
-                                        ->required()
-                                        ->prefix('$')
-                                        ->step(0.01),
-                                        
-                                    Forms\Components\Placeholder::make('total_preview')
-                                        ->label('Total Calculado')
-                                        ->content(function ($get) {
-                                            $qty = $get('quantity') ?? 0;
-                                            $price = $get('unit_price') ?? 0;
-                                            return '$' . number_format($qty * $price, 2);
-                                        }),
-                                ])
-                        ];
                     })
                     ->mutateRecordDataUsing(function (array $data, $record): array {
                         if ($record->itemable_type === 'App\\Models\\SimpleItem' && $record->itemable) {
@@ -3156,31 +1739,10 @@ class DocumentItemsRelationManager extends RelationManager
                             return $record->itemable->toArray();
                         }
                         
-                        // Para TalonarioItems, cargar todos los datos existentes
+                        // Para TalonarioItems, usar el handler
                         if ($record->itemable_type === 'App\\Models\\TalonarioItem' && $record->itemable) {
-                            $talonario = $record->itemable;
-                            
-                            // Cargar acabados existentes
-                            $finishingIds = $talonario->finishings()->pluck('finishings.id')->toArray();
-                            
-                            return [
-                                'item_type' => 'talonario',
-                                'itemable_type' => $record->itemable_type,
-                                'itemable_id' => $record->itemable_id,
-                                'description' => $talonario->description,
-                                'quantity' => $talonario->quantity,
-                                'profit_percentage' => $talonario->profit_percentage,
-                                'prefijo' => $talonario->prefijo ?? 'Nº',
-                                'numero_inicial' => $talonario->numero_inicial,
-                                'numero_final' => $talonario->numero_final,
-                                'numeros_por_talonario' => $talonario->numeros_por_talonario,
-                                'ancho' => $talonario->ancho,
-                                'alto' => $talonario->alto,
-                                'finishing_ids' => $finishingIds,
-                                'design_value' => $talonario->design_value ?? 0,
-                                'transport_value' => $talonario->transport_value ?? 0,
-                                'notes' => $talonario->notes,
-                            ];
+                            $handler = new TalonarioItemHandler();
+                            return $handler->fillForm($record);
                         }
                         
                         // Para DigitalItems, cargar acabados existentes
@@ -3310,75 +1872,9 @@ class DocumentItemsRelationManager extends RelationManager
                                 'total_price' => $customItem->total_price
                             ]);
                         } elseif ($record->itemable_type === 'App\\Models\\TalonarioItem' && $record->itemable) {
-                            // Manejar edición de TalonarioItems con acabados
-                            $record->load('itemable');
-                            $talonario = $record->itemable;
-                            
-                            // Verificar que es una instancia válida
-                            if (!$talonario instanceof \App\Models\TalonarioItem) {
-                                throw new \Exception('Error: El item relacionado no es un TalonarioItem válido');
-                            }
-                            
-                            // Filtrar campos del TalonarioItem
-                            $talonarioData = array_filter($data, function($key) {
-                                return !in_array($key, ['item_type', 'itemable_type', 'itemable_id', 'finishing_ids']);
-                            }, ARRAY_FILTER_USE_KEY);
-                            
-                            // Asegurar valores por defecto para campos requeridos
-                            $talonarioData['prefijo'] = $talonarioData['prefijo'] ?? 'Nº';
-                            $talonarioData['design_value'] = $talonarioData['design_value'] ?? 0;
-                            $talonarioData['transport_value'] = $talonarioData['transport_value'] ?? 0;
-                            
-                            // Actualizar el TalonarioItem
-                            $talonario->fill($talonarioData);
-                            $talonario->save();
-                            
-                            // Procesar acabados si se proporcionaron
-                            if (isset($data['finishing_ids']) && is_array($data['finishing_ids'])) {
-                                // Limpiar acabados existentes
-                                $talonario->finishings()->detach();
-                                
-                                // Agregar nuevos acabados
-                                foreach ($data['finishing_ids'] as $finishingId) {
-                                    $finishing = \App\Models\Finishing::find($finishingId);
-                                    if ($finishing) {
-                                        // Calcular cantidad y costo según el tipo de acabado
-                                        if ($finishing->measurement_unit === \App\Enums\FinishingMeasurementUnit::POR_NUMERO) {
-                                            // Por número: usar total de números
-                                            $totalNumbers = ($talonario->numero_final - $talonario->numero_inicial) + 1;
-                                            $quantity = $totalNumbers * $talonario->quantity;
-                                        } else {
-                                            // Por talonario: usar cantidad de talonarios
-                                            $totalNumbers = ($talonario->numero_final - $talonario->numero_inicial) + 1;
-                                            $totalTalonarios = ceil($totalNumbers / $talonario->numeros_por_talonario);
-                                            $quantity = $totalTalonarios * $talonario->quantity;
-                                        }
-                                        
-                                        $totalCost = $quantity * $finishing->unit_price;
-                                        
-                                        $talonario->finishings()->attach($finishingId, [
-                                            'quantity' => $quantity,
-                                            'unit_cost' => $finishing->unit_price,
-                                            'total_cost' => $totalCost,
-                                            'finishing_options' => null,
-                                            'notes' => null,
-                                        ]);
-                                    }
-                                }
-                            }
-                            
-                            // Recalcular precios del talonario
-                            $talonario->calculateAll();
-                            $talonario->save();
-                            
-                            // Actualizar también el DocumentItem con los nuevos valores
-                            $unitPrice = $talonario->quantity > 0 ? $talonario->final_price / $talonario->quantity : 0;
-                            $record->update([
-                                'description' => 'Talonario: ' . $talonario->description,
-                                'quantity' => $talonario->quantity,
-                                'unit_price' => $unitPrice,
-                                'total_price' => $talonario->final_price
-                            ]);
+                            // Usar el handler para manejar la edición de TalonarioItems
+                            $handler = new TalonarioItemHandler();
+                            $handler->handleUpdate($record, $data);
                         } elseif ($record->itemable_type === 'App\\Models\\DigitalItem' && $record->itemable) {
                             // Manejar edición de DigitalItems con acabados
                             $digitalItem = $record->itemable;

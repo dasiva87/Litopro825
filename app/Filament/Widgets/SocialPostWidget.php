@@ -27,9 +27,15 @@ class SocialPostWidget extends Widget
 
     public function getSocialPosts()
     {
-        $query = SocialPost::with(['author.company.city', 'reactions', 'comments.author'])
-            ->public()
-            ->notExpired();
+        $userCompanyId = auth()->user()?->company_id;
+
+        $query = SocialPost::with([
+                'author.company.city',
+                'company',
+                'reactions',
+                'comments.author'
+            ])
+            ->forFeed($userCompanyId); // Usar el nuevo scope personalizado
 
         // Filtro por tipo de post
         if (!empty($this->filterType)) {
@@ -38,7 +44,7 @@ class SocialPostWidget extends Widget
 
         // Filtro por ciudad
         if (!empty($this->filterCity)) {
-            $query->whereHas('author.company', function ($q) {
+            $query->whereHas('company', function ($q) {
                 $q->where('city_id', $this->filterCity);
             });
         }
@@ -76,9 +82,14 @@ class SocialPostWidget extends Widget
 
     public function toggleReaction($postId, $reactionType)
     {
-        $post = SocialPost::findOrFail($postId);
-        $userId = auth()->id();
         $user = auth()->user();
+        if (!$user || !$user->company_id) {
+            session()->flash('error', 'Debes tener una empresa asociada para dar reacciones.');
+            return;
+        }
+
+        $post = SocialPost::findOrFail($postId);
+        $userId = $user->id;
         $companyId = $user->company_id;
 
         // Verificar si ya tiene esta reacción
@@ -120,12 +131,17 @@ class SocialPostWidget extends Widget
             return;
         }
 
-        $post = SocialPost::findOrFail($postId);
         $user = auth()->user();
+        if (!$user || !$user->company_id) {
+            session()->flash('error', 'Debes tener una empresa asociada para comentar.');
+            return;
+        }
+
+        $post = SocialPost::findOrFail($postId);
 
         $newComment = $post->comments()->create([
             'company_id' => $user->company_id,
-            'user_id' => auth()->id(),
+            'user_id' => $user->id,
             'content' => trim($comment),
             'is_private' => false
         ]);

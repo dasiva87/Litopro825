@@ -325,7 +325,24 @@ class DigitalItem extends Model
             $pivotData['height'] = $params['height'];
         }
 
-        $this->finishings()->attach($finishing->id, $pivotData);
+        // Verificar si ya existe este acabado para este item digital
+        $existingFinishing = $this->finishings()->where('finishing_id', $finishing->id)->first();
+
+        if ($existingFinishing) {
+            // Si existe, actualizar la cantidad y el costo
+            $newQuantity = $existingFinishing->pivot->quantity + ($params['quantity'] ?? 1);
+            $newCalculatedCost = $calculatorService->calculateCost($finishing, array_merge($params, ['quantity' => $newQuantity]));
+
+            $updateData = array_merge($pivotData, [
+                'quantity' => $newQuantity,
+                'calculated_cost' => $newCalculatedCost,
+            ]);
+
+            $this->finishings()->updateExistingPivot($finishing->id, $updateData);
+        } else {
+            // Si no existe, crear nuevo registro
+            $this->finishings()->attach($finishing->id, $pivotData);
+        }
     }
 
     /**

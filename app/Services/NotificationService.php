@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\SocialNotification;
 use App\Models\SocialPost;
 use App\Models\User;
+use App\Models\Company;
 use Illuminate\Support\Collection;
 
 class NotificationService
@@ -120,6 +121,40 @@ class NotificationService
 
         // Emitir evento para actualización en tiempo real
         $this->broadcastNotification($post->company_id, 'new-reaction-notification', $post->user_id);
+    }
+
+    /**
+     * Notificar sobre un nuevo seguidor
+     */
+    public function notifyNewFollower(Company $followedCompany, Company $followerCompany, User $follower): void
+    {
+        // Obtener usuarios de la empresa seguida (admins, managers)
+        $users = User::where('company_id', $followedCompany->id)
+            ->whereHas('roles', function ($query) {
+                $query->whereIn('name', ['Super Admin', 'Company Admin', 'Manager']);
+            })
+            ->get();
+
+        foreach ($users as $user) {
+            SocialNotification::create([
+                'company_id' => $followedCompany->id,
+                'user_id' => $user->id,
+                'sender_id' => $follower->id,
+                'type' => SocialNotification::TYPE_NEW_FOLLOWER,
+                'title' => 'Nueva empresa siguiendo',
+                'message' => $followerCompany->name . ' ahora sigue a tu empresa',
+                'data' => [
+                    'follower_company_id' => $followerCompany->id,
+                    'follower_company_name' => $followerCompany->name,
+                    'follower_company_url' => $followerCompany->getProfileUrl(),
+                    'follower_user_id' => $follower->id,
+                    'follower_user_name' => $follower->name,
+                ],
+            ]);
+        }
+
+        // Emitir evento para actualización en tiempo real
+        $this->broadcastNotification($followedCompany->id, 'new-follower-notification');
     }
 
     /**

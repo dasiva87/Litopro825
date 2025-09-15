@@ -104,22 +104,49 @@
 
                     <!-- Info del autor -->
                     <div>
-                        <div style="font-size: 15px; font-weight: 600; color: #111827; line-height: 1.2;">
-                            {{ $post->author->name ?? 'Usuario' }} - {{ $post->author->company->name ?? 'Empresa' }}
+                        <div style="font-size: 15px; font-weight: 600; line-height: 1.2;">
+                            <a href="{{ $post->getCompanyProfileUrl() }}" style="color: #2563eb; text-decoration: none;"
+                               onmouseover="this.style.textDecoration='underline'"
+                               onmouseout="this.style.textDecoration='none'">
+                                {{ $post->getCompanyName() }}
+                            </a>
+                            <span style="color: #111827;"> - {{ $post->author->name ?? 'Usuario' }}</span>
+
+                            <!-- Indicador de empresa seguida -->
+                            @if($post->isFromFollowedCompany())
+                                <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; background: #eff6ff; color: #3b82f6; padding: 2px 6px; border-radius: 8px; margin-left: 8px;">
+                                    <svg style="width: 10px; height: 10px;" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    Siguiendo
+                                </span>
+                            @endif
                         </div>
                         <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
                             <span style="font-size: 13px; color: #6b7280;">{{ $post->created_at->diffForHumans() }}</span>
                             <span style="color: #6b7280;">•</span>
-                            @if($post->author->company->city)
+
+                            @if($post->getCompanyLocation())
                                 <div style="display: flex; align-items: center; gap: 4px;">
                                     <svg style="width: 12px; height: 12px; color: #6b7280;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                                     </svg>
-                                    <span style="font-size: 13px; color: #6b7280;">{{ $post->author->company->city->name }}</span>
+                                    <span style="font-size: 13px; color: #6b7280;">{{ $post->getCompanyLocation() }}</span>
                                 </div>
                                 <span style="color: #6b7280;">•</span>
                             @endif
+
+                            @if($post->getCompanyFollowersCount() > 0)
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <svg style="width: 12px; height: 12px; color: #6b7280;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                    </svg>
+                                    <span style="font-size: 13px; color: #6b7280;">{{ $post->getCompanyFollowersCount() }} seguidores</span>
+                                </div>
+                                <span style="color: #6b7280;">•</span>
+                            @endif
+
                             <div style="display: flex; align-items: center; gap: 4px;">
                                 <svg style="width: 12px; height: 12px; color: #6b7280;" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clip-rule="evenodd"/>
@@ -292,7 +319,16 @@
                         <div style="flex: 1;">
                             <div style="background: #f3f4f6; padding: 12px; border-radius: 12px;">
                                 <div style="font-size: 13px; font-weight: 600; color: #111827; margin-bottom: 4px;">
-                                    {{ $comment->author->name ?? 'Usuario' }}
+                                    @if($comment->author && $comment->author->company)
+                                        <a href="{{ $comment->author->company->getProfileUrl() }}" style="color: #2563eb; text-decoration: none; font-weight: 600;"
+                                           onmouseover="this.style.textDecoration='underline'"
+                                           onmouseout="this.style.textDecoration='none'">
+                                            {{ $comment->author->company->name }}
+                                        </a>
+                                    @else
+                                        <span style="color: #6b7280;">Empresa Desconocida</span>
+                                    @endif
+                                    <span style="color: #6b7280;"> ({{ $comment->author->name ?? 'Usuario' }})</span>
                                 </div>
                                 <div style="font-size: 14px; color: #374151; line-height: 1.4;">
                                     {{ $comment->content }}

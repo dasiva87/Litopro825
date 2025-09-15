@@ -32,6 +32,7 @@ class SocialNotification extends Model
     const TYPE_POST_COMMENT = 'post_comment';
     const TYPE_POST_REACTION = 'post_reaction';
     const TYPE_POST_MENTION = 'post_mention';
+    const TYPE_NEW_FOLLOWER = 'new_follower';
 
     public function user(): BelongsTo
     {
@@ -96,6 +97,7 @@ class SocialNotification extends Model
             self::TYPE_POST_COMMENT => 'Nuevo Comentario',
             self::TYPE_POST_REACTION => 'Nueva Reacción',
             self::TYPE_POST_MENTION => 'Te mencionaron',
+            self::TYPE_NEW_FOLLOWER => 'Nuevo Seguidor',
         ];
     }
 
@@ -111,6 +113,7 @@ class SocialNotification extends Model
             self::TYPE_POST_COMMENT => '💬',
             self::TYPE_POST_REACTION => '❤️',
             self::TYPE_POST_MENTION => '👤',
+            self::TYPE_NEW_FOLLOWER => '👥',
             default => '🔔',
         };
     }
@@ -122,6 +125,7 @@ class SocialNotification extends Model
             self::TYPE_POST_COMMENT => 'text-green-600',
             self::TYPE_POST_REACTION => 'text-red-600',
             self::TYPE_POST_MENTION => 'text-purple-600',
+            self::TYPE_NEW_FOLLOWER => 'text-orange-600',
             default => 'text-gray-600',
         };
     }

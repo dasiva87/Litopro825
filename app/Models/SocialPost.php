@@ -183,4 +183,148 @@ class SocialPost extends Model
 
         return asset('storage/' . $this->image_path);
     }
+
+    // Company-related methods
+    public function getCompanyName(): string
+    {
+        return $this->company?->name ?? 'Empresa Desconocida';
+    }
+
+    public function getCompanySlug(): ?string
+    {
+        return $this->company?->slug;
+    }
+
+    public function getCompanyProfileUrl(): ?string
+    {
+        if (!$this->company?->slug) {
+            return null;
+        }
+
+        return '/empresa/' . $this->company->slug;
+    }
+
+    public function getCompanyAvatarUrl(): ?string
+    {
+        return $this->company?->getAvatarUrl();
+    }
+
+    public function getCompanyInitials(): string
+    {
+        $companyName = $this->getCompanyName();
+        if ($companyName === 'Empresa Desconocida') {
+            return '??';
+        }
+
+        return strtoupper(substr($companyName, 0, 2));
+    }
+
+    public function isFromFollowedCompany(?int $userCompanyId = null): bool
+    {
+        if (!$userCompanyId) {
+            $userCompanyId = auth()->user()?->company_id;
+        }
+
+        if (!$userCompanyId || !$this->company_id) {
+            return false;
+        }
+
+        // No mostrar como "seguida" si es de la misma empresa
+        if ($userCompanyId === $this->company_id) {
+            return false;
+        }
+
+        return \App\Models\CompanyFollower::where('follower_company_id', $userCompanyId)
+            ->where('followed_company_id', $this->company_id)
+            ->exists();
+    }
+
+    public function getCompanyLocation(): ?string
+    {
+        if (!$this->company) {
+            return null;
+        }
+
+        $location = collect([
+            $this->company->city?->name,
+            $this->company->state?->name,
+        ])->filter()->implode(', ');
+
+        return $location ?: null;
+    }
+
+    public function getCompanyFollowersCount(): int
+    {
+        return $this->company?->followers_count ?? 0;
+    }
+
+    public function canUserEdit(?int $userId = null): bool
+    {
+        if (!$userId) {
+            $userId = auth()->id();
+        }
+
+        if (!$userId) {
+            return false;
+        }
+
+        // El autor del post puede editarlo
+        if ($this->user_id === $userId) {
+            return true;
+        }
+
+        // Los admins de la empresa pueden editar posts de su empresa
+        $user = \App\Models\User::find($userId);
+        if ($user && $user->company_id === $this->company_id) {
+            return $user->hasAnyRole(['Super Admin', 'Company Admin', 'Manager']);
+        }
+
+        return false;
+    }
+
+    // Scope para posts de empresas seguidas
+    public function scopeFromFollowedCompanies($query, ?int $userCompanyId = null)
+    {
+        if (!$userCompanyId) {
+            $userCompanyId = auth()->user()?->company_id;
+        }
+
+        if (!$userCompanyId) {
+            return $query->whereRaw('1 = 0'); // No results
+        }
+
+        return $query->whereIn('company_id', function ($subQuery) use ($userCompanyId) {
+            $subQuery->select('followed_company_id')
+                ->from('company_followers')
+                ->where('follower_company_id', $userCompanyId);
+        });
+    }
+
+    // Scope para feed personalizado (posts propios + seguidas + destacados)
+    public function scopeForFeed($query, ?int $userCompanyId = null)
+    {
+        if (!$userCompanyId) {
+            $userCompanyId = auth()->user()?->company_id;
+        }
+
+        if (!$userCompanyId) {
+            return $query->public()->notExpired();
+        }
+
+        return $query->where(function ($q) use ($userCompanyId) {
+            // Posts de la propia empresa
+            $q->where('company_id', $userCompanyId)
+              // O posts de empresas seguidas
+              ->orWhereIn('company_id', function ($subQuery) use ($userCompanyId) {
+                  $subQuery->select('followed_company_id')
+                      ->from('company_followers')
+                      ->where('follower_company_id', $userCompanyId);
+              })
+              // O posts públicos destacados
+              ->orWhere(function ($featuredQuery) {
+                  $featuredQuery->where('is_public', true)
+                              ->where('is_featured', true);
+              });
+        })->public()->notExpired();
+    }
 }

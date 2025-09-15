@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class Company extends Model
 {
@@ -26,6 +27,19 @@ class Company extends Model
         'tax_id',
         'logo',
         'website',
+        'bio',
+        'avatar',
+        'banner',
+        'facebook',
+        'instagram',
+        'twitter',
+        'linkedin',
+        'is_public',
+        'allow_followers',
+        'show_contact_info',
+        'followers_count',
+        'following_count',
+        'posts_count',
         'subscription_plan',
         'subscription_expires_at',
         'max_users',
@@ -34,6 +48,9 @@ class Company extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'is_public' => 'boolean',
+        'allow_followers' => 'boolean',
+        'show_contact_info' => 'boolean',
         'subscription_expires_at' => 'datetime',
     ];
 
@@ -105,6 +122,17 @@ class Company extends Model
         return $this->hasMany(Document::class);
     }
 
+    // Relaciones de seguimiento
+    public function followers(): HasMany
+    {
+        return $this->hasMany(CompanyFollower::class, 'followed_company_id');
+    }
+
+    public function following(): HasMany
+    {
+        return $this->hasMany(CompanyFollower::class, 'follower_company_id');
+    }
+
     // Scopes
     public function scopeActive($query)
     {
@@ -124,7 +152,73 @@ class Company extends Model
 
     public function isSubscriptionActive(): bool
     {
-        return $this->subscription_expires_at === null || 
+        return $this->subscription_expires_at === null ||
                $this->subscription_expires_at->isFuture();
+    }
+
+    // Helper methods for profile
+    public function getAvatarUrl(): ?string
+    {
+        return $this->avatar ? Storage::url($this->avatar) : null;
+    }
+
+    public function getBannerUrl(): ?string
+    {
+        return $this->banner ? Storage::url($this->banner) : null;
+    }
+
+    public function getInitials(): string
+    {
+        return strtoupper(substr($this->name, 0, 2));
+    }
+
+    public function getProfileUrl(): string
+    {
+        return route('company.profile', $this->slug);
+    }
+
+    // Métodos de seguimiento
+    public function isFollowing(Company $company): bool
+    {
+        return CompanyFollower::isFollowing($this->id, $company->id);
+    }
+
+    public function isFollowedBy(Company $company): bool
+    {
+        return CompanyFollower::isFollowing($company->id, $this->id);
+    }
+
+    public function follow(Company $company, User $user): CompanyFollower
+    {
+        $follow = CompanyFollower::follow($this->id, $company->id, $user->id);
+
+        // Actualizar contadores
+        $this->increment('following_count');
+        $company->increment('followers_count');
+
+        return $follow;
+    }
+
+    public function unfollow(Company $company): bool
+    {
+        $unfollowed = CompanyFollower::unfollow($this->id, $company->id);
+
+        if ($unfollowed) {
+            // Actualizar contadores
+            $this->decrement('following_count');
+            $company->decrement('followers_count');
+        }
+
+        return $unfollowed;
+    }
+
+    public function getFollowersCount(): int
+    {
+        return CompanyFollower::getFollowersCount($this->id);
+    }
+
+    public function getFollowingCount(): int
+    {
+        return CompanyFollower::getFollowingCount($this->id);
     }
 }

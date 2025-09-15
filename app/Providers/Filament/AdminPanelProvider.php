@@ -20,6 +20,7 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 use Andreia\FilamentNordTheme\FilamentNordThemePlugin;
+use Filament\View\PanelsRenderHook;
 
   
 
@@ -42,9 +43,8 @@ class AdminPanelProvider extends PanelProvider
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
-                \App\Filament\Pages\LitoproDashboard::class,
+                // Dashboard eliminado
             ])
-            ->homeUrl('/admin/dashboard')
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
                 // Default Filament Widgets
@@ -73,6 +73,14 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
-            ]);
+            ])
+            ->renderHook(
+                PanelsRenderHook::TOPBAR_BEFORE,
+                fn (): string => view('components.custom-topbar')->render(),
+            )
+            ->renderHook(
+                PanelsRenderHook::TOPBAR_START,
+                fn (): string => '<style>.fi-topbar { display: none !important; }</style>',
+            );
     }
 }
