@@ -2,17 +2,17 @@
 nixPkgs = [
   "nodejs_20",
   "php83",
- "php82Extensions.bcmath",
-  "php82Extensions.ctype",
-  "php82Extensions.fileinfo",
-  "php82Extensions.mbstring",
-  "php82Extensions.openssl",
-  "php82Extensions.pdo",
-  "php82Extensions.pdo_mysql",  
-  "php82Extensions.tokenizer",
-  "php82Extensions.xml",
-  "php82Extensions.curl",
-  "php82Extensions.zip",
+ "php83Extensions.bcmath",
+  "php83Extensions.ctype",
+  "php83Extensions.fileinfo",
+  "php83Extensions.mbstring",
+  "php83Extensions.openssl",
+  "php83Extensions.pdo",
+  "php83Extensions.pdo_mysql",  
+  "php83Extensions.tokenizer",
+  "php83Extensions.xml",
+  "php83Extensions.curl",
+  "php83Extensions.zip",
   "php83Packages.composer"
 ]
 
@@ -25,7 +25,11 @@ commands = [
 [phases.build]
 commands = [
   "npm run build",
-  "php artisan filament:assets"
+  "php artisan filament:assets",
+  "php artisan filament:upgrade",
+  "php artisan filament:assets", 
+  "php artisan optimize:clear"
+  
 ]
 
 [start]
