@@ -6,22 +6,25 @@ use Filament\Forms\Components;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Wizard\Step;
-use Filament\Schemas\Components\Actions;
-use Filament\Actions\Action;
-use Filament\Notifications\Notification;
 use App\Models\MagazineItem;
-use App\Models\SimpleItem;
 use App\Models\MagazinePage;
+use App\Models\SimpleItem;
 use App\Models\Paper;
 use App\Models\PrintingMachine;
-use App\Models\Finishing;
 
 class MagazineItemHandler extends AbstractItemHandler
 {
+    protected $record;
+
+    public function setRecord($record): self
+    {
+        $this->record = $record;
+        return $this;
+    }
     public function getEditForm($record): array
     {
         return [
-            $this->makeSection('Información Básica')
+            Section::make('Información Básica')
                 ->schema([
                     Components\Textarea::make('description')
                         ->label('Descripción de la Revista')
@@ -29,8 +32,9 @@ class MagazineItemHandler extends AbstractItemHandler
                         ->rows(3)
                         ->columnSpanFull()
                         ->placeholder('Describe la revista: temática, características especiales, etc.'),
-                        
-                    $this->makeTextInput('quantity', 'Cantidad')
+
+                    Components\TextInput::make('quantity')
+                        ->label('Cantidad')
                         ->numeric()
                         ->required()
                         ->default(100)
@@ -38,344 +42,20 @@ class MagazineItemHandler extends AbstractItemHandler
                         ->suffix('revistas')
                         ->placeholder('100'),
                 ]),
-                
-            $this->makeSection('Dimensiones Revista Cerrada')
-                ->schema([
-                    $this->makeGrid(2)->schema([
-                        $this->makeTextInput('closed_width', 'Ancho Cerrado')
-                            ->numeric()
-                            ->required()
-                            ->suffix('cm')
-                            ->minValue(0)
-                            ->placeholder('21')
-                            ->helperText('Ancho de la revista cuando está cerrada'),
-                            
-                        $this->makeTextInput('closed_height', 'Alto Cerrado')
-                            ->numeric()
-                            ->required()
-                            ->suffix('cm')
-                            ->minValue(0)
-                            ->placeholder('29.7')
-                            ->helperText('Alto de la revista cuando está cerrada'),
-                    ]),
-                ]),
-                
-            $this->makeSection('Encuadernación')
-                ->schema([
-                    $this->makeGrid(2)->schema([
-                        $this->makeSelect('binding_type', 'Tipo de Encuadernación', [
-                            'grapado' => 'Grapado',
-                            'plegado' => 'Plegado',
-                            'anillado' => 'Anillado',
-                            'cosido' => 'Cosido',
-                            'caballete' => 'Caballete',
-                            'lomo' => 'Lomo',
-                            'espiral' => 'Espiral',
-                            'wire_o' => 'Wire-O',
-                            'hotmelt' => 'Hot Melt',
-                        ])
-                        ->default('grapado')
-                        ->searchable()
-                        ->helperText('Seleccione el método de encuadernación'),
-                        
-                        $this->makeSelect('binding_side', 'Lado de Encuadernación', [
-                            'izquierda' => 'Izquierda',
-                            'derecha' => 'Derecha',
-                            'arriba' => 'Arriba',
-                            'abajo' => 'Abajo',
-                        ])
-                        ->default('izquierda')
-                        ->helperText('Posición donde se realizará la encuadernación'),
-                    ]),
-                ]),
-                
-            $this->makeSection('Páginas de la Revista')
-                ->schema([
-                    Components\Placeholder::make('existing_pages_table')
-                        ->label('Páginas Actuales')
-                        ->content(function ($record) {
-                            if (!$record || !$record->itemable) {
-                                return '📄 No hay páginas agregadas. Use el botón "Agregar Página" para crear la primera página.';
-                            }
 
-                            $pages = $record->itemable->getPagesTableData();
-                            
-                            if (empty($pages)) {
-                                return '📄 No hay páginas agregadas. Use el botón "Agregar Página" para crear la primera página.';
-                            }
-
-                            $content = '<div class="overflow-x-auto">';
-                            $content .= '<table class="min-w-full divide-y divide-gray-200">';
-                            $content .= '<thead class="bg-gray-50">';
-                            $content .= '<tr>';
-                            $content .= '<th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Orden</th>';
-                            $content .= '<th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>';
-                            $content .= '<th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Cantidad</th>';
-                            $content .= '<th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Descripción</th>';
-                            $content .= '<th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Precio Unit.</th>';
-                            $content .= '<th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total</th>';
-                            $content .= '</tr>';
-                            $content .= '</thead>';
-                            $content .= '<tbody class="bg-white divide-y divide-gray-200">';
-
-                            foreach ($pages as $page) {
-                                $content .= '<tr>';
-                                $content .= '<td class="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">' . $page['order'] . '</td>';
-                                $content .= '<td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">';
-                                $content .= '<span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">' . $page['type'] . '</span>';
-                                $content .= '</td>';
-                                $content .= '<td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">' . $page['quantity'] . ' págs</td>';
-                                $content .= '<td class="px-3 py-2 text-sm text-gray-900">' . substr($page['description'], 0, 50) . '...</td>';
-                                $content .= '<td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">$' . $page['unit_price'] . '</td>';
-                                $content .= '<td class="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">$' . $page['total_cost'] . '</td>';
-                                $content .= '</tr>';
-                            }
-
-                            $content .= '</tbody>';
-                            $content .= '</table>';
-                            $content .= '</div>';
-
-                            // Mostrar totales
-                            $totalPages = collect($pages)->sum('quantity');
-                            $totalCost = collect($pages)->sum(function ($page) {
-                                return floatval(str_replace(',', '', $page['total_cost']));
-                            });
-
-                            $content .= '<div class="mt-4 p-3 bg-blue-50 rounded-lg">';
-                            $content .= '<div class="flex justify-between">';
-                            $content .= '<span class="font-medium">Total: ' . $totalPages . ' páginas</span>';
-                            $content .= '<span class="font-bold">Costo total páginas: $' . number_format($totalCost, 2) . '</span>';
-                            $content .= '</div>';
-                            $content .= '</div>';
-
-                            return $content;
-                        })
-                        ->html()
-                        ->columnSpanFull(),
-                        
-                    Actions::make([
-                        Action::make('add_page')
-                            ->label('➕ Agregar Página')
-                            ->color('primary')
-                            ->icon('heroicon-o-plus-circle')
-                            ->modalHeading('Crear Nueva Página para la Revista')
-                            ->modalWidth('7xl')
-                            ->form($this->getAddPageFormSchema())
-                            ->action(function (array $data, $record) {
-                                $this->handleAddPage($data, $record);
-                            })
-                            ->visible(fn ($record) => $record !== null),
-                    ])
-                    ->alignEnd()
-                    ->columnSpanFull()
-                    ->visible(fn ($record) => $record !== null),
-                ]),
-                
-            $this->makeSection('Acabados')
+            Section::make('Dimensiones Revista Cerrada')
                 ->schema([
-                    Components\CheckboxList::make('selected_finishings')
-                        ->label('Acabados Disponibles')
-                        ->options(
-                            Finishing::query()
-                                ->where('active', true)
-                                ->pluck('name', 'id')
-                                ->toArray()
-                        )
-                        ->descriptions(
-                            Finishing::query()
-                                ->where('active', true)
-                                ->pluck('description', 'id')
-                                ->toArray()
-                        )
-                        ->default(function ($record) {
-                            return $record && $record->itemable ? $record->itemable->finishings->pluck('id')->toArray() : [];
-                        })
-                        ->columns(2)
-                        ->columnSpanFull()
-                        ->helperText('Seleccione los acabados que requiere la revista'),
-                ]),
-                
-            $this->makeSection('Costos Adicionales')
-                ->schema([
-                    $this->makeGrid(3)->schema([
-                        $this->makeTextInput('design_value', 'Valor Diseño')
-                            ->numeric()
-                            ->default(0)
-                            ->minValue(0)
-                            ->prefix('$')
-                            ->placeholder('0'),
-                            
-                        $this->makeTextInput('transport_value', 'Valor Transporte')
-                            ->numeric()
-                            ->default(0)
-                            ->minValue(0)
-                            ->prefix('$')
-                            ->placeholder('0'),
-                            
-                        $this->makeTextInput('profit_percentage', 'Porcentaje de Ganancia')
-                            ->numeric()
-                            ->default(25)
-                            ->minValue(0)
-                            ->maxValue(500)
-                            ->suffix('%')
-                            ->placeholder('25'),
-                    ]),
-                ]),
-                
-            $this->makeSection('Resumen de Costos')
-                ->schema([
-                    $this->makeGrid(3)->schema([
-                        Components\Placeholder::make('pages_total_cost')
-                            ->label('Costo Total de Páginas')
-                            ->content(function ($get, $record) {
-                                if (!$record || !$record->itemable) return '$0.00';
-                                return '$' . number_format($record->itemable->pages_total_cost ?? 0, 2);
-                            }),
-                            
-                        Components\Placeholder::make('binding_cost')
-                            ->label('Costo Encuadernación')
-                            ->content(function ($get, $record) {
-                                if (!$record || !$record->itemable) return '$0.00';
-                                return '$' . number_format($record->itemable->binding_cost ?? 0, 2);
-                            }),
-                            
-                        Components\Placeholder::make('assembly_cost')
-                            ->label('Costo Armado')
-                            ->content(function ($get, $record) {
-                                if (!$record || !$record->itemable) return '$0.00';
-                                return '$' . number_format($record->itemable->assembly_cost ?? 0, 2);
-                            }),
-                    ]),
-                    
-                    $this->makeGrid(3)->schema([
-                        Components\Placeholder::make('finishing_cost')
-                            ->label('Costo Acabados')
-                            ->content(function ($get, $record) {
-                                if (!$record || !$record->itemable) return '$0.00';
-                                return '$' . number_format($record->itemable->finishing_cost ?? 0, 2);
-                            }),
-                            
-                        Components\Placeholder::make('total_cost')
-                            ->label('Costo Total')
-                            ->content(function ($get, $record) {
-                                if (!$record || !$record->itemable) return '$0.00';
-                                return '$' . number_format($record->itemable->total_cost ?? 0, 2);
-                            }),
-                            
-                        Components\Placeholder::make('final_price')
-                            ->label('Precio Final')
-                            ->content(function ($get, $record) {
-                                if (!$record || !$record->itemable) return '$0.00';
-                                return '$' . number_format($record->itemable->final_price ?? 0, 2);
-                            }),
-                    ]),
-                    
-                    Components\Placeholder::make('unit_price')
-                        ->label('Precio Unitario')
-                        ->content(function ($get, $record) {
-                            if (!$record || !$record->itemable || !$record->itemable->quantity) return '$0.00';
-                            $unitPrice = $record->itemable->final_price / $record->itemable->quantity;
-                            return '$' . number_format($unitPrice, 2) . ' / revista';
-                        })
-                        ->columnSpanFull(),
-                ])
-                ->collapsible()
-                ->collapsed(false),
-                
-            $this->makeSection('Notas Adicionales')
-                ->schema([
-                    Components\Textarea::make('notes')
-                        ->label('Notas')
-                        ->rows(3)
-                        ->columnSpanFull()
-                        ->placeholder('Notas adicionales sobre la revista...'),
-                ])
-                ->collapsible()
-                ->collapsed(true),
-        ];
-    }
-    
-    public function fillForm($record): array
-    {
-        $magazine = $record->itemable;
-        
-        return [
-            'description' => $magazine->description,
-            'quantity' => $magazine->quantity,
-            'closed_width' => $magazine->closed_width,
-            'closed_height' => $magazine->closed_height,
-            'binding_type' => $magazine->binding_type,
-            'binding_side' => $magazine->binding_side,
-            'design_value' => $magazine->design_value,
-            'transport_value' => $magazine->transport_value,
-            'profit_percentage' => $magazine->profit_percentage,
-            'notes' => $magazine->notes,
-        ];
-    }
-    
-    private function getAddPageFormSchema(): array
-    {
-        return [
-            $this->makeSection('Información de la Página')
-                ->schema([
-                    $this->makeSelect('page_type', 'Tipo de Página', [
-                        'portada' => 'Portada',
-                        'contraportada' => 'Contraportada',
-                        'interior' => 'Interior',
-                        'inserto' => 'Inserto',
-                        'separador' => 'Separador',
-                        'anexo' => 'Anexo',
-                    ])
-                    ->default('interior')
-                    ->columnSpan(1),
-                    
-                    $this->makeTextInput('page_quantity', 'Cantidad de Páginas')
-                        ->numeric()
-                        ->required()
-                        ->default(1)
-                        ->minValue(1)
-                        ->placeholder('1')
-                        ->columnSpan(1),
-                        
-                    Components\Textarea::make('description')
-                        ->label('Descripción del Contenido')
-                        ->required()
-                        ->rows(3)
-                        ->columnSpanFull()
-                        ->placeholder('Describe el contenido de esta página...'),
-                        
-                    $this->makeGrid(2)->schema([
-                        $this->makeTextInput('quantity', 'Cantidad de Impresión')
-                            ->numeric()
-                            ->required()
-                            ->default(100)
-                            ->minValue(1)
-                            ->placeholder('100')
-                            ->helperText('Cantidad de ejemplares a imprimir'),
-                            
-                        $this->makeTextInput('profit_percentage', 'Margen de Ganancia')
-                            ->numeric()
-                            ->required()
-                            ->default(25)
-                            ->minValue(0)
-                            ->maxValue(500)
-                            ->suffix('%')
-                            ->placeholder('25'),
-                    ])
-                    ->columnSpanFull(),
-                ]),
-                
-            $this->makeSection('Dimensiones')
-                ->schema([
-                    $this->makeGrid(2)->schema([
-                        $this->makeTextInput('horizontal_size', 'Ancho')
+                    Grid::make(2)->schema([
+                        Components\TextInput::make('closed_width')
+                            ->label('Ancho Cerrado')
                             ->numeric()
                             ->required()
                             ->suffix('cm')
                             ->minValue(0)
                             ->placeholder('21'),
-                            
-                        $this->makeTextInput('vertical_size', 'Alto')
+
+                        Components\TextInput::make('closed_height')
+                            ->label('Alto Cerrado')
                             ->numeric()
                             ->required()
                             ->suffix('cm')
@@ -383,318 +63,430 @@ class MagazineItemHandler extends AbstractItemHandler
                             ->placeholder('29.7'),
                     ]),
                 ]),
-                
-            $this->makeSection('Materiales')
+
+            Section::make('Encuadernación')
                 ->schema([
-                    $this->makeGrid(2)->schema([
-                        Components\Select::make('paper_id')
-                            ->label('Papel')
-                            ->options(function () {
-                                $companyId = auth()->user()->company_id ?? 1;
-                                return Paper::query()
-                                    ->where('company_id', $companyId)
-                                    ->get()
-                                    ->mapWithKeys(function ($paper) {
-                                        $label = $paper->full_name ?: ($paper->code . ' - ' . $paper->name);
-                                        return [$paper->id => $label];
-                                    })
-                                    ->toArray();
-                            })
+                    Grid::make(2)->schema([
+                        Components\Select::make('binding_type')
+                            ->label('Tipo de Encuadernación')
                             ->required()
+                            ->options([
+                                'grapado' => 'Grapado',
+                                'plegado' => 'Plegado',
+                                'anillado' => 'Anillado',
+                                'cosido' => 'Cosido',
+                                'caballete' => 'Caballete',
+                                'lomo' => 'Lomo',
+                                'espiral' => 'Espiral',
+                                'wire_o' => 'Wire-O',
+                                'hotmelt' => 'Hot Melt',
+                            ])
+                            ->default('grapado')
                             ->searchable()
-                            ->placeholder('Seleccionar papel'),
-                            
-                        Components\Select::make('printing_machine_id')
-                            ->label('Máquina de Impresión')
-                            ->options(function () {
-                                $companyId = auth()->user()->company_id ?? 1;
-                                return PrintingMachine::query()
-                                    ->where('company_id', $companyId)
-                                    ->get()
-                                    ->mapWithKeys(function ($machine) {
-                                        $label = $machine->name . ' - ' . ucfirst($machine->type);
-                                        return [$machine->id => $label];
-                                    })
-                                    ->toArray();
-                            })
+                            ->helperText('Seleccione el método de encuadernación'),
+
+                        Components\Select::make('binding_side')
+                            ->label('Lado de Encuadernación')
                             ->required()
-                            ->searchable()
-                            ->placeholder('Seleccionar máquina'),
+                            ->options([
+                                'arriba' => 'Arriba',
+                                'izquierda' => 'Izquierda',
+                                'derecha' => 'Derecha',
+                                'abajo' => 'Abajo',
+                            ])
+                            ->default('izquierda')
+                            ->helperText('Lado donde se aplicará la encuadernación'),
                     ]),
                 ]),
-                
-            $this->makeSection('Configuración de Tintas')
+
+            Section::make('Costos Adicionales')
                 ->schema([
-                    $this->makeGrid(3)->schema([
-                        $this->makeTextInput('ink_front_count', 'Tintas Frente')
+                    Grid::make(3)->schema([
+                        Components\TextInput::make('design_value')
+                            ->label('Valor Diseño')
                             ->numeric()
-                            ->required()
-                            ->default(4)
-                            ->minValue(0)
-                            ->maxValue(8)
-                            ->placeholder('4'),
-                            
-                        $this->makeTextInput('ink_back_count', 'Tintas Reverso')
-                            ->numeric()
-                            ->required()
                             ->default(0)
+                            ->prefix('$')
                             ->minValue(0)
-                            ->maxValue(8)
                             ->placeholder('0'),
-                            
-                        Components\Toggle::make('front_back_plate')
-                            ->label('Tiro y Retiro Plancha')
-                            ->default(false)
-                            ->helperText('¿Se imprime frente y reverso con la misma plancha?'),
+
+                        Components\TextInput::make('transport_value')
+                            ->label('Valor Transporte')
+                            ->numeric()
+                            ->default(0)
+                            ->prefix('$')
+                            ->minValue(0)
+                            ->placeholder('0'),
+
+                        Components\TextInput::make('profit_percentage')
+                            ->label('Porcentaje de Ganancia')
+                            ->numeric()
+                            ->default(25)
+                            ->suffix('%')
+                            ->minValue(0)
+                            ->maxValue(100)
+                            ->placeholder('25'),
                     ]),
+                ]),
+
+            Section::make('Notas')
+                ->schema([
+                    Components\Textarea::make('notes')
+                        ->label('Notas Adicionales')
+                        ->rows(3)
+                        ->columnSpanFull()
+                        ->placeholder('Información adicional sobre la revista...'),
                 ]),
         ];
     }
-    
-    private function handleAddPage(array $data, $record): void
+
+    public function fillForm($record): array
     {
-        // Extraer datos específicos de la página
-        $pageType = $data['page_type'] ?? 'interior';
-        $pageQuantity = $data['page_quantity'] ?? 1;
-        
-        // Preparar datos del SimpleItem (sin campos de página)
-        $simpleItemData = $data;
-        unset($simpleItemData['page_type'], $simpleItemData['page_quantity']);
-        
-        // Crear el SimpleItem
-        $simpleItem = SimpleItem::create(array_merge($simpleItemData, [
-            'company_id' => auth()->user()->company_id,
-            'user_id' => auth()->id(),
-            'profit_percentage' => $data['profit_percentage'] ?? 25,
-        ]));
-
-        // Crear la página de revista
-        MagazinePage::create([
-            'magazine_item_id' => $record->itemable->id,
-            'simple_item_id' => $simpleItem->id,
-            'page_type' => $pageType,
-            'page_order' => $record->itemable->getNextPageOrder(),
-            'page_quantity' => $pageQuantity,
-        ]);
-
-        // Recalcular precios de la revista
-        $record->itemable->calculateAll();
-        $record->itemable->save();
-        
-        // Actualizar DocumentItem
-        $record->calculateAndUpdatePrices();
-
-        // Notificación de éxito
-        Notification::make()
-            ->title('Página agregada correctamente')
-            ->body("La página '{$pageType}' se ha creado y agregado a la revista.")
-            ->success()
-            ->send();
+        return [
+            'description' => $record->itemable->description,
+            'quantity' => $record->itemable->quantity,
+            'closed_width' => $record->itemable->closed_width,
+            'closed_height' => $record->itemable->closed_height,
+            'binding_type' => $record->itemable->binding_type,
+            'binding_side' => $record->itemable->binding_side,
+            'design_value' => $record->itemable->design_value,
+            'transport_value' => $record->itemable->transport_value,
+            'profit_percentage' => $record->itemable->profit_percentage,
+            'notes' => $record->itemable->notes,
+        ];
     }
-    
+
     public function handleUpdate($record, array $data): void
     {
-        $magazine = $record->itemable;
-        
-        $magazine->update([
-            'description' => $data['description'],
-            'quantity' => $data['quantity'],
-            'closed_width' => $data['closed_width'],
-            'closed_height' => $data['closed_height'],
-            'binding_type' => $data['binding_type'],
-            'binding_side' => $data['binding_side'],
-            'design_value' => $data['design_value'] ?? 0,
-            'transport_value' => $data['transport_value'] ?? 0,
-            'profit_percentage' => $data['profit_percentage'] ?? 25,
-            'notes' => $data['notes'],
+        $record->itemable->update($data);
+        $record->itemable->calculateAll();
+        $record->update([
+            'unit_price' => $record->itemable->final_price / $record->itemable->quantity,
+            'total_price' => $record->itemable->final_price,
         ]);
-        
-        // Actualizar acabados si existen en los datos
-        if (isset($data['selected_finishings'])) {
-            $magazine->finishings()->sync($data['selected_finishings']);
-        }
-        
-        // Recalcular precios
-        $magazine->calculateAll();
-        $magazine->save();
-        
-        // Actualizar DocumentItem
-        $record->calculateAndUpdatePrices();
     }
-    
-    public function getWizardStep(): Step
+
+    public function getWizardSteps(): array
     {
-        return Step::make('Revista')
-            ->description('Crear una revista con múltiples páginas')
-            ->icon('heroicon-o-book-open')
-            ->schema([
-                $this->makeSection('Información Básica')->schema([
+        return [
+            Step::make('Información Básica')
+                ->description('Datos generales de la revista')
+                ->icon('heroicon-o-book-open')
+                ->schema([
                     Components\Textarea::make('description')
                         ->label('Descripción de la Revista')
                         ->required()
                         ->rows(3)
                         ->columnSpanFull()
                         ->placeholder('Describe la revista: temática, características especiales, etc.'),
-                        
-                    $this->makeTextInput('quantity', 'Cantidad')
-                        ->numeric()
-                        ->required()
-                        ->default(100)
-                        ->minValue(1)
-                        ->suffix('revistas')
-                        ->placeholder('100'),
-                ]),
-                
-                $this->makeSection('Dimensiones y Encuadernación')->schema([
-                    $this->makeGrid(2)->schema([
-                        $this->makeTextInput('closed_width', 'Ancho Cerrado')
+
+                    Grid::make(2)->schema([
+                        Components\TextInput::make('quantity')
+                            ->label('Cantidad')
                             ->numeric()
                             ->required()
-                            ->suffix('cm')
-                            ->default(21)
-                            ->minValue(0)
-                            ->placeholder('21')
-                            ->helperText('Ancho de la revista cuando está cerrada'),
-                            
-                        $this->makeTextInput('closed_height', 'Alto Cerrado')
+                            ->default(100)
+                            ->minValue(1)
+                            ->suffix('revistas'),
+
+                        Components\TextInput::make('profit_percentage')
+                            ->label('Margen de Ganancia')
                             ->numeric()
                             ->required()
-                            ->suffix('cm')
-                            ->default(29.7)
-                            ->minValue(0)
-                            ->placeholder('29.7')
-                            ->helperText('Alto de la revista cuando está cerrada'),
-                    ]),
-                    
-                    $this->makeGrid(2)->schema([
-                        $this->makeSelect('binding_type', 'Tipo de Encuadernación', [
-                            'grapado' => 'Grapado',
-                            'plegado' => 'Plegado', 
-                            'anillado' => 'Anillado',
-                            'cosido' => 'Cosido',
-                            'caballete' => 'Caballete',
-                            'lomo' => 'Lomo',
-                            'espiral' => 'Espiral',
-                            'wire_o' => 'Wire-O',
-                            'hotmelt' => 'Hot Melt',
-                        ])
-                        ->default('grapado')
-                        ->searchable()
-                        ->helperText('Seleccione el método de encuadernación'),
-                        
-                        $this->makeSelect('binding_side', 'Lado de Encuadernación', [
-                            'izquierda' => 'Izquierda',
-                            'derecha' => 'Derecha',
-                            'arriba' => 'Arriba',
-                            'abajo' => 'Abajo',
-                        ])
-                        ->default('izquierda')
-                        ->helperText('Posición donde se realizará la encuadernación'),
-                    ]),
-                ]),
-                
-                $this->makeSection('Acabados')->schema([
-                    Components\CheckboxList::make('selected_finishings')
-                        ->label('Acabados Disponibles')
-                        ->options(
-                            Finishing::query()
-                                ->where('active', true)
-                                ->pluck('name', 'id')
-                                ->toArray()
-                        )
-                        ->descriptions(
-                            Finishing::query()
-                                ->where('active', true)
-                                ->pluck('description', 'id')
-                                ->toArray()
-                        )
-                        ->columns(2)
-                        ->columnSpanFull()
-                        ->helperText('Seleccione los acabados que requiere la revista'),
-                ]),
-                
-                $this->makeSection('Costos Adicionales')->schema([
-                    $this->makeGrid(3)->schema([
-                        $this->makeTextInput('design_value', 'Valor Diseño')
-                            ->numeric()
-                            ->default(0)
-                            ->minValue(0)
-                            ->prefix('$')
-                            ->placeholder('0'),
-                            
-                        $this->makeTextInput('transport_value', 'Valor Transporte')
-                            ->numeric()
-                            ->default(0)
-                            ->minValue(0)
-                            ->prefix('$')
-                            ->placeholder('0'),
-                            
-                        $this->makeTextInput('profit_percentage', 'Porcentaje de Ganancia')
-                            ->numeric()
-                            ->default(25)
-                            ->minValue(0)
-                            ->maxValue(500)
                             ->suffix('%')
-                            ->placeholder('25'),
+                            ->default(25),
                     ]),
                 ]),
-                
-                $this->makeSection('Notas Adicionales')
-                    ->schema([
+
+            Step::make('Configuración de Revista')
+                ->description('Dimensiones y encuadernación')
+                ->icon('heroicon-o-adjustments-horizontal')
+                ->schema([
+                    Grid::make(2)->schema([
+                        Components\TextInput::make('closed_width')
+                            ->label('Ancho Cerrado')
+                            ->numeric()
+                            ->required()
+                            ->suffix('cm')
+                            ->default(21),
+
+                        Components\TextInput::make('closed_height')
+                            ->label('Alto Cerrado')
+                            ->numeric()
+                            ->required()
+                            ->suffix('cm')
+                            ->default(29.7),
+                    ]),
+
+                    Grid::make(2)->schema([
+                        Components\Select::make('binding_type')
+                            ->label('Tipo de Encuadernación')
+                            ->required()
+                            ->options([
+                                'grapado' => 'Grapado',
+                                'plegado' => 'Plegado',
+                                'anillado' => 'Anillado',
+                                'cosido' => 'Cosido',
+                                'caballete' => 'Caballete',
+                                'lomo' => 'Lomo',
+                                'espiral' => 'Espiral',
+                                'wire_o' => 'Wire-O',
+                                'hotmelt' => 'Hot Melt',
+                            ])
+                            ->default('grapado')
+                            ->searchable(),
+
+                        Components\Select::make('binding_side')
+                            ->label('Lado de Encuadernación')
+                            ->required()
+                            ->options([
+                                'arriba' => 'Arriba',
+                                'izquierda' => 'Izquierda',
+                                'derecha' => 'Derecha',
+                                'abajo' => 'Abajo',
+                            ])
+                            ->default('izquierda'),
+                    ]),
+
+                    Grid::make(3)->schema([
+                        Components\TextInput::make('design_value')
+                            ->label('Valor Diseño')
+                            ->numeric()
+                            ->default(0)
+                            ->prefix('$')
+                            ->minValue(0),
+
+                        Components\TextInput::make('transport_value')
+                            ->label('Valor Transporte')
+                            ->numeric()
+                            ->default(0)
+                            ->prefix('$')
+                            ->minValue(0),
+
                         Components\Textarea::make('notes')
-                            ->label('Notas')
-                            ->rows(3)
-                            ->columnSpanFull()
-                            ->placeholder('Notas adicionales sobre la revista...'),
-                    ])
-                    ->collapsible()
-                    ->collapsed(true),
-            ]);
+                            ->label('Notas Adicionales')
+                            ->rows(2)
+                            ->placeholder('Información adicional...'),
+                    ]),
+                ]),
+
+            Step::make('Configuración de Páginas')
+                ->description('Define las páginas que tendrá la revista')
+                ->icon('heroicon-o-document-duplicate')
+                ->schema([
+                    Components\Repeater::make('pages')
+                        ->label('Páginas de la Revista')
+                        ->schema([
+                            Grid::make(3)->schema([
+                                Components\Select::make('page_type')
+                                    ->label('Tipo de Página')
+                                    ->required()
+                                    ->options([
+                                        'portada' => '📖 Portada',
+                                        'contraportada' => '📗 Contraportada',
+                                        'interior' => '📄 Interior',
+                                        'inserto' => '📋 Inserto',
+                                        'separador' => '📑 Separador',
+                                        'anexo' => '📎 Anexo',
+                                    ])
+                                    ->default('interior'),
+
+                                Components\TextInput::make('page_quantity')
+                                    ->label('Cantidad')
+                                    ->numeric()
+                                    ->required()
+                                    ->default(1)
+                                    ->minValue(1)
+                                    ->suffix('pág.'),
+
+                                Components\TextInput::make('page_order')
+                                    ->label('Orden')
+                                    ->numeric()
+                                    ->required()
+                                    ->default(1)
+                                    ->minValue(1),
+                            ]),
+
+                            Components\Textarea::make('description')
+                                ->label('Descripción del Contenido')
+                                ->required()
+                                ->rows(2)
+                                ->columnSpanFull()
+                                ->placeholder('Describe el contenido de esta página...'),
+
+                            Grid::make(2)->schema([
+                                Components\Select::make('paper_id')
+                                    ->label('Papel')
+                                    ->options(function () {
+                                        $companyId = auth()->user()->company_id ?? 1;
+                                        return Paper::query()
+                                            ->where('company_id', $companyId)
+                                            ->where('is_active', true)
+                                            ->get()
+                                            ->mapWithKeys(function ($paper) {
+                                                $label = $paper->full_name ?: ($paper->code . ' - ' . $paper->name);
+                                                return [$paper->id => $label];
+                                            })
+                                            ->toArray();
+                                    })
+                                    ->required()
+                                    ->searchable(),
+
+                                Components\Select::make('printing_machine_id')
+                                    ->label('Máquina de Impresión')
+                                    ->options(function () {
+                                        $companyId = auth()->user()->company_id ?? 1;
+                                        return PrintingMachine::query()
+                                            ->where('company_id', $companyId)
+                                            ->where('is_active', true)
+                                            ->get()
+                                            ->mapWithKeys(function ($machine) {
+                                                $label = $machine->name . ' - ' . ucfirst($machine->type);
+                                                return [$machine->id => $label];
+                                            })
+                                            ->toArray();
+                                    })
+                                    ->required()
+                                    ->searchable(),
+                            ]),
+
+                            Grid::make(4)->schema([
+                                Components\TextInput::make('horizontal_size')
+                                    ->label('Ancho')
+                                    ->numeric()
+                                    ->required()
+                                    ->suffix('cm')
+                                    ->default(21),
+
+                                Components\TextInput::make('vertical_size')
+                                    ->label('Alto')
+                                    ->numeric()
+                                    ->required()
+                                    ->suffix('cm')
+                                    ->default(29.7),
+
+                                Components\TextInput::make('ink_front_count')
+                                    ->label('Tintas Frente')
+                                    ->numeric()
+                                    ->required()
+                                    ->default(1)
+                                    ->minValue(0)
+                                    ->maxValue(6),
+
+                                Components\TextInput::make('ink_back_count')
+                                    ->label('Tintas Dorso')
+                                    ->numeric()
+                                    ->required()
+                                    ->default(0)
+                                    ->minValue(0)
+                                    ->maxValue(6),
+                            ]),
+                        ])
+                        ->defaultItems(1)
+                        ->minItems(1)
+                        ->maxItems(20)
+                        ->collapsible()
+                        ->itemLabel(fn (array $state): ?string => $state['page_type'] ?
+                            '📄 ' . ucfirst($state['page_type']) . ' - ' . ($state['page_quantity'] ?? 1) . ' pág.' :
+                            'Nueva Página'
+                        )
+                        ->columnSpanFull(),
+                ]),
+        ];
     }
-    
-    public function handleCreate($document, array $data): void
+
+    public function getWizardStep(): Step
     {
-        // Crear el MagazineItem
-        $magazine = MagazineItem::create([
+        return $this->getWizardSteps()[0];
+    }
+
+    public function handleCreate(array $data): void
+    {
+        // Extraer datos de páginas
+        $pagesData = $data['pages'] ?? [];
+        unset($data['pages']);
+
+        $magazine = MagazineItem::create(array_merge($data, [
             'company_id' => auth()->user()->company_id,
-            'description' => $data['description'],
-            'quantity' => $data['quantity'],
-            'closed_width' => $data['closed_width'],
-            'closed_height' => $data['closed_height'],
-            'binding_type' => $data['binding_type'],
-            'binding_side' => $data['binding_side'],
-            'design_value' => $data['design_value'] ?? 0,
-            'transport_value' => $data['transport_value'] ?? 0,
-            'profit_percentage' => $data['profit_percentage'] ?? 25,
-            'notes' => $data['notes'] ?? null,
-        ]);
-        
-        // Asociar acabados si se proporcionaron
-        if (isset($data['selected_finishings']) && !empty($data['selected_finishings'])) {
-            $magazine->finishings()->attach($data['selected_finishings']);
+        ]));
+
+        // Crear páginas si se proporcionaron
+        if (!empty($pagesData)) {
+            $this->createPagesFromWizardData($magazine, $pagesData);
+        } else {
+            // Crear página por defecto si no se especificaron
+            $this->createDefaultPage($magazine);
         }
-        
-        // Calcular precios iniciales
+
+        // Recalcular costos después de crear páginas
         $magazine->calculateAll();
         $magazine->save();
-        
-        // Crear DocumentItem
-        $documentItem = $document->items()->create([
+
+        $this->record->documentItems()->create([
             'itemable_type' => MagazineItem::class,
             'itemable_id' => $magazine->id,
-            'quantity' => $data['quantity'],
-            'unit_price' => $magazine->final_price / $data['quantity'],
+            'quantity' => $magazine->quantity,
+            'unit_price' => $magazine->final_price / $magazine->quantity,
             'total_price' => $magazine->final_price,
+            'order' => $this->record->documentItems()->max('order') + 1,
         ]);
-        
-        // Calcular y actualizar precios del DocumentItem
-        $documentItem->calculateAndUpdatePrices();
-        
-        Notification::make()
-            ->title('Revista creada exitosamente')
-            ->body('La revista se ha agregado a la cotización. Puede agregar páginas editándola.')
-            ->success()
-            ->send();
     }
-    
+
+    private function createPagesFromWizardData(MagazineItem $magazine, array $pagesData): void
+    {
+        foreach ($pagesData as $pageData) {
+            // Crear SimpleItem para cada página
+            $simpleItem = SimpleItem::create([
+                'company_id' => $magazine->company_id,
+                'description' => $pageData['description'],
+                'quantity' => $magazine->quantity * ($pageData['page_quantity'] ?? 1),
+                'horizontal_size' => $pageData['horizontal_size'],
+                'vertical_size' => $pageData['vertical_size'],
+                'paper_id' => $pageData['paper_id'],
+                'printing_machine_id' => $pageData['printing_machine_id'],
+                'ink_front_count' => $pageData['ink_front_count'] ?? 1,
+                'ink_back_count' => $pageData['ink_back_count'] ?? 0,
+                'design_value' => $pageData['design_value'] ?? 0,
+                'transport_value' => $pageData['transport_value'] ?? 0,
+                'profit_percentage' => $pageData['profit_percentage'] ?? 25,
+            ]);
+
+            // Crear MagazinePage
+            MagazinePage::create([
+                'magazine_item_id' => $magazine->id,
+                'simple_item_id' => $simpleItem->id,
+                'page_type' => $pageData['page_type'],
+                'page_order' => $pageData['page_order'] ?? 1,
+                'page_quantity' => $pageData['page_quantity'] ?? 1,
+            ]);
+        }
+    }
+
+    private function createDefaultPage(MagazineItem $magazine): void
+    {
+        // Crear SimpleItem por defecto
+        $simpleItem = SimpleItem::create([
+            'company_id' => $magazine->company_id,
+            'description' => 'Página interior de ' . $magazine->description,
+            'quantity' => $magazine->quantity,
+            'horizontal_size' => $magazine->closed_width,
+            'vertical_size' => $magazine->closed_height,
+            'paper_id' => Paper::where('company_id', $magazine->company_id)->first()?->id,
+            'printing_machine_id' => PrintingMachine::where('company_id', $magazine->company_id)->first()?->id,
+            'ink_front_count' => 1,
+            'ink_back_count' => 0,
+            'design_value' => 0,
+            'transport_value' => 0,
+            'profit_percentage' => 25,
+        ]);
+
+        // Crear MagazinePage por defecto
+        MagazinePage::create([
+            'magazine_item_id' => $magazine->id,
+            'simple_item_id' => $simpleItem->id,
+            'page_type' => 'interior',
+            'page_order' => 1,
+            'page_quantity' => 1,
+        ]);
+    }
 }

@@ -668,6 +668,30 @@ class DocumentItemsRelationManager extends RelationManager
                                 ];
                             }
 
+                            if ($itemType === 'magazine') {
+                                return [
+                                    Forms\Components\Hidden::make('itemable_type')
+                                        ->default('App\\Models\\MagazineItem'),
+
+                                    \Filament\Schemas\Components\Wizard::make(
+                                        (new MagazineItemHandler())->getWizardSteps()
+                                    )
+                                    ->columnSpanFull(),
+                                ];
+                            }
+
+                            if ($itemType === 'talonario') {
+                                return [
+                                    Forms\Components\Hidden::make('itemable_type')
+                                        ->default('App\\Models\\TalonarioItem'),
+
+                                    \Filament\Schemas\Components\Wizard::make(
+                                        (new TalonarioItemHandler())->getWizardSteps()
+                                    )
+                                    ->columnSpanFull(),
+                                ];
+                            }
+
                             // Para otros tipos de item, mostrar mensaje temporal
                             return [
                                 Forms\Components\Placeholder::make('not_implemented')
@@ -1631,109 +1655,39 @@ class DocumentItemsRelationManager extends RelationManager
                     ->successNotificationTitle('Producto agregado correctamente'),
 
                 Action::make('quick_magazine_item')
-                    ->label('Revista Rápida')
+                    ->label('Crear Revista Completa')
                     ->icon('heroicon-o-rectangle-stack')
                     ->color('indigo')
                     ->form([
-                        \Filament\Schemas\Components\Section::make('Crear Revista')
-                            ->description('Crear una nueva revista con configuración básica')
-                            ->schema([
-                                Forms\Components\Textarea::make('description')
-                                    ->label('Descripción de la Revista')
-                                    ->required()
-                                    ->rows(2)
-                                    ->placeholder('Revista corporativa, catálogo de productos, etc.'),
-
-                                Grid::make(3)
-                                    ->schema([
-                                        Forms\Components\TextInput::make('quantity')
-                                            ->label('Cantidad')
-                                            ->numeric()
-                                            ->required()
-                                            ->default(100)
-                                            ->minValue(1)
-                                            ->suffix('revistas'),
-
-                                        Forms\Components\TextInput::make('closed_width')
-                                            ->label('Ancho Cerrado (cm)')
-                                            ->numeric()
-                                            ->required()
-                                            ->default(21)
-                                            ->minValue(1)
-                                            ->suffix('cm'),
-
-                                        Forms\Components\TextInput::make('closed_height')
-                                            ->label('Alto Cerrado (cm)')
-                                            ->numeric()
-                                            ->required()
-                                            ->default(29.7)
-                                            ->minValue(1)
-                                            ->suffix('cm'),
-                                    ]),
-
-                                Grid::make(2)
-                                    ->schema([
-                                        Forms\Components\Select::make('binding_type')
-                                            ->label('Tipo de Encuadernación')
-                                            ->required()
-                                            ->options([
-                                                'grapado' => 'Grapado',
-                                                'cosido' => 'Cosido',
-                                                'anillado' => 'Anillado',
-                                                'espiral' => 'Espiral',
-                                            ])
-                                            ->default('grapado'),
-
-                                        Forms\Components\Select::make('binding_side')
-                                            ->label('Lado de Encuadernación')
-                                            ->required()
-                                            ->options([
-                                                'izquierda' => 'Izquierda',
-                                                'derecha' => 'Derecha',
-                                                'arriba' => 'Arriba',
-                                                'abajo' => 'Abajo',
-                                            ])
-                                            ->default('izquierda'),
-                                    ]),
-
-                                Forms\Components\Placeholder::make('magazine_info')
-                                    ->content('📖 Una vez creada la revista, podrás agregar las páginas (SimpleItems) desde la vista de edición.')
-                                    ->columnSpanFull(),
-                            ]),
+                        \Filament\Schemas\Components\Wizard::make(
+                            (new MagazineItemHandler())->getWizardSteps()
+                        )
+                        ->columnSpanFull(),
                     ])
                     ->action(function (array $data) {
-                        // Crear el MagazineItem
-                        $magazine = \App\Models\MagazineItem::create([
-                            'company_id' => auth()->user()->company_id,
-                            'description' => $data['description'],
-                            'quantity' => $data['quantity'],
-                            'closed_width' => $data['closed_width'],
-                            'closed_height' => $data['closed_height'],
-                            'binding_type' => $data['binding_type'],
-                            'binding_side' => $data['binding_side'],
-                            'design_value' => 0,
-                            'transport_value' => 0,
-                            'profit_percentage' => 25,
-                        ]);
+                        // Usar el handler para crear la revista completa con páginas
+                        $handler = new MagazineItemHandler();
+                        $handler->setRecord($this->getOwnerRecord());
 
-                        // Crear el DocumentItem asociado
-                        $this->getOwnerRecord()->items()->create([
-                            'itemable_type' => 'App\\Models\\MagazineItem',
-                            'itemable_id' => $magazine->id,
-                            'description' => 'Revista: '.$magazine->description,
-                            'quantity' => $magazine->quantity,
-                            'unit_price' => $magazine->final_price > 0 ? $magazine->final_price / $magazine->quantity : 0,
-                            'total_price' => $magazine->final_price,
-                        ]);
+                        try {
+                            $handler->handleCreate($data);
 
-                        // Recalcular totales del documento
-                        $this->getOwnerRecord()->recalculateTotals();
+                            // Recalcular totales del documento
+                            $this->getOwnerRecord()->recalculateTotals();
 
-                        // Refrescar la tabla
-                        $this->dispatch('$refresh');
+                            // Refrescar la tabla
+                            $this->dispatch('$refresh');
+
+                        } catch (\Exception $e) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Error al crear la revista')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
                     })
-                    ->modalWidth('4xl')
-                    ->successNotificationTitle('Revista creada correctamente'),
+                    ->modalWidth('7xl')
+                    ->successNotificationTitle('Revista creada correctamente con todas sus páginas'),
 
                 Action::make('quick_talonario_item')
                     ->label('Talonario Completo')
@@ -1950,7 +1904,7 @@ class DocumentItemsRelationManager extends RelationManager
                         if ($record->itemable_type === 'App\\Models\\MagazineItem') {
                             $handler = new MagazineItemHandler;
 
-                            return $handler->getEditForm($record)->getComponents();
+                            return $handler->getEditForm($record);
                         }
 
                         if ($record->itemable_type === 'App\\Models\\CustomItem') {

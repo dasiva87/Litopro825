@@ -518,7 +518,161 @@ class MagazineItemForm
                     ])
                     ->collapsible()
                     ->collapsed(false),
-                    
+
+                Section::make('Configuración de Páginas')
+                    ->description('Define las páginas que tendrá la revista durante la creación')
+                    ->schema([
+                        Repeater::make('pages')
+                            ->label('Páginas de la Revista')
+                            ->schema([
+                                Grid::make(3)->schema([
+                                    Select::make('page_type')
+                                        ->label('Tipo de Página')
+                                        ->required()
+                                        ->options([
+                                            'portada' => '📖 Portada',
+                                            'contraportada' => '📗 Contraportada',
+                                            'interior' => '📄 Interior',
+                                            'inserto' => '📋 Inserto',
+                                            'separador' => '📑 Separador',
+                                            'anexo' => '📎 Anexo',
+                                        ])
+                                        ->default('interior'),
+
+                                    TextInput::make('page_quantity')
+                                        ->label('Cantidad de Páginas')
+                                        ->numeric()
+                                        ->required()
+                                        ->default(1)
+                                        ->minValue(1)
+                                        ->suffix('páginas'),
+
+                                    TextInput::make('page_order')
+                                        ->label('Orden')
+                                        ->numeric()
+                                        ->required()
+                                        ->default(1)
+                                        ->minValue(1),
+                                ]),
+
+                                Textarea::make('description')
+                                    ->label('Descripción del Contenido')
+                                    ->required()
+                                    ->rows(2)
+                                    ->columnSpanFull()
+                                    ->placeholder('Describe el contenido de esta página...'),
+
+                                Grid::make(2)->schema([
+                                    Select::make('paper_id')
+                                        ->label('Papel')
+                                        ->options(function () {
+                                            $companyId = auth()->user()->company_id ?? 1;
+                                            return Paper::query()
+                                                ->where('company_id', $companyId)
+                                                ->where('is_active', true)
+                                                ->get()
+                                                ->mapWithKeys(function ($paper) {
+                                                    $label = $paper->full_name ?: ($paper->code . ' - ' . $paper->name);
+                                                    return [$paper->id => $label];
+                                                })
+                                                ->toArray();
+                                        })
+                                        ->required()
+                                        ->searchable(),
+
+                                    Select::make('printing_machine_id')
+                                        ->label('Máquina de Impresión')
+                                        ->options(function () {
+                                            $companyId = auth()->user()->company_id ?? 1;
+                                            return PrintingMachine::query()
+                                                ->where('company_id', $companyId)
+                                                ->where('is_active', true)
+                                                ->get()
+                                                ->mapWithKeys(function ($machine) {
+                                                    $label = $machine->name . ' - ' . ucfirst($machine->type);
+                                                    return [$machine->id => $label];
+                                                })
+                                                ->toArray();
+                                        })
+                                        ->required()
+                                        ->searchable(),
+                                ]),
+
+                                Grid::make(4)->schema([
+                                    TextInput::make('horizontal_size')
+                                        ->label('Ancho')
+                                        ->numeric()
+                                        ->required()
+                                        ->suffix('cm')
+                                        ->minValue(0)
+                                        ->step(0.1)
+                                        ->placeholder('21.0'),
+
+                                    TextInput::make('vertical_size')
+                                        ->label('Alto')
+                                        ->numeric()
+                                        ->required()
+                                        ->suffix('cm')
+                                        ->minValue(0)
+                                        ->step(0.1)
+                                        ->placeholder('29.7'),
+
+                                    TextInput::make('ink_front_count')
+                                        ->label('Tintas Frente')
+                                        ->numeric()
+                                        ->required()
+                                        ->default(1)
+                                        ->minValue(0)
+                                        ->maxValue(6),
+
+                                    TextInput::make('ink_back_count')
+                                        ->label('Tintas Dorso')
+                                        ->numeric()
+                                        ->required()
+                                        ->default(0)
+                                        ->minValue(0)
+                                        ->maxValue(6),
+                                ]),
+
+                                Grid::make(3)->schema([
+                                    TextInput::make('design_value')
+                                        ->label('Valor Diseño')
+                                        ->numeric()
+                                        ->default(0)
+                                        ->prefix('$')
+                                        ->minValue(0),
+
+                                    TextInput::make('transport_value')
+                                        ->label('Valor Transporte')
+                                        ->numeric()
+                                        ->default(0)
+                                        ->prefix('$')
+                                        ->minValue(0),
+
+                                    TextInput::make('profit_percentage')
+                                        ->label('% Ganancia')
+                                        ->numeric()
+                                        ->default(25)
+                                        ->suffix('%')
+                                        ->minValue(0)
+                                        ->maxValue(100),
+                                ]),
+                            ])
+                            ->defaultItems(1)
+                            ->minItems(1)
+                            ->maxItems(20)
+                            ->collapsible()
+                            ->itemLabel(fn (array $state): ?string => $state['page_type'] ?
+                                '📄 ' . ucfirst($state['page_type']) . ' - ' . ($state['page_quantity'] ?? 1) . ' pág.' :
+                                'Nueva Página'
+                            )
+                            ->visible(fn ($record) => $record === null) // Solo mostrar al crear
+                            ->columnSpanFull(),
+                    ])
+                    ->visible(fn ($record) => $record === null) // Solo mostrar al crear
+                    ->collapsible()
+                    ->collapsed(false),
+
                 Section::make('Notas Adicionales')
                     ->schema([
                         Textarea::make('notes')

@@ -97,7 +97,7 @@ class SimpleItemCalculatorService
             printingCost: $printingCost,
             setupCost: $setupCost,
             totalCost: $totalPrintingCost,
-            frontBackPlate: $item->front_back_plate
+            frontBackPlate: (bool) ($item->front_back_plate ?? false)
         );
     }
 
