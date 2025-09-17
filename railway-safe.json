@@ -1,0 +1,12 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader && npm ci && npm run build"
+  },
+  "deploy": {
+    "startCommand": "php artisan migrate --force && php artisan db:seed --class=ProductionSeeder && php artisan config:cache && php artisan route:cache && php artisan view:cache && php artisan storage:link && php artisan serve --host=0.0.0.0 --port=$PORT",
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+  }
+}

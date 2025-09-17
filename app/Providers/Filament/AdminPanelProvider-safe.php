@@ -19,17 +19,15 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
+// Remove problematic theme for production
 // use Andreia\FilamentNordTheme\FilamentNordThemePlugin;
 use Filament\View\PanelsRenderHook;
-
-  
 
 class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
         return $panel
-            
             ->default()
             ->id('admin')
             ->path('admin')
@@ -39,7 +37,8 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->brandName('LitoPro')
             ->favicon(asset('favicon.ico'))
-            // ->plugin(FilamentNordThemePlugin::make()) // Comentado para Railway
+            // Removed theme plugin for production stability
+            // ->plugin(FilamentNordThemePlugin::make())
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
@@ -48,17 +47,6 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
                 // Default Filament Widgets
-                AccountWidget::class,
-                
-                // LitoPro Central Panel Widgets
-                \App\Filament\Widgets\DashboardStatsWidget::class,
-                \App\Filament\Widgets\ActiveDocumentsWidget::class,
-                \App\Filament\Widgets\SocialFeedWidget::class,
-                
-                // LitoPro Sidebar Widgets (specialized tools)
-                \App\Filament\Widgets\StockAlertsWidget::class,
-                \App\Filament\Widgets\DeadlinesWidget::class,
-                \App\Filament\Widgets\PaperCalculatorWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
@@ -70,17 +58,12 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                \App\Http\Middleware\TrustedProxyMiddleware::class,
             ])
             ->authMiddleware([
                 Authenticate::class,
             ])
-            ->renderHook(
-                PanelsRenderHook::TOPBAR_BEFORE,
-                fn (): string => view('components.custom-topbar')->render(),
-            )
-            ->renderHook(
-                PanelsRenderHook::TOPBAR_START,
-                fn (): string => '<style>.fi-topbar { display: none !important; }</style>',
-            );
+            ->viteTheme('resources/css/app.css')
+            ->spa();
     }
 }
