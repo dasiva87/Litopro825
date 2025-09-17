@@ -8,9 +8,10 @@
 git clone <repo-url>
 cd litopro825
 
-# Instalar dependencias
-composer install --optimize-autoloader --no-dev
-npm install && npm run build
+# Railway se encarga automáticamente de:
+# - composer install --optimize-autoloader --no-dev
+# - npm ci && npm run build
+# - php artisan storage:link
 ```
 
 ### 2. Variables de Entorno Requeridas
@@ -40,22 +41,46 @@ QUEUE_CONNECTION=database
 FILAMENT_DOMAIN=tu-dominio.railway.app
 ```
 
-### 3. Comandos de Deploy
-En Railway, configurar estos comandos en orden:
+### 3. Archivos de Configuración Railway
 
-```bash
-# 1. Migraciones
-php artisan migrate --force
+#### nixpacks.toml (Auto build config)
+```toml
+[phases.setup]
+nixPkgs = ['nodejs_20', 'npm']
 
-# 2. Seeding (solo datos esenciales)
-php artisan db:seed --class=ProductionSeeder
+[phases.install]
+cmds = [
+    'npm ci',
+    'composer install --optimize-autoloader --no-dev'
+]
 
-# 3. Cache y optimizaciones
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-php artisan storage:link
+[phases.build]
+cmds = [
+    'npm run build',
+    'php artisan storage:link'
+]
+
+[start]
+cmd = 'php artisan serve --host=0.0.0.0 --port=$PORT'
 ```
+
+#### railway.json (Deploy config)
+```json
+{
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "npm ci && npm run build && composer install --optimize-autoloader --no-dev"
+  },
+  "deploy": {
+    "startCommand": "php artisan migrate --force && php artisan db:seed --class=ProductionSeeder && php artisan config:cache && php artisan route:cache && php artisan view:cache && php artisan storage:link && php artisan serve --host=0.0.0.0 --port=$PORT"
+  }
+}
+```
+
+### 4. Deploy Automático
+Railway ejecutará automáticamente:
+1. **Build**: Node.js deps + npm run build + Composer install
+2. **Deploy**: Migrations + Seeding + Cache + Start server
 
 ### 4. Seeders Disponibles
 
