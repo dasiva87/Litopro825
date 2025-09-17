@@ -13,15 +13,25 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Ejecutar seeders en orden
-        $this->call([
-            CountrySeeder::class,
-            StateSeeder::class,
-            CitySeeder::class,
-            RolePermissionSeeder::class,
-            TestDataSeeder::class, // Datos de prueba para desarrollo
-        ]);
+        // Determinar qué seeder ejecutar basado en el ambiente
+        $environment = app()->environment();
 
-        $this->command->info('LitoPro seeded successfully with test data!');
+        if ($environment === 'production') {
+            $this->command->info('🚀 Ambiente de PRODUCCIÓN detectado');
+            $this->call([
+                ProductionSeeder::class,
+            ]);
+        } else {
+            $this->command->info('🔧 Ambiente de DESARROLLO detectado');
+            $this->call([
+                FullDemoSeeder::class,
+            ]);
+        }
+
+        $this->command->info('✅ LitoPro seeded successfully!');
+
+        if ($environment !== 'production') {
+            $this->command->info('💡 Para producción usa: php artisan db:seed --class=ProductionSeeder');
+        }
     }
 }
