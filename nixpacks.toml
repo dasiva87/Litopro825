@@ -5,7 +5,7 @@ nixPkgs = ['nodejs_20']
 [phases.install]
 cmds = [
     'npm ci',
-    'composer install --optimize-autoloader --no-dev'
+    'composer update'
 ]
 
 [phases.build]
