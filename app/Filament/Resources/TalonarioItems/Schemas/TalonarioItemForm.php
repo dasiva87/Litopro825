@@ -2,23 +2,24 @@
 
 namespace App\Filament\Resources\TalonarioItems\Schemas;
 
-use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Grid;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\CheckboxList;
-use Filament\Schemas\Components\Actions;
-use Filament\Actions\Action;
-use Filament\Notifications\Notification;
-use Filament\Schemas\Schema;
-use App\Models\SimpleItem;
-use App\Models\TalonarioSheet;
+use App\Enums\FinishingMeasurementUnit;
 use App\Models\Finishing;
 use App\Models\Paper;
 use App\Models\PrintingMachine;
-use App\Enums\FinishingMeasurementUnit;
+use App\Models\SimpleItem;
+use App\Models\TalonarioSheet;
+use Filament\Actions\Action;
+use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Actions;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 
 class TalonarioItemForm
 {
@@ -27,18 +28,18 @@ class TalonarioItemForm
      */
     private static function getTalonarioItem($record): ?\App\Models\TalonarioItem
     {
-        if (!$record) {
+        if (! $record) {
             return null;
         }
-        
+
         if ($record instanceof \App\Models\TalonarioItem) {
             return $record;
         }
-        
+
         if ($record instanceof \App\Models\DocumentItem && $record->itemable_type === 'App\\Models\\TalonarioItem') {
             return $record->itemable;
         }
-        
+
         return null;
     }
 
@@ -54,7 +55,7 @@ class TalonarioItemForm
                             ->rows(3)
                             ->columnSpanFull()
                             ->placeholder('Ej: Recibos de caja, Facturas comerciales, Remisiones de entrega...'),
-                            
+
                         Grid::make(2)
                             ->schema([
                                 TextInput::make('quantity')
@@ -65,7 +66,7 @@ class TalonarioItemForm
                                     ->minValue(1)
                                     ->suffix('talonarios')
                                     ->placeholder('10'),
-                                    
+
                                 TextInput::make('profit_percentage')
                                     ->label('Margen de Ganancia')
                                     ->numeric()
@@ -77,7 +78,7 @@ class TalonarioItemForm
                                     ->placeholder('25'),
                             ]),
                     ]),
-                    
+
                 Section::make('Configuración de Numeración')
                     ->schema([
                         Grid::make(3)
@@ -88,7 +89,7 @@ class TalonarioItemForm
                                     ->maxLength(10)
                                     ->placeholder('Nº, Rec., Fact., Rem.')
                                     ->helperText('Prefijo que aparece antes del número'),
-                                    
+
                                 TextInput::make('numero_inicial')
                                     ->label('Número Inicial')
                                     ->numeric()
@@ -96,7 +97,7 @@ class TalonarioItemForm
                                     ->default(1)
                                     ->minValue(1)
                                     ->placeholder('1'),
-                                    
+
                                 TextInput::make('numero_final')
                                     ->label('Número Final')
                                     ->numeric()
@@ -105,7 +106,7 @@ class TalonarioItemForm
                                     ->minValue(2)
                                     ->placeholder('1000'),
                             ]),
-                            
+
                         Grid::make(2)
                             ->schema([
                                 TextInput::make('numeros_por_talonario')
@@ -117,29 +118,29 @@ class TalonarioItemForm
                                     ->maxValue(100)
                                     ->placeholder('25')
                                     ->helperText('Cantidad de números en cada talonario'),
-                                    
+
                                 Placeholder::make('numbering_preview')
                                     ->label('Vista Previa')
                                     ->content(function ($get, $record) {
                                         $prefijo = $get('prefijo') ?? ($record?->prefijo ?? 'Nº');
                                         $inicial = $get('numero_inicial') ?? ($record?->numero_inicial ?? 1);
                                         $final = $get('numero_final') ?? ($record?->numero_final ?? 1000);
-                                        
+
                                         if ($final <= $inicial) {
                                             return '⚠️ El número final debe ser mayor al inicial';
                                         }
-                                        
+
                                         $totalNumbers = ($final - $inicial) + 1;
                                         $numerosporTalonario = $get('numeros_por_talonario') ?? ($record?->numeros_por_talonario ?? 25);
                                         $totalTalonarios = ceil($totalNumbers / $numerosporTalonario);
-                                        
-                                        return "📊 Rango: Del {$prefijo}{$inicial} al {$prefijo}{$final}<br>" .
+
+                                        return "📊 Rango: Del {$prefijo}{$inicial} al {$prefijo}{$final}<br>".
                                                "📈 Total: {$totalNumbers} números • {$totalTalonarios} talonarios";
                                     })
                                     ->html(),
                             ]),
                     ]),
-                    
+
                 Section::make('Dimensiones del Talonario')
                     ->schema([
                         Grid::make(2)
@@ -153,7 +154,7 @@ class TalonarioItemForm
                                     ->step(0.1)
                                     ->placeholder('15.0')
                                     ->helperText('Ancho del talonario completo'),
-                                    
+
                                 TextInput::make('alto')
                                     ->label('Alto')
                                     ->numeric()
@@ -164,23 +165,24 @@ class TalonarioItemForm
                                     ->placeholder('10.0')
                                     ->helperText('Alto del talonario completo'),
                             ]),
-                            
+
                         Placeholder::make('dimensions_preview')
                             ->label('Área Total')
                             ->content(function ($get, $record) {
                                 $ancho = $get('ancho') ?? ($record?->ancho ?? 0);
                                 $alto = $get('alto') ?? ($record?->alto ?? 0);
-                                
+
                                 if ($ancho > 0 && $alto > 0) {
                                     $area = $ancho * $alto;
+
                                     return "📐 Dimensiones: {$ancho}cm × {$alto}cm = {$area}cm²";
                                 }
-                                
+
                                 return '📐 Ingrese las dimensiones para ver el área';
                             })
                             ->columnSpanFull(),
                     ]),
-                    
+
                 Section::make('Hojas del Talonario')
                     ->description('Las hojas se crean después de guardar el talonario')
                     ->schema([
@@ -188,13 +190,13 @@ class TalonarioItemForm
                             ->label('Hojas Actuales')
                             ->content(function ($record) {
                                 $talonarioItem = self::getTalonarioItem($record);
-                                
-                                if (!$talonarioItem) {
+
+                                if (! $talonarioItem) {
                                     return '📋 No hay hojas agregadas. Guarde el talonario para comenzar a agregar hojas.';
                                 }
 
                                 $sheets = $talonarioItem->getSheetsTableData();
-                                
+
                                 if (empty($sheets)) {
                                     return '📋 No hay hojas agregadas. Use el botón "Agregar Hoja" para crear la primera hoja.';
                                 }
@@ -215,16 +217,16 @@ class TalonarioItemForm
 
                                 foreach ($sheets as $sheet) {
                                     $content .= '<tr>';
-                                    $content .= '<td class="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">' . $sheet['order'] . '</td>';
+                                    $content .= '<td class="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">'.$sheet['order'].'</td>';
                                     $content .= '<td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">';
-                                    $content .= '<span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">' . $sheet['type'] . '</span>';
+                                    $content .= '<span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">'.$sheet['type'].'</span>';
                                     $content .= '</td>';
                                     $content .= '<td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">';
-                                    $content .= '<span class="inline-flex px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">' . ucfirst($sheet['color']) . '</span>';
+                                    $content .= '<span class="inline-flex px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">'.ucfirst($sheet['color']).'</span>';
                                     $content .= '</td>';
-                                    $content .= '<td class="px-3 py-2 text-sm text-gray-900">' . substr($sheet['description'], 0, 50) . '...</td>';
-                                    $content .= '<td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">$' . $sheet['unit_price'] . '</td>';
-                                    $content .= '<td class="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">$' . $sheet['total_cost'] . '</td>';
+                                    $content .= '<td class="px-3 py-2 text-sm text-gray-900">'.substr($sheet['description'], 0, 50).'...</td>';
+                                    $content .= '<td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">$'.$sheet['unit_price'].'</td>';
+                                    $content .= '<td class="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">$'.$sheet['total_cost'].'</td>';
                                     $content .= '</tr>';
                                 }
 
@@ -236,7 +238,7 @@ class TalonarioItemForm
                             })
                             ->html()
                             ->columnSpanFull(),
-                            
+
                         Actions::make([
                             Action::make('add_sheet')
                                 ->label('📋 Agregar Hoja')
@@ -256,10 +258,10 @@ class TalonarioItemForm
                                                             'original' => 'Original',
                                                             'copia_1' => '1ª Copia',
                                                             'copia_2' => '2ª Copia',
-                                                            'copia_3' => '3ª Copia'
+                                                            'copia_3' => '3ª Copia',
                                                         ])
                                                         ->default('original'),
-                                                        
+
                                                     Select::make('paper_color')
                                                         ->label('Color del Papel')
                                                         ->required()
@@ -269,10 +271,10 @@ class TalonarioItemForm
                                                             'rosado' => '💗 Rosado',
                                                             'azul' => '💙 Azul',
                                                             'verde' => '💚 Verde',
-                                                            'naranja' => '🧡 Naranja'
+                                                            'naranja' => '🧡 Naranja',
                                                         ])
                                                         ->default('blanco'),
-                                                        
+
                                                     TextInput::make('sheet_order')
                                                         ->label('Orden')
                                                         ->numeric()
@@ -281,7 +283,7 @@ class TalonarioItemForm
                                                         ->minValue(1)
                                                         ->helperText('Orden de la hoja en el talonario'),
                                                 ]),
-                                                
+
                                             Textarea::make('description')
                                                 ->label('Descripción del Contenido')
                                                 ->required()
@@ -289,7 +291,7 @@ class TalonarioItemForm
                                                 ->columnSpanFull()
                                                 ->placeholder('Describe el contenido de esta hoja...'),
                                         ]),
-                                        
+
                                     Section::make('Materiales')
                                         ->schema([
                                             Grid::make(2)
@@ -298,11 +300,13 @@ class TalonarioItemForm
                                                         ->label('Papel')
                                                         ->options(function () {
                                                             $companyId = auth()->user()->company_id ?? 1;
+
                                                             return Paper::query()
                                                                 ->where('company_id', $companyId)
                                                                 ->get()
                                                                 ->mapWithKeys(function ($paper) {
-                                                                    $label = $paper->full_name ?: ($paper->code . ' - ' . $paper->name);
+                                                                    $label = $paper->full_name ?: ($paper->code.' - '.$paper->name);
+
                                                                     return [$paper->id => $label];
                                                                 })
                                                                 ->toArray();
@@ -310,16 +314,18 @@ class TalonarioItemForm
                                                         ->required()
                                                         ->searchable()
                                                         ->placeholder('Seleccionar papel'),
-                                                        
+
                                                     Select::make('printing_machine_id')
                                                         ->label('Máquina de Impresión')
                                                         ->options(function () {
                                                             $companyId = auth()->user()->company_id ?? 1;
+
                                                             return PrintingMachine::query()
                                                                 ->where('company_id', $companyId)
                                                                 ->get()
                                                                 ->mapWithKeys(function ($machine) {
-                                                                    $label = $machine->name . ' - ' . ucfirst($machine->type);
+                                                                    $label = $machine->name.' - '.ucfirst($machine->type);
+
                                                                     return [$machine->id => $label];
                                                                 })
                                                                 ->toArray();
@@ -329,7 +335,7 @@ class TalonarioItemForm
                                                         ->placeholder('Seleccionar máquina'),
                                                 ]),
                                         ]),
-                                        
+
                                     Section::make('Configuración de Tintas')
                                         ->schema([
                                             Grid::make(3)
@@ -343,7 +349,7 @@ class TalonarioItemForm
                                                         ->maxValue(8)
                                                         ->placeholder('1')
                                                         ->helperText('Talonarios normalmente usan 1 tinta (negro)'),
-                                                        
+
                                                     TextInput::make('ink_back_count')
                                                         ->label('Tintas Reverso')
                                                         ->numeric()
@@ -352,12 +358,12 @@ class TalonarioItemForm
                                                         ->minValue(0)
                                                         ->maxValue(8)
                                                         ->placeholder('0'),
-                                                        
+
                                                     Select::make('front_back_plate')
                                                         ->label('Placa Frente y Reverso')
                                                         ->options([
                                                             0 => 'No - Placas separadas',
-                                                            1 => 'Sí - Misma placa'
+                                                            1 => 'Sí - Misma placa',
                                                         ])
                                                         ->default(0)
                                                         ->required()
@@ -367,33 +373,33 @@ class TalonarioItemForm
                                 ])
                                 ->action(function (array $data, $record) {
                                     $talonarioItem = self::getTalonarioItem($record);
-                                    
-                                    if (!$talonarioItem) {
+
+                                    if (! $talonarioItem) {
                                         throw new \Exception('No se puede agregar hoja: Talonario no encontrado');
                                     }
-                                    
+
                                     // Extraer datos específicos de la hoja
                                     $sheetType = $data['sheet_type'] ?? 'original';
                                     $paperColor = $data['paper_color'] ?? 'blanco';
                                     $sheetOrder = $data['sheet_order'] ?? 1;
-                                    
+
                                     // Calcular cantidad correcta basada en el talonario
                                     $totalNumbers = ($talonarioItem->numero_final - $talonarioItem->numero_inicial) + 1;
                                     $correctQuantity = $totalNumbers * $talonarioItem->quantity;
-                                    
+
                                     // Preparar datos del SimpleItem (sin campos de hoja)
                                     $simpleItemData = $data;
                                     unset($simpleItemData['sheet_type'], $simpleItemData['paper_color'], $simpleItemData['sheet_order']);
-                                    
+
                                     // Configurar dimensiones y cantidad automáticamente
                                     $simpleItemData['quantity'] = $correctQuantity;
                                     $simpleItemData['horizontal_size'] = $talonarioItem->ancho;
                                     $simpleItemData['vertical_size'] = $talonarioItem->alto;
                                     $simpleItemData['profit_percentage'] = 25;
-                                    
+
                                     // Asegurar que front_back_plate sea boolean
-                                    $simpleItemData['front_back_plate'] = (bool)($simpleItemData['front_back_plate'] ?? false);
-                                    
+                                    $simpleItemData['front_back_plate'] = (bool) ($simpleItemData['front_back_plate'] ?? false);
+
                                     // Crear el SimpleItem
                                     $simpleItem = SimpleItem::create(array_merge($simpleItemData, [
                                         'company_id' => auth()->user()->company_id,
@@ -424,11 +430,136 @@ class TalonarioItemForm
                                 })
                                 ->visible(fn ($record) => $record !== null),
                         ])
-                        ->alignEnd()
-                        ->columnSpanFull()
-                        ->visible(fn ($record) => $record !== null),
+                            ->alignEnd()
+                            ->columnSpanFull()
+                            ->visible(fn ($record) => $record !== null),
                     ]),
-                    
+
+                Section::make('Configuración de Hojas')
+                    ->description('Define las hojas que tendrá el talonario durante la creación')
+                    ->schema([
+                        Repeater::make('sheets')
+                            ->label('Hojas del Talonario')
+                            ->schema([
+                                Grid::make(3)->schema([
+                                    Select::make('sheet_type')
+                                        ->label('Tipo de Hoja')
+                                        ->required()
+                                        ->options([
+                                            'original' => 'Original',
+                                            'copia_1' => '1ª Copia',
+                                            'copia_2' => '2ª Copia',
+                                            'copia_3' => '3ª Copia',
+                                        ])
+                                        ->default('original'),
+
+                                    Select::make('paper_color')
+                                        ->label('Color del Papel')
+                                        ->required()
+                                        ->options([
+                                            'blanco' => '🤍 Blanco',
+                                            'amarillo' => '💛 Amarillo',
+                                            'rosado' => '💗 Rosado',
+                                            'azul' => '💙 Azul',
+                                            'verde' => '💚 Verde',
+                                            'naranja' => '🧡 Naranja',
+                                        ])
+                                        ->default('blanco'),
+
+                                    TextInput::make('sheet_order')
+                                        ->label('Orden')
+                                        ->numeric()
+                                        ->required()
+                                        ->default(1)
+                                        ->minValue(1),
+                                ]),
+
+                                Textarea::make('description')
+                                    ->label('Descripción del Contenido')
+                                    ->required()
+                                    ->rows(2)
+                                    ->columnSpanFull()
+                                    ->placeholder('Describe el contenido de esta hoja...'),
+
+                                Grid::make(2)->schema([
+                                    Select::make('paper_id')
+                                        ->label('Papel')
+                                        ->options(function () {
+                                            $companyId = auth()->user()->company_id ?? 1;
+
+                                            return Paper::query()
+                                                ->where('company_id', $companyId)
+                                                ->where('is_active', true)
+                                                ->get()
+                                                ->mapWithKeys(function ($paper) {
+                                                    $label = $paper->full_name ?: ($paper->code.' - '.$paper->name);
+
+                                                    return [$paper->id => $label];
+                                                })
+                                                ->toArray();
+                                        })
+                                        ->required()
+                                        ->searchable(),
+
+                                    Select::make('printing_machine_id')
+                                        ->label('Máquina de Impresión')
+                                        ->options(function () {
+                                            $companyId = auth()->user()->company_id ?? 1;
+
+                                            return PrintingMachine::query()
+                                                ->where('company_id', $companyId)
+                                                ->where('is_active', true)
+                                                ->get()
+                                                ->mapWithKeys(function ($machine) {
+                                                    $label = $machine->name.' - '.ucfirst($machine->type);
+
+                                                    return [$machine->id => $label];
+                                                })
+                                                ->toArray();
+                                        })
+                                        ->required()
+                                        ->searchable(),
+                                ]),
+
+                                Grid::make(3)->schema([
+                                    TextInput::make('ink_front_count')
+                                        ->label('Tintas Frente')
+                                        ->numeric()
+                                        ->required()
+                                        ->default(1)
+                                        ->minValue(0)
+                                        ->maxValue(8),
+
+                                    TextInput::make('ink_back_count')
+                                        ->label('Tintas Reverso')
+                                        ->numeric()
+                                        ->required()
+                                        ->default(0)
+                                        ->minValue(0)
+                                        ->maxValue(8),
+
+                                    Select::make('front_back_plate')
+                                        ->label('Placa Frente/Reverso')
+                                        ->options([
+                                            0 => 'Separadas',
+                                            1 => 'Misma placa',
+                                        ])
+                                        ->default(0)
+                                        ->required(),
+                                ]),
+                            ])
+                            ->defaultItems(1)
+                            ->minItems(1)
+                            ->maxItems(4)
+                            ->itemLabel(fn (array $state): ?string => $state['description'] ?? 'Hoja sin descripción')
+                            ->collapsible()
+                            ->columns(1)
+                            ->helperText('Configura las hojas que tendrá tu talonario. Cada hoja se calculará como un item sencillo independiente.')
+                            ->visible(fn ($record) => $record === null), // Solo visible durante la creación
+                    ])
+                    ->collapsible()
+                    ->collapsed(false),
+
                 Section::make('Acabados Específicos')
                     ->schema([
                         CheckboxList::make('selected_finishings')
@@ -438,7 +569,7 @@ class TalonarioItemForm
                                     ->where('active', true)
                                     ->whereIn('measurement_unit', [
                                         FinishingMeasurementUnit::POR_NUMERO->value,
-                                        FinishingMeasurementUnit::POR_TALONARIO->value
+                                        FinishingMeasurementUnit::POR_TALONARIO->value,
                                     ])
                                     ->pluck('name', 'id')
                                     ->toArray()
@@ -448,13 +579,14 @@ class TalonarioItemForm
                                     ->where('active', true)
                                     ->whereIn('measurement_unit', [
                                         FinishingMeasurementUnit::POR_NUMERO->value,
-                                        FinishingMeasurementUnit::POR_TALONARIO->value
+                                        FinishingMeasurementUnit::POR_TALONARIO->value,
                                     ])
                                     ->get()
                                     ->mapWithKeys(function ($finishing) {
                                         $description = $finishing->description;
-                                        $price = '$' . number_format($finishing->unit_price, 0);
+                                        $price = '$'.number_format($finishing->unit_price, 0);
                                         $unit = $finishing->measurement_unit->label();
+
                                         return [$finishing->id => "{$description} - {$price} {$unit}"];
                                     })
                                     ->toArray()
@@ -467,10 +599,11 @@ class TalonarioItemForm
                                 if ($talonarioItem && $talonarioItem->finishings) {
                                     return $talonarioItem->finishings->pluck('id')->toArray();
                                 }
+
                                 return [];
                             }),
                     ]),
-                    
+
                 Section::make('Costos Adicionales')
                     ->schema([
                         Grid::make(2)
@@ -482,7 +615,7 @@ class TalonarioItemForm
                                     ->minValue(0)
                                     ->prefix('$')
                                     ->placeholder('0'),
-                                    
+
                                 TextInput::make('transport_value')
                                     ->label('Valor Transporte')
                                     ->numeric()
@@ -492,7 +625,7 @@ class TalonarioItemForm
                                     ->placeholder('0'),
                             ]),
                     ]),
-                    
+
                 Section::make('Resumen de Costos')
                     ->schema([
                         Grid::make(3)
@@ -501,50 +634,65 @@ class TalonarioItemForm
                                     ->label('Costo Total de Hojas')
                                     ->content(function ($get, $record) {
                                         $talonarioItem = self::getTalonarioItem($record);
-                                        if (!$talonarioItem) return '$0.00';
-                                        return '$' . number_format($talonarioItem->sheets_total_cost ?? 0, 2);
+                                        if (! $talonarioItem) {
+                                            return '$0.00';
+                                        }
+
+                                        return '$'.number_format($talonarioItem->sheets_total_cost ?? 0, 2);
                                     }),
-                                    
+
                                 Placeholder::make('finishing_cost')
                                     ->label('Costo Acabados')
                                     ->content(function ($get, $record) {
                                         $talonarioItem = self::getTalonarioItem($record);
-                                        if (!$talonarioItem) return '$0.00';
-                                        return '$' . number_format($talonarioItem->finishing_cost ?? 0, 2);
+                                        if (! $talonarioItem) {
+                                            return '$0.00';
+                                        }
+
+                                        return '$'.number_format($talonarioItem->finishing_cost ?? 0, 2);
                                     }),
-                                    
+
                                 Placeholder::make('total_cost')
                                     ->label('Costo Total')
                                     ->content(function ($get, $record) {
                                         $talonarioItem = self::getTalonarioItem($record);
-                                        if (!$talonarioItem) return '$0.00';
-                                        return '$' . number_format($talonarioItem->total_cost ?? 0, 2);
+                                        if (! $talonarioItem) {
+                                            return '$0.00';
+                                        }
+
+                                        return '$'.number_format($talonarioItem->total_cost ?? 0, 2);
                                     }),
                             ]),
-                            
+
                         Grid::make(2)
                             ->schema([
                                 Placeholder::make('final_price')
                                     ->label('Precio Final')
                                     ->content(function ($get, $record) {
                                         $talonarioItem = self::getTalonarioItem($record);
-                                        if (!$talonarioItem) return '$0.00';
-                                        return '$' . number_format($talonarioItem->final_price ?? 0, 2);
+                                        if (! $talonarioItem) {
+                                            return '$0.00';
+                                        }
+
+                                        return '$'.number_format($talonarioItem->final_price ?? 0, 2);
                                     }),
-                                    
+
                                 Placeholder::make('unit_price')
                                     ->label('Precio Unitario')
                                     ->content(function ($get, $record) {
                                         $talonarioItem = self::getTalonarioItem($record);
-                                        if (!$talonarioItem || !$talonarioItem->quantity) return '$0.00';
+                                        if (! $talonarioItem || ! $talonarioItem->quantity) {
+                                            return '$0.00';
+                                        }
                                         $unitPrice = $talonarioItem->final_price / $talonarioItem->quantity;
-                                        return '$' . number_format($unitPrice, 2) . ' / talonario';
+
+                                        return '$'.number_format($unitPrice, 2).' / talonario';
                                     }),
                             ]),
                     ])
                     ->collapsible()
                     ->collapsed(false),
-                    
+
                 Section::make('Notas Adicionales')
                     ->schema([
                         Textarea::make('notes')

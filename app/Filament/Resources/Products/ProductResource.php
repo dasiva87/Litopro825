@@ -2,20 +2,18 @@
 
 namespace App\Filament\Resources\Products;
 
+use App\Enums\NavigationGroup;
 use App\Filament\Resources\Products\ProductResource\Pages;
 use App\Filament\Resources\Products\Schemas\ProductForm;
 use App\Filament\Resources\Products\Tables\ProductsTable;
 use App\Models\Product;
-use App\Enums\NavigationGroup;
 use BackedEnum;
-use UnitEnum;
-use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use UnitEnum;
 
 class ProductResource extends Resource
 {
@@ -29,9 +27,9 @@ class ProductResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Productos';
 
-    protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Inventario;
+    protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Cotizaciones;
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 4;
 
     public static function form(Schema $schema): Schema
     {
@@ -75,7 +73,7 @@ class ProductResource extends Resource
     public static function getNavigationBadgeColor(): ?string
     {
         $lowStockCount = static::getModel()::active()->lowStock()->count();
-        
+
         if ($lowStockCount > 0) {
             return 'warning';
         }

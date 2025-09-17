@@ -3,24 +3,21 @@
 namespace App\Filament\Resources\Documents;
 
 use App\Enums\NavigationGroup;
-
 use App\Filament\Resources\Documents\Pages\CreateDocument;
 use App\Filament\Resources\Documents\Pages\CreateQuotation;
 use App\Filament\Resources\Documents\Pages\EditDocument;
 use App\Filament\Resources\Documents\Pages\ListDocuments;
 use App\Filament\Resources\Documents\Pages\ViewDocument;
-use App\Filament\Resources\Documents\RelationManagers;
 use App\Filament\Resources\Documents\Schemas\DocumentForm;
 use App\Filament\Resources\Documents\Tables\DocumentsTable;
 use App\Models\Document;
-use App\Models\DocumentType;
+use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use BackedEnum;
 use UnitEnum;
 
 class DocumentResource extends Resource
@@ -28,16 +25,16 @@ class DocumentResource extends Resource
     protected static ?string $model = Document::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentText;
-    
+
     protected static ?string $navigationLabel = 'Cotizaciones';
-    
+
     protected static ?string $modelLabel = 'Cotización';
-    
+
     protected static ?string $pluralModelLabel = 'Cotizaciones';
-    
+
     protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Cotizaciones;
-    
-    protected static ?int $navigationSort = 2;
+
+    protected static ?int $navigationSort = 1;
 
     public static function form(Schema $schema): Schema
     {

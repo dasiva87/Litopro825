@@ -2,16 +2,15 @@
 
 namespace App\Filament\Resources\DigitalItems;
 
-use App\Filament\Resources\DigitalItems\Pages;
+use App\Enums\NavigationGroup;
 use App\Filament\Resources\DigitalItems\Schemas\DigitalItemForm;
 use App\Filament\Resources\DigitalItems\Tables\DigitalItemsTable;
 use App\Models\DigitalItem;
-use App\Enums\NavigationGroup;
 use BackedEnum;
-use UnitEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
+use UnitEnum;
 
 class DigitalItemResource extends Resource
 {
@@ -20,14 +19,14 @@ class DigitalItemResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-computer-desktop';
 
     protected static ?string $navigationLabel = 'Items Digitales';
-    
+
     protected static ?string $modelLabel = 'Item Digital';
-    
+
     protected static ?string $pluralModelLabel = 'Items Digitales';
 
-    protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Configuracion;
+    protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Cotizaciones;
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 5;
 
     public static function form(Schema $schema): Schema
     {
