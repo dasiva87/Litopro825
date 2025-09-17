@@ -16,7 +16,7 @@ class DigitalItemSeeder extends Seeder
         foreach ($companies as $company) {
             // Obtener un proveedor de la empresa (si existe)
             $supplier = Contact::where('company_id', $company->id)
-                ->where('is_supplier', true)
+                ->whereIn('type', ['supplier', 'both'])
                 ->first();
 
             // Items digitales por unidad

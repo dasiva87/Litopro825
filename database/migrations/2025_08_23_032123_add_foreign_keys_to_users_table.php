@@ -10,23 +10,38 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            // Verificar si el constraint company_id ya existe (creado por migración anterior)
-            $companyConstraintExists = DB::select("
+            // Verificar qué constraints ya existen (creados por migración anterior con foreignId()->constrained())
+            $existingConstraints = DB::select("
                 SELECT CONSTRAINT_NAME
                 FROM information_schema.KEY_COLUMN_USAGE
                 WHERE TABLE_SCHEMA = DATABASE()
                 AND TABLE_NAME = 'users'
-                AND CONSTRAINT_NAME = 'users_company_id_foreign'
+                AND CONSTRAINT_NAME IN (
+                    'users_company_id_foreign',
+                    'users_city_id_foreign',
+                    'users_state_id_foreign',
+                    'users_country_id_foreign'
+                )
             ");
 
-            // Solo crear el constraint si no existe
-            if (empty($companyConstraintExists)) {
+            $existingNames = array_column($existingConstraints, 'CONSTRAINT_NAME');
+
+            // Solo crear constraints que no existan
+            if (!in_array('users_company_id_foreign', $existingNames)) {
                 $table->foreign('company_id')->references('id')->on('companies')->onDelete('cascade');
             }
 
-            $table->foreign('city_id')->references('id')->on('cities')->onDelete('set null');
-            $table->foreign('state_id')->references('id')->on('states')->onDelete('set null');
-            $table->foreign('country_id')->references('id')->on('countries')->onDelete('set null');
+            if (!in_array('users_city_id_foreign', $existingNames)) {
+                $table->foreign('city_id')->references('id')->on('cities')->onDelete('set null');
+            }
+
+            if (!in_array('users_state_id_foreign', $existingNames)) {
+                $table->foreign('state_id')->references('id')->on('states')->onDelete('set null');
+            }
+
+            if (!in_array('users_country_id_foreign', $existingNames)) {
+                $table->foreign('country_id')->references('id')->on('countries')->onDelete('set null');
+            }
         });
     }
 
