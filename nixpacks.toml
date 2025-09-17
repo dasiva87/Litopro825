@@ -1,23 +1,19 @@
-# nixpacks.toml
-
 [phases.setup]
-# Instala PHP 8.3, Composer, y Node.js 20
 nixPkgs = [
+  "nodejs_20",
   "php83",
   "php83Extensions.curl",
+  "php83Extensions.fileinfo",
   "php83Extensions.mbstring",
-  "php83Extensions.tokenizer",
-  "php83Extensions.xml",
   "php83Extensions.pdo",
   "php83Extensions.pdo_mysql",
-  "php83Extensions.fileinfo",
+  "php83Extensions.tokenizer",
+  "php83Extensions.xml",
   "php83Extensions.zip",
-  "composer",
-  "nodejs_20"
+  "php83Packages.composer"
 ]
 
 [phases.install]
-# Instalar dependencias PHP y Node
 commands = [
   "composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader",
   "npm ci"
@@ -29,5 +25,4 @@ commands = [
 ]
 
 [start]
-# Arranca Laravel en el puerto asignado por Railway
 cmd = "php artisan serve --host=0.0.0.0 --port=${PORT}"
