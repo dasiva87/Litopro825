@@ -1,0 +1,33 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+/* Optimizaciones del menú para mejor respuesta */
+.fi-sidebar-nav-item:hover {
+    transition: background-color 0.1s ease-in-out !important;
+}
+
+.fi-sidebar-nav-item {
+    transition: all 0.1s ease-in-out !important;
+}
+
+/* Mejorar la respuesta de los dropdowns */
+.fi-dropdown-panel {
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+/* Optimizar animaciones del sidebar */
+.fi-sidebar {
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+/* Mejorar rendimiento de botones */
+.fi-btn {
+    transition: all 0.1s ease-in-out !important;
+}
+
+/* Optimizar hover states */
+.fi-topbar-item:hover,
+.fi-sidebar-nav-item:hover {
+    transform: translateZ(0);
+}

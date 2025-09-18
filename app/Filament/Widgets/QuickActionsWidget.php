@@ -154,13 +154,6 @@ class QuickActionsWidget extends Widget
             ->color('purple')
             ->button(),
             
-            Action::make('paper_calculator')
-                ->label('Calculadora de Papel')
-                ->icon('heroicon-o-calculator')
-                ->color('primary')
-                ->size('xl')
-                ->url(fn () => route('filament.admin.pages.cutting-calculator'))
-                ->openUrlInNewTab(false),
         ];
     }
     

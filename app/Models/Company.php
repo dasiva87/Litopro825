@@ -221,4 +221,30 @@ class Company extends Model
     {
         return CompanyFollower::getFollowingCount($this->id);
     }
+
+    /**
+     * PayU Subscription Methods
+     */
+    public function hasActiveSubscription(): bool
+    {
+        return $this->subscription_plan &&
+               $this->subscription_plan !== 'free' &&
+               $this->subscription_expires_at &&
+               $this->subscription_expires_at->isFuture();
+    }
+
+    public function getCurrentPlan(): ?Plan
+    {
+        if (!$this->subscription_plan || $this->subscription_plan === 'free') {
+            return null;
+        }
+
+        return Plan::where('name', $this->subscription_plan)->first();
+    }
+
+    // PayU subscriptions - to be implemented
+    // public function payuSubscriptions()
+    // {
+    //     return $this->hasMany(PayuSubscription::class, 'company_id');
+    // }
 }

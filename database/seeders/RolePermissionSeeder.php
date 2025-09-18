@@ -81,8 +81,6 @@ class RolePermissionSeeder extends Seeder
             'view-reports',
             'export-reports',
             
-            // Calculadora de cortes
-            'use-cutting-calculator',
         ];
 
         foreach ($permissions as $permission) {
@@ -103,7 +101,6 @@ class RolePermissionSeeder extends Seeder
                 'view-settings', 'edit-settings',
                 'view-posts', 'create-posts', 'edit-posts', 'delete-posts', 'moderate-posts',
                 'view-reports', 'export-reports',
-                'use-cutting-calculator',
             ],
             'Manager' => [
                 'view-users',
@@ -114,7 +111,6 @@ class RolePermissionSeeder extends Seeder
                 'view-equipment', 'view-products',
                 'view-posts', 'create-posts', 'edit-posts',
                 'view-reports', 'export-reports',
-                'use-cutting-calculator',
             ],
             'Salesperson' => [
                 'view-contacts', 'create-contacts', 'edit-contacts',
@@ -123,14 +119,12 @@ class RolePermissionSeeder extends Seeder
                 'view-paper-orders', 'create-paper-orders',
                 'view-equipment', 'view-products',
                 'view-posts', 'create-posts',
-                'use-cutting-calculator',
             ],
             'Operator' => [
                 'view-production-orders', 'edit-production-orders',
                 'view-paper-orders',
                 'view-equipment', 'view-products',
                 'view-posts', 'create-posts',
-                'use-cutting-calculator',
             ],
             'Customer' => [
                 'view-quotes',

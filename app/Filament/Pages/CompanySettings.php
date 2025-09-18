@@ -28,6 +28,7 @@ class CompanySettings extends Page implements HasForms, HasActions
     protected static ?string $title = 'Configuración de Empresa';
     protected static ?string $navigationLabel = 'Configuración';
     protected static ?int $navigationSort = 99;
+    protected static bool $shouldRegisterNavigation = false;
 
     public ?array $data = [];
     public Company $company;

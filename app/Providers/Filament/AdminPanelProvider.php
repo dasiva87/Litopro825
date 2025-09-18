@@ -39,6 +39,8 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->brandName('LitoPro')
             ->favicon(asset('favicon.ico'))
+            ->brandLogo(fn () => view('components.litopro-logo'))
+            ->darkModeBrandLogo(fn () => view('components.litopro-logo-dark'))
             // ->plugin(FilamentNordThemePlugin::make()) // Comentado para Railway
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
@@ -49,12 +51,12 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                 // Default Filament Widgets
                 AccountWidget::class,
-                
-                // LitoPro Central Panel Widgets
+
+                // LitoPro Central Panel Widgets (optimized load)
                 \App\Filament\Widgets\DashboardStatsWidget::class,
                 \App\Filament\Widgets\ActiveDocumentsWidget::class,
-                \App\Filament\Widgets\SocialFeedWidget::class,
-                
+                // \App\Filament\Widgets\SocialFeedWidget::class, // Disabled temporarily for performance
+
                 // LitoPro Sidebar Widgets (specialized tools)
                 \App\Filament\Widgets\StockAlertsWidget::class,
                 \App\Filament\Widgets\DeadlinesWidget::class,
@@ -74,13 +76,30 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
-            ->renderHook(
-                PanelsRenderHook::TOPBAR_BEFORE,
-                fn (): string => view('components.custom-topbar')->render(),
-            )
-            ->renderHook(
-                PanelsRenderHook::TOPBAR_START,
-                fn (): string => '<style>.fi-topbar { display: none !important; }</style>',
-            );
+            ->globalSearch()
+            ->databaseNotifications()
+            ->databaseNotificationsPolling('30s')
+            ->sidebarCollapsibleOnDesktop()
+            ->spa()
+            ->unsavedChangesAlerts()
+            ->viteTheme('resources/css/filament/admin/theme.css')
+            ->userMenuItems([
+                'dashboard' => \Filament\Navigation\MenuItem::make()
+                    ->label('Dashboard')
+                    ->url('/admin/home')
+                    ->icon('heroicon-o-squares-2x2'),
+                'red-social' => \Filament\Navigation\MenuItem::make()
+                    ->label('Red Social')
+                    ->url('/admin/social-feed')
+                    ->icon('heroicon-o-share'),
+                'configuracion' => \Filament\Navigation\MenuItem::make()
+                    ->label('Configuración')
+                    ->url('/admin/company-settings')
+                    ->icon('heroicon-o-cog-6-tooth'),
+                'perfil' => \Filament\Navigation\MenuItem::make()
+                    ->label('Mi Perfil')
+                    ->url(fn () => '/empresa/' . auth()->user()->company->slug)
+                    ->icon('heroicon-o-user-circle'),
+            ]);
     }
 }

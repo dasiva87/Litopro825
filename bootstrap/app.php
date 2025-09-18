@@ -18,6 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\TenantMiddleware::class,
         ]);
+        $middleware->alias([
+            'subscription' => \App\Http\Middleware\EnsureSubscriptionIsActive::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

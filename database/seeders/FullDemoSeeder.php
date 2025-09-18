@@ -22,6 +22,7 @@ class FullDemoSeeder extends Seeder
         // Luego datos de prueba y demo
         $this->call([
             TestDataSeeder::class,           // Empresas, usuarios, papeles, máquinas
+            PlanSeeder::class,               // Planes de suscripción
             DigitalItemSeeder::class,        // Items digitales de ejemplo
             DemoQuotationSeeder::class,      // Cotización de demostración
             DashboardDemoSeeder::class,      // Datos para widgets del dashboard

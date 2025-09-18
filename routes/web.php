@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\DocumentPdfController;
 use App\Http\Controllers\CompanyProfileController;
+use App\Http\Controllers\WebhookController;
+use App\Http\Controllers\PayUWebhookController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -15,6 +17,10 @@ Route::get('/empresa/{slug}/seguidores', [CompanyProfileController::class, 'foll
     ->name('company.followers');
 Route::get('/empresa/{slug}/siguiendo', [CompanyProfileController::class, 'following'])
     ->name('company.following');
+
+// PayU Webhooks (sin middleware de autenticación)
+Route::post('/payu/webhook', [PayUWebhookController::class, 'handle'])
+    ->name('payu.webhook');
 
 // Rutas protegidas por autenticación
 Route::middleware('auth')->group(function () {
