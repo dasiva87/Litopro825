@@ -125,7 +125,7 @@ class PrintingMachineForm
                     
                 Section::make('Información de Costos')
                     ->schema([
-                        Grid::make(2)
+                        Grid::make(3)
                             ->schema([
                                 TextInput::make('cost_per_impression')
                                     ->label('Costo por Millar')
@@ -137,7 +137,18 @@ class PrintingMachineForm
                                     ->step(0.01)
                                     ->placeholder('0.00')
                                     ->suffix('/ millar'),
-                                    
+
+                                TextInput::make('costo_ctp')
+                                    ->label('Costo CTP')
+                                    ->helperText('Costo Computer-to-Plate por plancha')
+                                    ->numeric()
+                                    ->prefix('$')
+                                    ->default(0.00)
+                                    ->minValue(0)
+                                    ->step(0.01)
+                                    ->placeholder('0.00')
+                                    ->suffix('/ plancha'),
+
                                 TextInput::make('setup_cost')
                                     ->label('Costo de Alistamiento')
                                     ->helperText('Costo fijo por cada trabajo')

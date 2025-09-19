@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use Filament\Widgets\Widget;
+use App\Services\CuttingCalculatorService;
 
 class CalculadoraCorteWidget extends Widget
 {
@@ -54,121 +55,86 @@ class CalculadoraCorteWidget extends Widget
             return;
         }
 
-        // Verificar que el corte quepa en el papel
-        if ($this->anchoCorte > $this->anchoPapel || $this->largoCorte > $this->largoPapel) {
-            if ($this->anchoCorte > $this->largoPapel || $this->largoCorte > $this->anchoPapel) {
-                $this->resultado = ['error' => 'El corte es demasiado grande para el papel.'];
-                $this->calculado = false;
-                return;
+        try {
+            $calculator = new CuttingCalculatorService();
+
+            // Calcular las tres orientaciones usando el servicio corregido
+            $horizontal = $calculator->calculateCuts(
+                floatval($this->anchoPapel),
+                floatval($this->largoPapel),
+                floatval($this->anchoCorte),
+                floatval($this->largoCorte),
+                intval($this->cantidadDeseada),
+                'horizontal'
+            );
+
+            $vertical = $calculator->calculateCuts(
+                floatval($this->anchoPapel),
+                floatval($this->largoPapel),
+                floatval($this->anchoCorte),
+                floatval($this->largoCorte),
+                intval($this->cantidadDeseada),
+                'vertical'
+            );
+
+            $maximum = $calculator->calculateCuts(
+                floatval($this->anchoPapel),
+                floatval($this->largoPapel),
+                floatval($this->anchoCorte),
+                floatval($this->largoCorte),
+                intval($this->cantidadDeseada),
+                'maximum'
+            );
+
+            // Convertir resultados al formato esperado por la vista
+            $horizontalFormatted = $this->formatResult($horizontal, 'horizontal');
+            $verticalFormatted = $this->formatResult($vertical, 'vertical');
+            $maximumFormatted = $this->formatResult($maximum, 'maximum');
+
+            switch ($this->orientacion) {
+                case 'vertical':
+                    $this->resultado = $verticalFormatted;
+                    break;
+                case 'horizontal':
+                    $this->resultado = $horizontalFormatted;
+                    break;
+                case 'optimo':
+                    // Seleccionar el mejor resultado (maximum cuts)
+                    $best = $maximum['cutsPerSheet'] >= max($horizontal['cutsPerSheet'], $vertical['cutsPerSheet'])
+                        ? $maximumFormatted
+                        : ($horizontal['cutsPerSheet'] >= $vertical['cutsPerSheet'] ? $horizontalFormatted : $verticalFormatted);
+                    $best['orientacion'] = 'óptimo (' . $best['orientacion'] . ')';
+                    $this->resultado = $best;
+                    break;
             }
+
+            $this->calculado = true;
+            $this->dispatch('calculado');
+
+        } catch (\Exception $e) {
+            $this->resultado = ['error' => 'Error en el cálculo: ' . $e->getMessage()];
+            $this->calculado = false;
         }
-
-        $vertical = $this->calcularVertical();
-        $horizontal = $this->calcularHorizontal();
-
-        switch ($this->orientacion) {
-            case 'vertical':
-                $this->resultado = $vertical;
-                break;
-            case 'horizontal':
-                $this->resultado = $horizontal;
-                break;
-            case 'optimo':
-                $this->resultado = $this->seleccionarOptimo($vertical, $horizontal);
-                break;
-        }
-
-        $this->calculado = true;
-        $this->dispatch('calculado');
     }
 
-    private function calcularVertical()
+    private function formatResult($result, $orientation)
     {
-        $piezasPorAncho = floor($this->anchoPapel / $this->anchoCorte);
-        $piezasPorLargo = floor($this->largoPapel / $this->largoCorte);
-        $piezasPorHoja = $piezasPorAncho * $piezasPorLargo;
-
-        if ($piezasPorHoja == 0) {
-            return ['error' => 'No cabe ninguna pieza en orientación vertical'];
-        }
-
-        $hojasNecesarias = ceil($this->cantidadDeseada / $piezasPorHoja);
-        $piezasObtenidas = $hojasNecesarias * $piezasPorHoja;
+        $piezasObtenidas = $result['sheetsNeeded'] * $result['cutsPerSheet'];
         $piezasSobrantes = $piezasObtenidas - $this->cantidadDeseada;
 
-        // Cálculo de desperdicios
-        $areaUtil = $piezasPorAncho * $this->anchoCorte * $piezasPorLargo * $this->largoCorte;
-        $areaPapel = $this->anchoPapel * $this->largoPapel;
-        $desperdicioArea = $areaPapel - $areaUtil;
-        $eficiencia = ($areaUtil / $areaPapel) * 100;
-
         return [
-            'orientacion' => 'vertical',
-            'piezasPorAncho' => $piezasPorAncho,
-            'piezasPorLargo' => $piezasPorLargo,
-            'piezasPorHoja' => $piezasPorHoja,
-            'hojasNecesarias' => $hojasNecesarias,
+            'orientacion' => $orientation,
+            'piezasPorAncho' => $result['horizontalCuts'],
+            'piezasPorLargo' => $result['verticalCuts'],
+            'piezasPorHoja' => $result['cutsPerSheet'],
+            'hojasNecesarias' => $result['sheetsNeeded'],
             'piezasObtenidas' => $piezasObtenidas,
             'piezasSobrantes' => $piezasSobrantes,
-            'eficiencia' => round($eficiencia, 2),
-            'desperdicioArea' => round($desperdicioArea, 2),
-            'areaUtil' => round($areaUtil, 2),
-            'areaPapel' => $areaPapel
+            'eficiencia' => round($result['usedAreaPercentage'], 2),
+            'desperdicioArea' => round(($this->anchoPapel * $this->largoPapel) - ($result['cutsPerSheet'] * $this->anchoCorte * $this->largoCorte), 2),
+            'areaUtil' => round($result['cutsPerSheet'] * $this->anchoCorte * $this->largoCorte, 2),
+            'areaPapel' => $this->anchoPapel * $this->largoPapel
         ];
-    }
-
-    private function calcularHorizontal()
-    {
-        $piezasPorAncho = floor($this->anchoPapel / $this->largoCorte);
-        $piezasPorLargo = floor($this->largoPapel / $this->anchoCorte);
-        $piezasPorHoja = $piezasPorAncho * $piezasPorLargo;
-
-        if ($piezasPorHoja == 0) {
-            return ['error' => 'No cabe ninguna pieza en orientación horizontal'];
-        }
-
-        $hojasNecesarias = ceil($this->cantidadDeseada / $piezasPorHoja);
-        $piezasObtenidas = $hojasNecesarias * $piezasPorHoja;
-        $piezasSobrantes = $piezasObtenidas - $this->cantidadDeseada;
-
-        // Cálculo de desperdicios
-        $areaUtil = $piezasPorAncho * $this->largoCorte * $piezasPorLargo * $this->anchoCorte;
-        $areaPapel = $this->anchoPapel * $this->largoPapel;
-        $desperdicioArea = $areaPapel - $areaUtil;
-        $eficiencia = ($areaUtil / $areaPapel) * 100;
-
-        return [
-            'orientacion' => 'horizontal',
-            'piezasPorAncho' => $piezasPorAncho,
-            'piezasPorLargo' => $piezasPorLargo,
-            'piezasPorHoja' => $piezasPorHoja,
-            'hojasNecesarias' => $hojasNecesarias,
-            'piezasObtenidas' => $piezasObtenidas,
-            'piezasSobrantes' => $piezasSobrantes,
-            'eficiencia' => round($eficiencia, 2),
-            'desperdicioArea' => round($desperdicioArea, 2),
-            'areaUtil' => round($areaUtil, 2),
-            'areaPapel' => $areaPapel
-        ];
-    }
-
-    private function seleccionarOptimo($vertical, $horizontal)
-    {
-        if (isset($vertical['error']) && isset($horizontal['error'])) {
-            return ['error' => 'No cabe en ninguna orientación'];
-        }
-
-        if (isset($vertical['error'])) return $horizontal;
-        if (isset($horizontal['error'])) return $vertical;
-
-        // Seleccionar el que tenga mejor eficiencia
-        if ($vertical['eficiencia'] >= $horizontal['eficiencia']) {
-            $vertical['orientacion'] = 'óptimo (vertical)';
-            return $vertical;
-        } else {
-            $horizontal['orientacion'] = 'óptimo (horizontal)';
-            return $horizontal;
-        }
     }
 
     public function setOrientacion($orientacion)

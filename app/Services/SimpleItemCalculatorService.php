@@ -106,18 +106,20 @@ class SimpleItemCalculatorService
      */
     public function calculateAdditionalCosts(SimpleItem $item, MountingOption $mountingOption): AdditionalCosts
     {
-        // Costo de corte basado en complejidad
-        $cuttingCost = $this->calculateCuttingCost($mountingOption);
-        
-        // Costo de montaje basado en tintas y complejidad
-        $mountingCost = $this->calculateMountingCost($item, $mountingOption);
-        
+        // Usar los valores del formulario o calcular si están en 0
+        $cuttingCost = ($item->cutting_cost > 0) ? $item->cutting_cost : $this->calculateCuttingCost($mountingOption);
+        $mountingCost = ($item->mounting_cost > 0) ? $item->mounting_cost : $this->calculateMountingCost($item, $mountingOption);
+
+        // CTP siempre se calcula automáticamente basado en tintas y máquina
+        $ctpCost = $this->calculateCtpCost($item);
+
         return new AdditionalCosts(
             designCost: $item->design_value ?? 0,
             transportCost: $item->transport_value ?? 0,
             rifleCost: $item->rifle_value ?? 0,
             cuttingCost: $cuttingCost,
-            mountingCost: $mountingCost
+            mountingCost: $mountingCost,
+            ctpCost: $ctpCost
         );
     }
 
@@ -238,11 +240,29 @@ class SimpleItemCalculatorService
     private function calculateMountingCost(SimpleItem $item, MountingOption $mountingOption): float
     {
         $baseMountingCost = 8000; // Costo base de montaje
-        
+
         // Aumentar por número de tintas
         $inkMultiplier = 1 + (($item->ink_front_count + $item->ink_back_count - 1) * 0.25);
-        
+
         return $baseMountingCost * $inkMultiplier;
+    }
+
+    private function calculateCtpCost(SimpleItem $item): float
+    {
+        // Si no tiene máquina de impresión, no hay costo CTP
+        if (!$item->printingMachine) {
+            return 0;
+        }
+
+        // Calcular cantidad total de tintas considerando front_back_plate
+        $totalInks = $item->front_back_plate
+            ? max($item->ink_front_count, $item->ink_back_count)
+            : ($item->ink_front_count + $item->ink_back_count);
+
+        // Solo las máquinas con costo CTP > 0 cobran este concepto
+        $ctpCostPerPlate = $item->printingMachine->costo_ctp ?? 0;
+
+        return $totalInks * $ctpCostPerPlate;
     }
 
     private function generateCostBreakdown(MountingOption $mountingOption, PrintingCalculation $printing, AdditionalCosts $additional): array
@@ -287,6 +307,11 @@ class SimpleItemCalculatorService
                 'description' => 'Rifle/Doblez',
                 'quantity' => '1 proceso',
                 'cost' => $additional->rifleCost
+            ],
+            'ctp' => [
+                'description' => 'Planchas CTP',
+                'quantity' => '1 juego',
+                'cost' => $additional->ctpCost
             ]
         ];
     }
@@ -359,26 +384,29 @@ class AdditionalCosts
         public readonly float $transportCost = 0,
         public readonly float $rifleCost = 0,
         public readonly float $cuttingCost = 0,
-        public readonly float $mountingCost = 0
+        public readonly float $mountingCost = 0,
+        public readonly float $ctpCost = 0
     ) {}
 
     public function getTotalCost(): float
     {
-        return $this->designCost + 
-               $this->transportCost + 
-               $this->rifleCost + 
-               $this->cuttingCost + 
-               $this->mountingCost;
+        return $this->designCost +
+               $this->transportCost +
+               $this->rifleCost +
+               $this->cuttingCost +
+               $this->mountingCost +
+               $this->ctpCost;
     }
 
     public function getBreakdown(): array
     {
         return [
             'design' => $this->designCost,
-            'transport' => $this->transportCost, 
+            'transport' => $this->transportCost,
             'rifle' => $this->rifleCost,
             'cutting' => $this->cuttingCost,
-            'mounting' => $this->mountingCost
+            'mounting' => $this->mountingCost,
+            'ctp' => $this->ctpCost
         ];
     }
 }

@@ -192,8 +192,9 @@ class SimpleItemCalculatorServiceTest extends TestCase
         $this->assertEquals(8000, $additionalCosts->rifleCost);
         $this->assertGreaterThan(0, $additionalCosts->cuttingCost);
         $this->assertGreaterThan(0, $additionalCosts->mountingCost);
+        $this->assertGreaterThanOrEqual(0, $additionalCosts->ctpCost); // CTP puede ser 0 si la máquina no lo cobra
 
-        $expectedTotal = 25000 + 15000 + 8000 + $additionalCosts->cuttingCost + $additionalCosts->mountingCost;
+        $expectedTotal = 25000 + 15000 + 8000 + $additionalCosts->cuttingCost + $additionalCosts->mountingCost + $additionalCosts->ctpCost;
         $this->assertEquals($expectedTotal, $additionalCosts->getTotalCost());
     }
 
@@ -201,19 +202,21 @@ class SimpleItemCalculatorServiceTest extends TestCase
     public function it_calculates_mounting_cost_based_on_ink_count()
     {
         $item1 = SimpleItem::factory()->create([
-            
             'paper_id' => $this->paper->id,
             'printing_machine_id' => $this->machine->id,
             'ink_front_count' => 1,
-            'ink_back_count' => 0
+            'ink_back_count' => 0,
+            'cutting_cost' => 0,  // Para activar cálculo automático
+            'mounting_cost' => 0  // Para activar cálculo automático
         ]);
 
         $item2 = SimpleItem::factory()->create([
-            
             'paper_id' => $this->paper->id,
             'printing_machine_id' => $this->machine->id,
             'ink_front_count' => 4,
-            'ink_back_count' => 4
+            'ink_back_count' => 4,
+            'cutting_cost' => 0,  // Para activar cálculo automático
+            'mounting_cost' => 0  // Para activar cálculo automático
         ]);
 
         $mountingOptions1 = $this->calculator->calculateMountingOptions($item1);

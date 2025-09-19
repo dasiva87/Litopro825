@@ -77,7 +77,13 @@ class PrintingMachinesTable
                     ->money('COP')
                     ->suffix(' /millar')
                     ->sortable(),
-                    
+
+                TextColumn::make('costo_ctp')
+                    ->label('Costo CTP')
+                    ->sortable()
+                    ->toggleable()
+                    ->formatStateUsing(fn ($state) => $state > 0 ? '$' . number_format($state, 2) . ' /plancha' : 'N/A'),
+
                 TextColumn::make('setup_cost')
                     ->label('Alistamiento')
                     ->money('COP')

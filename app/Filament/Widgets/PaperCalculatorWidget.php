@@ -78,7 +78,7 @@ class PaperCalculatorWidget extends Widget
             'itemHeight.numeric' => 'El alto debe ser un número',
             'itemHeight.min' => 'El alto debe ser mayor a 0.1 cm',
         ]);
-        
+
         if ($this->paperSize === 'custom') {
             $this->validate([
                 'customPaperWidth' => 'required|numeric|min:1',
@@ -87,61 +87,88 @@ class PaperCalculatorWidget extends Widget
                 'customPaperWidth.required' => 'El ancho del papel es requerido',
                 'customPaperHeight.required' => 'El alto del papel es requerido',
             ]);
-            
+
             $paperWidth = floatval($this->customPaperWidth);
             $paperHeight = floatval($this->customPaperHeight);
         } else {
             $paperWidth = $this->selectedPaper['width'];
             $paperHeight = $this->selectedPaper['height'];
         }
-        
+
         $calculator = new CuttingCalculatorService();
-        
-        // Calculate both orientations
-        $horizontalResult = $calculator->calculateOptimalCutting(
+
+        // Calculate all three orientations using the corrected service
+        $horizontalResult = $calculator->calculateCuts(
             $paperWidth,
             $paperHeight,
             floatval($this->itemWidth),
-            floatval($this->itemHeight)
+            floatval($this->itemHeight),
+            1000, // Default quantity for calculation
+            'horizontal'
         );
-        
-        $verticalResult = $calculator->calculateOptimalCutting(
+
+        $verticalResult = $calculator->calculateCuts(
             $paperWidth,
             $paperHeight,
-            floatval($this->itemHeight), // Swap dimensions
-            floatval($this->itemWidth)
+            floatval($this->itemWidth),
+            floatval($this->itemHeight),
+            1000,
+            'vertical'
         );
-        
-        // Select the best option
-        $bestResult = $horizontalResult->totalCuts >= $verticalResult->totalCuts 
-            ? $horizontalResult 
-            : $verticalResult;
-        
+
+        $maximumResult = $calculator->calculateCuts(
+            $paperWidth,
+            $paperHeight,
+            floatval($this->itemWidth),
+            floatval($this->itemHeight),
+            1000,
+            'maximum'
+        );
+
+        // Select the best option (maximum cuts)
+        $results = [
+            'horizontal' => $horizontalResult,
+            'vertical' => $verticalResult,
+            'maximum' => $maximumResult
+        ];
+
+        $bestOrientation = array_reduce(array_keys($results), function($best, $current) use ($results) {
+            return $results[$current]['cutsPerSheet'] > $results[$best]['cutsPerSheet'] ? $current : $best;
+        }, 'horizontal');
+
         $this->calculation = [
             'horizontal' => [
-                'cuts_h' => $horizontalResult->cutsH,
-                'cuts_v' => $horizontalResult->cutsV,
-                'total_cuts' => $horizontalResult->totalCuts,
-                'efficiency' => $horizontalResult->efficiency,
-                'waste_area' => $horizontalResult->wasteArea,
+                'cuts_h' => $horizontalResult['horizontalCuts'],
+                'cuts_v' => $horizontalResult['verticalCuts'],
+                'total_cuts' => $horizontalResult['cutsPerSheet'],
+                'efficiency' => $horizontalResult['usedAreaPercentage'],
+                'waste' => $horizontalResult['wastedAreaPercentage'],
                 'orientation' => 'horizontal'
             ],
             'vertical' => [
-                'cuts_h' => $verticalResult->cutsV, // Note: swapped because we rotated
-                'cuts_v' => $verticalResult->cutsH,
-                'total_cuts' => $verticalResult->totalCuts,
-                'efficiency' => $verticalResult->efficiency,
-                'waste_area' => $verticalResult->wasteArea,
+                'cuts_h' => $verticalResult['horizontalCuts'],
+                'cuts_v' => $verticalResult['verticalCuts'],
+                'total_cuts' => $verticalResult['cutsPerSheet'],
+                'efficiency' => $verticalResult['usedAreaPercentage'],
+                'waste' => $verticalResult['wastedAreaPercentage'],
                 'orientation' => 'vertical'
             ],
+            'maximum' => [
+                'cuts_h' => $maximumResult['horizontalCuts'],
+                'cuts_v' => $maximumResult['verticalCuts'],
+                'total_cuts' => $maximumResult['cutsPerSheet'],
+                'efficiency' => $maximumResult['usedAreaPercentage'],
+                'waste' => $maximumResult['wastedAreaPercentage'],
+                'orientation' => 'maximum'
+            ],
             'best' => [
-                'cuts_h' => $bestResult === $horizontalResult ? $bestResult->cutsH : $bestResult->cutsV,
-                'cuts_v' => $bestResult === $horizontalResult ? $bestResult->cutsV : $bestResult->cutsH,
-                'total_cuts' => $bestResult->totalCuts,
-                'efficiency' => $bestResult->efficiency,
-                'waste_area' => $bestResult->wasteArea,
-                'orientation' => $bestResult === $horizontalResult ? 'horizontal' : 'vertical',
-                'orientation_label' => $bestResult === $horizontalResult ? 'Horizontal' : 'Vertical'
+                'cuts_h' => $results[$bestOrientation]['horizontalCuts'],
+                'cuts_v' => $results[$bestOrientation]['verticalCuts'],
+                'total_cuts' => $results[$bestOrientation]['cutsPerSheet'],
+                'efficiency' => $results[$bestOrientation]['usedAreaPercentage'],
+                'waste' => $results[$bestOrientation]['wastedAreaPercentage'],
+                'orientation' => $bestOrientation,
+                'orientation_label' => ucfirst($bestOrientation)
             ],
             'paper_size' => [
                 'width' => $paperWidth,
@@ -154,7 +181,7 @@ class PaperCalculatorWidget extends Widget
                 'area' => floatval($this->itemWidth) * floatval($this->itemHeight)
             ]
         ];
-        
+
         $this->showResults = true;
     }
     

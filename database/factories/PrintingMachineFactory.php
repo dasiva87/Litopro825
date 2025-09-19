@@ -26,6 +26,7 @@ class PrintingMachineFactory extends Factory
             'max_height' => $this->faker->randomFloat(2, 50, 125),
             'max_colors' => $this->faker->randomElement([1, 2, 4, 6, 8]),
             'cost_per_impression' => $this->faker->randomFloat(4, 50, 500), // $50-500 por impresión
+            'costo_ctp' => $this->faker->randomFloat(2, 1500, 5000), // $1.5k-5k por plancha CTP
             'setup_cost' => $this->faker->randomFloat(2, 5000, 25000), // $5k-25k alistamiento
             'is_own' => true,
             'is_active' => true,
@@ -40,6 +41,7 @@ class PrintingMachineFactory extends Factory
             'type' => 'offset',
             'max_colors' => $this->faker->randomElement([4, 6, 8]),
             'cost_per_impression' => $this->faker->randomFloat(4, 200, 400),
+            'costo_ctp' => $this->faker->randomFloat(2, 2500, 4500), // CTP más caro en offset
         ]);
     }
 
@@ -49,6 +51,7 @@ class PrintingMachineFactory extends Factory
             'type' => 'digital',
             'max_colors' => 4,
             'cost_per_impression' => $this->faker->randomFloat(4, 300, 500),
+            'costo_ctp' => 0, // Digital no usa planchas CTP tradicionales
             'setup_cost' => 0, // Digital no requiere alistamiento
         ]);
     }

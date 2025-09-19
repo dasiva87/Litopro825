@@ -39,6 +39,8 @@ class SimpleItemFactory extends Factory
             'design_value' => $this->faker->randomFloat(2, 0, 50000), // Puede ser 0 pero no null
             'transport_value' => $this->faker->randomFloat(2, 0, 20000), // Puede ser 0 pero no null
             'rifle_value' => $this->faker->randomFloat(2, 0, 10000), // No opcional, siempre un valor
+            'cutting_cost' => $this->faker->randomFloat(2, 0, 15000), // Costo de corte manual
+            'mounting_cost' => $this->faker->randomFloat(2, 0, 12000), // Costo de montaje manual
             'profit_percentage' => $this->faker->randomFloat(2, 15, 50), // 15-50% margen
             // Los campos calculados se llenan automáticamente por el modelo
             'created_at' => now(),
@@ -85,9 +87,11 @@ class SimpleItemFactory extends Factory
     public function withoutAdditionalCosts(): static
     {
         return $this->state(fn (array $attributes) => [
-            'design_value' => null,
-            'transport_value' => null,
-            'rifle_value' => null,
+            'design_value' => 0,
+            'transport_value' => 0,
+            'rifle_value' => 0,
+            'cutting_cost' => 0,
+            'mounting_cost' => 0,
         ]);
     }
 
@@ -97,6 +101,8 @@ class SimpleItemFactory extends Factory
             'design_value' => $this->faker->randomFloat(2, 20000, 50000),
             'transport_value' => $this->faker->randomFloat(2, 10000, 20000),
             'rifle_value' => $this->faker->randomFloat(2, 5000, 10000),
+            'cutting_cost' => $this->faker->randomFloat(2, 8000, 15000),
+            'mounting_cost' => $this->faker->randomFloat(2, 5000, 12000),
         ]);
     }
 }

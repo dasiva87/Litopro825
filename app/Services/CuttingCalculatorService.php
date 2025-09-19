@@ -41,21 +41,35 @@ class CuttingCalculatorService
         // Primer acomodo con orientación horizontal
         $arrangeResult = $this->arrange($largerPaperSide, $smallerPaperSide, 'N', 'H', $cutWidth, $cutHeight);
         $totalCuts = $arrangeResult['totalCuts'];
-        
-        // Verificar si hay espacio para más cortes en el sobrante vertical
+
+        // Variable auxiliar inicializada correctamente
         $auxiliarResult = ['totalCuts' => 0, 'verticalCuts' => 0, 'horizontalCuts' => 0];
-        
+
+        // Corregir: verificar sobrante vertical primero (línea 81 del JS)
         if ($arrangeResult['verticalRemainder'] >= $cutHeight) {
             $auxiliarResult = $this->arrange($arrangeResult['verticalRemainder'], $smallerPaperSide, 'H', 'H', $cutWidth, $cutHeight);
             $totalCuts += $auxiliarResult['totalCuts'];
-        } elseif ($arrangeResult['horizontalRemainder'] >= $cutWidth) {
-            $auxiliarResult = $this->arrange($arrangeResult['horizontalRemainder'], $largerPaperSide, 'H', 'H', $cutWidth, $cutHeight);
-            $totalCuts += $auxiliarResult['totalCuts'];
+        } else {
+            // Segundo caso: verificar sobrante horizontal (línea 86 del JS)
+            if ($arrangeResult['horizontalRemainder'] >= $cutWidth) {
+                $auxiliarResult = $this->arrange($arrangeResult['horizontalRemainder'], $largerPaperSide, 'H', 'H', $cutWidth, $cutHeight);
+                $totalCuts += $auxiliarResult['totalCuts'];
+            } else {
+                // Cuando no hay espacio, crear resultado vacío (líneas 90-99 del JS)
+                $auxiliarResult = [
+                    'totalCuts' => 0,
+                    'verticalCuts' => 0,
+                    'horizontalCuts' => 0,
+                    'verticalRemainder' => 0,
+                    'horizontalRemainder' => 0,
+                    'usedArea' => 0
+                ];
+            }
         }
 
-        // Lógica de g y f como en el JS original
+        // Lógica de g y f corregida (líneas 103-109 del JS)
         $g = 0; $f = 0;
-        if ($cutWidth < $cutHeight) {
+        if (intval($cutWidth) < intval($cutHeight)) {
             $g = $arrangeResult['totalCuts'];
             $f = $auxiliarResult['totalCuts'];
         } else {
@@ -68,33 +82,63 @@ class CuttingCalculatorService
 
     private function calculateVertical($largerPaperSide, $smallerPaperSide, $cutWidth, $cutHeight, $desiredCuts): array
     {
+        // En orientación vertical, el canvas se dibuja con menor como ancho y mayor como alto
         $arrangeResult = $this->arrange($largerPaperSide, $smallerPaperSide, 'N', 'V', $cutWidth, $cutHeight);
         $totalCuts = $arrangeResult['totalCuts'];
-        
-        // Verificar si hay espacio para más cortes en el sobrante
-        $auxiliarResult = ['totalCuts' => 0];
-        
+
+        // Variable auxiliar inicializada correctamente
+        $auxiliarResult = ['totalCuts' => 0, 'verticalCuts' => 0, 'horizontalCuts' => 0];
+
+        // Corregir: verificar sobrante vertical primero (igual que JS línea 25)
         if ($arrangeResult['verticalRemainder'] >= $cutHeight) {
             $auxiliarResult = $this->arrange($arrangeResult['verticalRemainder'], $largerPaperSide, 'H', 'H', $cutWidth, $cutHeight);
             $totalCuts += $auxiliarResult['totalCuts'];
-        } elseif ($arrangeResult['horizontalRemainder'] >= $cutWidth) {
-            $auxiliarResult = $this->arrange($arrangeResult['horizontalRemainder'], $smallerPaperSide, 'H', 'H', $cutWidth, $cutHeight);
-            $totalCuts += $auxiliarResult['totalCuts'];
+        } else {
+            // Corregir: usar correctamente las dimensiones para el segundo caso
+            if ($arrangeResult['horizontalRemainder'] >= $cutWidth) {
+                $auxiliarResult = $this->arrange($arrangeResult['horizontalRemainder'], $smallerPaperSide, 'H', 'H', $cutWidth, $cutHeight);
+                $totalCuts += $auxiliarResult['totalCuts'];
+            } else {
+                // Cuando no hay espacio, crear resultado vacío (líneas 35-43 del JS)
+                $auxiliarResult = [
+                    'totalCuts' => 0,
+                    'verticalCuts' => 0,
+                    'horizontalCuts' => 0,
+                    'verticalRemainder' => 0,
+                    'horizontalRemainder' => 0,
+                    'usedArea' => 0
+                ];
+            }
         }
 
-        return $this->prepareResults($smallerPaperSide, $largerPaperSide, $cutWidth, $cutHeight, $desiredCuts, $totalCuts, $arrangeResult, $auxiliarResult, 'V');
+        // Lógica g y f corregida (líneas 48-54 del JS)
+        $g = 0; $f = 0;
+        if (intval($cutWidth) < intval($cutHeight)) {
+            $g = $arrangeResult['totalCuts'];
+            $f = $auxiliarResult['totalCuts'];
+        } else {
+            $g = $auxiliarResult['totalCuts'];
+            $f = $arrangeResult['totalCuts'];
+        }
+
+        return $this->prepareResults($smallerPaperSide, $largerPaperSide, $cutWidth, $cutHeight, $desiredCuts, $totalCuts, $arrangeResult, $auxiliarResult, 'V', $g, $f);
     }
 
     private function calculateMaximum($largerPaperSide, $smallerPaperSide, $cutWidth, $cutHeight, $desiredCuts): array
     {
         $largerCutSide = max($cutWidth, $cutHeight);
         $smallerCutSide = min($cutWidth, $cutHeight);
-        
+
+        // Primer acomodo base (línea 144 del JS)
         $arrangeResult = $this->arrange($largerPaperSide, $smallerPaperSide, 'H', 'M', $largerCutSide, $smallerCutSide);
         $maxTotalCuts = $arrangeResult['totalCuts'];
-        
+
         // Primera iteración: como en el JS líneas 159-182 (iterando por cortesH)
         $q = [
+            'a1b' => $largerPaperSide,
+            'a2b' => $largerPaperSide,
+            'a1h' => $smallerPaperSide,
+            'a2h' => 0,
             'sumaCortes' => $maxTotalCuts,
             'cortesH1' => $arrangeResult['horizontalCuts'],
             'cortesB1' => $arrangeResult['verticalCuts'],
@@ -104,19 +148,24 @@ class CuttingCalculatorService
             'cortesT2' => 0
         ];
 
+        // Bucle 1: Iterando por cortesH (líneas 159-182 del JS)
         for ($x = 0; $x <= $arrangeResult['horizontalCuts']; $x++) {
             $o = $largerPaperSide;
-            $p = round(($smallerCutSide * $x) + $arrangeResult['horizontalRemainder'], 2);
-            $n = round($smallerPaperSide - $p, 2);
-            
+            $p = $this->parseFloatFixed(($smallerCutSide * $x) + $arrangeResult['horizontalRemainder'], 2);
+            $n = $this->parseFloatFixed($smallerPaperSide - $p, 2);
+
             if ($n > 0 && $p > 0) {
                 $s = $this->arrange($largerPaperSide, $n, 'H', 'N', $largerCutSide, $smallerCutSide);
                 $t = $this->arrange($o, $p, 'V', 'N', $largerCutSide, $smallerCutSide);
                 $u = $s['totalCuts'] + $t['totalCuts'];
-                
+
                 if ($u > $maxTotalCuts) {
                     $maxTotalCuts = $u;
                     $q = [
+                        'a1b' => $largerPaperSide,
+                        'a2b' => $o,
+                        'a1h' => $n,
+                        'a2h' => $p,
                         'sumaCortes' => $maxTotalCuts,
                         'cortesH1' => $s['horizontalCuts'],
                         'cortesB1' => $s['verticalCuts'],
@@ -132,6 +181,10 @@ class CuttingCalculatorService
         // Segunda iteración: como en el JS líneas 193-213 (iterando por cortesB)
         $acumuladorCortesTotales = $arrangeResult['totalCuts'];
         $r = [
+            'a1b' => $largerPaperSide,
+            'a2b' => 0,
+            'a1h' => $smallerPaperSide,
+            'a2h' => $smallerPaperSide,
             'sumaCortes' => $acumuladorCortesTotales,
             'cortesH1' => 0,
             'cortesB1' => 0,
@@ -141,19 +194,26 @@ class CuttingCalculatorService
             'cortesT2' => 0
         ];
 
+        // Bucle 2: Iterando por cortesB (líneas 193-213 del JS)
+        // Corregir el error de la línea 195 del JS donde p está mal declarada
         for ($x = 0; $x <= $arrangeResult['verticalCuts']; $x++) {
             $n = $smallerPaperSide;
-            $o = round(($largerCutSide * $x) + $arrangeResult['verticalRemainder'], 2);
-            $m = round($largerPaperSide - $o, 2);
-            
+            $o = $this->parseFloatFixed(($largerCutSide * $x) + $arrangeResult['verticalRemainder'], 2);
+            $m = $this->parseFloatFixed($largerPaperSide - $o, 2);
+            $p = $smallerPaperSide; // Corregir: asignar p correctamente
+
             if ($m > 0 && $o > 0) {
                 $s = $this->arrange($m, $n, 'H', 'N', $largerCutSide, $smallerCutSide);
-                $t = $this->arrange($o, $n, 'V', 'N', $largerCutSide, $smallerCutSide);
+                $t = $this->arrange($o, $p, 'V', 'N', $largerCutSide, $smallerCutSide);
                 $u = $s['totalCuts'] + $t['totalCuts'];
-                
+
                 if ($u > $acumuladorCortesTotales) {
                     $acumuladorCortesTotales = $u;
                     $r = [
+                        'a1b' => $m,
+                        'a2b' => $o,
+                        'a1h' => $n,
+                        'a2h' => $p,
                         'sumaCortes' => $acumuladorCortesTotales,
                         'cortesH1' => $s['horizontalCuts'],
                         'cortesB1' => $s['verticalCuts'],
@@ -166,11 +226,16 @@ class CuttingCalculatorService
             }
         }
 
-        // Seleccionar el mejor resultado entre q y r
+        // Seleccionar el mejor resultado entre q y r (líneas 214-224 del JS)
         $bestResult = $r['sumaCortes'] > $q['sumaCortes'] ? $r : $q;
         $finalMaxCuts = max($r['sumaCortes'], $q['sumaCortes']);
 
         return $this->prepareResults($largerPaperSide, $smallerPaperSide, $largerCutSide, $smallerCutSide, $desiredCuts, $finalMaxCuts, $bestResult, [], 'M');
+    }
+
+    private function parseFloatFixed(float $value, int $precision = 2): float
+    {
+        return round($value, $precision);
     }
 
     private function arrange($largerPaperSide, $smallerPaperSide, $cutOrientation, $paperOrientation, $cutWidth, $cutHeight): array

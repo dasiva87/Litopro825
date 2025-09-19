@@ -35,7 +35,6 @@ class ItemCreationIntegrationTest extends TestCase
         $this->machine = PrintingMachine::factory()->create(['company_id' => $this->company->id]);
         
         $this->document = Document::factory()->create([
-            'company_id' => $this->company->id,
             'user_id' => $this->user->id
         ]);
     }
@@ -44,7 +43,6 @@ class ItemCreationIntegrationTest extends TestCase
     public function simple_item_creation_triggers_automatic_calculations()
     {
         $itemData = [
-            'company_id' => $this->company->id,
             'description' => 'Tarjetas de presentación premium',
             'quantity' => 2000,
             'horizontal_size' => 9.0,
@@ -64,8 +62,7 @@ class ItemCreationIntegrationTest extends TestCase
         // Verificar que se creó correctamente
         $this->assertDatabaseHas('simple_items', [
             'description' => 'Tarjetas de presentación premium',
-            'quantity' => 2000,
-            'company_id' => $this->company->id
+            'quantity' => 2000
         ]);
 
         // Verificar que los cálculos automáticos funcionan
@@ -82,11 +79,12 @@ class ItemCreationIntegrationTest extends TestCase
     public function simple_item_integrates_with_document_items_correctly()
     {
         $simpleItem = SimpleItem::factory()->businessCard()->create([
-            'company_id' => $this->company->id,
             'paper_id' => $this->paper->id,
             'printing_machine_id' => $this->machine->id,
             'quantity' => 1000,
-            'profit_percentage' => 30.0
+            'profit_percentage' => 30.0,
+            'cutting_cost' => 0,  // Para activar cálculo automático
+            'mounting_cost' => 0  // Para activar cálculo automático
         ]);
 
         // Calcular pricing
@@ -107,18 +105,17 @@ class ItemCreationIntegrationTest extends TestCase
         // Verificar relación polimórfica
         $this->assertEquals($simpleItem->id, $documentItem->itemable->id);
         $this->assertEquals('App\\Models\\SimpleItem', $documentItem->itemable_type);
-        $this->assertEquals($pricing->finalPrice, $documentItem->total_price);
+        $this->assertEquals(round($pricing->finalPrice, 2), (float) $documentItem->total_price);
 
         // Verificar que el documento puede acceder al item
-        $this->assertEquals(1, $this->document->documentItems()->count());
-        $this->assertEquals($simpleItem->description, $this->document->documentItems()->first()->description);
+        $this->assertEquals(1, $this->document->items()->count());
+        $this->assertEquals($simpleItem->description, $this->document->items()->first()->description);
     }
 
     /** @test */
     public function product_stock_validation_during_document_item_creation()
     {
         $product = Product::factory()->create([
-            'company_id' => $this->company->id,
             'name' => 'Papel Bond A4',
             'stock' => 25,
             'min_stock' => 10,
@@ -161,7 +158,6 @@ class ItemCreationIntegrationTest extends TestCase
     {
         // Crear SimpleItem
         $simpleItem = SimpleItem::factory()->flyer()->create([
-            'company_id' => $this->company->id,
             'paper_id' => $this->paper->id,
             'printing_machine_id' => $this->machine->id,
             'quantity' => 5000,
@@ -173,14 +169,12 @@ class ItemCreationIntegrationTest extends TestCase
 
         // Crear Products
         $product1 = Product::factory()->create([
-            'company_id' => $this->company->id,
             'name' => 'Plastificado',
             'sale_price' => 15000,
             'stock' => 100
         ]);
 
         $product2 = Product::factory()->create([
-            'company_id' => $this->company->id,
             'name' => 'Encuadernación',
             'sale_price' => 25000,
             'stock' => 50
@@ -234,7 +228,6 @@ class ItemCreationIntegrationTest extends TestCase
     public function simple_item_recalculation_after_parameter_changes()
     {
         $simpleItem = SimpleItem::factory()->create([
-            'company_id' => $this->company->id,
             'paper_id' => $this->paper->id,
             'printing_machine_id' => $this->machine->id,
             'quantity' => 1000,
@@ -284,7 +277,6 @@ class ItemCreationIntegrationTest extends TestCase
     {
         // Crear papeles con diferentes tamaños
         $smallPaper = Paper::factory()->create([
-            'company_id' => $this->company->id,
             'name' => 'Carta',
             'width' => 70,
             'height' => 50,
@@ -292,7 +284,6 @@ class ItemCreationIntegrationTest extends TestCase
         ]);
 
         $largePaper = Paper::factory()->create([
-            'company_id' => $this->company->id,
             'name' => 'Pliego',
             'width' => 100,
             'height' => 70,
@@ -301,14 +292,12 @@ class ItemCreationIntegrationTest extends TestCase
 
         // Mismo item con diferentes papeles
         $itemSmallPaper = SimpleItem::factory()->businessCard()->create([
-            'company_id' => $this->company->id,
             'paper_id' => $smallPaper->id,
             'printing_machine_id' => $this->machine->id,
             'quantity' => 1000
         ]);
 
         $itemLargePaper = SimpleItem::factory()->businessCard()->create([
-            'company_id' => $this->company->id,
             'paper_id' => $largePaper->id,
             'printing_machine_id' => $this->machine->id,
             'quantity' => 1000
@@ -337,7 +326,6 @@ class ItemCreationIntegrationTest extends TestCase
     {
         // Máquina con limitaciones
         $limitedMachine = PrintingMachine::factory()->create([
-            'company_id' => $this->company->id,
             'max_colors' => 2, // Solo 2 colores
             'max_width' => 60,
             'max_height' => 40,
@@ -346,13 +334,11 @@ class ItemCreationIntegrationTest extends TestCase
 
         // Máquina de alta capacidad
         $highCapacityMachine = PrintingMachine::factory()->highCapacity()->create([
-            'company_id' => $this->company->id,
             'cost_per_impression' => 300
         ]);
 
         // Item que requiere 4 colores
         $itemLimited = SimpleItem::factory()->create([
-            'company_id' => $this->company->id,
             'paper_id' => $this->paper->id,
             'printing_machine_id' => $limitedMachine->id,
             'ink_front_count' => 4,
@@ -361,7 +347,6 @@ class ItemCreationIntegrationTest extends TestCase
         ]);
 
         $itemHighCapacity = SimpleItem::factory()->create([
-            'company_id' => $this->company->id,
             'paper_id' => $this->paper->id,
             'printing_machine_id' => $highCapacityMachine->id,
             'ink_front_count' => 4,
@@ -387,7 +372,6 @@ class ItemCreationIntegrationTest extends TestCase
     {
         $margins = [15.0, 25.0, 35.0, 50.0];
         $baseItem = SimpleItem::factory()->create([
-            'company_id' => $this->company->id,
             'paper_id' => $this->paper->id,
             'printing_machine_id' => $this->machine->id,
             'quantity' => 1000,

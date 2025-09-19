@@ -27,12 +27,13 @@ class SimpleItem extends Model
         'design_value',
         'transport_value',
         'rifle_value',
+        'cutting_cost',
+        'mounting_cost',
         'profit_percentage',
         'paper_id',
         'printing_machine_id',
         'paper_cost',
         'printing_cost',
-        'mounting_cost',
         'total_cost',
         'final_price',
     ];
@@ -53,6 +54,7 @@ class SimpleItem extends Model
         'profit_percentage' => 'decimal:2',
         'paper_cost' => 'decimal:2',
         'printing_cost' => 'decimal:2',
+        'cutting_cost' => 'decimal:2',
         'mounting_cost' => 'decimal:2',
         'total_cost' => 'decimal:2',
         'final_price' => 'decimal:2',
@@ -153,7 +155,7 @@ class SimpleItem extends Model
         $impressions = $this->mounting_quantity;
         $totalInks = $this->ink_front_count + $this->ink_back_count;
         
-        // Si es tiro y retiro plancha, se cobra como una sola plancha pero doble tinta
+        // Si es tiro y retiro plancha, se cobra solo la mayor cantidad de tintas (frente o respaldo)
         if ($this->front_back_plate) {
             $totalInks = max($this->ink_front_count, $this->ink_back_count);
         }
@@ -186,11 +188,12 @@ class SimpleItem extends Model
 
     public function calculateTotalCost(): float
     {
-        return $this->paper_cost + 
-               $this->printing_cost + 
-               $this->mounting_cost + 
-               $this->design_value + 
-               $this->transport_value + 
+        return $this->paper_cost +
+               $this->printing_cost +
+               $this->cutting_cost +
+               $this->mounting_cost +
+               $this->design_value +
+               $this->transport_value +
                $this->rifle_value;
     }
 
@@ -218,7 +221,15 @@ class SimpleItem extends Model
             $this->paper_cuts_v = $pricingResult->mountingOption->cuttingLayout['vertical_cuts'];
             $this->paper_cost = $pricingResult->mountingOption->paperCost;
             $this->printing_cost = $pricingResult->printingCalculation->totalCost;
-            $this->mounting_cost = $pricingResult->additionalCosts->mountingCost;
+
+            // Solo actualizar corte y montaje si están en 0 (usar cálculo automático)
+            if ($this->cutting_cost == 0) {
+                $this->cutting_cost = $pricingResult->additionalCosts->cuttingCost;
+            }
+            if ($this->mounting_cost == 0) {
+                $this->mounting_cost = $pricingResult->additionalCosts->mountingCost;
+            }
+
             $this->total_cost = $pricingResult->subtotal;
             $this->final_price = $pricingResult->finalPrice;
             

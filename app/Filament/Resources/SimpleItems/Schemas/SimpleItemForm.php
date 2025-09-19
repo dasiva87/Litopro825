@@ -125,7 +125,7 @@ class SimpleItemForm
                     
                 Section::make('Costos Adicionales')
                     ->schema([
-                        Grid::make(2)
+                        Grid::make(3)
                             ->schema([
                                 TextInput::make('design_value')
                                     ->label('Valor Diseño')
@@ -134,7 +134,7 @@ class SimpleItemForm
                                     ->default(0)
                                     ->minValue(0)
                                     ->step(0.01),
-                                    
+
                                 TextInput::make('transport_value')
                                     ->label('Valor Transporte')
                                     ->numeric()
@@ -142,7 +142,7 @@ class SimpleItemForm
                                     ->default(0)
                                     ->minValue(0)
                                     ->step(0.01),
-                                    
+
                                 TextInput::make('rifle_value')
                                     ->label('Valor Rifle/Doblez')
                                     ->numeric()
@@ -150,7 +150,25 @@ class SimpleItemForm
                                     ->default(0)
                                     ->minValue(0)
                                     ->step(0.01),
-                                    
+
+                                TextInput::make('cutting_cost')
+                                    ->label('Costo de Corte')
+                                    ->numeric()
+                                    ->prefix('$')
+                                    ->default(0)
+                                    ->minValue(0)
+                                    ->step(0.01)
+                                    ->helperText('Especifica el costo de corte o deja en 0 para cálculo automático'),
+
+                                TextInput::make('mounting_cost')
+                                    ->label('Costo de Montaje')
+                                    ->numeric()
+                                    ->prefix('$')
+                                    ->default(0)
+                                    ->minValue(0)
+                                    ->step(0.01)
+                                    ->helperText('Especifica el costo de montaje o deja en 0 para cálculo automático'),
+
                                 TextInput::make('profit_percentage')
                                     ->label('Porcentaje de Ganancia')
                                     ->numeric()

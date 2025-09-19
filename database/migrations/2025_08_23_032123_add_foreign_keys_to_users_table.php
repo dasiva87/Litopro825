@@ -9,49 +9,16 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            // Verificar qué constraints ya existen (creados por migración anterior con foreignId()->constrained())
-            $existingConstraints = DB::select("
-                SELECT CONSTRAINT_NAME
-                FROM information_schema.KEY_COLUMN_USAGE
-                WHERE TABLE_SCHEMA = DATABASE()
-                AND TABLE_NAME = 'users'
-                AND CONSTRAINT_NAME IN (
-                    'users_company_id_foreign',
-                    'users_city_id_foreign',
-                    'users_state_id_foreign',
-                    'users_country_id_foreign'
-                )
-            ");
+        // Esta migración ya no es necesaria porque las foreign keys
+        // se crean en la migración 2025_08_23_030539_add_company_id_to_users_table.php
+        // usando foreignId()->constrained()
 
-            $existingNames = array_column($existingConstraints, 'CONSTRAINT_NAME');
-
-            // Solo crear constraints que no existan
-            if (!in_array('users_company_id_foreign', $existingNames)) {
-                $table->foreign('company_id')->references('id')->on('companies')->onDelete('cascade');
-            }
-
-            if (!in_array('users_city_id_foreign', $existingNames)) {
-                $table->foreign('city_id')->references('id')->on('cities')->onDelete('set null');
-            }
-
-            if (!in_array('users_state_id_foreign', $existingNames)) {
-                $table->foreign('state_id')->references('id')->on('states')->onDelete('set null');
-            }
-
-            if (!in_array('users_country_id_foreign', $existingNames)) {
-                $table->foreign('country_id')->references('id')->on('countries')->onDelete('set null');
-            }
-        });
+        // No hacer nada - las foreign keys ya existen
     }
 
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropForeign(['company_id']);
-            $table->dropForeign(['city_id']);
-            $table->dropForeign(['state_id']);
-            $table->dropForeign(['country_id']);
-        });
+        // No hacer nada - las foreign keys se eliminan en la migración
+        // 2025_08_23_030539_add_company_id_to_users_table.php
     }
 };

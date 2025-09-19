@@ -306,6 +306,21 @@ class DocumentItem extends Model
             return;
         }
 
+        // Para SimpleItem, si ya tiene precios calculados, no sobrescribir
+        if ($this->itemable_type === 'App\\Models\\SimpleItem') {
+            // Si ya tiene precios definidos (vienen del cálculo del SimpleItem), respetarlos
+            if ($this->unit_price > 0 && $this->total_price > 0) {
+                return;
+            }
+
+            // Si no tiene precios y hay un SimpleItem relacionado, usar sus precios calculados
+            if ($this->itemable && $this->itemable->final_price > 0) {
+                $this->total_price = $this->itemable->final_price;
+                $this->unit_price = $this->quantity > 0 ? $this->total_price / $this->quantity : $this->total_price;
+                return;
+            }
+        }
+
         // Para otros tipos de items, usar el cálculo original
         // Calcular costos base si no están definidos
         if ($this->paper_cost == 0 && $this->paper) {
@@ -313,11 +328,11 @@ class DocumentItem extends Model
         }
 
         // Sumar todos los costos
-        $totalCosts = $this->paper_cost + 
-                     $this->printing_cost + 
-                     $this->cutting_cost + 
-                     $this->design_cost + 
-                     $this->transport_cost + 
+        $totalCosts = $this->paper_cost +
+                     $this->printing_cost +
+                     $this->cutting_cost +
+                     $this->design_cost +
+                     $this->transport_cost +
                      $this->other_costs;
 
         // Aplicar margen de ganancia
