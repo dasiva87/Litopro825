@@ -28,6 +28,9 @@ class SimpleItemCalculatorService
         $options = [];
         $orientations = ['horizontal', 'vertical', 'maximum'];
 
+        // Calcular cantidad total incluyendo sobrante de papel
+        $totalQuantityWithWaste = (int) $item->quantity + ($item->sobrante_papel ?? 0);
+
         foreach ($orientations as $orientation) {
             try {
                 $result = $this->cuttingCalculator->calculateCuts(
@@ -35,7 +38,7 @@ class SimpleItemCalculatorService
                     paperHeight: $item->paper->height,
                     cutWidth: $item->horizontal_size,
                     cutHeight: $item->vertical_size,
-                    desiredCuts: (int) $item->quantity,
+                    desiredCuts: $totalQuantityWithWaste,
                     orientation: $orientation
                 );
 
@@ -71,14 +74,23 @@ class SimpleItemCalculatorService
     public function calculatePrintingMillares(SimpleItem $item, MountingOption $mountingOption): PrintingCalculation
     {
         $totalColors = $item->ink_front_count + $item->ink_back_count;
-        
+
         // Si es tiro y retiro plancha, ajustar cálculo
         if ($item->front_back_plate) {
             $totalColors = max($item->ink_front_count, $item->ink_back_count);
         }
 
-        // Fórmula: (Total_colores × Pliegos_necesarios) ÷ 1000
-        $millaresRaw = ($totalColors * $mountingOption->sheetsNeeded) / 1000;
+        // Determinar cantidad a cobrar en impresión según regla de sobrante
+        $quantityForPrinting = $mountingOption->sheetsNeeded * $mountingOption->cutsPerSheet;
+        $sobrante = $item->sobrante_papel ?? 0;
+
+        // Si el sobrante es mayor a 100, cobrar la cantidad total (original + sobrante)
+        if ($sobrante > 100) {
+            $quantityForPrinting = $mountingOption->sheetsNeeded * $mountingOption->cutsPerSheet + $sobrante;
+        }
+
+        // Fórmula: (Total_colores × Cantidad_para_impresión) ÷ 1000
+        $millaresRaw = ($totalColors * $quantityForPrinting) / 1000;
         
         // REGLA: Siempre redondear HACIA ARRIBA
         $millaresFinal = $this->roundUpMillares($millaresRaw);
@@ -215,12 +227,19 @@ class SimpleItemCalculatorService
     private function roundUpMillares(float $millares): int
     {
         // Redondeo hacia arriba con lógica de negocio
-        // Si el decimal es significativo, redondear arriba
         if ($millares <= 1) {
             return 1; // Mínimo 1 millar
         }
-        
-        return (int) ceil($millares);
+
+        // Obtener la parte decimal
+        $decimalPart = $millares - floor($millares);
+
+        // Solo redondear hacia arriba si el decimal es mayor que 0.1
+        if ($decimalPart > 0.1) {
+            return (int) ceil($millares);
+        } else {
+            return (int) floor($millares);
+        }
     }
 
     private function calculateCuttingCost(MountingOption $mountingOption): float

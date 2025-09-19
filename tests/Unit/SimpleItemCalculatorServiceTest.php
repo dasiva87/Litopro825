@@ -155,7 +155,6 @@ class SimpleItemCalculatorServiceTest extends TestCase
     public function it_rounds_millares_up_correctly()
     {
         $item = SimpleItem::factory()->create([
-            
             'paper_id' => $this->paper->id,
             'printing_machine_id' => $this->machine->id,
             'quantity' => 100, // Cantidad pequeña para forzar millares bajos
@@ -166,10 +165,22 @@ class SimpleItemCalculatorServiceTest extends TestCase
         $mountingOptions = $this->calculator->calculateMountingOptions($item);
         $printingCalc = $this->calculator->calculatePrintingMillares($item, $mountingOptions[0]);
 
-        // El millar final debe ser siempre entero y >= al raw
+        // El millar final debe ser siempre entero y >= 1 (mínimo)
         $this->assertIsInt($printingCalc->millaresFinal);
-        $this->assertGreaterThanOrEqual($printingCalc->millaresRaw, $printingCalc->millaresFinal);
         $this->assertGreaterThanOrEqual(1, $printingCalc->millaresFinal);
+
+        // Probar lógica específica de redondeo
+        // Si decimal <= 0.1: floor(), si decimal > 0.1: ceil()
+        if ($printingCalc->millaresRaw <= 1) {
+            $this->assertEquals(1, $printingCalc->millaresFinal); // Mínimo 1 millar
+        } else {
+            $decimalPart = $printingCalc->millaresRaw - floor($printingCalc->millaresRaw);
+            if ($decimalPart > 0.1) {
+                $this->assertEquals((int) ceil($printingCalc->millaresRaw), $printingCalc->millaresFinal);
+            } else {
+                $this->assertEquals((int) floor($printingCalc->millaresRaw), $printingCalc->millaresFinal);
+            }
+        }
     }
 
     /** @test */
@@ -379,7 +390,7 @@ class SimpleItemCalculatorServiceTest extends TestCase
     public function it_generates_formatted_breakdown()
     {
         $item = SimpleItem::factory()->withAllCosts()->create([
-            
+
             'paper_id' => $this->paper->id,
             'printing_machine_id' => $this->machine->id
         ]);
@@ -388,13 +399,152 @@ class SimpleItemCalculatorServiceTest extends TestCase
         $formatted = $pricing->getFormattedBreakdown();
 
         $this->assertIsArray($formatted);
-        
+
         // Solo debe incluir items con costo > 0
         foreach ($formatted as $item) {
             $this->assertArrayHasKey('description', $item);
             $this->assertArrayHasKey('detail', $item);
             $this->assertArrayHasKey('cost', $item);
             $this->assertStringContainsString('$', $item['cost']);
+        }
+    }
+
+    /** @test */
+    public function it_handles_sobrante_papel_calculation_correctly()
+    {
+        // Test con sobrante ≤ 100: NO se cobra en impresión
+        $itemLowWaste = SimpleItem::factory()->create([
+            'paper_id' => $this->paper->id,
+            'printing_machine_id' => $this->machine->id,
+            'quantity' => 1000,
+            'sobrante_papel' => 50, // ≤ 100
+            'horizontal_size' => 9.0,
+            'vertical_size' => 5.0,
+            'ink_front_count' => 4,
+            'ink_back_count' => 0
+        ]);
+
+        $mountingOptions = $this->calculator->calculateMountingOptions($itemLowWaste);
+        $printingCalc = $this->calculator->calculatePrintingMillares($itemLowWaste, $mountingOptions[0]);
+
+        // Se deben usar 1050 items para calcular pliegos (incluye sobrante)
+        // Pero solo se deben cobrar los pliegos y cortes originales en impresión (sin sobrante)
+        // Como el sobrante (50) es ≤ 100, no se debe agregar a la cantidad para impresión
+        $expectedQuantityForPrinting = $mountingOptions[0]->sheetsNeeded * $mountingOptions[0]->cutsPerSheet;
+        $expectedMillaresRaw = (4 * $expectedQuantityForPrinting) / 1000;
+        $this->assertEquals($expectedMillaresRaw, $printingCalc->millaresRaw);
+
+        // Test con sobrante > 100: SÍ se cobra en impresión
+        $itemHighWaste = SimpleItem::factory()->create([
+            'paper_id' => $this->paper->id,
+            'printing_machine_id' => $this->machine->id,
+            'quantity' => 1000,
+            'sobrante_papel' => 150, // > 100
+            'horizontal_size' => 9.0,
+            'vertical_size' => 5.0,
+            'ink_front_count' => 4,
+            'ink_back_count' => 0
+        ]);
+
+        $mountingOptionsHigh = $this->calculator->calculateMountingOptions($itemHighWaste);
+        $printingCalcHigh = $this->calculator->calculatePrintingMillares($itemHighWaste, $mountingOptionsHigh[0]);
+
+        // Se deben cobrar los pliegos × cortes más el sobrante en impresión (incluye sobrante porque > 100)
+        $expectedQuantityForPrintingHigh = ($mountingOptionsHigh[0]->sheetsNeeded * $mountingOptionsHigh[0]->cutsPerSheet) + 150;
+        $expectedMillaresHighRaw = (4 * $expectedQuantityForPrintingHigh) / 1000;
+        $this->assertEquals($expectedMillaresHighRaw, $printingCalcHigh->millaresRaw);
+
+        // Verificar que el sobrante afecte el cálculo de pliegos
+        $this->assertGreaterThan($mountingOptions[0]->sheetsNeeded, $mountingOptionsHigh[0]->sheetsNeeded);
+    }
+
+    /** @test */
+    public function it_calculates_paper_costs_including_sobrante()
+    {
+        $item = SimpleItem::factory()->create([
+            'paper_id' => $this->paper->id,
+            'printing_machine_id' => $this->machine->id,
+            'quantity' => 1000,
+            'sobrante_papel' => 100,
+            'horizontal_size' => 10.0,
+            'vertical_size' => 15.0
+        ]);
+
+        $mountingOptions = $this->calculator->calculateMountingOptions($item);
+
+        // El costo del papel debe incluir los pliegos calculados para la cantidad total (1100)
+        $this->assertGreaterThan(0, $mountingOptions[0]->paperCost);
+
+        // Crear mismo item sin sobrante para comparar
+        $itemNoWaste = SimpleItem::factory()->create([
+            'paper_id' => $this->paper->id,
+            'printing_machine_id' => $this->machine->id,
+            'quantity' => 1000,
+            'sobrante_papel' => 0,
+            'horizontal_size' => 10.0,
+            'vertical_size' => 15.0
+        ]);
+
+        $mountingOptionsNoWaste = $this->calculator->calculateMountingOptions($itemNoWaste);
+
+        // El item con sobrante debe costar más papel
+        $this->assertGreaterThanOrEqual($mountingOptionsNoWaste[0]->paperCost, $mountingOptions[0]->paperCost);
+    }
+
+    /** @test */
+    public function it_applies_correct_rounding_logic_for_millares()
+    {
+        // Crear un test más específico para validar la lógica de redondeo
+
+        // Test 1: Decimal <= 0.1, debe usar floor()
+        $item1 = SimpleItem::factory()->create([
+            'paper_id' => $this->paper->id,
+            'printing_machine_id' => $this->machine->id,
+            'quantity' => 2050, // Configurar para obtener decimal <= 0.1
+            'sobrante_papel' => 0,
+            'horizontal_size' => 9.0,
+            'vertical_size' => 5.0,
+            'ink_front_count' => 1,
+            'ink_back_count' => 0
+        ]);
+
+        // Test 2: Decimal > 0.1, debe usar ceil()
+        $item2 = SimpleItem::factory()->create([
+            'paper_id' => $this->paper->id,
+            'printing_machine_id' => $this->machine->id,
+            'quantity' => 2300, // Configurar para obtener decimal > 0.1
+            'sobrante_papel' => 0,
+            'horizontal_size' => 9.0,
+            'vertical_size' => 5.0,
+            'ink_front_count' => 1,
+            'ink_back_count' => 0
+        ]);
+
+        $mountingOptions1 = $this->calculator->calculateMountingOptions($item1);
+        $printingCalc1 = $this->calculator->calculatePrintingMillares($item1, $mountingOptions1[0]);
+
+        $mountingOptions2 = $this->calculator->calculateMountingOptions($item2);
+        $printingCalc2 = $this->calculator->calculatePrintingMillares($item2, $mountingOptions2[0]);
+
+        // Validar que los millares se calculan correctamente
+        $this->assertIsFloat($printingCalc1->millaresRaw);
+        $this->assertIsInt($printingCalc1->millaresFinal);
+        $this->assertIsFloat($printingCalc2->millaresRaw);
+        $this->assertIsInt($printingCalc2->millaresFinal);
+
+        // Validar la lógica de redondeo específicamente
+        if ($printingCalc1->millaresRaw > 1) {
+            $decimalPart1 = $printingCalc1->millaresRaw - floor($printingCalc1->millaresRaw);
+            if ($decimalPart1 <= 0.1) {
+                $this->assertEquals((int) floor($printingCalc1->millaresRaw), $printingCalc1->millaresFinal);
+            }
+        }
+
+        if ($printingCalc2->millaresRaw > 1) {
+            $decimalPart2 = $printingCalc2->millaresRaw - floor($printingCalc2->millaresRaw);
+            if ($decimalPart2 > 0.1) {
+                $this->assertEquals((int) ceil($printingCalc2->millaresRaw), $printingCalc2->millaresFinal);
+            }
         }
     }
 }

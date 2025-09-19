@@ -16,6 +16,7 @@ class SimpleItem extends Model
     protected $fillable = [
         'description',
         'quantity',
+        'sobrante_papel',
         'horizontal_size',
         'vertical_size',
         'mounting_quantity',
@@ -40,6 +41,7 @@ class SimpleItem extends Model
 
     protected $casts = [
         'quantity' => 'decimal:2',
+        'sobrante_papel' => 'integer',
         'horizontal_size' => 'decimal:2',
         'vertical_size' => 'decimal:2',
         'paper_cuts_h' => 'decimal:2',

@@ -29,6 +29,7 @@ class SimpleItemFactory extends Factory
         return [
             'description' => $this->faker->randomElement($descriptions),
             'quantity' => $this->faker->numberBetween(100, 10000),
+            'sobrante_papel' => $this->faker->numberBetween(0, 200), // 0-200 unidades de sobrante
             'horizontal_size' => $this->faker->randomFloat(1, 5, 50), // 5-50cm
             'vertical_size' => $this->faker->randomFloat(1, 5, 50),
             'paper_id' => Paper::factory(),

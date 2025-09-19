@@ -1,6 +1,6 @@
 <div>
     <x-filament-widgets::widget>
-        <div style="background-color: #f9fafb; border-radius: 12px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); padding: 16px;">
+        <div style="background-color: #f9fafb; border-radius: 12px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); padding: 16px; margin-bottom: 24px;">
             <!-- Header -->
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
                 <span style="color: #2563eb; font-size: 20px;">👥</span>

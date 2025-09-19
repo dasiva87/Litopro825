@@ -28,14 +28,26 @@ class SimpleItemForm
                             ->columnSpanFull()
                             ->placeholder('Describe detalladamente el trabajo a realizar...'),
                             
-                        TextInput::make('quantity')
-                            ->label('Cantidad')
-                            ->numeric()
-                            ->required()
-                            ->default(1)
-                            ->minValue(1)
-                            ->suffix('unidades')
-                            ->placeholder('1000'),
+                        Grid::make(2)
+                            ->schema([
+                                TextInput::make('quantity')
+                                    ->label('Cantidad')
+                                    ->numeric()
+                                    ->required()
+                                    ->default(1)
+                                    ->minValue(1)
+                                    ->suffix('unidades')
+                                    ->placeholder('1000'),
+
+                                TextInput::make('sobrante_papel')
+                                    ->label('Sobrante de Papel')
+                                    ->numeric()
+                                    ->default(0)
+                                    ->minValue(0)
+                                    ->suffix('unidades')
+                                    ->placeholder('50')
+                                    ->helperText('Cantidad adicional para desperdicios y pruebas. Si es mayor a 100, se cobra en la impresión.'),
+                            ]),
                     ]),
                     
                 Section::make('Dimensiones del Producto')
