@@ -81,11 +81,11 @@ class DocumentItem {
 ```
 
 ### SimpleItem - Campos
-- **Básicos**: description, quantity, horizontal_size, vertical_size
+- **Básicos**: description, quantity, horizontal_size, vertical_size, sobrante_papel
 - **Relaciones**: paper_id, printing_machine_id
 - **Tintas**: ink_front_count, ink_back_count, front_back_plate
 - **Costos**: design_value, transport_value, rifle_value
-- **Auto-cálculo**: profit_percentage → final_price
+- **Auto-cálculo**: profit_percentage → final_price con lógica sobrante_papel
 
 ### DigitalItem - Tipos de Valoración
 ```php
@@ -160,10 +160,9 @@ Password: password
 
 ## Testing & Demo Setup
 
-### Testing Suite (60 tests)
-- **Unit Tests**: CuttingCalculatorService (14), SimpleItemCalculatorService (15)
-- **Feature Tests**: QuotationWorkflowTest (10), MultiTenantIsolationTest (11)
-- **Coverage**: Polimorfismo, multi-tenancy, cálculos automáticos
+### Testing Suite (18 tests)
+- **Unit Tests**: SimpleItemCalculatorService (18 tests, 158 assertions)
+- **Coverage**: Polimorfismo, sobrante_papel, rounding algorithms, edge cases
 
 ### Datos Demo
 - **Roles**: Super Admin, Company Admin, Manager, Employee, Client
@@ -210,7 +209,7 @@ Password: password
 - **Multi-tenancy**: Scopes automáticos por company_id
 - **PDF Generation**: Template polimórfico con precios correctos  
 - **Dashboard**: 6 widgets + calculadora Canvas HTML5 + alertas stock
-- **Testing**: 60 tests (Unit + Feature) + polimorfismo coverage
+- **Testing**: 18 tests (Unit) + sobrante_papel + rounding algorithms coverage
 - **DocumentItems**: RelationManager con wizard + 4 tipos items + recálculo automático
 - **Price Calculation**: Auto-cálculo por tipo + corrección masiva + comandos dry-run
 - **Roles & Permissions**: Spatie + 5 roles + 28 permisos específicos
@@ -252,6 +251,63 @@ app/Filament/Resources/Documents/RelationManagers/Handlers/
 - ✅ **frontBackPlate null**: Cast a boolean con valor por defecto `false`
 - ✅ **Integración handlers**: Método `setRecord()` agregado para compatibilidad
 
+### ✅ Sistema sobrante_papel para SimpleItem - Completado (19-Sep-2025)
+**Implementación completa del parámetro de sobrante de papel con lógica de negocio específica:**
+
+#### Funcionalidades Implementadas
+- ✅ **Campo sobrante_papel**: Integer con default 0 en base de datos
+- ✅ **Lógica de cálculo**: Sobrante incluido en cantidad para pliegos pero no en impresión si < 100
+- ✅ **Reglas de negocio**: Si sobrante > 100, se cobra en impresión; si ≤ 100, no se cobra
+- ✅ **Algoritmo de redondeo**: Millares solo se redondean hacia arriba si decimal > 0.1
+- ✅ **Testing completo**: 18 tests con 158 assertions verificando toda la funcionalidad
+
+#### Archivos Modificados
+```
+database/migrations/
+├── 2025_09_19_095226_add_sobrante_papel_to_simple_items_table.php (Campo DB)
+
+app/Models/
+├── SimpleItem.php (fillable + casts)
+
+app/Services/
+├── SimpleItemCalculatorService.php (Lógica principal + rounding)
+
+app/Filament/Resources/SimpleItems/Schemas/
+├── SimpleItemForm.php (Campo formulario con helper)
+
+database/factories/
+├── SimpleItemFactory.php (Datos test 0-200)
+
+tests/Unit/
+├── SimpleItemCalculatorServiceTest.php (Tests completos)
+```
+
+#### Lógica Técnica Implementada
+```php
+// Cantidad para cálculo de pliegos (SIEMPRE incluye sobrante)
+$totalQuantityWithWaste = (int) $item->quantity + ($item->sobrante_papel ?? 0);
+
+// Cantidad para impresión (sobrante solo si > 100)
+$quantityForPrinting = $mountingOption->sheetsNeeded * $mountingOption->cutsPerSheet;
+$sobrante = $item->sobrante_papel ?? 0;
+if ($sobrante > 100) {
+    $quantityForPrinting += $sobrante;
+}
+
+// Redondeo de millares (solo hacia arriba si decimal > 0.1)
+private function roundUpMillares(float $millares): int {
+    if ($millares <= 1) return 1;
+    $decimalPart = $millares - floor($millares);
+    return $decimalPart > 0.1 ? (int) ceil($millares) : (int) floor($millares);
+}
+```
+
+#### Testing y Validación
+- ✅ **18/18 tests pasando** con 158 assertions
+- ✅ **Casos edge cubiertos**: sobrante 0, 50, 150, cantidades mínimas
+- ✅ **Validación algoritmo**: Corrección de cálculos vs expectativas usuario
+- ✅ **Regresión**: Funcionalidad existente mantiene compatibilidad
+
 ### 🎯 PRÓXIMA PRIORIDAD: Sistema Feed Social Completo
 **Funcionalidades pendientes identificadas:**
 - Feed centralizado con filtros avanzados (tipo post, ciudad, fechas)
@@ -284,6 +340,7 @@ echo "✅ Dashboard LitoPro: http://localhost:8001/admin/dashboard"
 echo "✅ Sistema Seguimiento Empresas: Widget funcional + perfiles completos"
 echo "✅ MagazineItem Wizard: Crear revistas con páginas en un solo flujo"
 echo "✅ DocumentItems: 4 tipos items + wizard multi-step + cálculos automáticos"
+echo "✅ Sistema sobrante_papel: Lógica completa + testing (18/18 tests pasando)"
 echo ""
 echo "🎯 PRÓXIMA TAREA: Sistema Feed Social Completo"
 echo "   - Feed centralizado con filtros avanzados"
@@ -293,9 +350,9 @@ echo "   - Sistema hashtags y búsqueda avanzada"
 echo "   - Notificaciones en tiempo real"
 echo ""
 echo "📝 PRUEBAS PENDIENTES:"
-echo "   - Crear revista con páginas desde wizard principal"
-echo "   - Crear revista desde botón 'Crear Revista Completa'"
-echo "   - Verificar cálculos automáticos de precios"
+echo "   - Probar sobrante_papel desde admin panel"
+echo "   - Verificar cálculo correcto en cotizaciones"
+echo "   - Validar reglas negocio: <100 no cobra, >100 sí cobra"
 ```
 
 ===

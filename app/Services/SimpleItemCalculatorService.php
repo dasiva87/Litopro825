@@ -73,11 +73,12 @@ class SimpleItemCalculatorService
      */
     public function calculatePrintingMillares(SimpleItem $item, MountingOption $mountingOption): PrintingCalculation
     {
-        $totalColors = $item->ink_front_count + $item->ink_back_count;
 
         // Si es tiro y retiro plancha, ajustar cálculo
         if ($item->front_back_plate) {
             $totalColors = max($item->ink_front_count, $item->ink_back_count);
+        } else {
+            $totalColors = $item->ink_front_count + $item->ink_back_count;
         }
 
         // Determinar cantidad a cobrar en impresión según regla de sobrante
@@ -89,14 +90,14 @@ class SimpleItemCalculatorService
             $quantityForPrinting = $mountingOption->sheetsNeeded * $mountingOption->cutsPerSheet + $sobrante;
         }
 
-        // Fórmula: (Total_colores × Cantidad_para_impresión) ÷ 1000
-        $millaresRaw = ($totalColors * $quantityForPrinting) / 1000;
+        // Fórmula: (Total_colores × Cantidad_para_impresión) ÷ 1000 
+        $millaresRaw = ($quantityForPrinting) / 1000;
         
-        // REGLA: Siempre redondear HACIA ARRIBA
-        $millaresFinal = $this->roundUpMillares($millaresRaw);
+        // REGLA: Siempre redondear HACIA ARRIBA si son mas de 100 ejemplares de más
+        $millaresFinal = $this->roundUpMillares($millaresRaw) * $totalColors;
         
         // Calcular costo
-        $printingCost = $millaresFinal * $item->printingMachine->cost_per_impression;
+        $printingCost = $millaresFinal  * $item->printingMachine->cost_per_impression;
         
         // Agregar costo de alistamiento
         $setupCost = $item->printingMachine->setup_cost ?? 0;
@@ -227,14 +228,14 @@ class SimpleItemCalculatorService
     private function roundUpMillares(float $millares): int
     {
         // Redondeo hacia arriba con lógica de negocio
-        if ($millares <= 1) {
+        if ($millares < 1) {
             return 1; // Mínimo 1 millar
         }
 
         // Obtener la parte decimal
-        $decimalPart = $millares - floor($millares);
+        $decimalPart = $millares - intval($millares);
 
-        // Solo redondear hacia arriba si el decimal es mayor que 0.1
+        // Solo redondear hacia arriba si el decimal es mayor que 1
         if ($decimalPart > 0.1) {
             return (int) ceil($millares);
         } else {
