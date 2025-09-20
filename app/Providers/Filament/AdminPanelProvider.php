@@ -2,16 +2,16 @@
 
 namespace App\Providers\Filament;
 
+use App\Http\Middleware\CheckActiveCompany;
+use App\Http\Middleware\RedirectToHomePage;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Widgets\AccountWidget;
-use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -20,16 +20,13 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 // use Andreia\FilamentNordTheme\FilamentNordThemePlugin;
-use Filament\View\PanelsRenderHook;
-
-  
 
 class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
         return $panel
-            
+
             ->default()
             ->id('admin')
             ->path('admin')
@@ -45,12 +42,18 @@ class AdminPanelProvider extends PanelProvider
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
-                // Dashboard eliminado
+                \App\Filament\Pages\Dashboard::class,
+                \App\Filament\Pages\Home::class,
             ])
+            ->default()
+            ->homeUrl('admin')
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
                 // Default Filament Widgets
                 AccountWidget::class,
+
+                // LitoPro Onboarding Widget (conditional display)
+                \App\Filament\Widgets\OnboardingWidget::class,
 
                 // LitoPro Central Panel Widgets (optimized load)
                 \App\Filament\Widgets\DashboardStatsWidget::class,
@@ -72,9 +75,11 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                RedirectToHomePage::class,
             ])
             ->authMiddleware([
                 Authenticate::class,
+                CheckActiveCompany::class,
             ])
             ->globalSearch()
             ->databaseNotifications()
@@ -88,6 +93,10 @@ class AdminPanelProvider extends PanelProvider
                     ->label('Dashboard')
                     ->url('/admin/home')
                     ->icon('heroicon-o-squares-2x2'),
+                'facturacion' => \Filament\Navigation\MenuItem::make()
+                    ->label('Facturación')
+                    ->url('/admin/billing')
+                    ->icon('heroicon-o-credit-card'),
                 'red-social' => \Filament\Navigation\MenuItem::make()
                     ->label('Red Social')
                     ->url('/admin/social-feed')
@@ -98,7 +107,7 @@ class AdminPanelProvider extends PanelProvider
                     ->icon('heroicon-o-cog-6-tooth'),
                 'perfil' => \Filament\Navigation\MenuItem::make()
                     ->label('Mi Perfil')
-                    ->url(fn () => '/empresa/' . auth()->user()->company->slug)
+                    ->url(fn () => '/empresa/'.auth()->user()->company->slug)
                     ->icon('heroicon-o-user-circle'),
             ]);
     }

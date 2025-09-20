@@ -8,8 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class Company extends Model
 {
@@ -44,6 +44,9 @@ class Company extends Model
         'subscription_expires_at',
         'max_users',
         'is_active',
+        'status',
+        'suspended_at',
+        'suspension_reason',
     ];
 
     protected $casts = [
@@ -52,12 +55,13 @@ class Company extends Model
         'allow_followers' => 'boolean',
         'show_contact_info' => 'boolean',
         'subscription_expires_at' => 'datetime',
+        'suspended_at' => 'datetime',
     ];
 
     protected static function boot()
     {
         parent::boot();
-        
+
         static::creating(function ($company) {
             if (empty($company->slug)) {
                 $company->slug = Str::slug($company->name);
@@ -133,6 +137,22 @@ class Company extends Model
         return $this->hasMany(CompanyFollower::class, 'follower_company_id');
     }
 
+    // Relaciones del sistema de facturación
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
+    public function usageMetrics(): HasMany
+    {
+        return $this->hasMany(UsageMetric::class);
+    }
+
+    public function activityLogs(): HasMany
+    {
+        return $this->hasMany(ActivityLog::class);
+    }
+
     // Scopes
     public function scopeActive($query)
     {
@@ -142,6 +162,31 @@ class Company extends Model
     public function scopeByPlan($query, $plan)
     {
         return $query->where('subscription_plan', $plan);
+    }
+
+    public function scopeByStatus($query, $status)
+    {
+        return $query->where('status', $status);
+    }
+
+    public function scopeSuspended($query)
+    {
+        return $query->where('status', 'suspended');
+    }
+
+    public function scopeCancelled($query)
+    {
+        return $query->where('status', 'cancelled');
+    }
+
+    public function scopeOnTrial($query)
+    {
+        return $query->where('status', 'trial');
+    }
+
+    public function scopePending($query)
+    {
+        return $query->where('status', 'pending');
     }
 
     // Métodos de negocio
@@ -235,7 +280,7 @@ class Company extends Model
 
     public function getCurrentPlan(): ?Plan
     {
-        if (!$this->subscription_plan || $this->subscription_plan === 'free') {
+        if (! $this->subscription_plan || $this->subscription_plan === 'free') {
             return null;
         }
 
@@ -247,4 +292,96 @@ class Company extends Model
     // {
     //     return $this->hasMany(PayuSubscription::class, 'company_id');
     // }
+
+    /**
+     * Status Management Methods
+     */
+    public function isActive(): bool
+    {
+        return $this->status === 'active' && $this->is_active;
+    }
+
+    public function isSuspended(): bool
+    {
+        return $this->status === 'suspended';
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->status === 'cancelled';
+    }
+
+    public function isOnTrial(): bool
+    {
+        return $this->status === 'trial';
+    }
+
+    public function isPending(): bool
+    {
+        return $this->status === 'pending';
+    }
+
+    public function suspend(?string $reason = null): void
+    {
+        $this->update([
+            'status' => 'suspended',
+            'suspended_at' => now(),
+            'suspension_reason' => $reason,
+        ]);
+
+        ActivityLog::logSystemEvent('company_suspended', [
+            'company_name' => $this->name,
+            'reason' => $reason,
+        ]);
+    }
+
+    public function reactivate(): void
+    {
+        $this->update([
+            'status' => 'active',
+            'suspended_at' => null,
+            'suspension_reason' => null,
+        ]);
+
+        ActivityLog::logSystemEvent('company_reactivated', [
+            'company_name' => $this->name,
+        ]);
+    }
+
+    public function cancel(?string $reason = null): void
+    {
+        $this->update([
+            'status' => 'cancelled',
+            'suspension_reason' => $reason,
+        ]);
+
+        ActivityLog::logSystemEvent('company_cancelled', [
+            'company_name' => $this->name,
+            'reason' => $reason,
+        ]);
+    }
+
+    public function getStatusColor(): string
+    {
+        return match ($this->status) {
+            'active' => 'success',
+            'trial' => 'info',
+            'suspended' => 'warning',
+            'cancelled' => 'danger',
+            'pending' => 'secondary',
+            default => 'gray',
+        };
+    }
+
+    public function getStatusLabel(): string
+    {
+        return match ($this->status) {
+            'active' => 'Activo',
+            'trial' => 'Prueba',
+            'suspended' => 'Suspendido',
+            'cancelled' => 'Cancelado',
+            'pending' => 'Pendiente',
+            default => 'Desconocido',
+        };
+    }
 }

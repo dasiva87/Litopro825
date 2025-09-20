@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Plan;
 use App\Models\Company;
+use App\Models\Plan;
 use App\Services\PayUService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Http\Response;
-use Carbon\Carbon;
 
 class PayUWebhookController extends Controller
 {
@@ -29,8 +28,9 @@ class PayUWebhookController extends Controller
         try {
             // Validate webhook signature (if provided)
             $signature = $request->header('X-PayU-Signature');
-            if ($signature && !$this->payuService->verifyWebhookSignature($request->getContent(), $signature)) {
+            if ($signature && ! $this->payuService->verifyWebhookSignature($request->getContent(), $signature)) {
                 Log::warning('PayU Webhook: Invalid signature');
+
                 return response('Invalid signature', 400);
             }
 
@@ -60,7 +60,7 @@ class PayUWebhookController extends Controller
             Log::error('PayU Webhook Error', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
-                'data' => $request->all()
+                'data' => $request->all(),
             ]);
 
             return response('Error processing webhook', 500);
@@ -76,37 +76,42 @@ class PayUWebhookController extends Controller
         $companyId = $this->extractCompanyIdFromReference($referenceCode);
         $planId = $this->extractPlanIdFromReference($referenceCode);
 
-        if (!$companyId || !$planId) {
+        if (! $companyId || ! $planId) {
             Log::warning('PayU Webhook: Could not extract company/plan from reference', [
-                'reference' => $referenceCode
+                'reference' => $referenceCode,
             ]);
+
             return;
         }
 
         $company = Company::find($companyId);
         $plan = Plan::find($planId);
 
-        if (!$company || !$plan) {
+        if (! $company || ! $plan) {
             Log::warning('PayU Webhook: Company or Plan not found', [
                 'company_id' => $companyId,
-                'plan_id' => $planId
+                'plan_id' => $planId,
             ]);
+
             return;
         }
 
-        // Update company subscription
+        // Update company subscription AND activate company
         $expiresAt = $this->calculateExpirationDate($plan);
 
         $company->update([
             'subscription_plan' => $plan->name,
             'subscription_expires_at' => $expiresAt,
+            'status' => 'active',  // Activar empresa
+            'is_active' => true,   // Activar empresa
+            'max_users' => $this->getPlanMaxUsers($plan), // Actualizar límite de usuarios
         ]);
 
         // Create subscription record (simplified)
         \DB::table('subscriptions')->updateOrInsert(
             [
                 'company_id' => $company->id,
-                'name' => 'default'
+                'name' => 'default',
             ],
             [
                 'stripe_id' => $data['transaction_id'] ?? '', // Using PayU transaction ID
@@ -123,7 +128,7 @@ class PayUWebhookController extends Controller
         Log::info('PayU Webhook: Subscription activated', [
             'company_id' => $company->id,
             'plan' => $plan->name,
-            'expires_at' => $expiresAt
+            'expires_at' => $expiresAt,
         ]);
     }
 
@@ -161,6 +166,7 @@ class PayUWebhookController extends Controller
     {
         // Expected format: LITOPRO-{company_id}-{plan_id}-{timestamp}
         $parts = explode('-', $reference);
+
         return isset($parts[1]) ? (int) $parts[1] : null;
     }
 
@@ -171,6 +177,7 @@ class PayUWebhookController extends Controller
     {
         // Expected format: LITOPRO-{company_id}-{plan_id}-{timestamp}
         $parts = explode('-', $reference);
+
         return isset($parts[2]) ? (int) $parts[2] : null;
     }
 
@@ -182,5 +189,21 @@ class PayUWebhookController extends Controller
         return $plan->interval === 'year'
             ? now()->addYear()
             : now()->addMonth();
+    }
+
+    /**
+     * Get max users for a plan
+     */
+    protected function getPlanMaxUsers(Plan $plan): int
+    {
+        $limits = $plan->limits ?? [];
+
+        foreach ($limits as $limit) {
+            if (isset($limit['feature']) && $limit['feature'] === 'max_users') {
+                return (int) ($limit['limit'] ?? 3);
+            }
+        }
+
+        return 3; // Default
     }
 }

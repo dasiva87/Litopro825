@@ -9,12 +9,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Lab404\Impersonate\Models\Impersonate;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, HasRoles, SoftDeletes, BelongsToTenant, HasApiTokens;
+    use BelongsToTenant, HasApiTokens, HasFactory, HasRoles, Impersonate, Notifiable, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -113,5 +114,16 @@ class User extends Authenticatable
     public function updateLastLogin(): void
     {
         $this->update(['last_login_at' => now()]);
+    }
+
+    // Métodos de impersonación
+    public function canImpersonate(): bool
+    {
+        return $this->hasRole('Super Admin');
+    }
+
+    public function canBeImpersonated(): bool
+    {
+        return ! $this->hasRole('Super Admin') && $this->is_active;
     }
 }

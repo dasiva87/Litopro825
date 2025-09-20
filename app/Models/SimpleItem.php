@@ -2,18 +2,20 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
+use App\Services\CuttingCalculatorService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Services\CuttingCalculatorService;
 
 class SimpleItem extends Model
 {
-    use HasFactory, SoftDeletes;
+    use BelongsToTenant, HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'company_id',
         'description',
         'quantity',
         'sobrante_papel',
@@ -90,13 +92,13 @@ class SimpleItem extends Model
     // Métodos de cálculo automático
     public function calculateMounting(): int
     {
-        if (!$this->paper || !$this->horizontal_size || !$this->vertical_size) {
+        if (! $this->paper || ! $this->horizontal_size || ! $this->vertical_size) {
             return 0;
         }
 
         // Usar el servicio de calculadora de cortes
-        $calculator = new CuttingCalculatorService();
-        
+        $calculator = new CuttingCalculatorService;
+
         try {
             $result = $calculator->calculateCuts(
                 paperWidth: $this->paper->width,
@@ -108,7 +110,7 @@ class SimpleItem extends Model
 
             // Retornar la cantidad de pliegos necesarios como montaje
             return $result['sheetsNeeded'] ?? 0;
-            
+
         } catch (\Exception $e) {
             return 0;
         }
@@ -116,7 +118,7 @@ class SimpleItem extends Model
 
     public function calculatePaperCuts(): array
     {
-        if (!$this->paper || !$this->horizontal_size || !$this->vertical_size) {
+        if (! $this->paper || ! $this->horizontal_size || ! $this->vertical_size) {
             return ['h' => 0, 'v' => 0];
         }
 
@@ -141,7 +143,7 @@ class SimpleItem extends Model
 
     public function calculatePaperCost(): float
     {
-        if (!$this->paper || !$this->mounting_quantity) {
+        if (! $this->paper || ! $this->mounting_quantity) {
             return 0;
         }
 
@@ -150,13 +152,13 @@ class SimpleItem extends Model
 
     public function calculatePrintingCost(): float
     {
-        if (!$this->printingMachine || !$this->mounting_quantity) {
+        if (! $this->printingMachine || ! $this->mounting_quantity) {
             return 0;
         }
 
         $impressions = $this->mounting_quantity;
         $totalInks = $this->ink_front_count + $this->ink_back_count;
-        
+
         // Si es tiro y retiro plancha, se cobra solo la mayor cantidad de tintas (frente o respaldo)
         if ($this->front_back_plate) {
             $totalInks = max($this->ink_front_count, $this->ink_back_count);
@@ -164,7 +166,7 @@ class SimpleItem extends Model
 
         // Calcular costo por millar (cost_per_impression es por 1000)
         $costPerImpression = $this->printingMachine->calculateCostForQuantity($impressions);
-        
+
         // Multiplicar por colores y agregar costo de alistamiento
         return ($costPerImpression * $totalInks) + $this->printingMachine->setup_cost;
     }
@@ -202,7 +204,7 @@ class SimpleItem extends Model
     public function calculateFinalPrice(): float
     {
         $totalCost = $this->total_cost;
-        
+
         if ($this->profit_percentage > 0) {
             $totalCost = $totalCost * (1 + ($this->profit_percentage / 100));
         }
@@ -214,9 +216,9 @@ class SimpleItem extends Model
     {
         // Usar el nuevo sistema de cálculo avanzado
         try {
-            $calculator = new \App\Services\SimpleItemCalculatorService();
+            $calculator = new \App\Services\SimpleItemCalculatorService;
             $pricingResult = $calculator->calculateFinalPricing($this);
-            
+
             // Actualizar campos con los resultados del nuevo calculador
             $this->mounting_quantity = $pricingResult->mountingOption->sheetsNeeded;
             $this->paper_cuts_h = $pricingResult->mountingOption->cuttingLayout['horizontal_cuts'];
@@ -234,7 +236,7 @@ class SimpleItem extends Model
 
             $this->total_cost = $pricingResult->subtotal;
             $this->final_price = $pricingResult->finalPrice;
-            
+
         } catch (\Exception $e) {
             // Fallback al sistema anterior si hay error
             $this->calculateAllLegacy();
@@ -245,7 +247,7 @@ class SimpleItem extends Model
     private function calculateAllLegacy(): void
     {
         $this->mounting_quantity = $this->calculateMounting();
-        
+
         $cuts = $this->calculatePaperCuts();
         $this->paper_cuts_h = $cuts['h'];
         $this->paper_cuts_v = $cuts['v'];
@@ -261,7 +263,8 @@ class SimpleItem extends Model
     public function getMountingOptions(): array
     {
         try {
-            $calculator = new \App\Services\SimpleItemCalculatorService();
+            $calculator = new \App\Services\SimpleItemCalculatorService;
+
             return $calculator->calculateMountingOptions($this);
         } catch (\Exception $e) {
             return [];
@@ -272,8 +275,9 @@ class SimpleItem extends Model
     public function getDetailedCostBreakdown(): array
     {
         try {
-            $calculator = new \App\Services\SimpleItemCalculatorService();
+            $calculator = new \App\Services\SimpleItemCalculatorService;
             $pricingResult = $calculator->calculateFinalPricing($this);
+
             return $pricingResult->getFormattedBreakdown();
         } catch (\Exception $e) {
             return [];
@@ -284,11 +288,12 @@ class SimpleItem extends Model
     public function validateTechnicalViability(): array
     {
         try {
-            $calculator = new \App\Services\SimpleItemCalculatorService();
+            $calculator = new \App\Services\SimpleItemCalculatorService;
             $validation = $calculator->validateTechnicalViability($this);
+
             return $validation->getAllMessages();
         } catch (\Exception $e) {
-            return [['type' => 'error', 'message' => 'Error al validar: ' . $e->getMessage()]];
+            return [['type' => 'error', 'message' => 'Error al validar: '.$e->getMessage()]];
         }
     }
 
@@ -305,16 +310,18 @@ class SimpleItem extends Model
 
     public function getOptimalOrientationAttribute(): string
     {
-        if (!$this->paper) return 'horizontal';
-        
+        if (! $this->paper) {
+            return 'horizontal';
+        }
+
         $cuts = $this->calculatePaperCuts();
         $total = $cuts['h'] * $cuts['v'];
-        
+
         // Probar orientación rotada
         $cutsH_rotated = floor($this->paper->width / $this->vertical_size);
         $cutsV_rotated = floor($this->paper->height / $this->horizontal_size);
         $total_rotated = $cutsH_rotated * $cutsV_rotated;
-        
+
         return $total_rotated > $total ? 'vertical' : 'horizontal';
     }
 }

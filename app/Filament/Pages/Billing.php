@@ -15,9 +15,9 @@ use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Auth;
 
-class Billing extends Page implements HasForms, HasActions
+class Billing extends Page implements HasActions, HasForms
 {
-    use InteractsWithForms, InteractsWithActions;
+    use InteractsWithActions, InteractsWithForms;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCreditCard;
 
@@ -25,11 +25,13 @@ class Billing extends Page implements HasForms, HasActions
 
     protected static ?string $title = 'Gestión de Facturación';
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected string $view = 'filament.pages.billing';
 
     public function mount(): void
     {
-        if (!Auth::user() || !Auth::user()->company) {
+        if (! Auth::user() || ! Auth::user()->company) {
             redirect()->route('filament.admin.auth.login');
         }
     }
@@ -66,7 +68,7 @@ class Billing extends Page implements HasForms, HasActions
                     $user = Auth::user();
 
                     // Generar código de referencia único
-                    $referenceCode = 'LITOPRO-' . $company->id . '-' . $plan->id . '-' . time();
+                    $referenceCode = 'LITOPRO-'.$company->id.'-'.$plan->id.'-'.time();
 
                     // Preparar datos para PayU
                     $paymentData = [
@@ -98,7 +100,7 @@ class Billing extends Page implements HasForms, HasActions
                 } catch (\Exception $e) {
                     Notification::make()
                         ->title('Error al Procesar Suscripción')
-                        ->body('Hubo un problema al procesar tu suscripción: ' . $e->getMessage())
+                        ->body('Hubo un problema al procesar tu suscripción: '.$e->getMessage())
                         ->danger()
                         ->send();
                 }
@@ -134,7 +136,7 @@ class Billing extends Page implements HasForms, HasActions
                 } catch (\Exception $e) {
                     Notification::make()
                         ->title('Error al Cancelar Suscripción')
-                        ->body('Hubo un problema al cancelar tu suscripción: ' . $e->getMessage())
+                        ->body('Hubo un problema al cancelar tu suscripción: '.$e->getMessage())
                         ->danger()
                         ->send();
                 }
@@ -152,7 +154,7 @@ class Billing extends Page implements HasForms, HasActions
         $apiKey = config('payu.api_key');
 
         // Generar signature para PayU
-        $signature = md5($apiKey . '~' . $merchantId . '~' . $data['reference_code'] . '~' . $data['amount'] . '~COP');
+        $signature = md5($apiKey.'~'.$merchantId.'~'.$data['reference_code'].'~'.$data['amount'].'~COP');
 
         $params = [
             'merchantId' => $merchantId,
@@ -173,6 +175,6 @@ class Billing extends Page implements HasForms, HasActions
             'confirmationUrl' => route('payu.webhook'),
         ];
 
-        return $baseUrl . '/ppp-web-gateway-payu/?' . http_build_query($params);
+        return $baseUrl.'/ppp-web-gateway-payu/?'.http_build_query($params);
     }
 }

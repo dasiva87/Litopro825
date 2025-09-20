@@ -8,12 +8,11 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateUser extends CreateRecord
 {
     protected static string $resource = UserResource::class;
-    
-    protected function afterCreate(): void
+
+    protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $roles = $this->data['roles'] ?? [];
-        if (!empty($roles)) {
-            $this->record->syncRoles($roles);
-        }
+        $data['company_id'] = auth()->user()->company_id;
+
+        return $data;
     }
 }

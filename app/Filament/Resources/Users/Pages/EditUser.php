@@ -20,12 +20,4 @@ class EditUser extends EditRecord
             RestoreAction::make(),
         ];
     }
-    
-    protected function afterSave(): void
-    {
-        $roles = $this->data['roles'] ?? [];
-        if (!empty($roles)) {
-            $this->record->syncRoles($roles);
-        }
-    }
 }

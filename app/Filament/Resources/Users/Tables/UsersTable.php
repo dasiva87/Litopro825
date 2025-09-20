@@ -7,11 +7,8 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
-use Filament\Actions\ViewAction;
-use Filament\Tables\Columns\BooleanColumn;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 
@@ -22,83 +19,64 @@ class UsersTable
         return $table
             ->columns([
                 TextColumn::make('name')
-                    ->label('Nombre')
-                    ->searchable()
-                    ->sortable()
-                    ->weight('medium'),
-                    
+                    ->searchable(),
                 TextColumn::make('email')
-                    ->label('Email')
-                    ->searchable()
-                    ->icon('heroicon-m-envelope'),
-                    
-                TextColumn::make('company.name')
-                    ->label('Empresa')
-                    ->searchable()
+                    ->label('Email address')
+                    ->searchable(),
+                TextColumn::make('email_verified_at')
+                    ->dateTime()
                     ->sortable(),
-                    
-                TextColumn::make('roles.name')
-                    ->label('Roles')
-                    ->badge()
-                    ->colors([
-                        'primary' => 'Super Admin',
-                        'success' => 'Company Admin',
-                        'warning' => 'Manager',
-                        'secondary' => 'Salesperson',
-                        'info' => 'Operator',
-                    ])
-                    ->separator(', '),
-                    
-                TextColumn::make('position')
-                    ->label('Cargo')
-                    ->toggleable(isToggledHiddenByDefault: true),
-                    
+                TextColumn::make('document_type')
+                    ->searchable(),
+                TextColumn::make('document_number')
+                    ->searchable(),
                 TextColumn::make('phone')
-                    ->label('Teléfono')
-                    ->icon('heroicon-m-phone')
-                    ->toggleable(isToggledHiddenByDefault: true),
-                    
-                BooleanColumn::make('is_active')
-                    ->label('Activo')
-                    ->sortable(),
-                    
-                TextColumn::make('last_login_at')
-                    ->label('Último Acceso')
-                    ->dateTime('d/M/Y H:i')
-                    ->sortable()
-                    ->placeholder('Nunca'),
-                    
+                    ->searchable(),
+                TextColumn::make('mobile')
+                    ->searchable(),
+                TextColumn::make('position')
+                    ->searchable(),
                 TextColumn::make('created_at')
-                    ->label('Registro')
-                    ->dateTime('d/M/Y')
+                    ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('updated_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('deleted_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('company.name')
+                    ->searchable(),
+                TextColumn::make('city.name')
+                    ->searchable(),
+                TextColumn::make('state.name')
+                    ->searchable(),
+                TextColumn::make('country.name')
+                    ->searchable(),
+                TextColumn::make('avatar')
+                    ->searchable(),
+                IconColumn::make('is_active')
+                    ->boolean(),
+                TextColumn::make('last_login_at')
+                    ->dateTime()
+                    ->sortable(),
+                TextColumn::make('stripe_id')
+                    ->searchable(),
+                TextColumn::make('pm_type')
+                    ->searchable(),
+                TextColumn::make('pm_last_four')
+                    ->searchable(),
+                TextColumn::make('trial_ends_at')
+                    ->dateTime()
+                    ->sortable(),
             ])
-            ->defaultSort('created_at', 'desc')
             ->filters([
-                SelectFilter::make('company_id')
-                    ->label('Empresa')
-                    ->relationship('company', 'name')
-                    ->searchable()
-                    ->preload(),
-                    
-                SelectFilter::make('roles')
-                    ->label('Rol')
-                    ->relationship('roles', 'name')
-                    ->searchable()
-                    ->preload(),
-                    
-                TernaryFilter::make('is_active')
-                    ->label('Estado')
-                    ->boolean()
-                    ->trueLabel('Solo activos')
-                    ->falseLabel('Solo inactivos')
-                    ->native(false),
-                    
                 TrashedFilter::make(),
             ])
             ->recordActions([
-                ViewAction::make(),
                 EditAction::make(),
             ])
             ->toolbarActions([
@@ -107,8 +85,6 @@ class UsersTable
                     ForceDeleteBulkAction::make(),
                     RestoreBulkAction::make(),
                 ]),
-            ])
-            ->searchOnBlur()
-            ->striped();
+            ]);
     }
 }

@@ -87,11 +87,21 @@
                         <p style="margin-top: 1rem; font-size: 0.875rem; color: #4b5563;">{{ $plan->description }}</p>
 
                         <ul style="margin-top: 1.5rem; list-style: none; padding: 0;">
-                            @foreach($plan->features as $feature)
-                                <li style="display: flex; align-items: center; margin-bottom: 0.5rem; font-size: 0.875rem; color: #4b5563;">
-                                    <x-heroicon-o-check style="width: 1rem; height: 1rem; color: #10b981; margin-right: 0.5rem; flex-shrink: 0;" />
-                                    {{ $feature }}
-                                </li>
+                            @php
+                                $features = is_array($plan->features) ? $plan->features : [];
+                            @endphp
+                            @foreach($features as $feature)
+                                @if(is_array($feature))
+                                    <li style="display: flex; align-items: center; margin-bottom: 0.5rem; font-size: 0.875rem; color: #4b5563;">
+                                        <x-heroicon-o-check style="width: 1rem; height: 1rem; color: #10b981; margin-right: 0.5rem; flex-shrink: 0;" />
+                                        {{ $feature['name'] ?? 'Característica' }}
+                                    </li>
+                                @else
+                                    <li style="display: flex; align-items: center; margin-bottom: 0.5rem; font-size: 0.875rem; color: #4b5563;">
+                                        <x-heroicon-o-check style="width: 1rem; height: 1rem; color: #10b981; margin-right: 0.5rem; flex-shrink: 0;" />
+                                        {{ $feature }}
+                                    </li>
+                                @endif
                             @endforeach
                         </ul>
 

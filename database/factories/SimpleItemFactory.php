@@ -2,10 +2,10 @@
 
 namespace Database\Factories;
 
-use App\Models\SimpleItem;
 use App\Models\Company;
 use App\Models\Paper;
 use App\Models\PrintingMachine;
+use App\Models\SimpleItem;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -27,6 +27,7 @@ class SimpleItemFactory extends Factory
         ];
 
         return [
+            'company_id' => Company::factory(),
             'description' => $this->faker->randomElement($descriptions),
             'quantity' => $this->faker->numberBetween(100, 10000),
             'sobrante_papel' => $this->faker->numberBetween(0, 200), // 0-200 unidades de sobrante

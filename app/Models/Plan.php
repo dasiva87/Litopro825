@@ -20,6 +20,8 @@ class Plan extends Model
         'interval',
         'features',
         'limits',
+        'payment_methods',
+        'payu_description',
         'is_active',
         'sort_order',
     ];
@@ -27,6 +29,7 @@ class Plan extends Model
     protected $casts = [
         'features' => 'array',
         'limits' => 'array',
+        'payment_methods' => 'array',
         'is_active' => 'boolean',
         'price' => 'decimal:2',
     ];
@@ -38,7 +41,7 @@ class Plan extends Model
 
     public function getFormattedPriceAttribute(): string
     {
-        return '$' . number_format($this->price, 2) . '/' . $this->interval;
+        return '$'.number_format($this->price, 2).'/'.$this->interval;
     }
 
     public function scopeActive($query)

@@ -7,11 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Models\Scopes\CompanyScope;
+use App\Models\Concerns\BelongsToTenant;
 
 class Document extends Model
 {
-    use HasFactory, SoftDeletes;
+    use BelongsToTenant, HasFactory, SoftDeletes;
 
     protected $fillable = [
         'company_id',
@@ -52,9 +52,6 @@ class Document extends Model
     protected static function boot()
     {
         parent::boot();
-        
-        // Aplicar scope de multi-tenancy
-        static::addGlobalScope(new CompanyScope);
 
         // Auto-generar número de documento
         static::creating(function ($document) {
