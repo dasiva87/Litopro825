@@ -14,6 +14,8 @@ class Dashboard extends BaseDashboard
 
     protected static ?string $slug = 'dashboard';
 
+    protected static bool $shouldRegisterNavigation = false;
+
     public function getWidgets(): array
     {
         return [
