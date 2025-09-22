@@ -18,10 +18,10 @@ class Plan extends Model
         'price',
         'currency',
         'interval',
+        'trial_days',
         'features',
         'limits',
         'payment_methods',
-        'payu_description',
         'is_active',
         'sort_order',
     ];
@@ -39,6 +39,11 @@ class Plan extends Model
         return $this->hasMany(Subscription::class, 'stripe_price', 'stripe_price_id');
     }
 
+    public function activeSubscriptions(): HasMany
+    {
+        return $this->subscriptions()->where('stripe_status', 'active');
+    }
+
     public function getFormattedPriceAttribute(): string
     {
         return '$'.number_format($this->price, 2).'/'.$this->interval;
@@ -52,5 +57,15 @@ class Plan extends Model
     public function scopeOrdered($query)
     {
         return $query->orderBy('sort_order');
+    }
+
+    public function isFree(): bool
+    {
+        return $this->price == 0 || $this->slug === 'free';
+    }
+
+    public function scopeFree($query)
+    {
+        return $query->where('price', 0)->orWhere('slug', 'free');
     }
 }

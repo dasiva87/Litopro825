@@ -273,7 +273,6 @@ class Company extends Model
     public function hasActiveSubscription(): bool
     {
         return $this->subscription_plan &&
-               $this->subscription_plan !== 'free' &&
                $this->subscription_expires_at &&
                $this->subscription_expires_at->isFuture();
     }

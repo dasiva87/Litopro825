@@ -10,12 +10,13 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Lab404\Impersonate\Models\Impersonate;
+use Laravel\Cashier\Billable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use BelongsToTenant, HasApiTokens, HasFactory, HasRoles, Impersonate, Notifiable, SoftDeletes;
+    use BelongsToTenant, Billable, HasApiTokens, HasFactory, HasRoles, Impersonate, Notifiable, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.

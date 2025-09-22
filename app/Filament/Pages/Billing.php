@@ -67,6 +67,25 @@ class Billing extends Page implements HasActions, HasForms
                     $company = Auth::user()->company;
                     $user = Auth::user();
 
+                    // Si es plan gratuito, procesarlo directamente sin PayU
+                    if ($plan->isFree()) {
+                        // Activar suscripción gratuita inmediatamente
+                        $company->update([
+                            'subscription_plan' => $plan->slug,
+                            'subscription_expires_at' => now()->addMonth(), // 1 mes gratuito
+                            'is_active' => true,
+                        ]);
+
+                        Notification::make()
+                            ->title('¡Suscripción Activada!')
+                            ->body("Te has suscrito exitosamente al {$plan->name}. ¡Disfruta de LitoPro!")
+                            ->success()
+                            ->send();
+
+                        return redirect()->route('filament.admin.pages.billing');
+                    }
+
+                    // Para planes de pago, continuar con PayU
                     // Generar código de referencia único
                     $referenceCode = 'LITOPRO-'.$company->id.'-'.$plan->id.'-'.time();
 

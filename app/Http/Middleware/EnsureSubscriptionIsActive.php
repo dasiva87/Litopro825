@@ -26,7 +26,7 @@ class EnsureSubscriptionIsActive
         $company = $user->company;
 
         // Verificar si la empresa tiene una suscripción activa
-        if (!$company->subscribed()) {
+        if (!$company->hasActiveSubscription()) {
             // Permitir acceso a páginas de facturación y configuración
             if ($this->isAllowedWithoutSubscription($request)) {
                 return $next($request);
@@ -89,14 +89,8 @@ class EnsureSubscriptionIsActive
      */
     private function hasFeatureAccess($company, string $feature): bool
     {
-        $subscription = $company->subscription();
-
-        if (!$subscription) {
-            return false;
-        }
-
-        // Obtener el plan basado en el stripe_price del subscription
-        $plan = \App\Models\Plan::where('stripe_price_id', $subscription->stripe_price)->first();
+        // Usar el plan actual de la empresa directamente
+        $plan = $company->getCurrentPlan();
 
         if (!$plan) {
             return false;

@@ -39,10 +39,17 @@ class SuperAdminPanelProvider extends PanelProvider
             ->brandLogo(fn () => view('components.litopro-logo'))
             ->darkModeBrandLogo(fn () => view('components.litopro-logo-dark'))
             ->resources([
+                \App\Filament\SuperAdmin\Resources\PlanResource::class,
+                \App\Filament\SuperAdmin\Resources\SubscriptionResource::class,
+                // Enterprise Features - Fase 3 (Activando progresivamente)
+                \App\Filament\SuperAdmin\Resources\PlanExperiments\PlanExperimentResource::class,
+                \App\Filament\SuperAdmin\Resources\AutomatedReports\AutomatedReportResource::class,
+                \App\Filament\SuperAdmin\Resources\NotificationChannels\NotificationChannelResource::class,
+                \App\Filament\SuperAdmin\Resources\ApiIntegrations\ApiIntegrationResource::class,
+                \App\Filament\SuperAdmin\Resources\EnterprisePlans\EnterprisePlanResource::class,
                 // Temporalmente comentadas para probar el registro
                 // \App\Filament\SuperAdmin\Resources\CompanyResource::class,
                 // \App\Filament\SuperAdmin\Resources\UserResource::class,
-                // \App\Filament\SuperAdmin\Resources\Plans\PlanResource::class,
                 // ActivityLogResource: Problema fundamental con enum navigationGroup en Filament v4.0.3
                 // Requiere actualización de Filament o enfoque alternativo
                 // \App\Filament\SuperAdmin\Resources\ActivityLogResource::class,
@@ -50,12 +57,23 @@ class SuperAdminPanelProvider extends PanelProvider
             // ->discoverResources(in: app_path('Filament/SuperAdmin/Resources'), for: 'App\Filament\SuperAdmin\Resources')
             // ->discoverPages(in: app_path('Filament/SuperAdmin/Pages'), for: 'App\Filament\SuperAdmin\Pages')
             ->pages([
-                // \App\Filament\SuperAdmin\Pages\Dashboard::class,
+                \App\Filament\SuperAdmin\Pages\Dashboard::class,
             ])
             // ->discoverWidgets(in: app_path('Filament/SuperAdmin/Widgets'), for: 'App\Filament\SuperAdmin\Widgets')
             ->widgets([
                 AccountWidget::class,
-                // Temporalmente comentados para probar el registro
+                // Widgets de la Fase 1 - Core Super Admin
+                \App\Filament\SuperAdmin\Widgets\FinancialMetricsWidget::class,
+                \App\Filament\SuperAdmin\Widgets\FailedPaymentsWidget::class,
+                \App\Filament\SuperAdmin\Widgets\PlanStatsWidget::class,
+                \App\Filament\SuperAdmin\Widgets\SubscriptionStatsWidget::class,
+                // Widgets de la Fase 2 - Analytics Avanzados
+                \App\Filament\SuperAdmin\Widgets\CohortAnalysisWidget::class,
+                \App\Filament\SuperAdmin\Widgets\RevenueForecastWidget::class,
+                \App\Filament\SuperAdmin\Widgets\PlanPerformanceWidget::class,
+                \App\Filament\SuperAdmin\Widgets\GeographicRevenueWidget::class,
+                \App\Filament\SuperAdmin\Widgets\PaymentAnalyticsWidget::class,
+                // Widgets existentes temporalmente comentados
                 // \App\Filament\SuperAdmin\Widgets\SystemMetricsWidget::class,
                 // \App\Filament\SuperAdmin\Widgets\MrrWidget::class,
                 // \App\Filament\SuperAdmin\Widgets\ChurnRateWidget::class,
@@ -88,6 +106,7 @@ class SuperAdminPanelProvider extends PanelProvider
                 'Subscription Management',
                 'User Management',
                 'Analytics & Reports',
+                'Enterprise Features',
                 'System Administration',
             ])
             ->userMenuItems([

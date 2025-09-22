@@ -15,6 +15,33 @@ class PlanSeeder extends Seeder
     {
         $plans = [
             [
+                'name' => 'Plan Gratuito',
+                'slug' => 'free',
+                'description' => 'Plan gratuito para probar LitoPro. Funcionalidades básicas.',
+                'stripe_price_id' => null,
+                'price' => 0.00,
+                'currency' => 'usd',
+                'interval' => 'month',
+                'features' => [
+                    '1 usuario',
+                    'Hasta 5 cotizaciones por mes',
+                    'Gestión básica de inventario (10 productos)',
+                    'Calculadora de papel básica',
+                    'Soporte por email',
+                    'Acceso limitado a red social'
+                ],
+                'limits' => [
+                    'max_users' => 1,
+                    'max_documents_per_month' => 5,
+                    'max_products' => 10,
+                    'max_storage_mb' => 100,
+                    'social_feed_access' => true,
+                    'advanced_reports' => false
+                ],
+                'is_active' => true,
+                'sort_order' => 0,
+            ],
+            [
                 'name' => 'Plan Básico',
                 'slug' => 'basico',
                 'description' => 'Plan ideal para litografías pequeñas que están comenzando.',
@@ -139,7 +166,10 @@ class PlanSeeder extends Seeder
         ];
 
         foreach ($plans as $planData) {
-            Plan::create($planData);
+            Plan::updateOrCreate(
+                ['slug' => $planData['slug']], // Buscar por slug
+                $planData // Datos a actualizar o crear
+            );
         }
     }
 }

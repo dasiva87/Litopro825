@@ -107,7 +107,7 @@
 
                         <div style="margin-top: 1.5rem;">
                             @if(!$currentPlan || $currentPlan->id !== $plan->id)
-                                @if(!$hasActiveSubscription)
+                                @if(!$hasActiveSubscription || $plan->isFree())
                                     {{ ($this->subscribeToAction)(['plan' => $plan->id]) }}
                                 @else
                                     <button class="fi-btn fi-outlined fi-disabled" disabled style="width: 100%;">
@@ -126,7 +126,7 @@
         </div>
     </div>
 
-    <!-- Información de PayU -->
+    <!-- Información de Stripe -->
     @if($hasActiveSubscription)
         <div class="fi-section fi-card" style="margin-top: 1.5rem;">
             <div class="fi-section-header">
@@ -139,18 +139,18 @@
                 <div style="background-color: #f3f4f6; padding: 1rem; border-radius: 0.5rem; margin-top: 1rem;">
                     <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
                         <x-heroicon-o-information-circle style="width: 1.25rem; height: 1.25rem; color: #3b82f6; margin-right: 0.5rem;" />
-                        <span style="font-weight: 600; color: #1f2937;">Procesado por PayU</span>
+                        <span style="font-weight: 600; color: #1f2937;">Procesado por Stripe</span>
                     </div>
                     <p style="font-size: 0.875rem; color: #4b5563;">
-                        Los pagos son procesados de forma segura por PayU, la plataforma de pagos líder en Colombia.
-                        Aceptamos tarjetas de crédito, débito, PSE, Efecty y Baloto.
+                        Los pagos son procesados de forma segura por Stripe, la plataforma de pagos líder mundial.
+                        Aceptamos todas las tarjetas de crédito y débito principales (Visa, Mastercard, American Express).
                     </p>
                 </div>
 
                 <div style="text-align: center; padding: 2rem 0; color: #6b7280;">
                     <x-heroicon-o-document-text style="width: 3rem; height: 3rem; margin: 0 auto;" />
-                    <p style="margin-top: 0.5rem;">El historial de transacciones estará disponible próximamente.</p>
-                    <p style="font-size: 0.875rem; margin-top: 0.25rem;">Podrás consultar todas tus transacciones y recibos desde aquí.</p>
+                    <p style="margin-top: 0.5rem;">Gestiona tu suscripción y facturas a través del portal de Stripe.</p>
+                    <p style="font-size: 0.875rem; margin-top: 0.25rem;">Podrás consultar todas tus transacciones y descargar facturas.</p>
                 </div>
             </div>
         </div>

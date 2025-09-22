@@ -52,6 +52,7 @@ class SimpleRegistrationController extends Controller
                 'status' => 'incomplete', // Estado inicial para perfil incompleto
                 'is_active' => true,
                 'subscription_plan' => 'free', // Plan inicial gratuito
+                'subscription_expires_at' => now()->addMonth(), // Plan gratuito por 1 mes
                 'max_users' => 5, // Límite inicial para plan gratuito
                 // Campos opcionales se llenarán después
                 'email' => null,

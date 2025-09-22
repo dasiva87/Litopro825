@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\TrustedProxyMiddleware::class,
         ]);
         $middleware->web(append: [
+            \App\Http\Middleware\SetTenantContext::class,
             \App\Http\Middleware\TenantMiddleware::class,
         ]);
         $middleware->alias([
