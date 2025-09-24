@@ -12,7 +12,13 @@ class StockLevelTrackingWidget extends Widget
 
     protected static ?int $sort = 5;
 
-    protected int | string | array $columnSpan = 1;
+    protected int | string | array $columnSpan = [
+        'sm' => 1,
+        'md' => 2,
+        'lg' => 1,
+    ];
+
+    protected ?string $pollingInterval = '60s';
 
     public function getViewData(): array
     {

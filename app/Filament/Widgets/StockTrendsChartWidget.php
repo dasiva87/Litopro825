@@ -13,6 +13,8 @@ class StockTrendsChartWidget extends ChartWidget
 
     protected int | string | array $columnSpan = 'full';
 
+    protected ?string $pollingInterval = null;
+
     protected function getData(): array
     {
         $companyId = auth()->user()->company_id;

@@ -12,7 +12,13 @@ class QuickActionsWidget extends Widget
 
     protected static ?int $sort = 4;
 
-    protected int | string | array $columnSpan = 1;
+    protected int | string | array $columnSpan = [
+        'sm' => 1,
+        'md' => 1,
+        'lg' => 2,
+    ];
+
+    protected static bool $isLazy = false;
 
     public function getActions(): array
     {
