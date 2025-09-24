@@ -15,10 +15,12 @@ use Filament\Widgets\TableWidget as BaseWidget;
 class ActiveDocumentsWidget extends BaseWidget
 {
     protected static ?string $heading = '📋 Documentos Activos';
-    
-    protected static ?int $sort = 3;
-    
+
+    protected static ?int $sort = 5;
+
     protected int | string | array $columnSpan = 'full';
+
+    protected ?string $pollingInterval = '180s';
     
     public function table(Table $table): Table
     {

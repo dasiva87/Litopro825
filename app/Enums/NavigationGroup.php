@@ -6,6 +6,7 @@ enum NavigationGroup: string
 {
     case Cotizaciones = 'cotizaciones';
     case Catalogos = 'catalogos';
+    case INVENTORY = 'inventario';
     case Configuracion = 'configuracion';
     case Sistema = 'sistema';
     case Usuarios = 'usuarios';
@@ -15,6 +16,7 @@ enum NavigationGroup: string
         return match ($this) {
             self::Cotizaciones => 'Cotizaciones',
             self::Catalogos => 'Catálogos',
+            self::INVENTORY => 'Inventario',
             self::Configuracion => 'Configuración',
             self::Sistema => 'Sistema',
             self::Usuarios => 'Usuarios',

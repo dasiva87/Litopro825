@@ -8,10 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\StockManagement;
 
 class Product extends Model
 {
-    use HasFactory, SoftDeletes, BelongsToTenant;
+    use HasFactory, SoftDeletes, BelongsToTenant, StockManagement;
 
     protected $fillable = [
         'company_id',
@@ -55,53 +56,13 @@ class Product extends Model
     }
 
     // Métodos de negocio
-    
+
     /**
      * Calcular precio total para una cantidad específica
      */
     public function calculateTotalPrice(int $quantity): float
     {
         return $this->sale_price * $quantity;
-    }
-
-    /**
-     * Verificar si hay stock suficiente
-     */
-    public function hasStock(int $quantity): bool
-    {
-        return $this->stock >= $quantity;
-    }
-
-    /**
-     * Reducir stock (para cuando se confirme una venta)
-     */
-    public function reduceStock(int $quantity): bool
-    {
-        if (!$this->hasStock($quantity)) {
-            return false;
-        }
-
-        $this->stock -= $quantity;
-        $this->save();
-
-        return true;
-    }
-
-    /**
-     * Aumentar stock (para devoluciones o nuevas compras)
-     */
-    public function increaseStock(int $quantity): void
-    {
-        $this->stock += $quantity;
-        $this->save();
-    }
-
-    /**
-     * Verificar si el stock está por debajo del mínimo
-     */
-    public function isLowStock(): bool
-    {
-        return $this->stock <= $this->min_stock;
     }
 
     /**
@@ -125,36 +86,6 @@ class Product extends Model
     }
 
     // Accessors
-    public function getStockStatusAttribute(): string
-    {
-        if ($this->stock == 0) {
-            return 'sin_stock';
-        } elseif ($this->isLowStock()) {
-            return 'stock_bajo';
-        } else {
-            return 'stock_normal';
-        }
-    }
-
-    public function getStockStatusLabelAttribute(): string
-    {
-        return match($this->stock_status) {
-            'sin_stock' => 'Sin Stock',
-            'stock_bajo' => 'Stock Bajo',
-            'stock_normal' => 'Stock Normal',
-            default => 'Desconocido'
-        };
-    }
-
-    public function getStockStatusColorAttribute(): string
-    {
-        return match($this->stock_status) {
-            'sin_stock' => 'danger',
-            'stock_bajo' => 'warning',
-            'stock_normal' => 'success',
-            default => 'gray'
-        };
-    }
 
     public function getSupplierTypeAttribute(): string
     {
@@ -165,16 +96,6 @@ class Product extends Model
     public function scopeActive($query)
     {
         return $query->where('active', true);
-    }
-
-    public function scopeInStock($query)
-    {
-        return $query->where('stock', '>', 0);
-    }
-
-    public function scopeLowStock($query)
-    {
-        return $query->whereColumn('stock', '<=', 'min_stock');
     }
 
     public function scopeOwnProducts($query)

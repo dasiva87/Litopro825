@@ -11,7 +11,7 @@ class PaperCalculatorWidget extends Widget
 {
     protected string $view = 'filament.widgets.paper-calculator';
     
-    protected static ?int $sort = 12;
+    protected static ?int $sort = 4;
     
     protected int | string | array $columnSpan = [
         'md' => 1,

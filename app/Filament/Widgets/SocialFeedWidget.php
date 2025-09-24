@@ -12,7 +12,7 @@ class SocialFeedWidget extends Widget
 {
     protected string $view = 'filament.widgets.social-feed';
     
-    protected static ?int $sort = 4;
+    protected static ?int $sort = 8;
     
     protected int | string | array $columnSpan = 'full';
     

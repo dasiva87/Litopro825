@@ -12,7 +12,7 @@ class DeadlinesWidget extends Widget
 {
     protected string $view = 'filament.widgets.deadlines';
     
-    protected static ?int $sort = 11;
+    protected static ?int $sort = 6;
     
     protected int | string | array $columnSpan = [
         'md' => 1,

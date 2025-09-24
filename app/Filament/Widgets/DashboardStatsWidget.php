@@ -13,8 +13,10 @@ use Illuminate\Support\Facades\DB;
 class DashboardStatsWidget extends BaseWidget
 {
     protected static ?int $sort = 1;
-    
+
     protected int | string | array $columnSpan = 'full';
+
+    protected ?string $pollingInterval = '300s';
     
     protected function getStats(): array
     {

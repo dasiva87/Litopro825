@@ -114,7 +114,9 @@ class OnboardingWidget extends Widget
     {
         return auth()->user()?->company
             ?->documents()
-            ->where('type', 'quotation')
+            ->whereHas('documentType', function ($query) {
+                $query->where('code', 'QUOTE');
+            })
             ->exists() ?? false;
     }
 

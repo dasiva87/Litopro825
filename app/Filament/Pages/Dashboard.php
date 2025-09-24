@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use BackedEnum;
 use Filament\Pages\Dashboard as BaseDashboard;
 
 class Dashboard extends BaseDashboard
@@ -10,11 +11,13 @@ class Dashboard extends BaseDashboard
 
     protected static ?string $navigationLabel = 'Dashboard';
 
+    protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-squares-2x2';
+
     protected static ?int $navigationSort = -1;
 
-    protected static ?string $slug = 'dashboard';
+    protected static ?string $slug = '';
 
-    protected static bool $shouldRegisterNavigation = false;
+    protected static bool $shouldRegisterNavigation = true;
 
     public function getWidgets(): array
     {

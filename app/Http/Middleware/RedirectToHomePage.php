@@ -15,10 +15,8 @@ class RedirectToHomePage
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Redirect from /admin to /admin/home for authenticated users
-        if ($request->is('admin') && $request->user()) {
-            return redirect('/admin/home');
-        }
+        // No redirect needed - let Dashboard be the default page at /admin
+        // Users can access /admin/home directly if they want the social feed
 
         return $next($request);
     }

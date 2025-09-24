@@ -8,10 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\StockManagement;
 
 class Paper extends Model
 {
-    use HasFactory, SoftDeletes, BelongsToTenant;
+    use HasFactory, SoftDeletes, BelongsToTenant, StockManagement;
 
     protected $fillable = [
         'company_id',
@@ -23,6 +24,7 @@ class Paper extends Model
         'cost_per_sheet',
         'price',
         'stock',
+        'min_stock',
         'is_own',
         'supplier_id',
         'is_active',
@@ -35,6 +37,7 @@ class Paper extends Model
         'cost_per_sheet' => 'decimal:4',
         'price' => 'decimal:4',
         'stock' => 'integer',
+        'min_stock' => 'integer',
         'is_own' => 'boolean',
         'is_active' => 'boolean',
     ];
@@ -70,15 +73,6 @@ class Paper extends Model
         return $query->where('is_own', false);
     }
 
-    public function scopeInStock($query)
-    {
-        return $query->where('stock', '>', 0);
-    }
-
-    public function scopeLowStock($query, int $threshold = 10)
-    {
-        return $query->where('stock', '<=', $threshold)->where('stock', '>', 0);
-    }
 
     // Accessors
     public function getFullNameAttribute(): string
@@ -98,22 +92,4 @@ class Paper extends Model
             (($this->price - $this->cost_per_sheet) / $this->cost_per_sheet) * 100 : 0;
     }
 
-    public function getStockStatusAttribute(): string
-    {
-        if ($this->stock <= 0) return 'out';
-        if ($this->stock <= 10) return 'low';
-        if ($this->stock <= 50) return 'medium';
-        return 'high';
-    }
-
-    // Business methods
-    public function isInStock(): bool
-    {
-        return $this->stock > 0;
-    }
-
-    public function isLowStock(int $threshold = 10): bool
-    {
-        return $this->stock <= $threshold && $this->stock > 0;
-    }
 }

@@ -7,6 +7,8 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class MrrWidget extends StatsOverviewWidget
 {
+    protected static ?int $sort = 10;
+
     protected function getStats(): array
     {
         // Calculamos MRR básico a partir de suscripciones activas
