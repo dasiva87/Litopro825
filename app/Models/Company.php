@@ -272,9 +272,18 @@ class Company extends Model
      */
     public function hasActiveSubscription(): bool
     {
-        return $this->subscription_plan &&
-               $this->subscription_expires_at &&
-               $this->subscription_expires_at->isFuture();
+        // Si no hay plan, no hay suscripción
+        if (!$this->subscription_plan) {
+            return false;
+        }
+
+        // Plan gratuito siempre activo (no expira o con fecha futura)
+        if ($this->subscription_plan === 'free' || str_contains(strtolower($this->subscription_plan), 'gratuito')) {
+            return $this->subscription_expires_at === null || $this->subscription_expires_at->isFuture();
+        }
+
+        // Planes de pago requieren fecha de expiración futura
+        return $this->subscription_expires_at && $this->subscription_expires_at->isFuture();
     }
 
     public function getCurrentPlan(): ?Plan

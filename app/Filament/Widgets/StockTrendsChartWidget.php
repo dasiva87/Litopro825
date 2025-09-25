@@ -13,7 +13,7 @@ class StockTrendsChartWidget extends ChartWidget
 
     protected int | string | array $columnSpan = 'full';
 
-    protected ?string $pollingInterval = null;
+    protected ?string $pollingInterval = '300s';
 
     protected function getData(): array
     {

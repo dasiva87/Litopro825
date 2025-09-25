@@ -49,10 +49,10 @@ class SimpleRegistrationController extends Controller
                 'name' => $request->company_name,
                 'slug' => Str::slug($request->company_name),
                 'tax_id' => $request->tax_id,
-                'status' => 'incomplete', // Estado inicial para perfil incompleto
+                'status' => 'active', // Empresa activa con plan gratuito
                 'is_active' => true,
                 'subscription_plan' => 'free', // Plan inicial gratuito
-                'subscription_expires_at' => now()->addMonth(), // Plan gratuito por 1 mes
+                'subscription_expires_at' => null, // Plan gratuito no expira
                 'max_users' => 5, // Límite inicial para plan gratuito
                 // Campos opcionales se llenarán después
                 'email' => null,
@@ -79,15 +79,31 @@ class SimpleRegistrationController extends Controller
                 $user->assignRole($adminRole);
             }
 
+            // Crear suscripción gratuita automáticamente
+            $freePlan = \App\Models\Plan::where('slug', 'free')->first();
+            if ($freePlan) {
+                \App\Models\Subscription::create([
+                    'company_id' => $company->id,
+                    'user_id' => $user->id,
+                    'name' => $freePlan->name,
+                    'stripe_id' => 'free_' . $company->id . '_' . time(), // ID único para plan gratuito
+                    'stripe_status' => 'active', // Plan gratuito activo inmediatamente
+                    'stripe_price' => $freePlan->stripe_price_id ?? $freePlan->slug,
+                    'quantity' => 1,
+                    'trial_ends_at' => null, // Sin período de prueba
+                    'ends_at' => now()->addYear(), // Plan gratuito válido por 1 año
+                ]);
+            }
+
             DB::commit();
 
             // Autenticar al usuario automáticamente
             Auth::login($user);
 
-            // Redirigir al dashboard con mensaje de bienvenida
-            return redirect()->route('filament.admin.pages.dashboard')
+            // Redirigir al home con mensaje de bienvenida
+            return redirect()->route('filament.admin.pages.home')
                 ->with('registration_success', true)
-                ->with('company_incomplete', true);
+                ->with('welcome_message', '¡Bienvenido a LitoPro! Tu cuenta gratuita está lista para usar.');
 
         } catch (\Exception $e) {
             DB::rollBack();

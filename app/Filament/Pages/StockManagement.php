@@ -25,6 +25,7 @@ use UnitEnum;
 
 class StockManagement extends Page
 {
+    protected string $view = 'filament.pages.stock-management';
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-chart-bar-square';
 
@@ -361,12 +362,7 @@ class StockManagement extends Page
     protected function getHeaderWidgets(): array
     {
         return [
-            StockKpisWidget::class,
-            StockPredictionsWidget::class,
-            RecentMovementsWidget::class,
-            QuickActionsWidget::class,
-            StockLevelTrackingWidget::class,
-            StockTrendsChartWidget::class,
+            // Widgets are now manually rendered in the Blade template
         ];
     }
 

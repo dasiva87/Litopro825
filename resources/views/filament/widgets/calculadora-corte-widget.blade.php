@@ -1,13 +1,8 @@
-<div style="background: white; border-radius: 12px; padding: 24px; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-    <!-- Header con icono verde -->
-    <div style="display: flex; align-items: center; margin-bottom: 24px;">
-        <div style="width: 24px; height: 24px; background: #22c55e; border-radius: 6px; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
-            <svg style="width: 16px; height: 16px; color: white;" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
-            </svg>
-        </div>
-        <h3 style="font-size: 18px; font-weight: 600; color: #111827; margin: 0;">Calculadora de Cortes</h3>
-    </div>
+<x-filament-widgets::widget>
+    <x-filament::section>
+        <x-slot name="heading">
+            Calculadora de Cortes
+        </x-slot>
 
     <!-- Formulario -->
     <form wire:submit="calcular">
@@ -78,7 +73,6 @@
                 wire:click="setOrientacion('vertical')"
                 style="flex: 1; padding: 14px 12px; background: {{ $orientacion === 'vertical' ? '#1e40af' : '#3b82f6' }}; color: white; border: none; border-radius: 8px; font-weight: 500; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; min-height: 44px; white-space: nowrap; transition: background-color 0.2s;"
             >
-                <span style="margin-right: 4px;">⚡</span>
                 Vertical
             </button>
             <button
@@ -86,7 +80,6 @@
                 wire:click="setOrientacion('horizontal')"
                 style="flex: 1; padding: 14px 12px; background: {{ $orientacion === 'horizontal' ? '#15803d' : '#22c55e' }}; color: white; border: none; border-radius: 8px; font-weight: 500; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; min-height: 44px; white-space: nowrap; transition: background-color 0.2s;"
             >
-                <span style="margin-right: 4px;">↔️</span>
                 Horizontal
             </button>
             <button
@@ -94,7 +87,6 @@
                 wire:click="setOrientacion('optimo')"
                 style="flex: 1; padding: 14px 12px; background: {{ $orientacion === 'optimo' ? '#c2410c' : '#f97316' }}; color: white; border: none; border-radius: 8px; font-weight: 500; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; min-height: 44px; white-space: nowrap; transition: background-color 0.2s;"
             >
-                <span style="margin-right: 4px;">✨</span>
                 Óptimo
             </button>
         </div>
@@ -106,7 +98,6 @@
                 wire:click="resetCalculator"
                 style="padding: 8px 16px; background: #6b7280; color: white; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;"
             >
-                <span>🔄</span>
                 Valores por defecto
             </button>
         </div>
@@ -127,35 +118,31 @@
             </div>
         @else
             <!-- Resultados exitosos -->
-            <div style="padding: 20px; margin-top: 24px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;">
                 <!-- Header con orientación -->
                 <div style="display: flex; align-items: center; margin-bottom: 16px;">
                     <div style="width: 24px; height: 24px; background: #22c55e; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
                         <span style="color: white; font-size: 12px; font-weight: bold;">✓</span>
                     </div>
                     <h4 style="color: #166534; margin: 0; font-size: 16px; font-weight: 600;">
-                        Orientación: {{ ucfirst($resultado['orientacion']) }}
+                        {{ ucfirst($resultado['orientacion']) }}
                     </h4>
                 </div>
 
                 <!-- Métricas principales -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px;">
-                    <div style="background: white; padding: 16px; border-radius: 8px; border: 1px solid #d1fae5;">
-                        <p style="color: #6b7280; font-size: 12px; margin: 0 0 4px 0; text-transform: uppercase; font-weight: 600;">Piezas por hoja</p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+                    <div style="background: white; padding: 10px; border-radius: 8px; border: 1px solid #d1fae5;">
+                        <p style="color: #6b7280; font-size: 12px; margin: 0 0 4px 0; font-weight: 600;">Piezas por pliego</p>
                         <p style="color: #1f2937; font-size: 24px; font-weight: bold; margin: 0;">{{ $resultado['piezasPorHoja'] }}</p>
-                        <p style="color: #6b7280; font-size: 11px; margin: 4px 0 0 0;">{{ $resultado['piezasPorAncho'] }} × {{ $resultado['piezasPorLargo'] }}</p>
                     </div>
 
-                    <div style="background: white; padding: 16px; border-radius: 8px; border: 1px solid #d1fae5;">
-                        <p style="color: #6b7280; font-size: 12px; margin: 0 0 4px 0; text-transform: uppercase; font-weight: 600;">Hojas necesarias</p>
+                    <div style="background: white; padding: 10px; border-radius: 8px; border: 1px solid #d1fae5;">
+                        <p style="color: #6b7280; font-size: 12px; margin: 0 0 4px 0; font-weight: 600;">Pliegos necesarios</p>
                         <p style="color: #1f2937; font-size: 24px; font-weight: bold; margin: 0;">{{ $resultado['hojasNecesarias'] }}</p>
-                        <p style="color: #6b7280; font-size: 11px; margin: 4px 0 0 0;">para {{ $cantidadDeseada }} piezas</p>
                     </div>
 
-                    <div style="background: white; padding: 16px; border-radius: 8px; border: 1px solid #d1fae5;">
-                        <p style="color: #6b7280; font-size: 12px; margin: 0 0 4px 0; text-transform: uppercase; font-weight: 600;">Eficiencia</p>
+                    <div style="background: white; padding: 10px; border-radius: 8px; border: 1px solid #d1fae5;">
+                        <p style="color: #6b7280; font-size: 12px; margin: 0 0 4px 0; font-weight: 600;">Eficiencia</p>
                         <p style="color: #059669; font-size: 24px; font-weight: bold; margin: 0;">{{ $resultado['eficiencia'] }}%</p>
-                        <p style="color: #6b7280; font-size: 11px; margin: 4px 0 0 0;">aprovechamiento</p>
                     </div>
                 </div>
 
@@ -301,7 +288,7 @@
                             offsetY - 10);
                     }
                 </script>
-            </div>
+            
         @endif
     @else
         <!-- Estado inicial -->
@@ -310,4 +297,5 @@
             <p style="font-size: 12px; color: #9ca3af; margin: 0; font-style: italic;">Los valores se calculan automáticamente</p>
         </div>
     @endif
-</div>
+    </x-filament::section>
+</x-filament-widgets::widget>

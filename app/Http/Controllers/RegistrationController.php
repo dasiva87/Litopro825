@@ -123,11 +123,24 @@ class RegistrationController extends Controller
     protected function activateFreePlan(Company $company, Plan $plan)
     {
         $company->update([
-            'subscription_plan' => $plan->name,
+            'subscription_plan' => 'free', // Usar valor enum válido
             'subscription_expires_at' => null, // Plan gratuito no expira
             'status' => 'active',
             'is_active' => true,
             'max_users' => $this->getPlanMaxUsers($plan),
+        ]);
+
+        // Crear suscripción gratuita en la tabla subscriptions
+        \App\Models\Subscription::create([
+            'company_id' => $company->id,
+            'user_id' => Auth::id(),
+            'name' => $plan->name,
+            'stripe_id' => 'free_' . $company->id . '_' . time(), // ID único para plan gratuito
+            'stripe_status' => 'active', // Plan gratuito activo inmediatamente
+            'stripe_price' => $plan->stripe_price_id ?? $plan->slug,
+            'quantity' => 1,
+            'trial_ends_at' => null, // Sin período de prueba
+            'ends_at' => null, // Plan gratuito no expira
         ]);
 
         return redirect()->route('filament.admin.pages.home')->with('success',

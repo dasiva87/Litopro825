@@ -1,110 +1,109 @@
 <div>
     <x-filament-widgets::widget>
-        <div style="background-color: #f9fafb; border-radius: 12px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); padding: 16px; margin-bottom: 24px;">
-            <!-- Header -->
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
-                <span style="color: #2563eb; font-size: 20px;">👥</span>
-                <h3 style="font-size: 18px; font-weight: 600; color: #111827; margin: 0;">Empresas Sugeridas</h3>
-            </div>
+        <x-filament::section>
+            <x-slot name="heading">
+                Empresas Sugeridas
+            </x-slot>
 
-            <!-- Content -->
-            <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="space-y-3">
                 @if($this->getViewData()['suggestions']->count() > 0)
                     @foreach($this->getViewData()['suggestions'] as $company)
-                        <div style="display: flex; align-items: center; justify-content: space-between;">
-                            <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-                                <!-- Avatar -->
-                                <div style="flex-shrink: 0;">
-                                    @if($company['avatar_url'])
-                                        <img src="{{ $company['avatar_url'] }}"
-                                             alt="{{ $company['name'] }}"
-                                             style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;">
-                                    @else
-                                        @php
-                                            // Match the exact colors from the image
-                                            $avatarData = [
-                                                'I' => '#6366f1', // Indigo-500 for "Imprenta Gráfica" -> IG
-                                                'P' => '#ef4444', // Red-500 for "Papeles y Diseños" -> PD
-                                                'D' => '#8b5cf6', // Purple-500 for Default
-                                                'L' => '#3b82f6', // Blue-500
-                                                'M' => '#10b981', // Green-500
-                                                'A' => '#f59e0b', // Yellow-500
-                                            ];
-                                            $firstLetter = strtoupper(substr($company['name'], 0, 1));
-                                            $avatarColor = $avatarData[$firstLetter] ?? '#6b7280';
-                                        @endphp
-                                        <div style="width: 48px; height: 48px; background-color: {{ $avatarColor }}; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                                            <span style="color: white; font-size: 14px; font-weight: bold;">
-                                                {{ $company['avatar_initials'] }}
-                                            </span>
-                                        </div>
-                                    @endif
-                                </div>
-
-                                <!-- Company Info -->
-                                <div style="flex: 1; min-width: 0;">
-                                    <a href="{{ $company['profile_url'] }}"
-                                       style="display: block; font-weight: bold; color: #111827; text-decoration: none; font-size: 16px; margin-bottom: 2px;">
-                                        {{ $company['name'] }}
-                                    </a>
-                                    <p style="font-size: 14px; color: #6b7280; margin: 0;">
-                                        @if($company['city'])
-                                            {{ $company['city'] }} • {{ $company['followers_count'] }} seguidores
+                        <x-filament::card class="p-3">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3 flex-1">
+                                    <!-- Avatar -->
+                                    <div class="flex-shrink-0">
+                                        @if($company['avatar_url'])
+                                            <img src="{{ $company['avatar_url'] }}"
+                                                 alt="{{ $company['name'] }}"
+                                                 class="h-12 w-12 rounded-full object-cover">
                                         @else
-                                            {{ $company['followers_count'] }} seguidores
+                                            @php
+                                                $avatarColors = [
+                                                    'I' => 'bg-indigo-500',
+                                                    'P' => 'bg-red-500',
+                                                    'D' => 'bg-purple-500',
+                                                    'L' => 'bg-blue-500',
+                                                    'M' => 'bg-green-500',
+                                                    'A' => 'bg-yellow-500',
+                                                ];
+                                                $firstLetter = strtoupper(substr($company['name'], 0, 1));
+                                                $avatarClass = $avatarColors[$firstLetter] ?? 'bg-gray-500';
+                                            @endphp
+                                            <div class="h-12 w-12 {{ $avatarClass }} rounded-full flex items-center justify-center">
+                                                <span class="text-white text-sm font-bold">
+                                                    {{ $company['avatar_initials'] }}
+                                                </span>
+                                            </div>
                                         @endif
-                                    </p>
+                                    </div>
+
+                                    <!-- Company Info -->
+                                    <div class="flex-1 min-w-0">
+                                        <div class="font-medium text-gray-900 dark:text-white truncate">
+                                            {{ $company['name'] }}
+                                        </div>
+                                        <div class="text-sm text-gray-500 dark:text-gray-400">
+                                            @if($company['city'])
+                                                {{ $company['city'] }} • {{ $company['followers_count'] }} seguidores
+                                            @else
+                                                {{ $company['followers_count'] }} seguidores
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Follow Button -->
+                                <div class="flex-shrink-0">
+                                    <x-filament::button
+                                        wire:click="followCompany({{ $company['id'] }})"
+                                        size="sm"
+                                        color="primary"
+                                    >
+                                        Seguir
+                                    </x-filament::button>
                                 </div>
                             </div>
-
-                            <!-- Follow Button -->
-                            <div style="flex-shrink: 0;">
-                                <button
-                                    wire:click="followCompany({{ $company['id'] }})"
-                                    style="padding: 8px 16px; font-size: 14px; font-weight: 500; color: white; background-color: #2563eb; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.2s;"
-                                    onmouseover="this.style.backgroundColor='#1d4ed8'"
-                                    onmouseout="this.style.backgroundColor='#2563eb'"
-                                >
-                                    Seguir
-                                </button>
-                            </div>
-                        </div>
+                        </x-filament::card>
                     @endforeach
                 @else
                     <!-- Empty State -->
-                    <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-                            <div style="width: 48px; height: 48px; background-color: #9ca3af; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                                <span style="color: white; font-size: 14px; font-weight: bold;">--</span>
+                    <x-filament::card class="p-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3 flex-1">
+                                <div class="h-12 w-12 bg-gray-400 rounded-full flex items-center justify-center">
+                                    <span class="text-white text-sm font-bold">--</span>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-medium text-gray-900 dark:text-white">
+                                        No hay sugerencias
+                                    </div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">
+                                        No hay empresas para seguir
+                                    </div>
+                                </div>
                             </div>
-                            <div style="flex: 1; min-width: 0;">
-                                <p style="font-weight: bold; color: #111827; font-size: 16px; margin-bottom: 2px;">
-                                    No hay sugerencias
-                                </p>
-                                <p style="font-size: 14px; color: #6b7280; margin: 0;">
-                                    No hay empresas para seguir
-                                </p>
+                            <div class="flex-shrink-0">
+                                <x-filament::button
+                                    disabled
+                                    size="sm"
+                                    color="gray"
+                                >
+                                    Seguir
+                                </x-filament::button>
                             </div>
                         </div>
-                        <div style="flex-shrink: 0;">
-                            <button disabled style="padding: 8px 16px; font-size: 14px; font-weight: 500; color: #9ca3af; background-color: #d1d5db; border: none; border-radius: 6px; cursor: not-allowed;">
-                                Seguir
-                            </button>
-                        </div>
-                    </div>
+                    </x-filament::card>
                 @endif
             </div>
 
             <!-- Footer Link -->
-            <div style="margin-top: 16px; padding-top: 12px; text-align: center; border-top: 1px solid #e5e7eb;">
-                <a href="/admin/companies"
-                   style="color: #2563eb; font-weight: 500; font-size: 14px; text-decoration: none;"
-                   onmouseover="this.style.color='#1d4ed8'"
-                   onmouseout="this.style.color='#2563eb'">
+            <div class="mt-4 pt-3 text-center border-t border-gray-200 dark:border-gray-700">
+                <x-filament::link href="/admin/companies" size="sm">
                     Ver todas las sugerencias
-                </a>
+                </x-filament::link>
             </div>
-        </div>
+        </x-filament::section>
     </x-filament-widgets::widget>
 
     <!-- Flash Messages -->

@@ -52,7 +52,7 @@
             <x-filament::card>
                 <x-slot name="header">
                     <div class="flex items-center gap-2">
-                        @svg('heroicon-o-squares-2x2', 'w-4 h-4')
+                        <x-heroicon-o-squares-2x2 class="w-5 h-5" />
                         <span class="font-medium">Productos</span>
                     </div>
                 </x-slot>
@@ -68,7 +68,7 @@
             <x-filament::card>
                 <x-slot name="header">
                     <div class="flex items-center gap-2">
-                        @svg('heroicon-o-document', 'w-4 h-4')
+                        <x-heroicon-o-document class="w-5 h-5" />
                         <span class="font-medium">Papeles</span>
                     </div>
                 </x-slot>
@@ -120,7 +120,7 @@
         <x-filament::card>
             <x-slot name="header">
                 <div class="flex items-center gap-2">
-                    @svg('heroicon-o-currency-dollar', 'w-4 h-4')
+                    <x-heroicon-o-currency-dollar class="w-5 h-5" />
                     <span class="font-medium">Valor del Inventario</span>
                 </div>
             </x-slot>

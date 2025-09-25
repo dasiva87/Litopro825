@@ -13,10 +13,10 @@ class CalculadoraCorteWidget extends Widget
 
     public $anchoPapel = 70;
     public $largoPapel = 100;
-    public $anchoCorte = 10;
-    public $largoCorte = 15;
+    public $anchoCorte = 22;
+    public $largoCorte = 28;
     public $cantidadDeseada = 1000;
-    public $orientacion = 'vertical';
+    public $orientacion = 'optimo';
 
     // Resultados del cálculo
     public $resultado = null;
@@ -155,10 +155,10 @@ class CalculadoraCorteWidget extends Widget
     {
         $this->anchoPapel = 70;
         $this->largoPapel = 100;
-        $this->anchoCorte = 10;
-        $this->largoCorte = 15;
+        $this->anchoCorte = "";
+        $this->largoCorte = "";
         $this->cantidadDeseada = 1000;
-        $this->orientacion = 'vertical';
+        $this->orientacion = 'optimo';
         $this->resultado = null;
         $this->calculado = false;
     }

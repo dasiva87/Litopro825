@@ -32,7 +32,6 @@ class Home extends Page
             // Widgets de acciones y calculadoras
             \App\Filament\Widgets\QuickActionsWidget::class,
             \App\Filament\Widgets\CalculadoraCorteWidget::class,
-            \App\Filament\Widgets\PaperCalculatorWidget::class,
 
             // Widgets de documentos y deadlines
             \App\Filament\Widgets\ActiveDocumentsWidget::class,
@@ -44,10 +43,10 @@ class Home extends Page
             \App\Filament\Widgets\SuggestedCompaniesWidget::class,
 
             // Widgets de negocio
-            \App\Filament\Widgets\MrrWidget::class,
+           // \App\Filament\Widgets\MrrWidget::class,
 
             // Widget de onboarding (si es necesario)
-            \App\Filament\Widgets\OnboardingWidget::class,
+          //  \App\Filament\Widgets\OnboardingWidget::class,
         ];
     }
 

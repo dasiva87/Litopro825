@@ -66,8 +66,8 @@
         <!-- Sidebar Derecho -->
         <aside class="home-sidebar">
             <div style="space-y: 24px;">
-                @livewire(\App\Filament\Widgets\SuggestedCompaniesWidget::class)
                 @livewire(\App\Filament\Widgets\CalculadoraCorteWidget::class)
+                @livewire(\App\Filament\Widgets\SuggestedCompaniesWidget::class)
             </div>
         </aside>
     </div>

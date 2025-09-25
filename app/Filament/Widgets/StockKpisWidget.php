@@ -21,59 +21,56 @@ class StockKpisWidget extends BaseWidget
     {
         $companyId = auth()->user()->company_id;
 
+        // Contadores básicos simplificados
         $totalProducts = Product::where('company_id', $companyId)->where('active', true)->count();
         $totalPapers = Paper::where('company_id', $companyId)->where('is_active', true)->count();
 
-        $lowStockItems = Product::where('company_id', $companyId)
+        // Stock bajo - simplificado sin usar min_stock
+        $lowStockProducts = Product::where('company_id', $companyId)
             ->where('active', true)
-            ->lowStock()
-            ->count() +
-            Paper::where('company_id', $companyId)
-            ->where('is_active', true)
-            ->lowStock()
+            ->where('stock', '>', 0)
+            ->where('stock', '<=', 10)
             ->count();
 
-        $outOfStockItems = Product::where('company_id', $companyId)
-            ->where('active', true)
-            ->outOfStock()
-            ->count() +
-            Paper::where('company_id', $companyId)
+        $lowStockPapers = Paper::where('company_id', $companyId)
             ->where('is_active', true)
-            ->outOfStock()
+            ->where('stock', '>', 0)
+            ->where('stock', '<=', 100)
             ->count();
 
+        // Sin stock
+        $outOfStockProducts = Product::where('company_id', $companyId)
+            ->where('active', true)
+            ->where('stock', '<=', 0)
+            ->count();
+
+        $outOfStockPapers = Paper::where('company_id', $companyId)
+            ->where('is_active', true)
+            ->where('stock', '<=', 0)
+            ->count();
+
+        // Alertas críticas - simplificado sin usar relación
         $criticalAlerts = StockAlert::where('company_id', $companyId)
-            ->critical()
-            ->active()
+            ->where('severity', 'critical')
+            ->where('status', 'active')
             ->count();
-
-        $stockCoverageDays = $this->calculateStockCoverageDays();
 
         return [
-            Stat::make('Total Items', $totalProducts + $totalPapers)
+            Stat::make('📦 Total Items', $totalProducts + $totalPapers)
                 ->description('Productos y papeles activos')
-                ->descriptionIcon('heroicon-o-cube')
                 ->color('primary'),
 
-            Stat::make('Stock Bajo', $lowStockItems)
+            Stat::make('⚠️ Stock Bajo', $lowStockProducts + $lowStockPapers)
                 ->description('Items bajo nivel mínimo')
-                ->descriptionIcon('heroicon-o-exclamation-triangle')
                 ->color('warning'),
 
-            Stat::make('Sin Stock', $outOfStockItems)
+            Stat::make('❌ Sin Stock', $outOfStockProducts + $outOfStockPapers)
                 ->description('Items que requieren reposición')
-                ->descriptionIcon('heroicon-o-x-circle')
                 ->color('danger'),
 
-            Stat::make('Alertas Críticas', $criticalAlerts)
-                ->description('Alertas que requieren atención')
-                ->descriptionIcon('heroicon-o-bell')
+            Stat::make('🔔 Alertas', $criticalAlerts)
+                ->description('Alertas críticas activas')
                 ->color('danger'),
-
-            Stat::make('Cobertura', $stockCoverageDays . ' días')
-                ->description('Días estimados de stock')
-                ->descriptionIcon('heroicon-o-clock')
-                ->color('success'),
         ];
     }
 

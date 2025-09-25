@@ -327,4 +327,91 @@ class SocialPost extends Model
               });
         })->public()->notExpired();
     }
+
+    // Scope para búsqueda de hashtags
+    public function scopeWithHashtag($query, string $hashtag)
+    {
+        return $query->whereJsonContains('tags', $hashtag);
+    }
+
+    // Scope para búsqueda semántica
+    public function scopeSearch($query, string $search)
+    {
+        $searchTerms = explode(' ', strtolower(trim($search)));
+
+        return $query->where(function ($q) use ($searchTerms) {
+            foreach ($searchTerms as $term) {
+                $q->where(function ($subQuery) use ($term) {
+                    $subQuery->where('title', 'LIKE', "%{$term}%")
+                           ->orWhere('content', 'LIKE', "%{$term}%")
+                           ->orWhereJsonContains('tags', $term)
+                           ->orWhereHas('company', function($companyQuery) use ($term) {
+                               $companyQuery->where('name', 'LIKE', "%{$term}%");
+                           });
+                });
+            }
+        });
+    }
+
+    // Extraer hashtags del contenido
+    public function extractHashtags(): array
+    {
+        $content = $this->content ?? '';
+        preg_match_all('/#([a-zA-Z0-9_áéíóúñÁÉÍÓÚÑüÜ]+)/', $content, $matches);
+
+        return array_unique(array_map('strtolower', $matches[1] ?? []));
+    }
+
+    // Obtener hashtags populares
+    public static function getPopularHashtags(int $limit = 10): array
+    {
+        $allTags = collect();
+
+        static::whereNotNull('tags')
+              ->where('is_public', true)
+              ->whereDate('created_at', '>=', now()->subDays(30))
+              ->get(['tags'])
+              ->each(function ($post) use ($allTags) {
+                  if (is_array($post->tags)) {
+                      $allTags->push(...$post->tags);
+                  }
+              });
+
+        return $allTags->countBy()
+                      ->sortDesc()
+                      ->take($limit)
+                      ->keys()
+                      ->toArray();
+    }
+
+    // Formatear contenido con hashtags como enlaces
+    public function getFormattedContent(): string
+    {
+        $content = $this->content ?? '';
+
+        // Convertir hashtags a enlaces
+        $content = preg_replace(
+            '/#([a-zA-Z0-9_áéíóúñÁÉÍÓÚÑüÜ]+)/',
+            '<span class="hashtag text-blue-600 hover:text-blue-800 cursor-pointer font-medium" data-hashtag="$1">#$1</span>',
+            $content
+        );
+
+        return $content;
+    }
+
+    // Auto-actualizar hashtags al guardar
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saving(function ($post) {
+            $extractedHashtags = $post->extractHashtags();
+            $currentTags = is_array($post->tags) ? $post->tags : [];
+
+            // Combinar hashtags extraídos con tags existentes
+            $allTags = array_unique(array_merge($currentTags, $extractedHashtags));
+
+            $post->tags = array_values($allTags);
+        });
+    }
 }

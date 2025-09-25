@@ -8,13 +8,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Services\CuttingCalculatorService;
+use App\Models\Concerns\BelongsToTenant;
 
 class DocumentItem extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, BelongsToTenant;
 
     protected $fillable = [
         'document_id',
+        'company_id',
         'itemable_type',
         'itemable_id',
         'printing_machine_id',
