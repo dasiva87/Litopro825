@@ -41,7 +41,18 @@ class SetTenantContext
                 return;
             }
 
-            // Método 3: Si hay usuario autenticado, obtener company_id directamente de la BD
+            // Método 3A: Usar Auth::user() si está disponible (para Livewire)
+            if (auth()->check()) {
+                $user = auth()->user();
+
+                if ($user->company_id) {
+                    Config::set('app.current_tenant_id', $user->company_id);
+                    Session::put('current_tenant_id', $user->company_id);
+                    return;
+                }
+            }
+
+            // Método 3B: Si hay usuario autenticado, obtener company_id directamente de la BD
             $userId = $request->session()->get('login_web_' . sha1('web'));
 
             if ($userId) {

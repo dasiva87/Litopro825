@@ -14,8 +14,9 @@ class TenantScope implements Scope
         // Solo usar el tenant_id desde Config establecido por el middleware
         $tenantId = Config::get('app.current_tenant_id');
 
-        // Aplicar scope solo si hay tenantId y no es la tabla companies
-        if ($tenantId && $model->getTable() !== 'companies') {
+        // Aplicar scope solo si hay tenantId y no es tabla companies o users
+        // Los users no deben tener scope automático para evitar recursión en auth
+        if ($tenantId && $model->getTable() !== 'companies' && $model->getTable() !== 'users') {
             $builder->where($model->getTable().'.company_id', $tenantId);
         }
     }

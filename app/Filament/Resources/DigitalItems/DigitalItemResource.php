@@ -10,6 +10,8 @@ use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 use UnitEnum;
 
 class DigitalItemResource extends Resource
@@ -52,6 +54,28 @@ class DigitalItemResource extends Resource
             'create' => Pages\CreateDigitalItem::route('/create'),
             'edit' => Pages\EditDigitalItem::route('/{record}/edit'),
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery()
+            ->withoutGlobalScopes([
+                SoftDeletingScope::class,
+            ]);
+
+        // Aplicar filtro por empresa manualmente
+        $tenantId = config('app.current_tenant_id');
+
+        if ($tenantId) {
+            $query->where('company_id', $tenantId);
+        } else {
+            // Fallback: usar company_id del usuario autenticado
+            if (auth()->check() && auth()->user()->company_id) {
+                $query->where('company_id', auth()->user()->company_id);
+            }
+        }
+
+        return $query;
     }
 
     public static function getNavigationBadge(): ?string

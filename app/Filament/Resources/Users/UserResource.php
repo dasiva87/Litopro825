@@ -48,11 +48,30 @@ class UserResource extends Resource
         ];
     }
 
-    public static function getRecordRouteBindingEloquentQuery(): Builder
+    public static function getEloquentQuery(): Builder
     {
-        return parent::getRecordRouteBindingEloquentQuery()
+        $query = parent::getEloquentQuery()
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
+
+        // Aplicar filtro por empresa manualmente
+        $tenantId = config('app.current_tenant_id');
+
+        if ($tenantId) {
+            $query->where('company_id', $tenantId);
+        } else {
+            // Fallback: usar company_id del usuario autenticado
+            if (auth()->check() && auth()->user()->company_id) {
+                $query->where('company_id', auth()->user()->company_id);
+            }
+        }
+
+        return $query;
+    }
+
+    public static function getRecordRouteBindingEloquentQuery(): Builder
+    {
+        return static::getEloquentQuery();
     }
 }

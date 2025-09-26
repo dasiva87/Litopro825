@@ -19,12 +19,12 @@ class TenantMiddleware
     {
         if (Auth::check()) {
             $user = Auth::user();
-            
+
             if ($user && $user->company_id) {
                 Config::set('app.current_tenant_id', $user->company_id);
             }
         }
-        
+
         return $next($request);
     }
 }
