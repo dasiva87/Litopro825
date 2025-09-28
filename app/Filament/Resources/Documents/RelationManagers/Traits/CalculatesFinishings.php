@@ -101,6 +101,6 @@ trait CalculatesFinishings
 
         $finishing = \App\Models\Finishing::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->find($finishingId);
 
-        return $finishing && $finishing->measurement_unit === \App\Enums\FinishingMeasurementUnit::POR_CM2;
+        return $finishing && $finishing->measurement_unit === \App\Enums\FinishingMeasurementUnit::TAMAÑO;
     }
 }

@@ -20,7 +20,7 @@ class ProductHandler extends AbstractItemHandler
                             ->required()
                             ->minValue(1)
                             ->live()
-                            ->afterStateUpdated(function ($state, $get, $set) {
+                            ->afterStateUpdated(function ($state, $get, $set) use ($record) {
                                 $this->calculateEditTotalPrice($get, $set, $record);
                             }),
 
@@ -31,7 +31,7 @@ class ProductHandler extends AbstractItemHandler
                             ->minValue(0)
                             ->maxValue(500)
                             ->live()
-                            ->afterStateUpdated(function ($state, $get, $set) {
+                            ->afterStateUpdated(function ($state, $get, $set) use ($record) {
                                 $this->calculateEditTotalPrice($get, $set, $record);
                             }),
                     ]),

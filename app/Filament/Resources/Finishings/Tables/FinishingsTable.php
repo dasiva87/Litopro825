@@ -52,7 +52,7 @@ class FinishingsTable
                 TextColumn::make('ranges_count')
                     ->label('Rangos')
                     ->counts('ranges')
-                    ->visible(fn($record) => $record?->measurement_unit?->value === 'rango'),
+                    ->visible(fn($record) => $record?->measurement_unit === \App\Enums\FinishingMeasurementUnit::RANGO),
                 TextColumn::make('created_at')
                     ->label('Creado')
                     ->dateTime()

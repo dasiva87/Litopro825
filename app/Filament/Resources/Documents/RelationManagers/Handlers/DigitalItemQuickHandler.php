@@ -243,7 +243,7 @@ class DigitalItemQuickHandler implements QuickActionHandlerInterface
                         }
 
                         $documentItem->finishings()->create([
-                            'finishing_id' => $finishing->id,
+                            'finishing_name' => $finishing->name,
                             'quantity' => $finishingParams['quantity'],
                             'is_double_sided' => false,
                             'unit_price' => $finishingParams['unit_price'],

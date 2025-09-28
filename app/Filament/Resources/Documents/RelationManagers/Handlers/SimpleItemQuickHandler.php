@@ -129,7 +129,7 @@ class SimpleItemQuickHandler implements QuickActionHandlerInterface
                     if ($finishing) {
                         // Crear el acabado relacionado
                         $documentItem->finishings()->create([
-                            'finishing_id' => $finishing->id,
+                            'finishing_name' => $finishing->name,
                             'quantity' => $finishingData['quantity'] ?? 1,
                             'is_double_sided' => false, // Para SimpleItems no aplica
                             'unit_price' => ($finishingData['calculated_cost'] ?? 0) / ($finishingData['quantity'] ?? 1),
