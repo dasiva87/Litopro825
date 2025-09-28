@@ -88,11 +88,50 @@ class SimpleItemForm
                             ->schema([
                                 Select::make('paper_id')
                                     ->label('Papel')
-                                    ->relationship('paper', 'name')
-                                    ->getOptionLabelFromRecordUsing(fn($record) => 
-                                        $record->code . ' - ' . $record->name . 
-                                        ' (' . $record->width . 'x' . $record->height . 'cm)'
-                                    )
+                                    ->options(function () {
+                                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                                        $company = $currentCompanyId ? \App\Models\Company::find($currentCompanyId) : null;
+
+                                        if (!$company) {
+                                            return [];
+                                        }
+
+                                        if ($company->isLitografia()) {
+                                            // Para litografías: papeles propios + de proveedores aprobados
+                                            $supplierCompanyIds = \App\Models\SupplierRelationship::where('client_company_id', $currentCompanyId)
+                                                ->where('is_active', true)
+                                                ->whereNotNull('approved_at')
+                                                ->pluck('supplier_company_id')
+                                                ->toArray();
+
+                                            $papers = Paper::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->where(function ($query) use ($currentCompanyId, $supplierCompanyIds) {
+                                                $query->where('company_id', $currentCompanyId) // Propios
+                                                      ->orWhereIn('company_id', $supplierCompanyIds); // De proveedores aprobados
+                                            })
+                                            ->where('is_active', true)
+                                            ->with('company')
+                                            ->get()
+                                            ->mapWithKeys(function ($paper) use ($currentCompanyId) {
+                                                $origin = $paper->company_id === $currentCompanyId ? 'Propio' : $paper->company->name;
+                                                $label = $paper->code . ' - ' . $paper->name .
+                                                        ' (' . $paper->width . 'x' . $paper->height . 'cm) - ' . $origin;
+                                                return [$paper->id => $label];
+                                            });
+
+                                            return $papers->toArray();
+                                        } else {
+                                            // Para papelerías: solo papeles propios
+                                            return Paper::where('company_id', $currentCompanyId)
+                                                ->where('is_active', true)
+                                                ->get()
+                                                ->mapWithKeys(function ($paper) {
+                                                    $label = $paper->code . ' - ' . $paper->name .
+                                                            ' (' . $paper->width . 'x' . $paper->height . 'cm)';
+                                                    return [$paper->id => $label];
+                                                })
+                                                ->toArray();
+                                        }
+                                    })
                                     ->required()
                                     ->searchable()
                                     ->preload(),

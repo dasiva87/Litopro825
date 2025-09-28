@@ -20,7 +20,7 @@ use Filament\Notifications\Notification;
 use Filament\Schemas\Actions;
 use Filament\Schemas\Grid;
 use Filament\Schemas\Section;
-use Filament\Schemas\Wizard\Step;
+use Filament\Schemas\Components\Wizard\Step;
 
 class TalonarioItemHandler extends AbstractItemHandler
 {

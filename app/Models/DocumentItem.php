@@ -97,7 +97,9 @@ class DocumentItem extends Model
 
     public function itemable(): MorphTo
     {
-        return $this->morphTo();
+        return $this->morphTo()->withoutGlobalScopes([
+            \App\Models\Scopes\TenantScope::class
+        ]);
     }
 
     public function printingMachine(): BelongsTo

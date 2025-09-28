@@ -50,12 +50,46 @@ class ProductsTable
                     ->searchable()
                     ->placeholder('Producto propio')
                     ->toggleable(),
+
+                TextColumn::make('company.name')
+                    ->label('Origen')
+                    ->getStateUsing(function ($record) {
+                        if (!$record || !isset($record->company_id)) {
+                            return '❓ Desconocido';
+                        }
+                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                        if ($record->company_id === $currentCompanyId) {
+                            return '🏢 Propio';
+                        }
+                        return '🏪 ' . ($record->company->name ?? 'N/A');
+                    })
+                    ->badge()
+                    ->color(function ($record) {
+                        if (!$record || !isset($record->company_id)) {
+                            return 'warning';
+                        }
+                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                        return $record->company_id === $currentCompanyId ? 'success' : 'info';
+                    })
+                    ->visible(function () {
+                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                        $company = $currentCompanyId ? \App\Models\Company::find($currentCompanyId) : null;
+                        return $company && $company->isLitografia();
+                    }),
                     
                 TextColumn::make('purchase_price')
                     ->label('Precio Compra')
                     ->money('COP')
                     ->sortable()
-                    ->toggleable(),
+                    ->toggleable()
+                    ->visible(function ($record) {
+                        // Solo mostrar precio de compra para productos propios
+                        if (!$record || !isset($record->company_id)) {
+                            return false;
+                        }
+                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                        return $record->company_id === $currentCompanyId;
+                    }),
                     
                 TextColumn::make('sale_price')
                     ->label('Precio Venta')
@@ -77,7 +111,15 @@ class ProductsTable
                     ->sortable(query: function ($query, $direction) {
                         return $query->orderByRaw("((sale_price - purchase_price) / NULLIF(purchase_price, 0) * 100) {$direction}");
                     })
-                    ->toggleable(),
+                    ->toggleable()
+                    ->visible(function ($record) {
+                        // Solo mostrar margen para productos propios
+                        if (!$record || !isset($record->company_id)) {
+                            return false;
+                        }
+                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                        return $record->company_id === $currentCompanyId;
+                    }),
                     
                 TextColumn::make('stock')
                     ->label('Stock')
@@ -132,6 +174,37 @@ class ProductsTable
                         1 => 'Productos Propios',
                         0 => 'Productos de Terceros',
                     ]),
+
+                Tables\Filters\SelectFilter::make('company_id')
+                    ->label('Papelería')
+                    ->options(function () {
+                        // Solo mostrar este filtro para litografías
+                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                        $company = $currentCompanyId ? \App\Models\Company::find($currentCompanyId) : null;
+
+                        if (!$company || !$company->isLitografia()) {
+                            return [];
+                        }
+
+                        // Obtener papelerías proveedoras aprobadas + propia empresa
+                        $supplierCompanies = \App\Models\SupplierRelationship::where('client_company_id', $currentCompanyId)
+                            ->where('is_active', true)
+                            ->whereNotNull('approved_at') // Solo relaciones aprobadas
+                            ->with('supplierCompany')
+                            ->get()
+                            ->pluck('supplierCompany.name', 'supplier_company_id')
+                            ->toArray();
+
+                        // Agregar la empresa propia
+                        $supplierCompanies[$currentCompanyId] = 'Propios';
+
+                        return $supplierCompanies;
+                    })
+                    ->visible(function () {
+                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                        $company = $currentCompanyId ? \App\Models\Company::find($currentCompanyId) : null;
+                        return $company && $company->isLitografia();
+                    }),
                     
                 Tables\Filters\SelectFilter::make('stock_status')
                     ->label('Estado del Stock')
@@ -157,16 +230,74 @@ class ProductsTable
                     ->toggle(),
             ])
             ->actions([
-                EditAction::make(),
-                DeleteAction::make(),
-                ForceDeleteAction::make(),
-                RestoreAction::make(),
+                EditAction::make()
+                    ->visible(function ($record) {
+                        // Solo permitir editar productos propios
+                        if (!$record || !isset($record->company_id)) {
+                            return false;
+                        }
+                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                        return $record->company_id === $currentCompanyId;
+                    }),
+                DeleteAction::make()
+                    ->visible(function ($record) {
+                        // Solo permitir eliminar productos propios
+                        if (!$record || !isset($record->company_id)) {
+                            return false;
+                        }
+                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                        return $record->company_id === $currentCompanyId;
+                    }),
+                ForceDeleteAction::make()
+                    ->visible(function ($record) {
+                        if (!$record || !isset($record->company_id)) {
+                            return false;
+                        }
+                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                        return $record->company_id === $currentCompanyId;
+                    }),
+                RestoreAction::make()
+                    ->visible(function ($record) {
+                        if (!$record || !isset($record->company_id)) {
+                            return false;
+                        }
+                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                        return $record->company_id === $currentCompanyId;
+                    }),
             ])
             ->bulkActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                    ForceDeleteBulkAction::make(),
-                    RestoreBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->deselectRecordsAfterCompletion()
+                        ->action(function ($records) {
+                            // Solo permitir eliminar productos propios
+                            $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                            $records->each(function ($record) use ($currentCompanyId) {
+                                if ($record->company_id === $currentCompanyId) {
+                                    $record->delete();
+                                }
+                            });
+                        }),
+                    ForceDeleteBulkAction::make()
+                        ->deselectRecordsAfterCompletion()
+                        ->action(function ($records) {
+                            $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                            $records->each(function ($record) use ($currentCompanyId) {
+                                if ($record->company_id === $currentCompanyId) {
+                                    $record->forceDelete();
+                                }
+                            });
+                        }),
+                    RestoreBulkAction::make()
+                        ->deselectRecordsAfterCompletion()
+                        ->action(function ($records) {
+                            $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                            $records->each(function ($record) use ($currentCompanyId) {
+                                if ($record->company_id === $currentCompanyId) {
+                                    $record->restore();
+                                }
+                            });
+                        }),
                 ]),
             ])
             ->defaultSort('created_at', 'desc')

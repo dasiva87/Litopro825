@@ -9,6 +9,7 @@ use App\Filament\Resources\Finishings\Pages\ListFinishings;
 use App\Filament\Resources\Finishings\Schemas\FinishingForm;
 use App\Filament\Resources\Finishings\Tables\FinishingsTable;
 use App\Models\Finishing;
+use App\Traits\CompanyTypeResource;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -20,6 +21,8 @@ use UnitEnum;
 
 class FinishingResource extends Resource
 {
+    use CompanyTypeResource;
+
     protected static ?string $model = Finishing::class;
 
     protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-rectangle-stack';

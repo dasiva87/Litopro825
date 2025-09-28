@@ -8,6 +8,7 @@ use App\Filament\Resources\Users\Pages\ListUsers;
 use App\Filament\Resources\Users\Schemas\UserForm;
 use App\Filament\Resources\Users\Tables\UsersTable;
 use App\Models\User;
+use App\Policies\UserPolicy;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -21,6 +22,30 @@ class UserResource extends Resource
     protected static ?string $model = User::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+
+    /**
+     * Verificar si el usuario puede ver este Resource en el menú.
+     * Solo Company Admin y Super Admin pueden acceder.
+     */
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->can('viewAny', User::class);
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()->can('create', User::class);
+    }
+
+    public static function canEdit($record): bool
+    {
+        return auth()->user()->can('update', $record);
+    }
+
+    public static function canDelete($record): bool
+    {
+        return auth()->user()->can('delete', $record);
+    }
 
     public static function form(Schema $schema): Schema
     {

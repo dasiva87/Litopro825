@@ -6,6 +6,7 @@ use App\Enums\NavigationGroup;
 use App\Filament\Resources\DigitalItems\Schemas\DigitalItemForm;
 use App\Filament\Resources\DigitalItems\Tables\DigitalItemsTable;
 use App\Models\DigitalItem;
+use App\Traits\CompanyTypeResource;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -16,6 +17,8 @@ use UnitEnum;
 
 class DigitalItemResource extends Resource
 {
+    use CompanyTypeResource;
+
     protected static ?string $model = DigitalItem::class;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-computer-desktop';
@@ -78,10 +81,6 @@ class DigitalItemResource extends Resource
         return $query;
     }
 
-    public static function getNavigationBadge(): ?string
-    {
-        return static::getModel()::active()->count();
-    }
 
     public static function getGloballySearchableAttributes(): array
     {

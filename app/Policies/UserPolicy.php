@@ -9,10 +9,11 @@ class UserPolicy
 {
     /**
      * Determine whether the user can view any models.
+     * Solo Company Admin y Super Admin pueden acceder al UserResource completo.
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasRole(['Super Admin', 'Company Admin', 'Manager']);
+        return $user->hasRole(['Super Admin', 'Company Admin']);
     }
 
     /**
@@ -23,9 +24,9 @@ class UserPolicy
         if ($user->hasRole('Super Admin')) {
             return true;
         }
-        
-        return $user->company_id === $model->company_id && 
-               $user->hasRole(['Company Admin', 'Manager']);
+
+        return $user->company_id === $model->company_id &&
+               $user->hasRole('Company Admin');
     }
 
     /**
@@ -85,5 +86,14 @@ class UserPolicy
     public function forceDelete(User $user, User $model): bool
     {
         return $user->hasRole('Super Admin');
+    }
+
+    /**
+     * Determine whether the user can assign roles to other users.
+     * Solo Company Admin puede asignar roles dentro de su empresa.
+     */
+    public function assignRoles(User $user): bool
+    {
+        return $user->hasRole(['Super Admin', 'Company Admin']);
     }
 }

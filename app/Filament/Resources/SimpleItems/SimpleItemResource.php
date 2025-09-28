@@ -9,6 +9,7 @@ use App\Filament\Resources\SimpleItems\Schemas\SimpleItemForm;
 use App\Filament\Resources\SimpleItems\Tables\SimpleItemsTable;
 use App\Models\SimpleItem;
 use App\Enums\NavigationGroup;
+use App\Traits\CompanyTypeResource;
 use BackedEnum;
 use UnitEnum;
 use Filament\Resources\Resource;
@@ -20,6 +21,8 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class SimpleItemResource extends Resource
 {
+    use CompanyTypeResource;
+
     protected static ?string $model = SimpleItem::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;

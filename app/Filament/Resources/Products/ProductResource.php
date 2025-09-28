@@ -66,32 +66,49 @@ class ProductResource extends Resource
 
         // Aplicar filtro por empresa manualmente
         $tenantId = config('app.current_tenant_id');
+        $currentCompanyId = $tenantId ?? (auth()->check() ? auth()->user()->company_id : null);
 
-        if ($tenantId) {
-            $query->where('company_id', $tenantId);
-        } else {
-            // Fallback: usar company_id del usuario autenticado
-            if (auth()->check() && auth()->user()->company_id) {
-                $query->where('company_id', auth()->user()->company_id);
+        if ($currentCompanyId) {
+            $company = \App\Models\Company::find($currentCompanyId);
+
+            if ($company && $company->isLitografia()) {
+                // Para litografías: mostrar sus propios productos + productos de proveedores con relación aprobada y activa
+                $supplierCompanyIds = \App\Models\SupplierRelationship::where('client_company_id', $currentCompanyId)
+                    ->where('is_active', true)
+                    ->whereNotNull('approved_at') // Solo relaciones aprobadas
+                    ->pluck('supplier_company_id')
+                    ->toArray();
+
+                $query->where(function ($query) use ($currentCompanyId, $supplierCompanyIds) {
+                    $query->where('company_id', $currentCompanyId) // Propios
+                          ->orWhereIn('company_id', $supplierCompanyIds); // Solo de proveedores aprobados
+                });
+            } else {
+                // Para papelerías: solo sus propios productos
+                $query->where('company_id', $currentCompanyId);
             }
         }
 
-        return $query;
+        return $query->with(['company']);
     }
 
-    public static function getNavigationBadge(): ?string
+    public static function canEdit($record): bool
     {
-        return static::getModel()::active()->count();
-    }
-
-    public static function getNavigationBadgeColor(): ?string
-    {
-        $lowStockCount = static::getModel()::active()->lowStock()->count();
-
-        if ($lowStockCount > 0) {
-            return 'warning';
+        // Solo permitir editar productos propios
+        if (!$record || !isset($record->company_id)) {
+            return false;
         }
+        $currentCompanyId = config('app.current_tenant_id') ?? (auth()->check() ? auth()->user()->company_id : null);
+        return $record->company_id === $currentCompanyId;
+    }
 
-        return 'primary';
+    public static function canDelete($record): bool
+    {
+        // Solo permitir eliminar productos propios
+        if (!$record || !isset($record->company_id)) {
+            return false;
+        }
+        $currentCompanyId = config('app.current_tenant_id') ?? (auth()->check() ? auth()->user()->company_id : null);
+        return $record->company_id === $currentCompanyId;
     }
 }

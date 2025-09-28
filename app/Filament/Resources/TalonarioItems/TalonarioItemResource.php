@@ -9,6 +9,7 @@ use App\Filament\Resources\TalonarioItems\RelationManagers;
 use App\Filament\Resources\TalonarioItems\Schemas\TalonarioItemForm;
 use App\Filament\Resources\TalonarioItems\Tables\TalonarioItemsTable;
 use App\Models\TalonarioItem;
+use App\Traits\CompanyTypeResource;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -19,6 +20,8 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class TalonarioItemResource extends Resource
 {
+    use CompanyTypeResource;
+
     protected static ?string $model = TalonarioItem::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;

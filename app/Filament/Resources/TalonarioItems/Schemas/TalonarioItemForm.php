@@ -299,17 +299,44 @@ class TalonarioItemForm
                                                     Select::make('paper_id')
                                                         ->label('Papel')
                                                         ->options(function () {
-                                                            $companyId = auth()->user()->company_id ?? 1;
+                                                            $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                                                            $company = $currentCompanyId ? \App\Models\Company::find($currentCompanyId) : null;
 
-                                                            return Paper::query()
-                                                                ->where('company_id', $companyId)
-                                                                ->get()
-                                                                ->mapWithKeys(function ($paper) {
-                                                                    $label = $paper->full_name ?: ($paper->code.' - '.$paper->name);
+                                                            if ($company && $company->isLitografia()) {
+                                                                // Para litografías: incluir papeles propios + de proveedores aprobados
+                                                                $supplierCompanyIds = \App\Models\SupplierRelationship::where('client_company_id', $currentCompanyId)
+                                                                    ->where('is_active', true)
+                                                                    ->whereNotNull('approved_at')
+                                                                    ->pluck('supplier_company_id')
+                                                                    ->toArray();
 
-                                                                    return [$paper->id => $label];
+                                                                $papers = Paper::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->where(function ($query) use ($currentCompanyId, $supplierCompanyIds) {
+                                                                    $query->where('company_id', $currentCompanyId)
+                                                                          ->orWhereIn('company_id', $supplierCompanyIds);
                                                                 })
-                                                                ->toArray();
+                                                                ->where('is_active', true)
+                                                                ->with('company')
+                                                                ->get()
+                                                                ->mapWithKeys(function ($paper) use ($currentCompanyId) {
+                                                                    $origin = $paper->company_id === $currentCompanyId ? 'Propio' : $paper->company->name;
+                                                                    $label = $paper->code . ' - ' . $paper->name .
+                                                                            ' (' . $paper->width . 'x' . $paper->height . 'cm) - ' . $origin;
+                                                                    return [$paper->id => $label];
+                                                                });
+
+                                                                return $papers->toArray();
+                                                            } else {
+                                                                // Para papelerías: solo papeles propios
+                                                                return Paper::query()
+                                                                    ->where('company_id', $currentCompanyId)
+                                                                    ->where('is_active', true)
+                                                                    ->get()
+                                                                    ->mapWithKeys(function ($paper) {
+                                                                        $label = $paper->full_name ?: ($paper->code.' - '.$paper->name);
+                                                                        return [$paper->id => $label];
+                                                                    })
+                                                                    ->toArray();
+                                                            }
                                                         })
                                                         ->required()
                                                         ->searchable()
@@ -485,18 +512,44 @@ class TalonarioItemForm
                                     Select::make('paper_id')
                                         ->label('Papel')
                                         ->options(function () {
-                                            $companyId = auth()->user()->company_id ?? 1;
+                                            $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                                            $company = $currentCompanyId ? \App\Models\Company::find($currentCompanyId) : null;
 
-                                            return Paper::query()
-                                                ->where('company_id', $companyId)
-                                                ->where('is_active', true)
-                                                ->get()
-                                                ->mapWithKeys(function ($paper) {
-                                                    $label = $paper->full_name ?: ($paper->code.' - '.$paper->name);
+                                            if ($company && $company->isLitografia()) {
+                                                // Para litografías: incluir papeles propios + de proveedores aprobados
+                                                $supplierCompanyIds = \App\Models\SupplierRelationship::where('client_company_id', $currentCompanyId)
+                                                    ->where('is_active', true)
+                                                    ->whereNotNull('approved_at')
+                                                    ->pluck('supplier_company_id')
+                                                    ->toArray();
 
-                                                    return [$paper->id => $label];
+                                                $papers = Paper::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->where(function ($query) use ($currentCompanyId, $supplierCompanyIds) {
+                                                    $query->where('company_id', $currentCompanyId)
+                                                          ->orWhereIn('company_id', $supplierCompanyIds);
                                                 })
-                                                ->toArray();
+                                                ->where('is_active', true)
+                                                ->with('company')
+                                                ->get()
+                                                ->mapWithKeys(function ($paper) use ($currentCompanyId) {
+                                                    $origin = $paper->company_id === $currentCompanyId ? 'Propio' : $paper->company->name;
+                                                    $label = $paper->code . ' - ' . $paper->name .
+                                                            ' (' . $paper->width . 'x' . $paper->height . 'cm) - ' . $origin;
+                                                    return [$paper->id => $label];
+                                                });
+
+                                                return $papers->toArray();
+                                            } else {
+                                                // Para papelerías: solo papeles propios
+                                                return Paper::query()
+                                                    ->where('company_id', $currentCompanyId)
+                                                    ->where('is_active', true)
+                                                    ->get()
+                                                    ->mapWithKeys(function ($paper) {
+                                                        $label = $paper->full_name ?: ($paper->code.' - '.$paper->name);
+                                                        return [$paper->id => $label];
+                                                    })
+                                                    ->toArray();
+                                            }
                                         })
                                         ->required()
                                         ->searchable(),

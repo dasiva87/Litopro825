@@ -8,6 +8,7 @@ use App\Filament\Resources\MagazineItems\Pages\ListMagazineItems;
 use App\Filament\Resources\MagazineItems\Schemas\MagazineItemForm;
 use App\Filament\Resources\MagazineItems\Tables\MagazineItemsTable;
 use App\Models\MagazineItem;
+use App\Traits\CompanyTypeResource;
 use BackedEnum;
 use UnitEnum;
 use Filament\Resources\Resource;
@@ -20,6 +21,8 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class MagazineItemResource extends Resource
 {
+    use CompanyTypeResource;
+
     protected static ?string $model = MagazineItem::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;

@@ -10,6 +10,7 @@ use App\Filament\Resources\PrintingMachines\Pages\ListPrintingMachines;
 use App\Filament\Resources\PrintingMachines\Schemas\PrintingMachineForm;
 use App\Filament\Resources\PrintingMachines\Tables\PrintingMachinesTable;
 use App\Models\PrintingMachine;
+use App\Traits\CompanyTypeResource;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -21,6 +22,8 @@ use UnitEnum;
 
 class PrintingMachineResource extends Resource
 {
+    use CompanyTypeResource;
+
     protected static ?string $model = PrintingMachine::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedPrinter;

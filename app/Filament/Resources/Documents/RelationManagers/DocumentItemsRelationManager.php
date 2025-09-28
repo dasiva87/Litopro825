@@ -2,8 +2,17 @@
 
 namespace App\Filament\Resources\Documents\RelationManagers;
 
+use App\Filament\Resources\Documents\RelationManagers\Handlers\CustomItemQuickHandler;
+use App\Filament\Resources\Documents\RelationManagers\Handlers\DigitalItemQuickHandler;
 use App\Filament\Resources\Documents\RelationManagers\Handlers\MagazineItemHandler;
+use App\Filament\Resources\Documents\RelationManagers\Handlers\PaperHandler;
+use App\Filament\Resources\Documents\RelationManagers\Handlers\PaperQuickHandler;
+use App\Filament\Resources\Documents\RelationManagers\Handlers\ProductHandler;
+use App\Filament\Resources\Documents\RelationManagers\Handlers\ProductQuickHandler;
+use App\Filament\Resources\Documents\RelationManagers\Handlers\SimpleItemQuickHandler;
 use App\Filament\Resources\Documents\RelationManagers\Handlers\TalonarioItemHandler;
+use App\Filament\Resources\Documents\RelationManagers\Traits\CalculatesFinishings;
+use App\Filament\Resources\Documents\RelationManagers\Traits\CalculatesProducts;
 use App\Filament\Resources\SimpleItems\Schemas\SimpleItemForm;
 use App\Filament\Resources\TalonarioItems\Schemas\TalonarioItemForm;
 use App\Models\DocumentItem;
@@ -27,6 +36,8 @@ use Filament\Tables\Table;
 
 class DocumentItemsRelationManager extends RelationManager
 {
+    use CalculatesFinishings, CalculatesProducts;
+
     protected static string $relationship = 'items';
 
     protected static ?string $title = 'Items de la Cotización';
@@ -583,24 +594,66 @@ class DocumentItemsRelationManager extends RelationManager
                                             Select::make('itemable_id')
                                                 ->label('Producto')
                                                 ->options(function () {
-                                                    return \App\Models\Product::where('company_id', auth()->user()->company_id)
+                                                    $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                                                    $company = $currentCompanyId ? \App\Models\Company::find($currentCompanyId) : null;
+
+                                                    if (!$company) {
+                                                        return [];
+                                                    }
+
+                                                    if ($company->isLitografia()) {
+                                                        // Para litografías: productos propios + de proveedores aprobados
+                                                        $supplierCompanyIds = \App\Models\SupplierRelationship::where('client_company_id', $currentCompanyId)
+                                                            ->where('is_active', true)
+                                                            ->whereNotNull('approved_at')
+                                                            ->pluck('supplier_company_id')
+                                                            ->toArray();
+
+                                                        return \App\Models\Product::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->where(function ($query) use ($currentCompanyId, $supplierCompanyIds) {
+                                                            $query->where('company_id', $currentCompanyId)
+                                                                  ->orWhereIn('company_id', $supplierCompanyIds);
+                                                        })
                                                         ->where('active', true)
+                                                        ->with('company')
                                                         ->get()
-                                                        ->mapWithKeys(function ($product) {
+                                                        ->mapWithKeys(function ($product) use ($currentCompanyId) {
+                                                            $origin = $product->company_id === $currentCompanyId ? 'Propio' : $product->company->name;
                                                             $stockStatus = $product->stock == 0 ? ' (SIN STOCK)' :
                                                                           ($product->isLowStock() ? ' (STOCK BAJO)' : '');
 
                                                             return [$product->id => $product->name.' - $'.number_format($product->sale_price, 2).
-                                                                   ' (Stock: '.$product->stock.')'.$stockStatus];
+                                                                   ' (Stock: '.$product->stock.')'.$stockStatus.' - '.$origin];
                                                         });
+                                                    } else {
+                                                        // Para papelerías: solo productos propios
+                                                        return \App\Models\Product::where('company_id', $currentCompanyId)
+                                                            ->where('active', true)
+                                                            ->get()
+                                                            ->mapWithKeys(function ($product) {
+                                                                $stockStatus = $product->stock == 0 ? ' (SIN STOCK)' :
+                                                                              ($product->isLowStock() ? ' (STOCK BAJO)' : '');
+
+                                                                return [$product->id => $product->name.' - $'.number_format($product->sale_price, 2).
+                                                                       ' (Stock: '.$product->stock.')'.$stockStatus];
+                                                            });
+                                                    }
                                                 })
                                                 ->searchable(['name', 'code', 'description'])
                                                 ->preload()
                                                 ->required()
                                                 ->live()
+                                                ->afterStateUpdated(function ($state, $set, $get) {
+                                                    if ($state) {
+                                                        $product = \App\Models\Product::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->find($state);
+                                                        if ($product) {
+                                                            $set('unit_price', $product->sale_price);
+                                                            $this->calculateProductTotal($get, $set);
+                                                        }
+                                                    }
+                                                })
                                                 ->columnSpanFull(),
 
-                                            \Filament\Schemas\Components\Grid::make(3)
+                                            \Filament\Schemas\Components\Grid::make(2)
                                                 ->schema([
                                                     Forms\Components\TextInput::make('quantity')
                                                         ->label('Cantidad Requerida')
@@ -611,15 +664,7 @@ class DocumentItemsRelationManager extends RelationManager
                                                         ->suffix('unidades')
                                                         ->live()
                                                         ->afterStateUpdated(function ($state, $set, $get) {
-                                                            // Calcular precio total automáticamente
-                                                            if ($get('itemable_id')) {
-                                                                $product = \App\Models\Product::find($get('itemable_id'));
-                                                                if ($product) {
-                                                                    $total = $product->sale_price * ($state ?? 0);
-                                                                    $set('unit_price', $product->sale_price);
-                                                                    $set('total_price', $total);
-                                                                }
-                                                            }
+                                                            $this->calculateProductTotal($get, $set);
                                                         }),
 
                                                     Forms\Components\TextInput::make('unit_price')
@@ -628,13 +673,29 @@ class DocumentItemsRelationManager extends RelationManager
                                                         ->prefix('$')
                                                         ->disabled()
                                                         ->dehydrated(),
+                                                ]),
+
+                                            \Filament\Schemas\Components\Grid::make(2)
+                                                ->schema([
+                                                    Forms\Components\TextInput::make('profit_margin')
+                                                        ->label('Margen de Ganancia')
+                                                        ->numeric()
+                                                        ->suffix('%')
+                                                        ->default(25)
+                                                        ->minValue(0)
+                                                        ->maxValue(500)
+                                                        ->live()
+                                                        ->afterStateUpdated(function ($state, $set, $get) {
+                                                            $this->calculateProductTotal($get, $set);
+                                                        }),
 
                                                     Forms\Components\TextInput::make('total_price')
                                                         ->label('Precio Total')
                                                         ->numeric()
                                                         ->prefix('$')
                                                         ->disabled()
-                                                        ->dehydrated(),
+                                                        ->dehydrated()
+                                                        ->extraAttributes(['class' => 'font-bold']),
                                                 ]),
 
                                             Forms\Components\Placeholder::make('stock_warning')
@@ -646,7 +707,7 @@ class DocumentItemsRelationManager extends RelationManager
                                                         return '';
                                                     }
 
-                                                    $product = \App\Models\Product::find($productId);
+                                                    $product = \App\Models\Product::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->find($productId);
                                                     if (! $product) {
                                                         return '';
                                                     }
@@ -740,6 +801,11 @@ class DocumentItemsRelationManager extends RelationManager
                             return $record->quantity;
                         }
 
+                        // Para papeles, usar quantity del DocumentItem
+                        if ($record->itemable_type === 'App\\Models\\Paper') {
+                            return $record->quantity;
+                        }
+
                         // Para SimpleItems, usar quantity del item relacionado
                         return $record->itemable ? $record->itemable->quantity : $record->quantity;
                     })
@@ -749,9 +815,35 @@ class DocumentItemsRelationManager extends RelationManager
                 TextColumn::make('description')
                     ->label('Descripción')
                     ->getStateUsing(function ($record) {
-                        // Para productos, mostrar el nombre del producto
+                        // Para papeles, mostrar información del papel
+                        if ($record->itemable_type === 'App\\Models\\Paper' && $record->itemable) {
+                            $paper = $record->itemable;
+                            $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+
+                            $origin = $paper->company_id === $currentCompanyId ? 'Propio' : ($paper->company->name ?? 'N/A');
+                            return $paper->code . ' - ' . $paper->name . ' (' . $paper->weight . 'gr - ' . $paper->width . 'x' . $paper->height . 'cm) - ' . $origin;
+                        }
+
+                        // Para productos, mostrar el nombre del producto con origen
                         if ($record->itemable_type === 'App\\Models\\Product' && $record->itemable) {
-                            return $record->itemable->name;
+                            $product = $record->itemable;
+                            $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+
+                            // Si no se puede cargar la relación company, obtenerla directamente
+                            if (!$product->company) {
+                                $product = \App\Models\Product::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
+                                    ->with('company')
+                                    ->find($product->id);
+                            }
+
+                            $origin = '';
+                            if ($product && $product->company_id === $currentCompanyId) {
+                                $origin = ' (Propio)';
+                            } elseif ($product && $product->company) {
+                                $origin = ' (' . $product->company->name . ')';
+                            }
+
+                            return $product->name . $origin;
                         }
                         // Para SimpleItems, usar la descripción del item
                         if ($record->itemable && isset($record->itemable->description)) {
@@ -766,9 +858,14 @@ class DocumentItemsRelationManager extends RelationManager
                 TextColumn::make('unit_price')
                     ->label('Precio Unitario')
                     ->getStateUsing(function ($record) {
-                        // Para productos, usar unit_price del DocumentItem
+                        // Para productos, usar unit_price que ya incluye el margen
                         if ($record->itemable_type === 'App\\Models\\Product') {
-                            return $record->unit_price;
+                            return $record->unit_price; // Ya incluye margen de ganancia
+                        }
+
+                        // Para papeles, usar unit_price que ya incluye el margen
+                        if ($record->itemable_type === 'App\\Models\\Paper') {
+                            return $record->unit_price; // Ya incluye margen de ganancia
                         }
                         // Para SimpleItems, calcular desde final_price
                         if ($record->itemable && isset($record->itemable->final_price) && $record->itemable->quantity > 0) {
@@ -800,6 +897,11 @@ class DocumentItemsRelationManager extends RelationManager
                     ->getStateUsing(function ($record) {
                         // Para productos, usar total_price del DocumentItem
                         if ($record->itemable_type === 'App\\Models\\Product') {
+                            return $record->total_price;
+                        }
+
+                        // Para papeles, usar total_price del DocumentItem
+                        if ($record->itemable_type === 'App\\Models\\Paper') {
                             return $record->total_price;
                         }
                         // Para CustomItems, usar total_price calculado
@@ -861,185 +963,16 @@ class DocumentItemsRelationManager extends RelationManager
                     ]),
             ])
             ->headerActions([
-                CreateAction::make()
-                    ->label('Agregar Item')
-                    ->icon('heroicon-o-plus')
-                    ->mutateFormDataUsing(function (array $data): array {
-                        // Primero crear el SimpleItem si es de tipo simple
-                        if ($data['item_type'] === 'simple' && $data['itemable_type'] === 'App\\Models\\SimpleItem') {
-                            // Extraer datos del SimpleItem del formulario anidado
-                            $simpleItemData = array_filter($data, function ($key) {
-                                return ! in_array($key, ['item_type', 'itemable_type', 'itemable_id', 'quantity', 'unit_price', 'total_price']);
-                            }, ARRAY_FILTER_USE_KEY);
-
-                            // Crear el SimpleItem
-                            $simpleItem = SimpleItem::create($simpleItemData);
-
-                            // Configurar datos para DocumentItem
-                            $data = [
-                                'itemable_type' => 'App\\Models\\SimpleItem',
-                                'itemable_id' => $simpleItem->id,
-                                'description' => 'SimpleItem: '.$simpleItem->description,
-                                'quantity' => $simpleItem->quantity,
-                                'unit_price' => $simpleItem->final_price / $simpleItem->quantity,
-                                'total_price' => $simpleItem->final_price,
-                                'item_type' => 'simple',
-                            ];
-                        }
-
-                        // Manejar items digitales
-                        elseif ($data['item_type'] === 'digital') {
-                            // Asegurar que itemable_type está configurado
-                            $data['itemable_type'] = 'App\\Models\\DigitalItem';
-                            $digitalItem = \App\Models\DigitalItem::find($data['itemable_id']);
-
-                            if (! $digitalItem) {
-                                throw new \Exception('Item digital no encontrado');
-                            }
-
-                            // Preparar parámetros para cálculo
-                            $params = ['quantity' => $data['quantity'] ?? 1];
-                            if ($digitalItem->pricing_type === 'size') {
-                                $params['width'] = $data['width'] ?? 0;
-                                $params['height'] = $data['height'] ?? 0;
-                            }
-
-                            // Validar parámetros
-                            $errors = $digitalItem->validateParameters($params);
-
-                            if (! empty($errors)) {
-                                throw new \Exception('Parámetros inválidos: '.implode(', ', $errors));
-                            }
-
-                            // Calcular precio base del item
-                            $baseTotalPrice = $digitalItem->calculateTotalPrice($params);
-
-                            // Procesar acabados si existen
-                            $finishingsCost = 0;
-                            $finishingsData = $data['finishings'] ?? [];
-
-                            if (! empty($finishingsData)) {
-                                $finishingService = app(\App\Services\FinishingCalculatorService::class);
-
-                                foreach ($finishingsData as $finishingData) {
-                                    if (isset($finishingData['finishing_id']) && isset($finishingData['calculated_cost'])) {
-                                        $finishingsCost += (float) $finishingData['calculated_cost'];
-                                    }
-                                }
-                            }
-
-                            // Precio total incluyendo acabados
-                            $totalPrice = $baseTotalPrice + $finishingsCost;
-                            $unitPrice = $totalPrice / $params['quantity'];
-
-                            // Guardar datos de acabados para usar después de crear el DocumentItem
-                            $tempFinishingsData = $finishingsData;
-
-                            // Configurar datos para DocumentItem
-                            $data = [
-                                'itemable_type' => 'App\\Models\\DigitalItem',
-                                'itemable_id' => $digitalItem->id,
-                                'description' => 'Digital: '.$digitalItem->description.
-                                              (! empty($finishingsData) ? ' (con acabados)' : ''),
-                                'quantity' => $params['quantity'],
-                                'unit_price' => $unitPrice,
-                                'total_price' => $totalPrice,
-                                'item_type' => 'digital',
-                                '_temp_finishings_data' => $tempFinishingsData, // Temporal para después del guardado
-                            ];
-                        }
-
-                        // Manejar items personalizados
-                        elseif ($data['item_type'] === 'custom' && $data['itemable_type'] === 'App\\Models\\CustomItem') {
-                            // Crear el CustomItem
-                            $customItem = \App\Models\CustomItem::create([
-                                'description' => $data['description'],
-                                'quantity' => $data['quantity'],
-                                'unit_price' => $data['unit_price'],
-                                'total_price' => $data['quantity'] * $data['unit_price'], // Se calculará automáticamente en el modelo
-                                'notes' => $data['notes'] ?? null,
-                            ]);
-
-                            // Configurar datos para DocumentItem
-                            $data = [
-                                'itemable_type' => 'App\\Models\\CustomItem',
-                                'itemable_id' => $customItem->id,
-                                'description' => 'Personalizado: '.$customItem->description,
-                                'quantity' => $customItem->quantity,
-                                'unit_price' => $customItem->unit_price,
-                                'total_price' => $customItem->total_price,
-                                'item_type' => 'custom',
-                            ];
-                        }
-
-                        // Manejar productos del inventario
-                        elseif ($data['item_type'] === 'product' && $data['itemable_type'] === 'App\\Models\\Product') {
-                            // El producto ya existe, solo necesitamos crear la referencia en DocumentItem
-                            $product = \App\Models\Product::find($data['itemable_id']);
-
-                            if (! $product) {
-                                throw new \Exception('Producto no encontrado');
-                            }
-
-                            // Verificar stock disponible
-                            $requestedQuantity = $data['quantity'];
-                            if (! $product->hasStock($requestedQuantity)) {
-                                throw new \Exception('Stock insuficiente. Disponible: '.$product->stock.', Solicitado: '.$requestedQuantity);
-                            }
-
-                            // Configurar datos para DocumentItem
-                            $data = [
-                                'itemable_type' => 'App\\Models\\Product',
-                                'itemable_id' => $product->id,
-                                'description' => 'Producto: '.$product->name,
-                                'quantity' => $requestedQuantity,
-                                'unit_price' => $product->sale_price,
-                                'total_price' => $product->calculateTotalPrice($requestedQuantity),
-                                'item_type' => 'product',
-                            ];
-                        }
-
-                        return $data;
-                    })
-                    ->after(function ($record, array $data) {
-                        // Manejar acabados para DigitalItem si existen
-                        if (isset($data['_temp_finishings_data']) && ! empty($data['_temp_finishings_data'])) {
-                            $digitalItem = $record->itemable;
-
-                            if ($digitalItem instanceof \App\Models\DigitalItem) {
-                                foreach ($data['_temp_finishings_data'] as $finishingData) {
-                                    if (isset($finishingData['finishing_id']) &&
-                                        isset($finishingData['calculated_cost'])) {
-
-                                        $finishing = \App\Models\Finishing::find($finishingData['finishing_id']);
-
-                                        if ($finishing) {
-                                            // Preparar parámetros para el acabado
-                                            $finishingParams = ['quantity' => $finishingData['quantity'] ?? 1];
-
-                                            if (isset($finishingData['width'])) {
-                                                $finishingParams['width'] = $finishingData['width'];
-                                            }
-                                            if (isset($finishingData['height'])) {
-                                                $finishingParams['height'] = $finishingData['height'];
-                                            }
-
-                                            // Agregar acabado al DigitalItem
-                                            $digitalItem->addFinishing($finishing, $finishingParams);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // Recalcular totales del documento
-                        $this->getOwnerRecord()->recalculateTotals();
-                    }),
 
                 Action::make('quick_simple_item')
                     ->label('Item Sencillo Rápido')
                     ->icon('heroicon-o-bolt')
                     ->color('success')
+                    ->visible(function () {
+                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                        $company = $currentCompanyId ? \App\Models\Company::find($currentCompanyId) : null;
+                        return $company && $company->isLitografia();
+                    })
                     ->form([
                         \Filament\Schemas\Components\Section::make('Item Sencillo Rápido')
                             ->description('Crea un item sencillo con parámetros optimizados')
@@ -1175,6 +1108,11 @@ class DocumentItemsRelationManager extends RelationManager
                     ->label('Item Digital Rápido')
                     ->icon('heroicon-o-computer-desktop')
                     ->color('primary')
+                    ->visible(function () {
+                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                        $company = $currentCompanyId ? \App\Models\Company::find($currentCompanyId) : null;
+                        return $company && $company->isLitografia();
+                    })
                     ->form([
                         \Filament\Schemas\Components\Section::make('Agregar Item Digital')
                             ->description('Selecciona un item digital existente y especifica parámetros')
@@ -1512,34 +1450,68 @@ class DocumentItemsRelationManager extends RelationManager
                                 Select::make('product_id')
                                     ->label('Producto')
                                     ->options(function () {
-                                        return \App\Models\Product::where('active', true)
-                                            ->where('company_id', auth()->user()->company_id)
+                                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                                        $company = $currentCompanyId ? \App\Models\Company::find($currentCompanyId) : null;
+
+                                        if (!$company) {
+                                            return [];
+                                        }
+
+                                        if ($company->isLitografia()) {
+                                            // Para litografías: productos propios + de proveedores aprobados
+                                            $supplierCompanyIds = \App\Models\SupplierRelationship::where('client_company_id', $currentCompanyId)
+                                                ->where('is_active', true)
+                                                ->whereNotNull('approved_at')
+                                                ->pluck('supplier_company_id')
+                                                ->toArray();
+
+                                            return \App\Models\Product::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->where(function ($query) use ($currentCompanyId, $supplierCompanyIds) {
+                                                $query->where('company_id', $currentCompanyId)
+                                                      ->orWhereIn('company_id', $supplierCompanyIds);
+                                            })
+                                            ->where('active', true)
+                                            ->with('company')
                                             ->get()
-                                            ->mapWithKeys(function ($product) {
+                                            ->mapWithKeys(function ($product) use ($currentCompanyId) {
+                                                $origin = $product->company_id === $currentCompanyId ? 'Propio' : $product->company->name;
                                                 $stockStatus = $product->stock == 0 ? ' (SIN STOCK)' :
                                                               ($product->isLowStock() ? ' (STOCK BAJO)' : '');
 
-                                                return [
-                                                    $product->id => $product->name.' - $'.number_format($product->sale_price, 2).
-                                                                   ' (Stock: '.$product->stock.')'.$stockStatus,
-                                                ];
+                                                return [$product->id => $product->name.' - $'.number_format($product->sale_price, 2).
+                                                               ' (Stock: '.$product->stock.')'.$stockStatus.' - '.$origin];
                                             });
+                                        } else {
+                                            // Para papelerías: solo productos propios
+                                            return \App\Models\Product::where('active', true)
+                                                ->where('company_id', $currentCompanyId)
+                                                ->get()
+                                                ->mapWithKeys(function ($product) {
+                                                    $stockStatus = $product->stock == 0 ? ' (SIN STOCK)' :
+                                                                  ($product->isLowStock() ? ' (STOCK BAJO)' : '');
+
+                                                    return [
+                                                        $product->id => $product->name.' - $'.number_format($product->sale_price, 2).
+                                                                       ' (Stock: '.$product->stock.')'.$stockStatus,
+                                                    ];
+                                                });
+                                        }
                                     })
                                     ->searchable()
                                     ->required()
                                     ->live()
-                                    ->afterStateUpdated(function ($state, $set) {
+                                    ->afterStateUpdated(function ($state, $set, $get) {
                                         if ($state) {
-                                            $product = \App\Models\Product::find($state);
+                                            $product = \App\Models\Product::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->find($state);
                                             if ($product) {
                                                 $set('unit_price', $product->sale_price);
                                                 $set('product_name', $product->name);
                                                 $set('available_stock', $product->stock);
+                                                $this->calculateProductTotal($get, $set);
                                             }
                                         }
                                     }),
 
-                                \Filament\Schemas\Components\Grid::make(3)
+                                \Filament\Schemas\Components\Grid::make(2)
                                     ->schema([
                                         Forms\Components\TextInput::make('quantity')
                                             ->label('Cantidad')
@@ -1550,14 +1522,7 @@ class DocumentItemsRelationManager extends RelationManager
                                             ->suffix('unidades')
                                             ->live()
                                             ->afterStateUpdated(function ($state, $get, $set) {
-                                                $productId = $get('product_id');
-                                                if ($productId && $state) {
-                                                    $product = \App\Models\Product::find($productId);
-                                                    if ($product) {
-                                                        $total = $product->sale_price * $state;
-                                                        $set('total_price', $total);
-                                                    }
-                                                }
+                                                $this->calculateProductTotal($get, $set);
                                             }),
 
                                         Forms\Components\TextInput::make('unit_price')
@@ -1566,13 +1531,29 @@ class DocumentItemsRelationManager extends RelationManager
                                             ->prefix('$')
                                             ->disabled()
                                             ->dehydrated(false),
+                                    ]),
+
+                                \Filament\Schemas\Components\Grid::make(2)
+                                    ->schema([
+                                        Forms\Components\TextInput::make('profit_margin')
+                                            ->label('Margen de Ganancia')
+                                            ->numeric()
+                                            ->suffix('%')
+                                            ->default(25)
+                                            ->minValue(0)
+                                            ->maxValue(500)
+                                            ->live()
+                                            ->afterStateUpdated(function ($state, $get, $set) {
+                                                $this->calculateProductTotal($get, $set);
+                                            }),
 
                                         Forms\Components\TextInput::make('total_price')
                                             ->label('Precio Total')
                                             ->numeric()
                                             ->prefix('$')
                                             ->disabled()
-                                            ->dehydrated(false),
+                                            ->dehydrated(false)
+                                            ->extraAttributes(['class' => 'font-bold']),
                                     ]),
 
                                 Forms\Components\Placeholder::make('stock_info')
@@ -1584,7 +1565,7 @@ class DocumentItemsRelationManager extends RelationManager
                                             return '📦 Selecciona un producto para ver la información de stock';
                                         }
 
-                                        $product = \App\Models\Product::find($productId);
+                                        $product = \App\Models\Product::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->find($productId);
                                         if (! $product) {
                                             return '❌ Producto no encontrado';
                                         }
@@ -1622,7 +1603,7 @@ class DocumentItemsRelationManager extends RelationManager
                             ]),
                     ])
                     ->action(function (array $data) {
-                        $product = \App\Models\Product::find($data['product_id']);
+                        $product = \App\Models\Product::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->find($data['product_id']);
 
                         if (! $product) {
                             throw new \Exception('Producto no encontrado');
@@ -1635,14 +1616,21 @@ class DocumentItemsRelationManager extends RelationManager
                             throw new \Exception('Stock insuficiente. Disponible: '.$product->stock.', Solicitado: '.$quantity);
                         }
 
+                        // Calcular precio con margen de ganancia del formulario
+                        $profitMargin = $data['profit_margin'] ?? 0;
+                        $baseTotal = $product->sale_price * $quantity;
+                        $totalPriceWithMargin = $baseTotal * (1 + ($profitMargin / 100));
+                        $unitPriceWithMargin = $totalPriceWithMargin / $quantity;
+
                         // Crear el DocumentItem asociado
                         $this->getOwnerRecord()->items()->create([
                             'itemable_type' => 'App\\Models\\Product',
                             'itemable_id' => $product->id,
                             'description' => 'Producto: '.$product->name,
                             'quantity' => $quantity,
-                            'unit_price' => $product->sale_price,
-                            'total_price' => $product->calculateTotalPrice($quantity),
+                            'unit_price' => round($unitPriceWithMargin, 2), // Precio unitario CON margen
+                            'total_price' => round($totalPriceWithMargin, 2),
+                            'profit_margin' => $profitMargin,
                         ]);
 
                         // Recalcular totales del documento
@@ -1658,6 +1646,11 @@ class DocumentItemsRelationManager extends RelationManager
                     ->label('Crear Revista Completa')
                     ->icon('heroicon-o-rectangle-stack')
                     ->color('indigo')
+                    ->visible(function () {
+                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                        $company = $currentCompanyId ? \App\Models\Company::find($currentCompanyId) : null;
+                        return $company && $company->isLitografia();
+                    })
                     ->form([
                         \Filament\Schemas\Components\Wizard::make(
                             (new MagazineItemHandler())->getWizardSteps()
@@ -1693,6 +1686,11 @@ class DocumentItemsRelationManager extends RelationManager
                     ->label('Talonario Completo')
                     ->icon('heroicon-o-document-check')
                     ->color('warning')
+                    ->visible(function () {
+                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                        $company = $currentCompanyId ? \App\Models\Company::find($currentCompanyId) : null;
+                        return $company && $company->isLitografia();
+                    })
                     ->form(TalonarioItemForm::configure(new \Filament\Schemas\Schema)->getComponents())
                     ->action(function (array $data) {
                         // Agregar company_id para multi-tenancy
@@ -1769,129 +1767,68 @@ class DocumentItemsRelationManager extends RelationManager
                     ->modalWidth('7xl')
                     ->successNotificationTitle('Talonario con hojas creado correctamente'),
 
-                Action::make('quick_custom_item')
-                    ->label('Item Personalizado Rápido')
-                    ->icon('heroicon-o-pencil-square')
-                    ->color('secondary')
+                // ✨ NUEVA ARQUITECTURA - Handlers refactorizados
+                ...$this->createQuickActions([
+                    'quick_simple_refactored' => new SimpleItemQuickHandler(),
+                    'quick_digital_refactored' => new DigitalItemQuickHandler(),
+                    'quick_product_refactored' => new ProductQuickHandler(),
+                    'quick_custom_refactored' => new CustomItemQuickHandler(),
+                    'quick_paper_refactored' => new PaperQuickHandler(),
+                ]),
+
+                Action::make('quick_paper_item')
+                    ->label('Papel Rápido')
+                    ->icon('heroicon-o-document-text')
+                    ->color('green')
+                    ->visible(function () {
+                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                        $company = $currentCompanyId ? \App\Models\Company::find($currentCompanyId) : null;
+                        return $company && $company->isPapeleria();
+                    })
                     ->form([
-                        \Filament\Schemas\Components\Section::make('Crear Item Personalizado')
-                            ->description('Agrega un item con precios manuales sin cálculos automáticos')
-                            ->schema([
-                                Forms\Components\Textarea::make('description')
-                                    ->label('Descripción del Item')
-                                    ->required()
-                                    ->rows(3)
-                                    ->placeholder('Describe el producto o servicio personalizado')
-                                    ->columnSpanFull(),
-
-                                Grid::make(3)
-                                    ->schema([
-                                        Forms\Components\TextInput::make('quantity')
-                                            ->label('Cantidad')
-                                            ->numeric()
-                                            ->required()
-                                            ->default(1)
-                                            ->minValue(1)
-                                            ->suffix('unidades')
-                                            ->live()
-                                            ->afterStateUpdated(function ($state, $get, $set) {
-                                                $unitPrice = $get('unit_price') ?? 0;
-                                                $total = $state * $unitPrice;
-                                                $set('total_price', number_format($total, 2, '.', ''));
-                                            }),
-
-                                        Forms\Components\TextInput::make('unit_price')
-                                            ->label('Precio Unitario')
-                                            ->numeric()
-                                            ->required()
-                                            ->prefix('$')
-                                            ->step(0.01)
-                                            ->minValue(0)
-                                            ->live()
-                                            ->afterStateUpdated(function ($state, $get, $set) {
-                                                $quantity = $get('quantity') ?? 1;
-                                                $total = $quantity * $state;
-                                                $set('total_price', number_format($total, 2, '.', ''));
-                                            }),
-
-                                        Forms\Components\TextInput::make('total_price')
-                                            ->label('Precio Total')
-                                            ->numeric()
-                                            ->prefix('$')
-                                            ->disabled()
-                                            ->dehydrated(false),
-                                    ]),
-
-                                Forms\Components\Textarea::make('notes')
-                                    ->label('Notas Adicionales')
-                                    ->rows(2)
-                                    ->placeholder('Notas internas sobre este item (opcional)')
-                                    ->columnSpanFull(),
-
-                                Forms\Components\Placeholder::make('custom_summary')
-                                    ->content(function ($get) {
-                                        $description = $get('description');
-                                        $quantity = $get('quantity') ?? 1;
-                                        $unitPrice = $get('unit_price') ?? 0;
-                                        $totalPrice = $quantity * $unitPrice;
-
-                                        if (empty($description)) {
-                                            return '<div class="p-3 bg-gray-50 rounded text-gray-500">📝 Completa la descripción para ver el resumen</div>';
-                                        }
-
-                                        $content = '<div class="p-4 bg-green-50 rounded space-y-2">';
-                                        $content .= '<h4 class="font-semibold text-green-800">📋 Resumen del Item</h4>';
-                                        $content .= '<div class="space-y-1 text-sm">';
-                                        $content .= '<div><strong>Descripción:</strong> '.e(substr($description, 0, 80)).(strlen($description) > 80 ? '...' : '').'</div>';
-                                        $content .= '<div><strong>Cantidad:</strong> '.number_format($quantity).' unidades</div>';
-                                        $content .= '<div><strong>Precio unitario:</strong> $'.number_format($unitPrice, 2).'</div>';
-                                        $content .= '</div>';
-                                        $content .= '<div class="mt-3 p-3 bg-white rounded border border-green-200">';
-                                        $content .= '<div class="text-lg font-bold text-green-600 text-center">';
-                                        $content .= '💵 TOTAL: $'.number_format($totalPrice, 2);
-                                        $content .= '</div>';
-                                        $content .= '</div>';
-                                        $content .= '</div>';
-
-                                        return $content;
-                                    })
-                                    ->html()
-                                    ->columnSpanFull(),
-                            ]),
+                        \Filament\Schemas\Components\Section::make('Agregar Papel')
+                            ->description('Selecciona un papel disponible y especifica la cantidad')
+                            ->schema((new PaperHandler())->getFormSchema()),
                     ])
                     ->action(function (array $data) {
-                        // Crear el CustomItem
-                        $customItem = \App\Models\CustomItem::create([
-                            'description' => $data['description'],
-                            'quantity' => $data['quantity'],
-                            'unit_price' => $data['unit_price'],
-                            'notes' => $data['notes'] ?? null,
-                        ]);
+                        $paper = \App\Models\Paper::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->find($data['paper_id']);
 
-                        // Crear el DocumentItem asociado
+                        if (!$paper) {
+                            throw new \Exception('Papel no encontrado');
+                        }
+
+                        $quantity = $data['quantity'];
+                        $profitMargin = $data['profit_margin'] ?? 0;
+
+                        $baseTotal = $paper->price * $quantity;
+                        $totalPriceWithMargin = $baseTotal * (1 + ($profitMargin / 100));
+                        $unitPriceWithMargin = $totalPriceWithMargin / $quantity;
+
                         $this->getOwnerRecord()->items()->create([
-                            'itemable_type' => 'App\\Models\\CustomItem',
-                            'itemable_id' => $customItem->id,
-                            'description' => 'Personalizado: '.$customItem->description,
-                            'quantity' => $customItem->quantity,
-                            'unit_price' => $customItem->unit_price,
-                            'total_price' => $customItem->total_price,
+                            'itemable_type' => 'App\\Models\\Paper',
+                            'itemable_id' => $paper->id,
+                            'description' => 'Papel: ' . $paper->name . ' (' . $paper->weight . 'gr - ' . $paper->width . 'x' . $paper->height . 'cm)',
+                            'quantity' => $quantity,
+                            'unit_price' => round($unitPriceWithMargin, 2),
+                            'total_price' => round($totalPriceWithMargin, 2),
+                            'profit_margin' => $profitMargin,
+                            'item_type' => 'paper',
                         ]);
 
-                        // Recalcular totales del documento
                         $this->getOwnerRecord()->recalculateTotals();
-
-                        // Refrescar la tabla
                         $this->dispatch('$refresh');
                     })
-                    ->modalWidth('4xl')
-                    ->successNotificationTitle('Item personalizado creado correctamente'),
+                    ->modalWidth('5xl')
+                    ->successNotificationTitle('Papel agregado correctamente'),
             ])
             ->actions([
                 EditAction::make()
                     ->label('')
                     ->icon('heroicon-o-pencil')
-                    ->visible(fn ($record) => $record->itemable !== null)
+                    ->visible(function ($record) {
+                        return $record && $record->itemable !== null;
+                    })
+                    ->authorize(false)
                     ->form(function ($record) {
                         if ($record->itemable_type === 'App\\Models\\SimpleItem') {
                             return [
@@ -1965,6 +1902,16 @@ class DocumentItemsRelationManager extends RelationManager
                             ];
                         }
 
+                        if ($record->itemable_type === 'App\\Models\\Product') {
+                            $handler = new ProductHandler;
+                            return $handler->getEditForm($record);
+                        }
+
+                        if ($record->itemable_type === 'App\\Models\\Paper') {
+                            $handler = new PaperHandler;
+                            return $handler->getEditForm($record);
+                        }
+
                         // TalonarioItem - Con gestión de hojas
                         if ($record->itemable_type === 'App\Models\TalonarioItem') {
                             return TalonarioItemForm::configure(new \Filament\Schemas\Schema)->getComponents();
@@ -1996,6 +1943,16 @@ class DocumentItemsRelationManager extends RelationManager
                         if ($record->itemable_type === 'App\\Models\\CustomItem' && $record->itemable) {
                             // Cargar todos los datos del CustomItem para mostrar en el formulario
                             return $record->itemable->toArray();
+                        }
+
+                        if ($record->itemable_type === 'App\\Models\\Product' && $record->itemable) {
+                            $handler = new ProductHandler;
+                            return $handler->fillForm($record);
+                        }
+
+                        if ($record->itemable_type === 'App\\Models\\Paper' && $record->itemable) {
+                            $handler = new PaperHandler;
+                            return $handler->fillForm($record);
                         }
 
                         // Para TalonarioItems, usar el handler
@@ -2177,6 +2134,14 @@ class DocumentItemsRelationManager extends RelationManager
                                 'unit_price' => $unitPrice,
                                 'total_price' => $totalPrice,
                             ]);
+                        } elseif ($record->itemable_type === 'App\\Models\\Product' && $record->itemable) {
+                            // Usar el handler para manejar la edición de Products
+                            $handler = new ProductHandler;
+                            $handler->handleUpdate($record, $data);
+                        } elseif ($record->itemable_type === 'App\\Models\\Paper' && $record->itemable) {
+                            // Usar el handler para manejar la edición de Papers
+                            $handler = new PaperHandler;
+                            $handler->handleUpdate($record, $data);
                         } else {
                             // Para otros tipos de items, actualizar los datos básicos
                             $totalPrice = $data['quantity'] * $data['unit_price'];
@@ -2211,263 +2176,12 @@ class DocumentItemsRelationManager extends RelationManager
                         $this->dispatch('$refresh');
                     }),
 
-                Action::make('view_details')
-                    ->label('')
-                    ->icon('heroicon-o-eye')
-                    ->color('info')
-                    ->modalContent(function ($record) {
-                        if (! $record->itemable) {
-                            return new \Illuminate\Support\HtmlString('<p class="text-gray-500">No se encontró información del item</p>');
-                        }
-
-                        $item = $record->itemable;
-                        $content = '<div class="space-y-6">';
-
-                        // Información básica común para todos los tipos
-                        $content .= '<div>';
-                        $content .= '<h3 class="text-lg font-semibold mb-3">Información del Item</h3>';
-                        $content .= '<div class="grid grid-cols-2 gap-4 text-sm">';
-                        $content .= '<div><strong>Tipo:</strong> '.class_basename($record->itemable_type).'</div>';
-                        $content .= '<div><strong>Descripción:</strong> '.($item->description ?? 'N/A').'</div>';
-
-                        // Información específica según el tipo de item
-                        if ($record->itemable_type === 'App\\Models\\SimpleItem') {
-                            $content .= '<div><strong>Cantidad:</strong> '.number_format($item->quantity).' uds</div>';
-                            $content .= '<div><strong>Dimensiones:</strong> '.$item->horizontal_size.' × '.$item->vertical_size.' cm</div>';
-                            $content .= '<div><strong>Tintas:</strong> '.$item->ink_front_count.'x'.$item->ink_back_count.'</div>';
-                            $content .= '<div><strong>Papel:</strong> '.($item->paper->name ?? 'N/A').'</div>';
-                            $content .= '<div><strong>Máquina:</strong> '.($item->printingMachine->name ?? 'N/A').'</div>';
-                        } elseif ($record->itemable_type === 'App\\Models\\MagazineItem') {
-                            $content .= '<div><strong>Cantidad:</strong> '.number_format($item->quantity).' revistas</div>';
-                            $content .= '<div><strong>Dimensiones Cerrada:</strong> '.$item->closed_width.' × '.$item->closed_height.' cm</div>';
-                            $content .= '<div><strong>Encuadernación:</strong> '.ucfirst($item->binding_type).' ('.$item->binding_side.')</div>';
-                            $content .= '<div><strong>Total Páginas:</strong> '.$item->total_pages.' págs</div>';
-                            $content .= '<div><strong>Tipos de Página:</strong> '.$item->pages->count().'</div>';
-                        } elseif ($record->itemable_type === 'App\\Models\\TalonarioItem') {
-                            $content .= '<div><strong>Cantidad:</strong> '.number_format($item->quantity).' talonarios</div>';
-                            $content .= '<div><strong>Dimensiones:</strong> '.$item->ancho.' × '.$item->alto.' cm</div>';
-                            $content .= '<div><strong>Numeración:</strong> '.$item->numbering_range.'</div>';
-                            $content .= '<div><strong>Por Talonario:</strong> '.$item->numeros_por_talonario.' números</div>';
-                            $content .= '<div><strong>Total Hojas:</strong> '.$item->sheets->count().' tipos</div>';
-                            $content .= '<div><strong>Acabados:</strong> '.$item->finishings->count().' seleccionados</div>';
-                        } else {
-                            // Para otros tipos de items, mostrar campos básicos
-                            $content .= '<div><strong>Cantidad:</strong> '.number_format($record->quantity ?? 0).' uds</div>';
-                            $content .= '<div><strong>Precio Unitario:</strong> $'.number_format($record->unit_price ?? 0, 2).'</div>';
-                            $content .= '<div><strong>Precio Total:</strong> $'.number_format($record->total_price ?? 0, 2).'</div>';
-                        }
-
-                        $content .= '</div>';
-                        $content .= '</div>';
-
-                        // Información específica para SimpleItems
-                        if ($record->itemable_type === 'App\\Models\\SimpleItem') {
-                            $options = method_exists($item, 'getMountingOptions') ? $item->getMountingOptions() : [];
-                            $breakdown = method_exists($item, 'getDetailedCostBreakdown') ? $item->getDetailedCostBreakdown() : [];
-                            $validations = method_exists($item, 'validateTechnicalViability') ? $item->validateTechnicalViability() : [];
-
-                            // Opciones de montaje
-                            if (! empty($options)) {
-                                $content .= '<div>';
-                                $content .= '<h3 class="text-lg font-semibold mb-3">Opciones de Montaje</h3>';
-                                foreach ($options as $index => $option) {
-                                    $isSelected = $index === 0 ? ' (SELECCIONADO)' : '';
-                                    $content .= '<div class="p-3 bg-gray-50 rounded mb-2">';
-                                    $content .= '<div class="flex justify-between">';
-                                    $content .= '<div>';
-                                    $content .= '<strong>'.ucfirst($option->orientation).$isSelected.'</strong><br>';
-                                    $content .= '<small class="text-gray-600">';
-                                    $content .= $option->cutsPerSheet.' cortes/pliego • ';
-                                    $content .= $option->sheetsNeeded.' pliegos • ';
-                                    $content .= number_format($option->utilizationPercentage, 1).'% aprovechamiento';
-                                    $content .= '</small>';
-                                    $content .= '</div>';
-                                    $content .= '<div class="text-right">';
-                                    $content .= '<strong>$'.number_format($option->paperCost, 0).'</strong><br>';
-                                    $content .= '<small class="text-gray-500">papel</small>';
-                                    $content .= '</div>';
-                                    $content .= '</div>';
-                                    $content .= '</div>';
-                                }
-                                $content .= '</div>';
-                            }
-
-                            // Desglose de costos
-                            if (! empty($breakdown)) {
-                                $content .= '<div>';
-                                $content .= '<h3 class="text-lg font-semibold mb-3">Desglose de Costos</h3>';
-                                $content .= '<div class="space-y-2">';
-                                foreach ($breakdown as $key => $detail) {
-                                    $content .= '<div class="flex justify-between py-2 border-b border-gray-100">';
-                                    $content .= '<div>';
-                                    $content .= '<strong>'.$detail['description'].'</strong><br>';
-                                    $content .= '<small class="text-gray-600">'.$detail['detail'].'</small>';
-                                    $content .= '</div>';
-                                    $content .= '<span class="font-semibold">'.$detail['cost'].'</span>';
-                                    $content .= '</div>';
-                                }
-                                $content .= '</div>';
-
-                                // Total
-                                $content .= '<div class="mt-4 pt-4 border-t-2 border-gray-200">';
-                                $content .= '<div class="flex justify-between text-lg font-bold">';
-                                $content .= '<span>PRECIO FINAL</span>';
-                                $content .= '<span class="text-blue-600">$'.number_format($item->final_price, 2).'</span>';
-                                $content .= '</div>';
-                                $content .= '<div class="text-center text-sm text-gray-600 mt-1">';
-                                $content .= 'Precio unitario: $'.number_format($item->final_price / $item->quantity, 4);
-                                $content .= '</div>';
-                                $content .= '</div>';
-                            }
-
-                            // Validaciones
-                            if (! empty($validations)) {
-                                $content .= '<div>';
-                                $content .= '<h3 class="text-lg font-semibold mb-3">Validaciones</h3>';
-                                foreach ($validations as $validation) {
-                                    $color = $validation['type'] === 'error' ? 'red' : 'yellow';
-                                    $content .= '<div class="p-2 bg-'.$color.'-50 border border-'.$color.'-200 rounded mb-2 text-'.$color.'-800">';
-                                    $content .= $validation['message'];
-                                    $content .= '</div>';
-                                }
-                                $content .= '</div>';
-                            } else {
-                                $content .= '<div class="p-3 bg-green-50 border border-green-200 rounded text-green-800">';
-                                $content .= '✅ Todas las validaciones pasaron correctamente';
-                                $content .= '</div>';
-                            }
-
-                        } // Cerrar el bloque if SimpleItem
-
-                        // Información específica para MagazineItems
-                        if ($record->itemable_type === 'App\\Models\\MagazineItem') {
-                            $breakdown = method_exists($item, 'getDetailedCostBreakdown') ? $item->getDetailedCostBreakdown() : [];
-                            $validations = method_exists($item, 'validateTechnicalViability') ? $item->validateTechnicalViability() : [];
-
-                            // Páginas de la revista
-                            $content .= '<div>';
-                            $content .= '<h3 class="text-lg font-semibold mb-3">Páginas de la Revista</h3>';
-
-                            if ($item->pages && $item->pages->count() > 0) {
-                                foreach ($item->pages as $page) {
-                                    $content .= '<div class="p-3 bg-blue-50 rounded mb-2">';
-                                    $content .= '<div class="flex justify-between">';
-                                    $content .= '<div>';
-                                    $content .= '<strong>'.ucfirst($page->page_type).'</strong> (Orden: '.$page->page_order.')<br>';
-                                    $content .= '<small class="text-gray-600">';
-                                    $content .= 'Cantidad: '.$page->page_quantity.' páginas<br>';
-                                    if ($page->simpleItem) {
-                                        $content .= 'SimpleItem: '.$page->simpleItem->description;
-                                    }
-                                    $content .= '</small>';
-                                    $content .= '</div>';
-                                    $content .= '<div class="text-right">';
-                                    $content .= '<strong>$'.number_format($page->total_cost ?? 0, 2).'</strong><br>';
-                                    $content .= '<small class="text-gray-500">total página</small>';
-                                    $content .= '</div>';
-                                    $content .= '</div>';
-                                    $content .= '</div>';
-                                }
-                            } else {
-                                $content .= '<p class="text-gray-500 italic">No hay páginas agregadas aún</p>';
-                            }
-                            $content .= '</div>';
-
-                            // Acabados de la revista
-                            if ($item->finishings && $item->finishings->count() > 0) {
-                                $content .= '<div>';
-                                $content .= '<h3 class="text-lg font-semibold mb-3">Acabados</h3>';
-                                foreach ($item->finishings as $finishing) {
-                                    $content .= '<div class="p-2 bg-purple-50 rounded mb-2">';
-                                    $content .= '<div class="flex justify-between">';
-                                    $content .= '<span>'.$finishing->name.'</span>';
-                                    $content .= '<span class="font-medium">$'.number_format($finishing->pivot->total_cost ?? 0, 2).'</span>';
-                                    $content .= '</div>';
-                                    $content .= '</div>';
-                                }
-                                $content .= '</div>';
-                            }
-
-                            // Desglose de costos
-                            if (! empty($breakdown)) {
-                                $content .= '<div>';
-                                $content .= '<h3 class="text-lg font-semibold mb-3">Desglose de Costos</h3>';
-                                $content .= '<div class="space-y-2">';
-
-                                if (isset($breakdown['pages']['total'])) {
-                                    $content .= '<div class="flex justify-between p-2 bg-blue-50 rounded">';
-                                    $content .= '<span>Páginas</span>';
-                                    $content .= '<span class="font-medium">$'.number_format($breakdown['pages']['total'], 2).'</span>';
-                                    $content .= '</div>';
-                                }
-
-                                if (isset($breakdown['binding']['total'])) {
-                                    $content .= '<div class="flex justify-between p-2 bg-green-50 rounded">';
-                                    $content .= '<span>Encuadernación</span>';
-                                    $content .= '<span class="font-medium">$'.number_format($breakdown['binding']['total'], 2).'</span>';
-                                    $content .= '</div>';
-                                }
-
-                                if (isset($breakdown['assembly']['total'])) {
-                                    $content .= '<div class="flex justify-between p-2 bg-yellow-50 rounded">';
-                                    $content .= '<span>Armado</span>';
-                                    $content .= '<span class="font-medium">$'.number_format($breakdown['assembly']['total'], 2).'</span>';
-                                    $content .= '</div>';
-                                }
-
-                                if (isset($breakdown['summary']['final_price'])) {
-                                    $content .= '<div class="flex justify-between p-3 bg-gray-100 rounded font-semibold text-lg">';
-                                    $content .= '<span>Total Final</span>';
-                                    $content .= '<span>$'.number_format($breakdown['summary']['final_price'], 2).'</span>';
-                                    $content .= '</div>';
-                                }
-
-                                $content .= '</div>';
-                                $content .= '</div>';
-                            }
-
-                            // Validaciones técnicas
-                            if (! empty($validations)) {
-                                $content .= '<div>';
-                                $content .= '<h3 class="text-lg font-semibold mb-3">Validaciones Técnicas</h3>';
-
-                                if (isset($validations['errors']) && ! empty($validations['errors'])) {
-                                    foreach ($validations['errors'] as $error) {
-                                        $content .= '<div class="p-3 bg-red-50 border border-red-200 rounded text-red-800 mb-2">';
-                                        $content .= '❌ '.$error;
-                                        $content .= '</div>';
-                                    }
-                                }
-
-                                if (isset($validations['warnings']) && ! empty($validations['warnings'])) {
-                                    foreach ($validations['warnings'] as $warning) {
-                                        $content .= '<div class="p-3 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 mb-2">';
-                                        $content .= '⚠️ '.$warning;
-                                        $content .= '</div>';
-                                    }
-                                }
-
-                                if (isset($validations['isValid']) && $validations['isValid'] && empty($validations['warnings'])) {
-                                    $content .= '<div class="p-3 bg-green-50 border border-green-200 rounded text-green-800">';
-                                    $content .= '✅ Todas las validaciones pasaron correctamente';
-                                    $content .= '</div>';
-                                }
-
-                                $content .= '</div>';
-                            }
-                        } // Cerrar el bloque if MagazineItem
-
-                        $content .= '</div>';
-
-                        return new \Illuminate\Support\HtmlString($content);
-                    })
-                    ->modalWidth('4xl'),
-
                 Action::make('duplicate')
                     ->label('')
                     ->icon('heroicon-o-document-duplicate')
                     ->color('secondary')
-                    ->visible(fn ($record) => $record->itemable !== null)
+                    ->visible(fn ($record) => $record && $record->itemable !== null)
+                    ->authorize(false)
                     ->requiresConfirmation()
                     ->modalHeading('Duplicar Item')
                     ->modalDescription('¿Deseas crear una copia de este item en el documento?')
@@ -2547,6 +2261,57 @@ class DocumentItemsRelationManager extends RelationManager
                     ->successNotificationTitle('Item duplicado correctamente')
                     ->after(function () {
                         $this->dispatch('$refresh');
+                    }),
+
+                Action::make('duplicate')
+                    ->label('')
+                    ->icon('heroicon-o-document-duplicate')
+                    ->color('secondary')
+                    ->visible(fn ($record) => $record && $record->itemable !== null)
+                    ->action(function ($record) {
+                        if ($record->itemable) {
+                            // For products, just duplicate the DocumentItem without creating a new product
+                            if ($record->itemable_type === 'App\\Models\\Product') {
+                                $this->getOwnerRecord()->items()->create([
+                                    'itemable_type' => $record->itemable_type,
+                                    'itemable_id' => $record->itemable_id, // Use same product
+                                    'description' => $record->description.' (Copia)',
+                                    'quantity' => $record->quantity,
+                                    'unit_price' => $record->unit_price,
+                                    'total_price' => $record->total_price,
+                                    'profit_margin' => $record->profit_margin,
+                                ]);
+                            }
+
+                            // For papers, just duplicate the DocumentItem without creating a new paper
+                            elseif ($record->itemable_type === 'App\\Models\\Paper') {
+                                $this->getOwnerRecord()->items()->create([
+                                    'itemable_type' => $record->itemable_type,
+                                    'itemable_id' => $record->itemable_id, // Use same paper
+                                    'description' => $record->description.' (Copia)',
+                                    'quantity' => $record->quantity,
+                                    'unit_price' => $record->unit_price,
+                                    'total_price' => $record->total_price,
+                                    'profit_margin' => $record->profit_margin,
+                                ]);
+                            } else {
+                                // For other item types, replicate the item
+                                $newItem = $record->itemable->replicate();
+                                $newItem->description = $newItem->description.' (Copia)';
+                                $newItem->save();
+
+                                $this->getOwnerRecord()->items()->create([
+                                    'itemable_type' => $record->itemable_type,
+                                    'itemable_id' => $newItem->id,
+                                    'description' => $record->description.' (Copia)',
+                                    'quantity' => $record->quantity,
+                                    'unit_price' => $record->unit_price,
+                                    'total_price' => $record->total_price,
+                                ]);
+                            }
+
+                            $this->getOwnerRecord()->recalculateTotals();
+                        }
                     }),
 
                 DeleteAction::make()
@@ -2777,6 +2542,10 @@ class DocumentItemsRelationManager extends RelationManager
                         }),
                 ]),
             ])
+            ->modifyQueryUsing(function ($query) {
+                // Forzar la carga de itemable sin restricciones de scope
+                return $query->with(['itemable']);
+            })
             ->defaultSort('created_at', 'desc');
     }
 
@@ -2861,5 +2630,73 @@ class DocumentItemsRelationManager extends RelationManager
                 'sheet_notes' => $sheetData['sheet_notes'],
             ]);
         }
+    }
+
+    /**
+     * Calcular precio total de producto con margen de ganancia
+     */
+    private function calculateProductTotal($get, $set): void
+    {
+        $quantity = $get('quantity') ?? 0;
+        $unitPrice = $get('unit_price') ?? 0;
+        $profitMargin = $get('profit_margin') ?? 0;
+
+        if ($quantity > 0 && $unitPrice > 0) {
+            // Precio base sin margen
+            $baseTotal = $quantity * $unitPrice;
+
+            // Aplicar margen de ganancia
+            $finalTotal = $baseTotal * (1 + ($profitMargin / 100));
+
+            $set('total_price', round($finalTotal, 2));
+        } else {
+            $set('total_price', 0);
+        }
+    }
+
+    /**
+     * Create a quick action from a handler
+     */
+    private function createQuickAction(string $actionKey, $handler): Action
+    {
+        // Setup context for handlers that need calculation methods
+        $this->setupHandlerContext($handler);
+
+        return Action::make($actionKey)
+            ->label($handler->getLabel())
+            ->icon($handler->getIcon())
+            ->color($handler->getColor())
+            ->visible($handler->isVisible())
+            ->form($handler->getFormSchema())
+            ->action(function (array $data) use ($handler) {
+                $handler->handleCreate($data, $this->getOwnerRecord());
+                $this->dispatch('$refresh');
+            })
+            ->modalWidth($handler->getModalWidth())
+            ->successNotificationTitle($handler->getSuccessNotificationTitle());
+    }
+
+    /**
+     * Setup calculation context for handlers that need it
+     */
+    private function setupHandlerContext($handler): void
+    {
+        if (method_exists($handler, 'setCalculationContext')) {
+            $handler->setCalculationContext($this);
+        }
+    }
+
+    /**
+     * Create multiple quick actions from handlers
+     */
+    private function createQuickActions(array $handlers): array
+    {
+        $actions = [];
+
+        foreach ($handlers as $actionKey => $handler) {
+            $actions[] = $this->createQuickAction($actionKey, $handler);
+        }
+
+        return $actions;
     }
 }

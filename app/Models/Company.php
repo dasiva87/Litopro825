@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\CompanyType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -47,6 +48,7 @@ class Company extends Model
         'status',
         'suspended_at',
         'suspension_reason',
+        'company_type',
     ];
 
     protected $casts = [
@@ -56,6 +58,7 @@ class Company extends Model
         'show_contact_info' => 'boolean',
         'subscription_expires_at' => 'datetime',
         'suspended_at' => 'datetime',
+        'company_type' => CompanyType::class,
     ];
 
     protected static function boot()
@@ -151,6 +154,27 @@ class Company extends Model
     public function activityLogs(): HasMany
     {
         return $this->hasMany(ActivityLog::class);
+    }
+
+    // Relaciones de proveedores
+    public function supplierRequests(): HasMany
+    {
+        return $this->hasMany(SupplierRequest::class, 'requester_company_id');
+    }
+
+    public function receivedSupplierRequests(): HasMany
+    {
+        return $this->hasMany(SupplierRequest::class, 'supplier_company_id');
+    }
+
+    public function supplierRelationships(): HasMany
+    {
+        return $this->hasMany(SupplierRelationship::class, 'client_company_id');
+    }
+
+    public function clientRelationships(): HasMany
+    {
+        return $this->hasMany(SupplierRelationship::class, 'supplier_company_id');
     }
 
     // Scopes
@@ -391,5 +415,47 @@ class Company extends Model
             'pending' => 'Pendiente',
             default => 'Desconocido',
         };
+    }
+
+    // Métodos para gestión de tipo de empresa
+    public function isLitografia(): bool
+    {
+        return $this->company_type === CompanyType::LITOGRAFIA;
+    }
+
+    public function isPapeleria(): bool
+    {
+        return $this->company_type === CompanyType::PAPELERIA;
+    }
+
+    public function getCompanyTypeLabel(): string
+    {
+        return $this->company_type?->label() ?? 'No definido';
+    }
+
+    public function getAllowedResources(): array
+    {
+        return $this->company_type?->allowedResources() ?? [];
+    }
+
+    public function canAccessResource(string $resource): bool
+    {
+        return in_array($resource, $this->getAllowedResources());
+    }
+
+    // Scopes para filtrar por tipo
+    public function scopeLitografias($query)
+    {
+        return $query->where('company_type', CompanyType::LITOGRAFIA);
+    }
+
+    public function scopePapelerias($query)
+    {
+        return $query->where('company_type', CompanyType::PAPELERIA);
+    }
+
+    public function scopeByType($query, CompanyType $type)
+    {
+        return $query->where('company_type', $type);
     }
 }
