@@ -27,6 +27,8 @@ class RoleResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Roles';
 
+    protected static bool $shouldRegisterNavigation = false;
+
     /**
      * Solo Company Admin puede ver este Resource.
      */

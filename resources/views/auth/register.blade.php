@@ -208,6 +208,21 @@
                                        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                        required>
                             </div>
+                            <div>
+                                <label for="company_type" class="block text-sm font-medium text-gray-700">
+                                    Tipo de Empresa *
+                                </label>
+                                <select name="company_type" id="company_type" required
+                                        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                    <option value="litografia" {{ old('company_type', 'litografia') === 'litografia' ? 'selected' : '' }}>
+                                        Litografía
+                                    </option>
+                                    <option value="papeleria" {{ old('company_type') === 'papeleria' ? 'selected' : '' }}>
+                                        Papelería
+                                    </option>
+                                </select>
+                                <div class="field-help text-gray-500 text-xs mt-1">Las litografías pueden recibir órdenes de compra de papelerías</div>
+                            </div>
 
                             <div class="sm:col-span-2">
                                 <label for="company_address" class="block text-sm font-medium text-gray-700">

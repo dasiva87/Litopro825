@@ -10,6 +10,7 @@ enum NavigationGroup: string
     case Configuracion = 'configuracion';
     case Sistema = 'sistema';
     case Usuarios = 'usuarios';
+    case Ordenes = 'ordenes';
 
     public function getLabel(): string
     {
@@ -20,6 +21,7 @@ enum NavigationGroup: string
             self::Configuracion => 'Configuración',
             self::Sistema => 'Sistema',
             self::Usuarios => 'Usuarios',
+            self::Ordenes => 'Órdenes',
         };
     }
 }

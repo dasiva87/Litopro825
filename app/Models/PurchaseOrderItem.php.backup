@@ -1,0 +1,278 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class PurchaseOrderItem extends Model
+{
+    protected $fillable = [
+        'purchase_order_id',
+        'document_item_id',
+        'item_type',
+        'quantity_ordered',
+        'unit_price',
+        'total_price',
+        'paper_sheets_needed',
+        'paper_cut_size',
+        'paper_type',
+        'product_name',
+        'product_code',
+        'status',
+        'notes',
+    ];
+
+    protected $casts = [
+        'quantity_ordered' => 'decimal:2',
+        'unit_price' => 'decimal:4',
+        'total_price' => 'decimal:2',
+        'paper_sheets_needed' => 'integer',
+    ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (PurchaseOrderItem $item) {
+            if (! $item->total_price) {
+                $item->total_price = $item->quantity_ordered * $item->unit_price;
+            }
+        });
+
+        static::updated(function (PurchaseOrderItem $item) {
+            if ($item->wasChanged(['quantity_ordered', 'unit_price'])) {
+                $item->total_price = $item->quantity_ordered * $item->unit_price;
+                $item->saveQuietly();
+            }
+
+            // Recalcular el total de la orden
+            $item->purchaseOrder->recalculateTotal();
+        });
+
+        static::saved(function (PurchaseOrderItem $item) {
+            // Actualizar el estado del DocumentItem
+            $item->documentItem->update([
+                'order_status' => $item->status === 'pending' ? 'ordered' :
+                                ($item->status === 'received' ? 'received' : 'ordered'),
+            ]);
+        });
+    }
+
+    public function purchaseOrder(): BelongsTo
+    {
+        return $this->belongsTo(PurchaseOrder::class);
+    }
+
+    public function documentItem(): BelongsTo
+    {
+        return $this->belongsTo(DocumentItem::class);
+    }
+
+    public function getStatusLabelAttribute(): string
+    {
+        return match ($this->status) {
+            'pending' => 'Pendiente',
+            'confirmed' => 'Confirmado',
+            'received' => 'Recibido',
+            'cancelled' => 'Cancelado',
+            default => 'Desconocido'
+        };
+    }
+
+    public function getStatusColorAttribute(): string
+    {
+        return match ($this->status) {
+            'pending' => 'warning',
+            'confirmed' => 'info',
+            'received' => 'success',
+            'cancelled' => 'danger',
+            default => 'gray'
+        };
+    }
+
+    public function getItemDescriptionAttribute(): string
+    {
+        if ($this->item_type === 'papel') {
+            return "{$this->paper_type} - {$this->paper_sheets_needed} pliegos - Corte: {$this->paper_cut_size}";
+        }
+
+        return "{$this->product_name} ({$this->product_code}) - {$this->quantity_ordered} unidades";
+    }
+
+    public function isPaper(): bool
+    {
+        return $this->item_type === 'papel';
+    }
+
+    public function isProduct(): bool
+    {
+        return $this->item_type === 'producto';
+    }
+
+    public function canBeReceived(): bool
+    {
+        return in_array($this->status, ['pending', 'confirmed']);
+    }
+
+    public function canBeCancelled(): bool
+    {
+        return in_array($this->status, ['pending', 'confirmed']);
+    }
+
+    /**
+     * Crear item de orden desde un DocumentItem
+     */
+    public static function createFromDocumentItem(DocumentItem $documentItem, PurchaseOrder $order): self
+    {
+        $data = [
+            'purchase_order_id' => $order->id,
+            'document_item_id' => $documentItem->id,
+            'quantity_ordered' => $documentItem->quantity,
+            'status' => 'pending',
+        ];
+
+        // Configuración específica para cada tipo de item
+        if ($documentItem->itemable_type === 'App\Models\SimpleItem' && $documentItem->itemable) {
+            $simpleItem = $documentItem->itemable;
+            $paper = $simpleItem->paper;
+
+            $unitPrice = 0;
+            $totalPrice = 0;
+            $sheetsNeeded = $simpleItem->total_sheets ?? 0;
+
+            if ($paper && $paper->cost_per_sheet !== null) {
+                $unitPrice = $paper->cost_per_sheet;
+                $totalPrice = $sheetsNeeded * $unitPrice;
+            }
+
+            $data = array_merge($data, [
+                'item_type' => 'papel',
+                'paper_sheets_needed' => $sheetsNeeded,
+                'paper_cut_size' => "{$simpleItem->horizontal_size}x{$simpleItem->vertical_size}cm",
+                'paper_type' => $paper ? $paper->name : 'N/A',
+                'unit_price' => $unitPrice,
+                'total_price' => $totalPrice,
+                // Agregar información adicional del trabajo
+                'notes' => static::buildPaperNotes($simpleItem, $paper),
+            ]);
+        } elseif ($documentItem->itemable_type === 'App\Models\Product' && $documentItem->itemable) {
+            $product = $documentItem->itemable;
+
+            // Para productos: usar sale_price como precio unitario
+            $unitPrice = $product->sale_price ?? 0;
+            $totalPrice = $documentItem->quantity * $unitPrice;
+
+            $data = array_merge($data, [
+                'item_type' => 'producto',
+                'product_name' => $product->name,
+                'product_code' => $product->code ?? 'N/A',
+                'unit_price' => $unitPrice,
+                'total_price' => $totalPrice,
+                // Agregar información adicional del producto
+                'notes' => static::buildProductNotes($product),
+            ]);
+        } else {
+            // Para otros tipos, usar datos genéricos
+            $unitPrice = $documentItem->unit_price ?? 0;
+            $totalPrice = $documentItem->total_price ?? ($documentItem->quantity * $unitPrice);
+
+            $data = array_merge($data, [
+                'item_type' => 'producto',
+                'product_name' => $documentItem->description ?? 'Item genérico',
+                'product_code' => 'N/A',
+                'unit_price' => $unitPrice,
+                'total_price' => $totalPrice,
+            ]);
+        }
+
+        return static::create($data);
+    }
+
+    /**
+     * Construir notas informativas para productos
+     */
+    private static function buildProductNotes($product): ?string
+    {
+        $notes = [];
+
+        // Descripción del producto
+        if ($product->description) {
+            $notes[] = "Descripción: {$product->description}";
+        }
+
+        // Tipo de producto (propio o terceros)
+        $notes[] = $product->is_own_product ? 'Producto propio' : 'Producto de terceros';
+
+        // Información de stock
+        if ($product->stock !== null) {
+            $notes[] = "Stock disponible: {$product->stock} unidades";
+
+            if ($product->min_stock && $product->stock <= $product->min_stock) {
+                $notes[] = "⚠️ Stock bajo (mínimo: {$product->min_stock})";
+            }
+        }
+
+        // Proveedor (si es producto de terceros)
+        if (! $product->is_own_product && $product->supplier) {
+            $notes[] = "Proveedor: {$product->supplier->name}";
+        }
+
+        return implode(' | ', $notes);
+    }
+
+    /**
+     * Construir notas informativas para items de papel
+     */
+    private static function buildPaperNotes($simpleItem, $paper): ?string
+    {
+        $notes = [];
+
+        // Descripción del trabajo
+        if ($simpleItem->description) {
+            $notes[] = "Trabajo: {$simpleItem->description}";
+        }
+
+        // Especificaciones del papel
+        if ($paper) {
+            if ($paper->weight) {
+                $notes[] = "Papel: {$paper->weight}g";
+            }
+
+            if ($paper->width && $paper->height) {
+                $notes[] = "Pliego: {$paper->width}x{$paper->height}cm";
+            }
+
+            // Stock del papel
+            if ($paper->stock !== null) {
+                $notes[] = "Stock papel: {$paper->stock} pliegos";
+
+                if ($paper->min_stock && $paper->stock <= $paper->min_stock) {
+                    $notes[] = '⚠️ Stock papel bajo';
+                }
+            }
+        }
+
+        // Información de impresión
+        if ($simpleItem->ink_front_count || $simpleItem->ink_back_count) {
+            $tintas = [];
+            if ($simpleItem->ink_front_count) {
+                $tintas[] = "Frente: {$simpleItem->ink_front_count} tintas";
+            }
+            if ($simpleItem->ink_back_count) {
+                $tintas[] = "Reverso: {$simpleItem->ink_back_count} tintas";
+            }
+            $notes[] = implode(', ', $tintas);
+        }
+
+        // Cantidad final del trabajo
+        if ($simpleItem->quantity) {
+            $notes[] = "Cantidad trabajo: {$simpleItem->quantity} unidades";
+        }
+
+        // Sobrante de papel
+        if ($simpleItem->sobrante_papel) {
+            $notes[] = "Sobrante: {$simpleItem->sobrante_papel} pliegos";
+        }
+
+        return implode(' | ', $notes);
+    }
+}

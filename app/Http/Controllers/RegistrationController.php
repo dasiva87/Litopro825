@@ -44,6 +44,7 @@ class RegistrationController extends Controller
             'state_id' => ['required', 'exists:states,id'],
             'city_id' => ['required', 'exists:cities,id'],
             'tax_id' => ['required', 'string', 'max:50'],
+            'company_type' => ['required', 'in:litografia,papeleria'],
 
             // Datos del usuario administrador
             'name' => ['required', 'string', 'max:255'],
@@ -71,6 +72,7 @@ class RegistrationController extends Controller
                 'state_id' => $request->state_id,
                 'city_id' => $request->city_id,
                 'tax_id' => $request->tax_id,
+                'company_type' => $request->company_type,
                 'status' => 'pending',
                 'is_active' => false,
                 'subscription_plan' => 'free',

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -47,6 +48,7 @@ class DocumentItem extends Model
         'item_config',
         'is_template',
         'template_name',
+        'order_status',
     ];
 
     protected $casts = [
@@ -115,6 +117,78 @@ class DocumentItem extends Model
     public function finishings(): HasMany
     {
         return $this->hasMany(DocumentItemFinishing::class);
+    }
+
+    public function purchaseOrders(): BelongsToMany
+    {
+        return $this->belongsToMany(PurchaseOrder::class, 'document_item_purchase_order')
+                    ->withPivot([
+                        'quantity_ordered',
+                        'unit_price',
+                        'total_price',
+                        'status',
+                        'notes',
+                    ])
+                    ->withTimestamps();
+    }
+
+    // Scopes
+    public function scopeAvailableForOrders($query)
+    {
+        return $query->whereIn('order_status', ['available', 'ordered']);
+    }
+
+    // Order status methods
+    public function isAvailableForOrder(): bool
+    {
+        return $this->order_status === 'available' &&
+               $this->document &&
+               in_array($this->document->status, ['approved', 'completed']);
+    }
+
+    public function isInPurchaseOrder(PurchaseOrder $order): bool
+    {
+        return $this->purchaseOrders()->where('purchase_order_id', $order->id)->exists();
+    }
+
+    public function updateOrderStatus(): void
+    {
+        $orderCount = $this->purchaseOrders()->count();
+        $completedCount = $this->purchaseOrders()
+            ->wherePivot('status', 'received')
+            ->count();
+
+        if ($orderCount === 0) {
+            $this->order_status = 'available';
+        } elseif ($orderCount === $completedCount && $orderCount > 0) {
+            $this->order_status = 'received';
+        } else {
+            $this->order_status = 'ordered';
+        }
+
+        $this->saveQuietly();
+    }
+
+    public function getOrderStatusLabelAttribute(): string
+    {
+        return match($this->order_status) {
+            'available' => 'Disponible',
+            'in_cart' => 'En Carrito',
+            'ordered' => 'Ordenado',
+            'received' => 'Recibido',
+            default => 'Desconocido'
+        };
+    }
+
+    public function getOrderStatusColorAttribute(): string
+    {
+        return match($this->order_status) {
+            'available' => 'success',
+            'in_cart' => 'warning',
+            'ordered' => 'info',
+            'received' => 'primary',
+            default => 'gray'
+        };
     }
 
     // Scopes

@@ -99,6 +99,35 @@ class Document extends Model
         return $this->hasMany(Document::class, 'parent_document_id');
     }
 
+    public function purchaseOrders(): HasMany
+    {
+        return $this->hasMany(PurchaseOrder::class);
+    }
+
+    // Order related methods
+    public function hasAvailableItemsForOrder(): bool
+    {
+        // Permitir items con status 'available' u 'ordered' (pueden estar en múltiples órdenes)
+        return $this->items()
+            ->whereIn('order_status', ['available', 'ordered'])
+            ->exists();
+    }
+
+    public function getAvailableItemsForOrder()
+    {
+        // Retornar items que pueden agregarse a órdenes (available u ordered)
+        return $this->items()
+            ->whereIn('order_status', ['available', 'ordered'])
+            ->with(['itemable', 'paper', 'printingMachine'])
+            ->get();
+    }
+
+    public function canCreateOrders(): bool
+    {
+        return in_array($this->status, ['approved', 'completed']) &&
+               $this->hasAvailableItemsForOrder();
+    }
+
     // Scopes
     public function scopeByStatus($query, $status)
     {

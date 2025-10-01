@@ -31,6 +31,7 @@ class SimpleRegistrationController extends Controller
             // Datos mínimos de la empresa
             'company_name' => ['required', 'string', 'max:255'],
             'tax_id' => ['required', 'string', 'max:50', 'unique:companies,tax_id'],
+            'company_type' => ['required', 'in:litografia,papeleria'],
 
             // Datos mínimos del usuario administrador
             'name' => ['required', 'string', 'max:255'],
@@ -49,6 +50,7 @@ class SimpleRegistrationController extends Controller
                 'name' => $request->company_name,
                 'slug' => Str::slug($request->company_name),
                 'tax_id' => $request->tax_id,
+                'company_type' => $request->company_type,
                 'status' => 'active', // Empresa activa con plan gratuito
                 'is_active' => true,
                 'subscription_plan' => 'free', // Plan inicial gratuito

@@ -2,6 +2,8 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Auth\PasswordReset\RequestPasswordReset;
+use App\Filament\Pages\Auth\PasswordReset\ResetPassword;
 use App\Http\Middleware\CheckActiveCompany;
 use App\Http\Middleware\RedirectToHomePage;
 use Filament\Http\Middleware\Authenticate;
@@ -31,6 +33,10 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->passwordReset(
+                requestAction: RequestPasswordReset::class,
+                resetAction: ResetPassword::class
+            )
             ->colors([
                 'primary' => Color::Blue,
             ])
@@ -101,6 +107,11 @@ class AdminPanelProvider extends PanelProvider
                     ->label('Red Social')
                     ->url('/admin/social-feed')
                     ->icon('heroicon-o-share'),
+                'roles' => \Filament\Navigation\MenuItem::make()
+                    ->label('Gestión de Roles')
+                    ->url('/admin/roles')
+                    ->icon('heroicon-o-shield-check')
+                    ->visible(fn () => auth()->user()->can('viewAny', \Spatie\Permission\Models\Role::class)),
                 'configuracion' => \Filament\Navigation\MenuItem::make()
                     ->label('Configuración')
                     ->url('/admin/company-settings')

@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\PurchaseOrder;
 use App\Models\SupplierRequest;
 use App\Models\User;
+use App\Policies\PurchaseOrderPolicy;
 use App\Policies\RolePolicy;
 use App\Policies\SupplierRequestPolicy;
 use App\Policies\UserPolicy;
@@ -21,6 +23,7 @@ class AuthServiceProvider extends ServiceProvider
         User::class => UserPolicy::class,
         Role::class => RolePolicy::class,
         SupplierRequest::class => SupplierRequestPolicy::class,
+        PurchaseOrder::class => PurchaseOrderPolicy::class,
     ];
 
     /**

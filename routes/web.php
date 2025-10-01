@@ -32,11 +32,57 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::get('/complete-profile', [CompleteProfileController::class, 'show'])->name('complete-profile');
     Route::post('/complete-profile', [CompleteProfileController::class, 'update'])->name('complete-profile.update');
+
+    // Rutas para PDFs de órdenes de pedido
+    Route::prefix('purchase-orders')->name('purchase-orders.')->group(function () {
+        Route::get('/{purchaseOrder}/pdf', [\App\Http\Controllers\PurchaseOrderController::class, 'viewPdf'])
+            ->name('pdf');
+        Route::get('/{purchaseOrder}/download', [\App\Http\Controllers\PurchaseOrderController::class, 'downloadPdf'])
+            ->name('download');
+        Route::post('/{purchaseOrder}/email', [\App\Http\Controllers\PurchaseOrderController::class, 'emailPdf'])
+            ->name('email');
+
+        // FLUJO 1: Desde Purchase Order → Buscar Cotizaciones → Seleccionar Items
+        Route::get('/search-documents', [\App\Http\Controllers\PurchaseOrderController::class, 'searchDocuments'])
+            ->name('search-documents');
+        Route::get('/document-items/{documentId}', [\App\Http\Controllers\PurchaseOrderController::class, 'getDocumentItems'])
+            ->name('document-items');
+        Route::post('/{purchaseOrder}/add-items', [\App\Http\Controllers\PurchaseOrderController::class, 'addItemsToOrder'])
+            ->name('add-items');
+    });
+
+    // FLUJO 2: Desde Document Item → Seleccionar Órdenes Abiertas
+    Route::prefix('document-items')->name('document-items.')->group(function () {
+        Route::get('/open-orders', [\App\Http\Controllers\DocumentItemController::class, 'getOpenOrders'])
+            ->name('open-orders');
+        Route::post('/{documentItem}/add-to-orders', [\App\Http\Controllers\DocumentItemController::class, 'addToOrders'])
+            ->name('add-to-orders');
+    });
     Route::get('/complete-profile/skip', [CompleteProfileController::class, 'skip'])->name('complete-profile.skip');
 
     // AJAX endpoints para ubicaciones en completar perfil
     Route::post('/complete-profile/states', [CompleteProfileController::class, 'getStates'])->name('complete-profile.states');
     Route::post('/complete-profile/cities', [CompleteProfileController::class, 'getCities'])->name('complete-profile.cities');
+
+    // Debug route for tenant context (non-production only)
+    if (!app()->environment('production')) {
+        Route::get('/debug/tenant-context', function () {
+            return response()->json([
+                'authenticated' => auth()->check(),
+                'user' => auth()->check() ? [
+                    'id' => auth()->user()->id,
+                    'name' => auth()->user()->name,
+                    'company_id' => auth()->user()->company_id,
+                    'company_name' => auth()->user()->company ? auth()->user()->company->name : null,
+                ] : null,
+                'tenant_config' => config('app.current_tenant_id'),
+                'session_tenant' => session('current_tenant_id'),
+                'purchase_orders_visible' => auth()->check() ? \App\Models\PurchaseOrder::count() : 0,
+                'all_purchase_orders' => \App\Models\PurchaseOrder::withoutGlobalScopes()->count(),
+                'timestamp' => now()->toISOString(),
+            ]);
+        })->middleware(['web', 'auth']);
+    }
 });
 
 // Rutas públicas de perfiles de empresa

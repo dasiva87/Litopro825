@@ -1,0 +1,274 @@
+<?php
+
+namespace App\Filament\Resources\PurchaseOrders\RelationManagers;
+
+use Filament\Actions;
+use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Components;
+use Filament\Schemas\Schema;
+use Filament\Tables;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Str;
+
+class PurchaseOrderItemsRelationManager extends RelationManager
+{
+    protected static string $relationship = 'items';
+
+    protected static ?string $title = 'Items de la Orden';
+
+    protected static ?string $modelLabel = 'Item';
+
+    protected static ?string $pluralModelLabel = 'Items';
+
+    public function form(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Components\Select::make('item_type')
+                    ->label('Tipo')
+                    ->options([
+                        'papel' => 'Papel',
+                        'producto' => 'Producto',
+                    ])
+                    ->required()
+                    ->live(),
+
+                // Campos para papel
+                Components\TextInput::make('paper_type')
+                    ->label('Tipo de Papel')
+                    ->visible(fn (Components\Get $get) => $get('item_type') === 'papel'),
+
+                Components\TextInput::make('paper_sheets_needed')
+                    ->label('Pliegos Necesarios')
+                    ->numeric()
+                    ->visible(fn (Components\Get $get) => $get('item_type') === 'papel'),
+
+                Components\TextInput::make('paper_cut_size')
+                    ->label('Tamaño de Corte')
+                    ->visible(fn (Components\Get $get) => $get('item_type') === 'papel'),
+
+                // Campos para producto
+                Components\TextInput::make('product_name')
+                    ->label('Nombre del Producto')
+                    ->visible(fn (Components\Get $get) => $get('item_type') === 'producto'),
+
+                Components\TextInput::make('product_code')
+                    ->label('Código del Producto')
+                    ->visible(fn (Components\Get $get) => $get('item_type') === 'producto'),
+
+                Components\TextInput::make('quantity_ordered')
+                    ->label('Cantidad Ordenada')
+                    ->numeric()
+                    ->required(),
+
+                Components\TextInput::make('unit_price')
+                    ->label('Precio Unitario')
+                    ->numeric()
+                    ->prefix('$')
+                    ->required(),
+
+                Components\Select::make('status')
+                    ->label('Estado')
+                    ->options([
+                        'pending' => 'Pendiente',
+                        'confirmed' => 'Confirmado',
+                        'received' => 'Recibido',
+                        'cancelled' => 'Cancelado',
+                    ])
+                    ->default('pending')
+                    ->required(),
+
+                Components\Textarea::make('notes')
+                    ->label('Notas')
+                    ->rows(3),
+            ]);
+    }
+
+    public function table(Table $table): Table
+    {
+        return $table
+            ->recordTitleAttribute('paper_type')
+            ->columns([
+                Tables\Columns\TextColumn::make('item_type')
+                    ->label('Tipo')
+                    ->formatStateUsing(fn ($state) => $state === 'papel' ? 'Papel' : 'Producto')
+                    ->badge()
+                    ->color(fn ($state) => match ($state) {
+                        'papel' => 'info',
+                        'producto' => 'success',
+                        default => 'gray'
+                    })
+                    ->icon(fn ($state) => match ($state) {
+                        'papel' => 'heroicon-m-document-text',
+                        'producto' => 'heroicon-m-cube',
+                        default => 'heroicon-m-question-mark-circle'
+                    }),
+
+                Tables\Columns\TextColumn::make('quantity_ordered')
+                    ->label('Cantidad')
+                    ->numeric()
+                    ->badge()
+                    ->color('primary')
+                    ->formatStateUsing(fn ($state) => number_format($state, 0)),
+
+                Tables\Columns\TextColumn::make('product_info')
+                    ->label('Nombre')
+                    ->html()
+                    ->formatStateUsing(function ($record) {
+                        if ($record->item_type === 'papel') {
+                            $description = "<div class='space-y-1'>";
+                            $description .= "<div class='font-semibold text-blue-700'>{$record->paper_type}</div>";
+
+                            if ($record->paper_sheets_needed) {
+                                $description .= "<div class='text-sm text-gray-600'>📄 <strong>{$record->paper_sheets_needed} pliegos</strong></div>";
+                            }
+
+                            if ($record->paper_cut_size) {
+                                $description .= "<div class='text-sm text-gray-600'>✂️ Corte: <strong>{$record->paper_cut_size}</strong></div>";
+                            }
+
+                            $description .= '</div>';
+
+                            return $description;
+                        } else {
+                            // Para productos: mostrar solo el nombre y código
+                            $description = "<div class='space-y-1'>";
+                            $description .= "<div class='font-semibold text-green-700'>{$record->product_name}</div>";
+
+                            if ($record->product_code && $record->product_code !== 'N/A') {
+                                $description .= "<div class='text-sm text-gray-600'>🔖 Código: <strong>{$record->product_code}</strong></div>";
+                            }
+
+                            $description .= '</div>';
+
+                            return $description;
+                        }
+                    })
+                    ->wrap(),
+
+                Tables\Columns\TextColumn::make('unit_price')
+                    ->label('Precio Unit.')
+                    ->money('COP')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('total_price')
+                    ->label('Total')
+                    ->money('COP')
+                    ->sortable()
+                    ->weight('bold')
+                    ->color('success'),
+
+                Tables\Columns\TextColumn::make('item_details')
+                    ->label('Detalles')
+                    ->html()
+                    ->formatStateUsing(function ($record) {
+                        if (! $record->notes) {
+                            return '<span class="text-gray-400 text-xs">Sin detalles</span>';
+                        }
+
+                        $notesParts = explode(' | ', $record->notes);
+                        $details = [];
+
+                        if ($record->item_type === 'producto') {
+                            // Para productos: mostrar descripción, stock y tipo
+                            foreach ($notesParts as $note) {
+                                if (strpos($note, 'Descripción:') === 0) {
+                                    $desc = substr($note, 12);
+                                    $details[] = "<span class='text-gray-600'>📝 ".Str::limit($desc, 30).'</span>';
+                                } elseif (strpos($note, 'Stock disponible:') === 0) {
+                                    $details[] = "<span class='text-blue-600'>📦 {$note}</span>";
+                                } elseif (strpos($note, '⚠️ Stock bajo') === 0) {
+                                    $details[] = "<span class='text-red-600'>{$note}</span>";
+                                } elseif (in_array($note, ['Producto propio', 'Producto de terceros'])) {
+                                    $icon = $note === 'Producto propio' ? '🏭' : '🏪';
+                                    $color = $note === 'Producto propio' ? 'text-green-600' : 'text-orange-600';
+                                    $details[] = "<span class='{$color}'>{$icon} {$note}</span>";
+                                }
+                            }
+                        } elseif ($record->item_type === 'papel') {
+                            // Para papel: mostrar información relevante del trabajo
+                            foreach ($notesParts as $note) {
+                                if (strpos($note, 'Trabajo:') === 0) {
+                                    $trabajo = substr($note, 8);
+                                    $details[] = "<span class='text-purple-600'>🎯 ".Str::limit($trabajo, 30).'</span>';
+                                } elseif (strpos($note, 'Papel:') === 0) {
+                                    $details[] = "<span class='text-green-600'>📋 {$note}</span>";
+                                } elseif (strpos($note, 'Cantidad trabajo:') === 0) {
+                                    $details[] = "<span class='text-blue-600'>🔢 {$note}</span>";
+                                } elseif (strpos($note, 'Stock papel:') === 0) {
+                                    $details[] = "<span class='text-blue-600'>📦 {$note}</span>";
+                                } elseif (strpos($note, '⚠️ Stock papel bajo') === 0) {
+                                    $details[] = "<span class='text-red-600'>⚠️ Stock papel bajo</span>";
+                                }
+                            }
+                        }
+
+                        return $details ? '<div class="space-y-1 text-xs">'.implode('<br>', array_slice($details, 0, 3)).'</div>' : '<span class="text-gray-400 text-xs">Sin detalles</span>';
+                    })
+                    ->wrap(),
+
+                Tables\Columns\TextColumn::make('status')
+                    ->label('Estado')
+                    ->formatStateUsing(fn ($state) => match ($state) {
+                        'pending' => 'Pendiente',
+                        'confirmed' => 'Confirmado',
+                        'received' => 'Recibido',
+                        'cancelled' => 'Cancelado',
+                        default => $state
+                    })
+                    ->badge()
+                    ->color(fn ($state) => match ($state) {
+                        'pending' => 'warning',
+                        'confirmed' => 'info',
+                        'received' => 'success',
+                        'cancelled' => 'danger',
+                        default => 'gray'
+                    }),
+
+                Tables\Columns\TextColumn::make('notes')
+                    ->label('Notas')
+                    ->limit(30)
+                    ->tooltip(function ($record) {
+                        return $record->notes;
+                    })
+                    ->placeholder('Sin notas'),
+            ])
+            ->filters([
+                Tables\Filters\SelectFilter::make('item_type')
+                    ->label('Tipo')
+                    ->options([
+                        'papel' => 'Papel',
+                        'producto' => 'Producto',
+                    ]),
+
+                Tables\Filters\SelectFilter::make('status')
+                    ->label('Estado')
+                    ->options([
+                        'pending' => 'Pendiente',
+                        'confirmed' => 'Confirmado',
+                        'received' => 'Recibido',
+                        'cancelled' => 'Cancelado',
+                    ]),
+            ])
+            ->headerActions([
+                // Sin acciones de crear por ahora, ya que los items se generan automáticamente
+            ])
+            ->actions([
+                Actions\EditAction::make(),
+                Actions\DeleteAction::make(),
+            ])
+            ->bulkActions([
+                Actions\BulkActionGroup::make([
+                    Actions\DeleteBulkAction::make(),
+                ]),
+            ])
+            ->modifyQueryUsing(function (Builder $query) {
+                return $query->with(['documentItem.itemable']);
+            })
+            ->defaultSort('created_at', 'asc')
+            ->emptyStateHeading('No hay items en esta orden')
+            ->emptyStateDescription('Los items se crean automáticamente cuando se genera la orden desde una cotización.')
+            ->emptyStateIcon('heroicon-o-clipboard-document-list');
+    }
+}

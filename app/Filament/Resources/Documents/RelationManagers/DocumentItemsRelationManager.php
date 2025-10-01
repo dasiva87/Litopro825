@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Documents\RelationManagers;
 
+use App\Filament\Resources\Documents\Forms\DocumentItemFormBuilder;
 use App\Filament\Resources\Documents\RelationManagers\Handlers\CustomItemQuickHandler;
 use App\Filament\Resources\Documents\RelationManagers\Handlers\DigitalItemQuickHandler;
 use App\Filament\Resources\Documents\RelationManagers\Handlers\MagazineItemHandler;
@@ -13,23 +14,18 @@ use App\Filament\Resources\Documents\RelationManagers\Handlers\SimpleItemQuickHa
 use App\Filament\Resources\Documents\RelationManagers\Handlers\TalonarioItemHandler;
 use App\Filament\Resources\Documents\RelationManagers\Traits\CalculatesFinishings;
 use App\Filament\Resources\Documents\RelationManagers\Traits\CalculatesProducts;
-use App\Filament\Resources\Documents\Forms\DocumentItemFormBuilder;
 use App\Filament\Resources\SimpleItems\Schemas\SimpleItemForm;
 use App\Filament\Resources\TalonarioItems\Schemas\TalonarioItemForm;
 use App\Models\DocumentItem;
 use App\Models\SimpleItem;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms;
-use Filament\Forms\Components\Group;
-use Filament\Forms\Components\Select;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Components\Grid;
-use Filament\Schemas\Components\Wizard;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
@@ -197,6 +193,7 @@ class DocumentItemsRelationManager extends RelationManager
     public function form(Schema $schema): Schema
     {
         $formBuilder = new DocumentItemFormBuilder($this);
+
         return $formBuilder->buildSchema($schema);
     }
 
@@ -255,7 +252,8 @@ class DocumentItemsRelationManager extends RelationManager
                             $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
 
                             $origin = $paper->company_id === $currentCompanyId ? 'Propio' : ($paper->company->name ?? 'N/A');
-                            return $paper->code . ' - ' . $paper->name . ' (' . $paper->weight . 'gr - ' . $paper->width . 'x' . $paper->height . 'cm) - ' . $origin;
+
+                            return $paper->code.' - '.$paper->name.' ('.$paper->weight.'gr - '.$paper->width.'x'.$paper->height.'cm) - '.$origin;
                         }
 
                         // Para productos, mostrar el nombre del producto con origen
@@ -264,7 +262,7 @@ class DocumentItemsRelationManager extends RelationManager
                             $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
 
                             // Si no se puede cargar la relación company, obtenerla directamente
-                            if (!$product->company) {
+                            if (! $product->company) {
                                 $product = \App\Models\Product::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
                                     ->with('company')
                                     ->find($product->id);
@@ -274,10 +272,10 @@ class DocumentItemsRelationManager extends RelationManager
                             if ($product && $product->company_id === $currentCompanyId) {
                                 $origin = ' (Propio)';
                             } elseif ($product && $product->company) {
-                                $origin = ' (' . $product->company->name . ')';
+                                $origin = ' ('.$product->company->name.')';
                             }
 
-                            return $product->name . $origin;
+                            return $product->name.$origin;
                         }
                         // Para SimpleItems, usar la descripción del item
                         if ($record->itemable && isset($record->itemable->description)) {
@@ -398,148 +396,6 @@ class DocumentItemsRelationManager extends RelationManager
             ])
             ->headerActions([
 
-                Action::make('quick_simple_item')
-                    ->label('Item Sencillo')
-                    ->icon('heroicon-o-bolt')
-                    ->color('success')
-                    ->visible(function () {
-                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
-                        $company = $currentCompanyId ? \App\Models\Company::find($currentCompanyId) : null;
-                        return $company && $company->isLitografia();
-                    })
-                    ->form([
-                        \Filament\Schemas\Components\Section::make('Item Sencillo')
-                            ->description('Crea un item sencillo con parámetros optimizados')
-                            ->schema(SimpleItemForm::configure(new \Filament\Schemas\Schema)->getComponents()),
-
-                        // Sección de Acabados para Item Sencillo
-                        \Filament\Schemas\Components\Section::make('🎨 Acabados Opcionales')
-                            ->description('Agrega acabados adicionales que se calcularán automáticamente')
-                            ->schema([
-                                Forms\Components\Repeater::make('finishings')
-                                    ->label('Acabados')
-                                    ->schema([
-                                        Forms\Components\Select::make('finishing_id')
-                                            ->label('Acabado')
-                                            ->options(function () {
-                                                return \App\Models\Finishing::where('active', true)
-                                                    ->where('company_id', auth()->user()->company_id)
-                                                    ->get()
-                                                    ->mapWithKeys(function ($finishing) {
-                                                        return [
-                                                            $finishing->id => $finishing->code.' - '.$finishing->name.' ('.$finishing->measurement_unit->label().')',
-                                                        ];
-                                                    });
-                                            })
-                                            ->required()
-                                            ->searchable(),
-
-                                        \Filament\Schemas\Components\Grid::make(3)
-                                            ->schema([
-                                                Forms\Components\TextInput::make('quantity')
-                                                    ->label('Cantidad')
-                                                    ->numeric()
-                                                    ->default(1)
-                                                    ->required(),
-
-                                                Forms\Components\TextInput::make('width')
-                                                    ->label('Ancho (cm)')
-                                                    ->numeric()
-                                                    ->step(0.01)
-                                                    ->helperText('Solo para acabados por tamaño'),
-
-                                                Forms\Components\TextInput::make('height')
-                                                    ->label('Alto (cm)')
-                                                    ->numeric()
-                                                    ->step(0.01)
-                                                    ->helperText('Solo para acabados por tamaño'),
-                                            ]),
-
-                                        Forms\Components\Hidden::make('calculated_cost')
-                                            ->default(0),
-                                    ])
-                                    ->defaultItems(0)
-                                    ->reorderable()
-                                    ->collapsible()
-                                    ->columnSpanFull(),
-                            ])
-                            ->collapsible()
-                            ->collapsed(),
-                    ])
-                    ->action(function (array $data) {
-                        // Extraer acabados antes de crear SimpleItem
-                        $finishingsData = $data['finishings'] ?? [];
-                        unset($data['finishings']);
-
-                        // Crear el SimpleItem
-                        $simpleItem = SimpleItem::create($data);
-
-                        // Calcular costo total de acabados
-                        $finishingsCost = 0;
-                        if (! empty($finishingsData)) {
-                            $calculator = app(\App\Services\FinishingCalculatorService::class);
-                            foreach ($finishingsData as &$finishingData) {
-                                if (isset($finishingData['finishing_id'])) {
-                                    $finishing = \App\Models\Finishing::find($finishingData['finishing_id']);
-                                    if ($finishing) {
-                                        $params = [
-                                            'quantity' => $finishingData['quantity'] ?? 1,
-                                            'width' => $finishingData['width'] ?? 0,
-                                            'height' => $finishingData['height'] ?? 0,
-                                        ];
-                                        $calculatedCost = $calculator->calculateCost($finishing, $params);
-                                        $finishingData['calculated_cost'] = $calculatedCost;
-                                        $finishingsCost += $calculatedCost;
-                                    }
-                                }
-                            }
-                        }
-
-                        // Precio total incluyendo acabados
-                        $totalPrice = $simpleItem->final_price + $finishingsCost;
-                        $unitPrice = $totalPrice / $simpleItem->quantity;
-
-                        // Crear el DocumentItem asociado con todos los campos requeridos
-                        $documentItem = $this->getOwnerRecord()->items()->create([
-                            'itemable_type' => 'App\\Models\\SimpleItem',
-                            'itemable_id' => $simpleItem->id,
-                            'description' => 'SimpleItem: '.$simpleItem->description,
-                            'quantity' => $simpleItem->quantity,
-                            'unit_price' => $unitPrice,
-                            'total_price' => $totalPrice,
-                        ]);
-
-                        // Procesar acabados después de crear el DocumentItem
-                        if (! empty($finishingsData)) {
-                            foreach ($finishingsData as $finishingData) {
-                                if (isset($finishingData['finishing_id']) && isset($finishingData['calculated_cost'])) {
-                                    $finishing = \App\Models\Finishing::find($finishingData['finishing_id']);
-
-                                    if ($finishing) {
-                                        // Crear registro en document_item_finishings
-                                        $documentItem->finishings()->create([
-                                            'finishing_name' => $finishing->name,
-                                            'quantity' => $finishingData['quantity'] ?? 1,
-                                            'is_double_sided' => false, // Para SimpleItems no aplica
-                                            'unit_price' => ($finishingData['calculated_cost'] ?? 0) / ($finishingData['quantity'] ?? 1),
-                                            'total_price' => $finishingData['calculated_cost'] ?? 0,
-                                        ]);
-                                    }
-                                }
-                            }
-                        }
-
-                        // Recalcular totales del documento
-                        $this->getOwnerRecord()->recalculateTotals();
-
-                        // Refrescar la tabla
-                        $this->dispatch('$refresh');
-                    })
-                    ->modalWidth('7xl')
-                    ->successNotificationTitle('Item sencillo agregado correctamente'),
-
-
-
                 Action::make('quick_magazine_item')
                     ->label('Crear Revista Completa')
                     ->icon('heroicon-o-rectangle-stack')
@@ -547,17 +403,18 @@ class DocumentItemsRelationManager extends RelationManager
                     ->visible(function () {
                         $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
                         $company = $currentCompanyId ? \App\Models\Company::find($currentCompanyId) : null;
+
                         return $company && $company->isLitografia();
                     })
                     ->form([
                         \Filament\Schemas\Components\Wizard::make(
-                            (new MagazineItemHandler())->getWizardSteps()
+                            (new MagazineItemHandler)->getWizardSteps()
                         )
-                        ->columnSpanFull(),
+                            ->columnSpanFull(),
                     ])
                     ->action(function (array $data) {
                         // Usar el handler para crear la revista completa con páginas
-                        $handler = new MagazineItemHandler();
+                        $handler = new MagazineItemHandler;
                         $handler->setRecord($this->getOwnerRecord());
 
                         try {
@@ -587,6 +444,7 @@ class DocumentItemsRelationManager extends RelationManager
                     ->visible(function () {
                         $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
                         $company = $currentCompanyId ? \App\Models\Company::find($currentCompanyId) : null;
+
                         return $company && $company->isLitografia();
                     })
                     ->form(TalonarioItemForm::configure(new \Filament\Schemas\Schema)->getComponents())
@@ -667,11 +525,11 @@ class DocumentItemsRelationManager extends RelationManager
 
                 // ✨ NUEVA ARQUITECTURA - Handlers refactorizados
                 ...$this->createQuickActions([
-                    'quick_simple_refactored' => new SimpleItemQuickHandler(),
-                    'quick_digital_refactored' => new DigitalItemQuickHandler(),
-                    'quick_product_refactored' => new ProductQuickHandler(),
-                    'quick_custom_refactored' => new CustomItemQuickHandler(),
-                    'quick_paper_refactored' => new PaperQuickHandler(),
+                    'quick_simple_refactored' => new SimpleItemQuickHandler,
+                    'quick_digital_refactored' => new DigitalItemQuickHandler,
+                    'quick_product_refactored' => new ProductQuickHandler,
+                    'quick_custom_refactored' => new CustomItemQuickHandler,
+                    'quick_paper_refactored' => new PaperQuickHandler,
                 ]),
 
                 Action::make('quick_paper_item')
@@ -681,17 +539,18 @@ class DocumentItemsRelationManager extends RelationManager
                     ->visible(function () {
                         $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
                         $company = $currentCompanyId ? \App\Models\Company::find($currentCompanyId) : null;
+
                         return $company && $company->isPapeleria();
                     })
                     ->form([
                         \Filament\Schemas\Components\Section::make('Agregar Papel')
                             ->description('Selecciona un papel disponible y especifica la cantidad')
-                            ->schema((new PaperHandler())->getFormSchema()),
+                            ->schema((new PaperHandler)->getFormSchema()),
                     ])
                     ->action(function (array $data) {
                         $paper = \App\Models\Paper::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->find($data['paper_id']);
 
-                        if (!$paper) {
+                        if (! $paper) {
                             throw new \Exception('Papel no encontrado');
                         }
 
@@ -705,7 +564,7 @@ class DocumentItemsRelationManager extends RelationManager
                         $this->getOwnerRecord()->items()->create([
                             'itemable_type' => 'App\\Models\\Paper',
                             'itemable_id' => $paper->id,
-                            'description' => 'Papel: ' . $paper->name . ' (' . $paper->weight . 'gr - ' . $paper->width . 'x' . $paper->height . 'cm)',
+                            'description' => 'Papel: '.$paper->name.' ('.$paper->weight.'gr - '.$paper->width.'x'.$paper->height.'cm)',
                             'quantity' => $quantity,
                             'unit_price' => round($unitPriceWithMargin, 2),
                             'total_price' => round($totalPriceWithMargin, 2),
@@ -801,11 +660,13 @@ class DocumentItemsRelationManager extends RelationManager
 
                         if ($record->itemable_type === 'App\\Models\\Product') {
                             $handler = new ProductHandler;
+
                             return $handler->getEditForm($record);
                         }
 
                         if ($record->itemable_type === 'App\\Models\\Paper') {
                             $handler = new PaperHandler;
+
                             return $handler->getEditForm($record);
                         }
 
@@ -844,11 +705,13 @@ class DocumentItemsRelationManager extends RelationManager
 
                         if ($record->itemable_type === 'App\\Models\\Product' && $record->itemable) {
                             $handler = new ProductHandler;
+
                             return $handler->fillForm($record);
                         }
 
                         if ($record->itemable_type === 'App\\Models\\Paper' && $record->itemable) {
                             $handler = new PaperHandler;
+
                             return $handler->fillForm($record);
                         }
 

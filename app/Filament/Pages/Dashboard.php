@@ -23,6 +23,8 @@ class Dashboard extends BaseDashboard
     {
         return [
             \App\Filament\Widgets\OnboardingWidget::class,
+            \App\Filament\Widgets\PurchaseOrderNotificationsWidget::class,
+            \App\Filament\Widgets\PurchaseOrdersOverviewWidget::class,
             \App\Filament\Widgets\DashboardStatsWidget::class,
             \App\Filament\Widgets\ActiveDocumentsWidget::class,
             \App\Filament\Widgets\StockAlertsWidget::class,
