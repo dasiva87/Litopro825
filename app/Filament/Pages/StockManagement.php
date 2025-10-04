@@ -35,7 +35,7 @@ class StockManagement extends Page
 
     protected static ?int $navigationSort = 3;
 
-    protected static UnitEnum|string|null $navigationGroup = NavigationGroup::INVENTORY;
+    protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Inventario;
 
     protected ?string $pollingInterval = '30s';
 
@@ -55,30 +55,28 @@ class StockManagement extends Page
     #[Computed]
     public function stockKpis(): array
     {
-        $companyId = auth()->user()->company_id;
+        $totalProducts = Product::forCurrentTenant()->where('active', true)->count();
+        $totalPapers = Paper::forCurrentTenant()->where('is_active', true)->count();
 
-        $totalProducts = Product::where('company_id', $companyId)->where('active', true)->count();
-        $totalPapers = Paper::where('company_id', $companyId)->where('is_active', true)->count();
-
-        $lowStockItems = Product::where('company_id', $companyId)
+        $lowStockItems = Product::forCurrentTenant()
             ->where('active', true)
             ->lowStock()
             ->count() +
-            Paper::where('company_id', $companyId)
+            Paper::forCurrentTenant()
             ->where('is_active', true)
             ->lowStock()
             ->count();
 
-        $outOfStockItems = Product::where('company_id', $companyId)
+        $outOfStockItems = Product::forCurrentTenant()
             ->where('active', true)
             ->outOfStock()
             ->count() +
-            Paper::where('company_id', $companyId)
+            Paper::forCurrentTenant()
             ->where('is_active', true)
             ->outOfStock()
             ->count();
 
-        $criticalAlerts = StockAlert::where('company_id', $companyId)
+        $criticalAlerts = StockAlert::forCurrentTenant()
             ->critical()
             ->active()
             ->count();
@@ -95,11 +93,10 @@ class StockManagement extends Page
     #[Computed]
     public function stockTrends(): array
     {
-        $companyId = auth()->user()->company_id;
         $last30Days = now()->subDays(30);
 
         // Movimientos de los últimos 30 días agrupados por día
-        $movements = StockMovement::where('company_id', $companyId)
+        $movements = StockMovement::forCurrentTenant()
             ->where('created_at', '>=', $last30Days)
             ->selectRaw('DATE(created_at) as date, type, SUM(quantity) as total_quantity')
             ->groupBy('date', 'type')
@@ -134,7 +131,7 @@ class StockManagement extends Page
     #[Computed]
     public function recentMovements(): array
     {
-        return StockMovement::where('company_id', auth()->user()->company_id)
+        return StockMovement::forCurrentTenant()
             ->with(['stockable', 'user'])
             ->latest()
             ->limit(10)
@@ -163,11 +160,10 @@ class StockManagement extends Page
 
     protected function calculateStockCoverageDays(): int
     {
-        $companyId = auth()->user()->company_id;
         $last30Days = now()->subDays(30);
 
         // Calcular consumo promedio diario
-        $totalConsumption = StockMovement::where('company_id', $companyId)
+        $totalConsumption = StockMovement::forCurrentTenant()
             ->where('type', 'out')
             ->where('created_at', '>=', $last30Days)
             ->sum('quantity');
@@ -179,10 +175,10 @@ class StockManagement extends Page
         }
 
         // Calcular stock total actual
-        $totalStock = Product::where('company_id', $companyId)
+        $totalStock = Product::forCurrentTenant()
             ->where('active', true)
             ->sum('stock') +
-            Paper::where('company_id', $companyId)
+            Paper::forCurrentTenant()
             ->where('is_active', true)
             ->sum('stock');
 

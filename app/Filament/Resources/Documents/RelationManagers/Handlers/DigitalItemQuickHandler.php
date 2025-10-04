@@ -260,7 +260,7 @@ class DigitalItemQuickHandler implements QuickActionHandlerInterface
 
     public function getLabel(): string
     {
-        return 'Item Digital Rápido';
+        return 'Digital';
     }
 
     public function getIcon(): string
@@ -299,7 +299,7 @@ class DigitalItemQuickHandler implements QuickActionHandlerInterface
     private function getDigitalItemOptions(): array
     {
         return DigitalItem::where('active', true)
-            ->where('company_id', auth()->user()->company_id)
+            ->forCurrentTenant()
             ->get()
             ->mapWithKeys(function ($item) {
                 return [
@@ -312,7 +312,7 @@ class DigitalItemQuickHandler implements QuickActionHandlerInterface
     private function getFinishingOptions(): array
     {
         return Finishing::where('active', true)
-            ->where('company_id', auth()->user()->company_id)
+            ->forCurrentTenant()
             ->get()
             ->mapWithKeys(function ($finishing) {
                 return [

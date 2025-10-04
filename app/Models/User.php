@@ -40,6 +40,7 @@ class User extends Authenticatable
         'avatar',
         'is_active',
         'last_login_at',
+        'preferences',
     ];
 
     /**
@@ -64,6 +65,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
             'last_login_at' => 'datetime',
+            'preferences' => 'array',
         ];
     }
 

@@ -120,9 +120,33 @@ class OnboardingWidget extends Widget
             ->exists() ?? false;
     }
 
+    public function hideOnboarding(): void
+    {
+        $user = auth()->user();
+        if ($user) {
+            // Guardar preferencia en la metadata del usuario o en una tabla de configuración
+            $user->update([
+                'preferences' => array_merge(
+                    $user->preferences ?? [],
+                    ['hide_onboarding' => true]
+                )
+            ]);
+        }
+
+        // Refrescar la página
+        $this->dispatch('onboarding-hidden');
+    }
+
     public static function canView(): bool
     {
         if (! auth()->check()) {
+            return false;
+        }
+
+        $user = auth()->user();
+
+        // Verificar si el usuario ocultó el onboarding
+        if (isset($user->preferences['hide_onboarding']) && $user->preferences['hide_onboarding']) {
             return false;
         }
 

@@ -90,6 +90,7 @@ class QuotationWorkflowTest extends TestCase
         // Crear DocumentItem
         $documentItem = DocumentItem::create([
             'document_id' => $document->id,
+            'company_id' => $document->company_id,
             'itemable_type' => 'App\\Models\\SimpleItem',
             'itemable_id' => $simpleItem->id,
             'description' => $simpleItem->description,
@@ -126,6 +127,7 @@ class QuotationWorkflowTest extends TestCase
 
         DocumentItem::create([
             'document_id' => $document->id,
+            'company_id' => $document->company_id,
             'itemable_type' => 'App\\Models\\SimpleItem',
             'itemable_id' => $simpleItem->id,
             'description' => $simpleItem->description,
@@ -146,6 +148,7 @@ class QuotationWorkflowTest extends TestCase
 
         DocumentItem::create([
             'document_id' => $document->id,
+            'company_id' => $document->company_id,
             'itemable_type' => 'App\\Models\\Product',
             'itemable_id' => $product->id,
             'description' => $product->name,
@@ -290,6 +293,7 @@ class QuotationWorkflowTest extends TestCase
 
         $documentItem = DocumentItem::create([
             'document_id' => $document->id,
+            'company_id' => $document->company_id,
             'itemable_type' => 'App\\Models\\Product',
             'itemable_id' => $product->id,
             'description' => $product->name,
@@ -322,6 +326,7 @@ class QuotationWorkflowTest extends TestCase
 
         DocumentItem::create([
             'document_id' => $document->id,
+            'company_id' => $document->company_id,
             'itemable_type' => 'App\\Models\\Product',
             'itemable_id' => $product->id,
             'description' => $product->name,
@@ -350,7 +355,7 @@ class QuotationWorkflowTest extends TestCase
         ]);
 
         $subtotal = 50000;
-        
+
         $product = Product::factory()->create([
             'company_id' => $this->company->id,
             'sale_price' => $subtotal
@@ -358,6 +363,7 @@ class QuotationWorkflowTest extends TestCase
 
         DocumentItem::create([
             'document_id' => $document->id,
+            'company_id' => $document->company_id,
             'itemable_type' => 'App\\Models\\Product',
             'itemable_id' => $product->id,
             'description' => $product->name,

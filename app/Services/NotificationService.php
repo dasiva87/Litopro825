@@ -7,6 +7,7 @@ use App\Models\SocialPost;
 use App\Models\User;
 use App\Models\Company;
 use Illuminate\Support\Collection;
+use App\Services\TenantContext;
 
 class NotificationService
 {
@@ -21,7 +22,7 @@ class NotificationService
         }
 
         // Obtener todos los usuarios de la empresa excepto el autor
-        $users = User::where('company_id', $post->company_id)
+        $users = User::forTenant($post->company_id)
             ->where('id', '!=', $post->user_id)
             ->get();
 
@@ -129,7 +130,7 @@ class NotificationService
     public function notifyNewFollower(Company $followedCompany, Company $followerCompany, User $follower): void
     {
         // Obtener usuarios de la empresa seguida (admins, managers)
-        $users = User::where('company_id', $followedCompany->id)
+        $users = User::forTenant($followedCompany->id)
             ->whereHas('roles', function ($query) {
                 $query->whereIn('name', ['Super Admin', 'Company Admin', 'Manager']);
             })
@@ -162,7 +163,7 @@ class NotificationService
      */
     public function getUserNotifications(User $user, int $limit = 10): Collection
     {
-        return SocialNotification::where('company_id', $user->company_id)
+        return SocialNotification::forTenant($user->company_id)
             ->where('user_id', $user->id)
             ->with(['sender'])
             ->recent()
@@ -175,7 +176,7 @@ class NotificationService
      */
     public function getUnreadCount(User $user): int
     {
-        return SocialNotification::where('company_id', $user->company_id)
+        return SocialNotification::forTenant($user->company_id)
             ->where('user_id', $user->id)
             ->unread()
             ->count();
@@ -186,7 +187,7 @@ class NotificationService
      */
     public function markAsRead(User $user, array $notificationIds = []): bool
     {
-        $query = SocialNotification::where('company_id', $user->company_id)
+        $query = SocialNotification::forTenant($user->company_id)
             ->where('user_id', $user->id);
 
         if (!empty($notificationIds)) {

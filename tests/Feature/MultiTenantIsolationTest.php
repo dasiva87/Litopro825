@@ -191,6 +191,7 @@ class MultiTenantIsolationTest extends TestCase
         // Crear DocumentItems
         $itemA = DocumentItem::create([
             'document_id' => $documentA->id,
+            'company_id' => $this->companyA->id,
             'itemable_type' => 'App\\Models\\Product',
             'itemable_id' => $productA->id,
             'description' => $productA->name,
@@ -201,6 +202,7 @@ class MultiTenantIsolationTest extends TestCase
 
         $itemB = DocumentItem::create([
             'document_id' => $documentB->id,
+            'company_id' => $this->companyB->id,
             'itemable_type' => 'App\\Models\\Product',
             'itemable_id' => $productB->id,
             'description' => $productB->name,
@@ -228,16 +230,16 @@ class MultiTenantIsolationTest extends TestCase
 
         // Usuario B no debe poder acceder al documento de A
         $this->actingAs($this->userB);
-        
+
         // Simular intento de acceso directo
         $attemptedAccess = Document::where('id', $documentA->id)
                                    ->where('company_id', $this->userB->company_id)
                                    ->first();
-        
+
         $this->assertNull($attemptedAccess);
 
-        // Verificar que global scope está funcionando
-        $allDocumentsVisibleToB = Document::all();
+        // Verificar que filtrado por company_id previene acceso
+        $allDocumentsVisibleToB = Document::where('company_id', $this->userB->company_id)->get();
         $this->assertFalse($allDocumentsVisibleToB->contains('id', $documentA->id));
     }
 

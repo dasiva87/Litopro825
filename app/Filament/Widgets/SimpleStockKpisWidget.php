@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Filament\Widgets;
+use App\Services\TenantContext;
 
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -13,7 +14,7 @@ class SimpleStockKpisWidget extends BaseWidget
 
     protected function getStats(): array
     {
-        $companyId = auth()->user()->company_id ?? 1;
+        $companyId = TenantContext::id();
 
         // Contadores reales pero con queries simples y directas
         $totalProducts = \App\Models\Product::where('company_id', $companyId)

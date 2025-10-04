@@ -145,7 +145,7 @@ class ProductQuickHandler implements QuickActionHandlerInterface
 
     public function getLabel(): string
     {
-        return 'Producto Rápido';
+        return 'Producto';
     }
 
     public function getIcon(): string
@@ -155,7 +155,7 @@ class ProductQuickHandler implements QuickActionHandlerInterface
 
     public function getColor(): string
     {
-        return 'purple';
+        return 'primary';
     }
 
     public function getModalWidth(): string
@@ -197,7 +197,7 @@ class ProductQuickHandler implements QuickActionHandlerInterface
 
             return Product::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
                 ->where(function ($query) use ($currentCompanyId, $supplierCompanyIds) {
-                    $query->where('company_id', $currentCompanyId)
+                    $query->forTenant($currentCompanyId)
                           ->orWhereIn('company_id', $supplierCompanyIds);
                 })
                 ->where('active', true)
@@ -215,7 +215,7 @@ class ProductQuickHandler implements QuickActionHandlerInterface
         } else {
             // Para papelerías: solo productos propios
             return Product::where('active', true)
-                ->where('company_id', $currentCompanyId)
+                ->forTenant($currentCompanyId)
                 ->get()
                 ->mapWithKeys(function ($product) {
                     $stockStatus = $product->stock == 0 ? ' (SIN STOCK)' :

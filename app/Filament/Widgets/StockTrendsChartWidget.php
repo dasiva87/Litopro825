@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Filament\Widgets;
+use App\Services\TenantContext;
 
 use App\Models\StockMovement;
 use Filament\Widgets\ChartWidget;
@@ -17,7 +18,7 @@ class StockTrendsChartWidget extends ChartWidget
 
     protected function getData(): array
     {
-        $companyId = auth()->user()->company_id;
+        $companyId = TenantContext::id();
         $last30Days = now()->subDays(30);
 
         // Movimientos de los últimos 30 días agrupados por día

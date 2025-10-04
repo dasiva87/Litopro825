@@ -16,32 +16,30 @@ class StockMovementsKpisWidget extends BaseWidget
 
     protected function getStats(): array
     {
-        $companyId = auth()->user()->company_id;
-
         // Obtener contadores por tipo
-        $entriesCount = StockMovement::where('company_id', $companyId)
+        $entriesCount = StockMovement::forCurrentTenant()
             ->where('type', 'in')
             ->count();
 
-        $outboundCount = StockMovement::where('company_id', $companyId)
+        $outboundCount = StockMovement::forCurrentTenant()
             ->where('type', 'out')
             ->count();
 
-        $adjustmentsCount = StockMovement::where('company_id', $companyId)
+        $adjustmentsCount = StockMovement::forCurrentTenant()
             ->where('type', 'adjustment')
             ->count();
 
-        $todayCount = StockMovement::where('company_id', $companyId)
+        $todayCount = StockMovement::forCurrentTenant()
             ->where('created_at', '>=', now()->startOfDay())
             ->count();
 
         // Calcular cambios del periodo anterior para trending
-        $entriesLastWeek = StockMovement::where('company_id', $companyId)
+        $entriesLastWeek = StockMovement::forCurrentTenant()
             ->where('type', 'in')
             ->where('created_at', '>=', now()->subWeek())
             ->count();
 
-        $outboundLastWeek = StockMovement::where('company_id', $companyId)
+        $outboundLastWeek = StockMovement::forCurrentTenant()
             ->where('type', 'out')
             ->where('created_at', '>=', now()->subWeek())
             ->count();
@@ -74,7 +72,6 @@ class StockMovementsKpisWidget extends BaseWidget
 
     private function getTodayChart(): array
     {
-        $companyId = auth()->user()->company_id;
         $chart = [];
 
         // Últimas 7 horas de actividad
@@ -82,7 +79,7 @@ class StockMovementsKpisWidget extends BaseWidget
             $hourStart = now()->subHours($i)->startOfHour();
             $hourEnd = now()->subHours($i)->endOfHour();
 
-            $count = StockMovement::where('company_id', $companyId)
+            $count = StockMovement::forCurrentTenant()
                 ->whereBetween('created_at', [$hourStart, $hourEnd])
                 ->count();
 

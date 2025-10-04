@@ -14,6 +14,12 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
+use Filament\Actions\Action;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Notifications\Notification;
+use App\Services\StockMovementService;
 
 class ProductsTable
 {
@@ -230,6 +236,86 @@ class ProductsTable
                     ->toggle(),
             ])
             ->actions([
+                Action::make('register_inbound')
+                    ->label('Entrada Stock')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('success')
+                    ->form([
+                        TextInput::make('quantity')
+                            ->label('Cantidad')
+                            ->required()
+                            ->numeric()
+                            ->minValue(1)
+                            ->default(1)
+                            ->suffix('uds')
+                            ->live()
+                            ->helperText(fn ($record) => "Stock actual: {$record->stock} uds"),
+
+                        Select::make('reason')
+                            ->label('Motivo')
+                            ->required()
+                            ->options([
+                                'purchase' => 'Compra',
+                                'return' => 'Devolución',
+                                'adjustment' => 'Ajuste de inventario',
+                                'production' => 'Producción',
+                                'initial_stock' => 'Stock inicial',
+                            ])
+                            ->default('purchase'),
+
+                        TextInput::make('unit_cost')
+                            ->label('Costo Unitario (opcional)')
+                            ->numeric()
+                            ->prefix('$')
+                            ->minValue(0)
+                            ->helperText('Dejar en blanco si no aplica'),
+
+                        TextInput::make('batch_number')
+                            ->label('Número de Lote (opcional)')
+                            ->maxLength(255)
+                            ->placeholder('Ej: LOTE-2025-001'),
+
+                        Textarea::make('notes')
+                            ->label('Notas')
+                            ->maxLength(500)
+                            ->rows(3)
+                            ->placeholder('Descripción del movimiento...'),
+                    ])
+                    ->action(function ($record, array $data) {
+                        $stockService = app(StockMovementService::class);
+
+                        try {
+                            $movement = $stockService->recordInbound(
+                                stockable: $record,
+                                reason: $data['reason'],
+                                quantity: (int) $data['quantity'],
+                                unitCost: !empty($data['unit_cost']) ? (float) $data['unit_cost'] : null,
+                                batchNumber: $data['batch_number'] ?? null,
+                                notes: $data['notes'] ?? null
+                            );
+
+                            Notification::make()
+                                ->success()
+                                ->title('Entrada de stock registrada')
+                                ->body("Se agregaron {$data['quantity']} unidades. Nuevo stock: {$movement->new_stock}")
+                                ->send();
+                        } catch (\Exception $e) {
+                            Notification::make()
+                                ->danger()
+                                ->title('Error al registrar entrada')
+                                ->body($e->getMessage())
+                                ->send();
+                        }
+                    })
+                    ->visible(function ($record) {
+                        // Solo para productos propios
+                        if (!$record || !isset($record->company_id)) {
+                            return false;
+                        }
+                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                        return $record->company_id === $currentCompanyId;
+                    }),
+
                 EditAction::make()
                     ->visible(function ($record) {
                         // Solo permitir editar productos propios

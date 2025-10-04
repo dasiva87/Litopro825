@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Filament\Widgets;
+use App\Services\TenantContext;
 
 use App\Services\StockPredictionService;
 use Filament\Widgets\Widget;
@@ -15,7 +16,7 @@ class StockPredictionsWidget extends Widget
 
     public function getViewData(): array
     {
-        $companyId = auth()->user()->company_id;
+        $companyId = TenantContext::id();
 
         // Simplificado sin usar el servicio defectuoso
         $urgentItems = collect();

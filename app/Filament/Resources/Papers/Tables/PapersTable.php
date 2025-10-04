@@ -10,6 +10,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\BulkAction;
+use Filament\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -20,6 +21,9 @@ use Filament\Tables\Table;
 use Filament\Schemas\Components\Grid;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Notifications\Notification;
+use App\Services\StockMovementService;
 use Illuminate\Database\Eloquent\Builder;
 
 class PapersTable
@@ -258,6 +262,85 @@ class PapersTable
                 TrashedFilter::make(),
             ])
             ->actions([
+                Action::make('register_inbound')
+                    ->label('Entrada Stock')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('success')
+                    ->form([
+                        TextInput::make('quantity')
+                            ->label('Cantidad de Pliegos')
+                            ->required()
+                            ->numeric()
+                            ->minValue(1)
+                            ->default(1)
+                            ->suffix('pliegos')
+                            ->live()
+                            ->helperText(fn ($record) => "Stock actual: {$record->stock} pliegos"),
+
+                        Select::make('reason')
+                            ->label('Motivo')
+                            ->required()
+                            ->options([
+                                'purchase' => 'Compra',
+                                'return' => 'Devolución',
+                                'adjustment' => 'Ajuste de inventario',
+                                'initial_stock' => 'Stock inicial',
+                            ])
+                            ->default('purchase'),
+
+                        TextInput::make('unit_cost')
+                            ->label('Costo por Pliego (opcional)')
+                            ->numeric()
+                            ->prefix('$')
+                            ->minValue(0)
+                            ->helperText('Dejar en blanco si no aplica'),
+
+                        TextInput::make('batch_number')
+                            ->label('Número de Lote (opcional)')
+                            ->maxLength(255)
+                            ->placeholder('Ej: PAPEL-2025-001'),
+
+                        Textarea::make('notes')
+                            ->label('Notas')
+                            ->maxLength(500)
+                            ->rows(3)
+                            ->placeholder('Descripción del movimiento...'),
+                    ])
+                    ->action(function ($record, array $data) {
+                        $stockService = app(StockMovementService::class);
+
+                        try {
+                            $movement = $stockService->recordInbound(
+                                stockable: $record,
+                                reason: $data['reason'],
+                                quantity: (int) $data['quantity'],
+                                unitCost: !empty($data['unit_cost']) ? (float) $data['unit_cost'] : null,
+                                batchNumber: $data['batch_number'] ?? null,
+                                notes: $data['notes'] ?? null
+                            );
+
+                            Notification::make()
+                                ->success()
+                                ->title('Entrada de stock registrada')
+                                ->body("Se agregaron {$data['quantity']} pliegos. Nuevo stock: {$movement->new_stock}")
+                                ->send();
+                        } catch (\Exception $e) {
+                            Notification::make()
+                                ->danger()
+                                ->title('Error al registrar entrada')
+                                ->body($e->getMessage())
+                                ->send();
+                        }
+                    })
+                    ->visible(function ($record) {
+                        // Solo para papeles propios
+                        if (!$record || !isset($record->company_id)) {
+                            return false;
+                        }
+                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                        return $record->company_id === $currentCompanyId;
+                    }),
+
                 ViewAction::make()
                     ->visible(function ($record) {
                         // Solo permitir ver papeles propios

@@ -389,7 +389,13 @@ class SocialPost extends Model
     {
         $content = $this->content ?? '';
 
-        // Convertir hashtags a enlaces
+        // SECURITY: Escapar HTML primero para prevenir XSS
+        $content = htmlspecialchars($content, ENT_QUOTES, 'UTF-8');
+
+        // Convertir saltos de línea a <br>
+        $content = nl2br($content);
+
+        // Convertir hashtags a enlaces (después de escapar)
         $content = preg_replace(
             '/#([a-zA-Z0-9_áéíóúñÁÉÍÓÚÑüÜ]+)/',
             '<span class="hashtag text-blue-600 hover:text-blue-800 cursor-pointer font-medium" data-hashtag="$1">#$1</span>',

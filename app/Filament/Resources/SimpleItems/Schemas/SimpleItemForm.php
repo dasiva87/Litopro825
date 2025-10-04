@@ -105,7 +105,7 @@ class SimpleItemForm
                                                 ->toArray();
 
                                             $papers = Paper::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->where(function ($query) use ($currentCompanyId, $supplierCompanyIds) {
-                                                $query->where('company_id', $currentCompanyId) // Propios
+                                                $query->forTenant($currentCompanyId) // Propios
                                                       ->orWhereIn('company_id', $supplierCompanyIds); // De proveedores aprobados
                                             })
                                             ->where('is_active', true)

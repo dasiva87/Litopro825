@@ -14,19 +14,15 @@ El estado de la orden de pedido ha sido actualizado.
 @endcomponent
 
 @if($newStatus === 'confirmed')
-@component('mail::promotion')
+@component('mail::panel')
 🎉 **¡Excelente!** El proveedor ha confirmado la orden. Procedan con el seguimiento de la entrega.
 @endcomponent
-@elseif($newStatus === 'partially_received')
-@component('mail::promotion')
-📦 **Recepción Parcial** - Se ha recibido parte de la orden. Revisen el detalle de los items recibidos.
-@endcomponent
-@elseif($newStatus === 'completed')
-@component('mail::promotion')
+@elseif($newStatus === 'received')
+@component('mail::panel')
 ✅ **¡Orden Completada!** Todos los items han sido recibidos satisfactoriamente.
 @endcomponent
 @elseif($newStatus === 'cancelled')
-@component('mail::promotion')
+@component('mail::panel')
 ❌ **Orden Cancelada** - La orden ha sido cancelada. Pueden proceder a crear una nueva orden si es necesario.
 @endcomponent
 @endif

@@ -199,7 +199,7 @@ class PaperCalculatorWidget extends Widget
     
     public function getAvailablePapers(): Collection
     {
-        return Paper::where('company_id', auth()->user()->company_id)
+        return Paper::forCurrentTenant()
             ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name', 'width', 'height', 'weight']);

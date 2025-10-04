@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PurchaseOrders\Tables;
 
+use App\Enums\OrderStatus;
 use App\Services\PurchaseOrderPdfService;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -9,6 +10,8 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -19,6 +22,25 @@ class PurchaseOrdersTable
     {
         return $table
             ->columns([
+                TextColumn::make('order_type')
+                    ->label('Tipo')
+                    ->state(function ($record) {
+                        $currentCompanyId = auth()->user()->company_id;
+
+                        return $record->company_id === $currentCompanyId ? 'Enviada' : 'Recibida';
+                    })
+                    ->badge()
+                    ->color(function ($record) {
+                        $currentCompanyId = auth()->user()->company_id;
+
+                        return $record->company_id === $currentCompanyId ? 'info' : 'success';
+                    })
+                    ->icon(function ($record) {
+                        $currentCompanyId = auth()->user()->company_id;
+
+                        return $record->company_id === $currentCompanyId ? 'heroicon-o-arrow-up-tray' : 'heroicon-o-arrow-down-tray';
+                    }),
+
                 TextColumn::make('order_number')
                     ->label('Número de Orden')
                     ->searchable()
@@ -30,29 +52,12 @@ class PurchaseOrdersTable
                     ->searchable()
                     ->sortable()
                     ->badge()
-                    ->color(fn ($record) => $record->supplierCompany->id === auth()->user()->company_id ? 'success' : 'primary'),
+                    ->color('primary'),
 
                 TextColumn::make('status')
                     ->label('Estado')
-                    ->formatStateUsing(fn ($state) => match ($state) {
-                        'draft' => 'Borrador',
-                        'sent' => 'Enviada',
-                        'confirmed' => 'Confirmada',
-                        'partially_received' => 'Parcialmente Recibida',
-                        'completed' => 'Completada',
-                        'cancelled' => 'Cancelada',
-                        default => $state
-                    })
                     ->badge()
-                    ->color(fn ($state) => match ($state) {
-                        'draft' => 'gray',
-                        'sent' => 'warning',
-                        'confirmed' => 'info',
-                        'partially_received' => 'primary',
-                        'completed' => 'success',
-                        'cancelled' => 'danger',
-                        default => 'gray'
-                    }),
+                    ->sortable(),
 
                 TextColumn::make('order_date')
                     ->label('Fecha de Orden')
@@ -109,7 +114,7 @@ class PurchaseOrdersTable
                                 }
                                 $cutSize = "{$item->itemable->horizontal_size}x{$item->itemable->vertical_size}cm";
                                 $description .= " - {$cutSize}";
-                            } else if ($item->itemable) {
+                            } elseif ($item->itemable) {
                                 $description = $item->itemable->name ?? 'Producto';
                                 if (isset($item->itemable->code) && $item->itemable->code) {
                                     $description .= " (Cód: {$item->itemable->code})";
@@ -147,14 +152,7 @@ class PurchaseOrdersTable
             ->filters([
                 SelectFilter::make('status')
                     ->label('Estado')
-                    ->options([
-                        'draft' => 'Borrador',
-                        'sent' => 'Enviada',
-                        'confirmed' => 'Confirmada',
-                        'partially_received' => 'Parcialmente Recibida',
-                        'completed' => 'Completada',
-                        'cancelled' => 'Cancelada',
-                    ]),
+                    ->options(OrderStatus::class),
 
                 SelectFilter::make('supplier_company_id')
                     ->label('Proveedor')
@@ -165,6 +163,65 @@ class PurchaseOrdersTable
                 ViewAction::make()
                     ->label('')
                     ->icon('heroicon-o-eye'),
+
+                Action::make('change_status')
+                    ->label('')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('primary')
+                    ->tooltip('Cambiar Estado')
+                    ->visible(fn ($record) => $record && ! in_array($record->status, [OrderStatus::RECEIVED, OrderStatus::CANCELLED]))
+                    ->fillForm(fn ($record): array => [
+                        'current_status' => $record->status->getLabel(),
+                    ])
+                    ->form(fn ($record): array => [
+                        \Filament\Forms\Components\Placeholder::make('current_status')
+                            ->label('Estado Actual')
+                            ->content(fn ($record) => $record->status->getLabel()),
+
+                        Select::make('new_status')
+                            ->label('Nuevo Estado')
+                            ->options(fn ($record) => collect($record->status->getNextStatuses())->mapWithKeys(fn ($status) => [$status->value => $status->getLabel()]))
+                            ->required()
+                            ->native(false),
+
+                        Textarea::make('notes')
+                            ->label('Notas')
+                            ->rows(3)
+                            ->placeholder('Opcional: Agrega notas sobre este cambio de estado'),
+                    ])
+                    ->modalHeading(fn ($record) => "Cambiar Estado - Orden #{$record->order_number}")
+                    ->modalWidth('md')
+                    ->action(function ($record, array $data) {
+                        if (!$record) {
+                            return;
+                        }
+
+                        $newStatus = OrderStatus::from($data['new_status']);
+                        $oldStatus = $record->status;
+
+                        if ($record->changeStatus($newStatus, $data['notes'] ?? null)) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Estado actualizado')
+                                ->body("Orden cambiada de {$oldStatus->getLabel()} a {$newStatus->getLabel()}")
+                                ->success()
+                                ->send();
+
+                            // Si se cambió a 'sent', notificar
+                            if ($newStatus === OrderStatus::SENT) {
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Notificación enviada')
+                                    ->body('Se ha enviado una notificación al proveedor')
+                                    ->info()
+                                    ->send();
+                            }
+                        } else {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Error')
+                                ->body("No se puede cambiar de {$oldStatus->getLabel()} a {$newStatus->getLabel()}")
+                                ->danger()
+                                ->send();
+                        }
+                    }),
 
                 Action::make('download_pdf')
                     ->label('')
@@ -199,6 +256,12 @@ class PurchaseOrdersTable
                             ->helperText(fn ($record) => $record->supplierCompany?->email
                                 ? 'Email configurado en el proveedor'
                                 : 'El proveedor no tiene email configurado. Ingresa uno manualmente.'),
+
+                        \Filament\Forms\Components\Checkbox::make('change_status_to_sent')
+                            ->label('Cambiar estado a "Enviada"')
+                            ->default(fn ($record) => $record->status === OrderStatus::DRAFT)
+                            ->visible(fn ($record) => $record->status === OrderStatus::DRAFT)
+                            ->helperText('Esto actualizará el estado de la orden y enviará notificación al proveedor'),
                     ])
                     ->modalHeading('Enviar Orden por Email')
                     ->modalDescription(fn ($record) => "Enviar orden #{$record->order_number} a {$record->supplierCompany?->name}")
@@ -207,6 +270,11 @@ class PurchaseOrdersTable
                         $sent = $pdfService->emailPdf($record, [$data['email']]);
 
                         if ($sent) {
+                            // Cambiar estado si está marcado
+                            if (($data['change_status_to_sent'] ?? false) && $record->status === OrderStatus::DRAFT) {
+                                $record->changeStatus(OrderStatus::SENT);
+                            }
+
                             \Filament\Notifications\Notification::make()
                                 ->title('Email enviado')
                                 ->body("Orden enviada exitosamente a {$data['email']}")
@@ -241,7 +309,11 @@ class PurchaseOrdersTable
                     throw new \Exception('No company context found - security violation prevented');
                 }
 
-                return $query->where('purchase_orders.company_id', $companyId)
+                // Mostrar órdenes creadas por la empresa O órdenes recibidas como proveedor
+                return $query->where(function ($q) use ($companyId) {
+                        $q->where('purchase_orders.company_id', $companyId)
+                            ->orWhere('purchase_orders.supplier_company_id', $companyId);
+                    })
                     ->with([
                         'documentItems.itemable',
                         'supplierCompany',

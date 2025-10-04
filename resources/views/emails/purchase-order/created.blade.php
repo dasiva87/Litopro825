@@ -7,7 +7,6 @@ Han recibido una nueva orden de pedido de **{{ $purchaseOrder->company->name }}*
 
 @component('mail::panel')
 **Número de Orden:** #{{ $purchaseOrder->order_number }}
-**Tipo:** {{ $purchaseOrder->order_type === 'papel' ? 'Papel' : 'Producto' }}
 **Fecha de Orden:** {{ $purchaseOrder->order_date->format('d/m/Y') }}
 **Total:** ${{ number_format($purchaseOrder->total_amount, 2) }} COP
 @if($purchaseOrder->expected_delivery_date)
@@ -17,7 +16,7 @@ Han recibido una nueva orden de pedido de **{{ $purchaseOrder->company->name }}*
 
 ## Detalles de la Orden
 
-La orden contiene **{{ $purchaseOrder->items->count() }}** items por un valor total de **${{ number_format($purchaseOrder->total_amount, 2) }} COP**.
+La orden contiene **{{ $purchaseOrder->documentItems->count() }}** items por un valor total de **${{ number_format($purchaseOrder->total_amount, 2) }} COP**.
 
 @if($purchaseOrder->notes)
 ### Notas Adicionales

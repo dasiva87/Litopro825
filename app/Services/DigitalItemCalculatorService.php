@@ -98,7 +98,7 @@ class DigitalItemCalculatorService
     /**
      * Validar parámetros de entrada
      */
-    public function validateParameters(DigitalItem $item, array $params): array
+    public function validateParameters(object $item, array $params): array
     {
         $errors = [];
 
@@ -137,7 +137,7 @@ class DigitalItemCalculatorService
     /**
      * Estimar tiempo de producción (opcional, para futuras extensiones)
      */
-    public function estimateProductionTime(DigitalItem $item, array $params): int
+    public function estimateProductionTime(object $item, array $params): int
     {
         $baseTime = 24; // Horas base
 
@@ -153,7 +153,8 @@ class DigitalItemCalculatorService
         $quantity = $params['quantity'] ?? 1;
         if ($quantity > 10) {
             // Agregar tiempo por cantidad alta
-            $baseTime += ceil($quantity / 10) * 2;
+            $extraUnits = $quantity - 10;
+            $baseTime += ceil($extraUnits / 4); // 1 hora por cada 4 unidades extra
         }
 
         return $baseTime;

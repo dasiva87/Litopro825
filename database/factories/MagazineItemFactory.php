@@ -12,12 +12,13 @@ class MagazineItemFactory extends Factory
     public function definition(): array
     {
         return [
+            'company_id' => \App\Models\Company::factory(),
             'description' => $this->faker->sentence(),
             'quantity' => $this->faker->numberBetween(10, 1000),
             'closed_width' => $this->faker->randomFloat(1, 10, 30),
             'closed_height' => $this->faker->randomFloat(1, 15, 40),
             'binding_type' => $this->faker->randomElement([
-                'grapado', 'plegado', 'anillado', 'cosido', 
+                'grapado', 'plegado', 'anillado', 'cosido',
                 'caballete', 'lomo', 'espiral', 'wire_o', 'hotmelt'
             ]),
             'binding_side' => $this->faker->randomElement(['arriba', 'izquierda', 'derecha', 'abajo']),

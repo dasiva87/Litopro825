@@ -75,11 +75,11 @@ class PrintingMachineResource extends Resource
         $tenantId = config('app.current_tenant_id');
 
         if ($tenantId) {
-            $query->where('company_id', $tenantId);
+            $query->forTenant($tenantId);
         } else {
             // Fallback: usar company_id del usuario autenticado
             if (auth()->check() && auth()->user()->company_id) {
-                $query->where('company_id', auth()->user()->company_id);
+                $query->forCurrentTenant();
             }
         }
 

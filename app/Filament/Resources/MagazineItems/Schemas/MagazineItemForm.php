@@ -308,7 +308,7 @@ class MagazineItemForm
                                                                     ->toArray();
 
                                                                 $papers = Paper::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->where(function ($query) use ($currentCompanyId, $supplierCompanyIds) {
-                                                                    $query->where('company_id', $currentCompanyId)
+                                                                    $query->forTenant($currentCompanyId)
                                                                           ->orWhereIn('company_id', $supplierCompanyIds);
                                                                 })
                                                                 ->where('is_active', true)
@@ -325,7 +325,7 @@ class MagazineItemForm
                                                             } else {
                                                                 // Para papelerías: solo papeles propios
                                                                 return Paper::query()
-                                                                    ->where('company_id', $currentCompanyId)
+                                                                    ->forTenant($currentCompanyId)
                                                                     ->where('is_active', true)
                                                                     ->get()
                                                                     ->mapWithKeys(function ($paper) {
@@ -344,7 +344,7 @@ class MagazineItemForm
                                                         ->options(function () {
                                                             $companyId = auth()->user()->company_id ?? 1;
                                                             return PrintingMachine::query()
-                                                                ->where('company_id', $companyId)
+                                                                ->forTenant($companyId)
                                                                 ->get()
                                                                 ->mapWithKeys(function ($machine) {
                                                                     $label = $machine->name . ' - ' . ucfirst($machine->type);
@@ -607,7 +607,7 @@ class MagazineItemForm
                                                     ->toArray();
 
                                                 $papers = Paper::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->where(function ($query) use ($currentCompanyId, $supplierCompanyIds) {
-                                                    $query->where('company_id', $currentCompanyId)
+                                                    $query->forTenant($currentCompanyId)
                                                           ->orWhereIn('company_id', $supplierCompanyIds);
                                                 })
                                                 ->where('is_active', true)
@@ -624,7 +624,7 @@ class MagazineItemForm
                                             } else {
                                                 // Para papelerías: solo papeles propios
                                                 return Paper::query()
-                                                    ->where('company_id', $currentCompanyId)
+                                                    ->forTenant($currentCompanyId)
                                                     ->where('is_active', true)
                                                     ->get()
                                                     ->mapWithKeys(function ($paper) {
@@ -642,7 +642,7 @@ class MagazineItemForm
                                         ->options(function () {
                                             $companyId = auth()->user()->company_id ?? 1;
                                             return PrintingMachine::query()
-                                                ->where('company_id', $companyId)
+                                                ->forTenant($companyId)
                                                 ->where('is_active', true)
                                                 ->get()
                                                 ->mapWithKeys(function ($machine) {

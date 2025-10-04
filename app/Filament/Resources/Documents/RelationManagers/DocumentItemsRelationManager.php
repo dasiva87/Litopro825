@@ -37,7 +37,7 @@ class DocumentItemsRelationManager extends RelationManager
 
     protected static string $relationship = 'items';
 
-    protected static ?string $title = 'Items de la Cotización';
+    protected static ?string $title = null;
 
     protected static ?string $inverseRelationship = 'document';
 
@@ -397,9 +397,9 @@ class DocumentItemsRelationManager extends RelationManager
             ->headerActions([
 
                 Action::make('quick_magazine_item')
-                    ->label('Crear Revista Completa')
+                    ->label('Revista')
                     ->icon('heroicon-o-rectangle-stack')
-                    ->color('indigo')
+                    ->color('primary')
                     ->visible(function () {
                         $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
                         $company = $currentCompanyId ? \App\Models\Company::find($currentCompanyId) : null;
@@ -438,9 +438,9 @@ class DocumentItemsRelationManager extends RelationManager
                     ->successNotificationTitle('Revista creada correctamente con todas sus páginas'),
 
                 Action::make('quick_talonario_item')
-                    ->label('Talonario Completo')
+                    ->label('Talonario')
                     ->icon('heroicon-o-document-check')
-                    ->color('warning')
+                    ->color('primary')
                     ->visible(function () {
                         $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
                         $company = $currentCompanyId ? \App\Models\Company::find($currentCompanyId) : null;

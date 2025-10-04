@@ -33,7 +33,9 @@ class FinishingResource extends Resource
     
     protected static ?string $pluralModelLabel = 'Acabados';
     
-    protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Catalogos;
+    protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Configuracion;
+
+    protected static ?int $navigationSort = 1;
 
     public static function form(Schema $schema): Schema
     {
@@ -72,11 +74,11 @@ class FinishingResource extends Resource
         $tenantId = config('app.current_tenant_id');
 
         if ($tenantId) {
-            $query->where('company_id', $tenantId);
+            $query->forTenant($tenantId);
         } else {
             // Fallback: usar company_id del usuario autenticado
             if (auth()->check() && auth()->user()->company_id) {
-                $query->where('company_id', auth()->user()->company_id);
+                $query->forCurrentTenant();
             }
         }
 

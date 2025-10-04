@@ -22,7 +22,7 @@ class PurchaseOrderNotificationsWidget extends BaseWidget
         return $table
             ->query(
                 PurchaseOrder::query()
-                    ->where('company_id', Auth::user()?->company_id)
+                    ->forCurrentTenant()
                     ->where(function ($query) {
                         $query->where('status', 'sent')
                               ->where('created_at', '<', now()->subDays(3))

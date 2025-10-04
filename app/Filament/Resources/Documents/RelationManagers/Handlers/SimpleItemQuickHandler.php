@@ -146,7 +146,7 @@ class SimpleItemQuickHandler implements QuickActionHandlerInterface
 
     public function getLabel(): string
     {
-        return 'Item Sencillo Rápido';
+        return 'Sencillo';
     }
 
     public function getIcon(): string
@@ -156,7 +156,7 @@ class SimpleItemQuickHandler implements QuickActionHandlerInterface
 
     public function getColor(): string
     {
-        return 'success';
+        return 'primary';
     }
 
     public function getModalWidth(): string
@@ -185,7 +185,7 @@ class SimpleItemQuickHandler implements QuickActionHandlerInterface
     private function getFinishingOptions(): array
     {
         return Finishing::where('active', true)
-            ->where('company_id', auth()->user()->company_id)
+            ->forCurrentTenant()
             ->get()
             ->mapWithKeys(function ($finishing) {
                 return [

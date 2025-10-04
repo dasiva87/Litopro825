@@ -2,18 +2,22 @@
 
 namespace App\Models;
 
+use App\Enums\OrderStatus;
 use App\Models\Concerns\BelongsToTenant;
 use App\Notifications\PurchaseOrderCreated;
 use App\Notifications\PurchaseOrderStatusChanged;
+use App\Services\TenantContext;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 
 class PurchaseOrder extends Model
 {
-    use BelongsToTenant;
+    use BelongsToTenant, HasFactory;
 
     protected $fillable = [
         'company_id',
@@ -36,6 +40,7 @@ class PurchaseOrder extends Model
         'actual_delivery_date' => 'date',
         'total_amount' => 'decimal:2',
         'approved_at' => 'datetime',
+        'status' => OrderStatus::class,
     ];
 
     protected static function booted(): void
@@ -56,15 +61,22 @@ class PurchaseOrder extends Model
         });
 
         static::created(function (PurchaseOrder $order) {
-            // Enviar notificación al proveedor cuando se crea la orden
-            if ($order->status === 'sent' && $order->supplierCompany && $order->supplierCompany->email) {
+            // Crear registro de historial inicial
+            $order->statusHistories()->create([
+                'from_status' => null,
+                'to_status' => $order->status,
+                'user_id' => auth()->id(),
+            ]);
+
+            // Enviar notificación al proveedor cuando se crea la orden con estado 'sent'
+            if ($order->status === OrderStatus::SENT && $order->supplierCompany && $order->supplierCompany->email) {
                 Notification::route('mail', $order->supplierCompany->email)
-                    ->notify(new PurchaseOrderCreated($order));
+                    ->notify(new PurchaseOrderCreated($order->id));
             }
 
             // Notificar a los usuarios de la empresa creadora
-            $companyUsers = User::where('company_id', $order->company_id)->get();
-            Notification::send($companyUsers, new PurchaseOrderCreated($order));
+            $companyUsers = User::forTenant($order->company_id)->get();
+            Notification::send($companyUsers, new PurchaseOrderCreated($order->id));
         });
 
         static::updating(function (PurchaseOrder $order) {
@@ -75,14 +87,48 @@ class PurchaseOrder extends Model
 
                 // Programar notificación después de actualizar
                 static::updated(function (PurchaseOrder $updatedOrder) use ($oldStatus, $newStatus) {
-                    // Notificar a usuarios de la empresa
-                    $companyUsers = User::where('company_id', $updatedOrder->company_id)->get();
-                    Notification::send($companyUsers, new PurchaseOrderStatusChanged($updatedOrder, $oldStatus, $newStatus));
+                    // Crear registro de historial
+                    $updatedOrder->statusHistories()->create([
+                        'from_status' => $oldStatus,
+                        'to_status' => $newStatus,
+                        'user_id' => auth()->id(),
+                    ]);
 
-                    // Si el estado cambia a confirmado o completado, notificar también al proveedor
-                    if (in_array($newStatus, ['confirmed', 'completed']) && $updatedOrder->supplierCompany && $updatedOrder->supplierCompany->email) {
-                        Notification::route('mail', $updatedOrder->supplierCompany->email)
-                            ->notify(new PurchaseOrderStatusChanged($updatedOrder, $oldStatus, $newStatus));
+                    // Notificar a usuarios de la empresa que envía
+                    $companyUsers = User::where('company_id', $updatedOrder->company_id)->get();
+                    Notification::send($companyUsers, new PurchaseOrderStatusChanged(
+                        $updatedOrder->id,
+                        $oldStatus instanceof OrderStatus ? $oldStatus->value : $oldStatus,
+                        $newStatus instanceof OrderStatus ? $newStatus->value : $newStatus
+                    ));
+
+                    // Si el estado cambia a 'sent', notificar a usuarios del proveedor
+                    if ($newStatus === OrderStatus::SENT && $updatedOrder->supplierCompany) {
+                        // Notificar a usuarios del proveedor (notificación en app + email)
+                        $supplierUsers = User::where('company_id', $updatedOrder->supplier_company_id)->get();
+                        if ($supplierUsers->isNotEmpty()) {
+                            Notification::send($supplierUsers, new PurchaseOrderCreated($updatedOrder->id));
+                        }
+
+                        // Email adicional al email general del proveedor si existe
+                        if ($updatedOrder->supplierCompany->email) {
+                            Notification::route('mail', $updatedOrder->supplierCompany->email)
+                                ->notify(new PurchaseOrderCreated($updatedOrder->id));
+                        }
+                    }
+
+                    // Si el estado cambia a 'confirmed' o 'received', notificar a la empresa que envió
+                    if (in_array($newStatus, [OrderStatus::CONFIRMED, OrderStatus::RECEIVED])) {
+                        // Notificar por email a la empresa cliente
+                        $clientCompany = $updatedOrder->company;
+                        if ($clientCompany && $clientCompany->email) {
+                            Notification::route('mail', $clientCompany->email)
+                                ->notify(new PurchaseOrderStatusChanged(
+                                    $updatedOrder->id,
+                                    $oldStatus instanceof OrderStatus ? $oldStatus->value : $oldStatus,
+                                    $newStatus instanceof OrderStatus ? $newStatus->value : $newStatus
+                                ));
+                        }
                     }
                 });
             }
@@ -112,14 +158,19 @@ class PurchaseOrder extends Model
     public function documentItems(): BelongsToMany
     {
         return $this->belongsToMany(DocumentItem::class, 'document_item_purchase_order')
-                    ->withPivot([
-                        'quantity_ordered',
-                        'unit_price',
-                        'total_price',
-                        'status',
-                        'notes',
-                    ])
-                    ->withTimestamps();
+            ->withPivot([
+                'quantity_ordered',
+                'unit_price',
+                'total_price',
+                'status',
+                'notes',
+            ])
+            ->withTimestamps();
+    }
+
+    public function statusHistories(): HasMany
+    {
+        return $this->hasMany(OrderStatusHistory::class)->orderBy('created_at', 'desc');
     }
 
     /**
@@ -144,13 +195,12 @@ class PurchaseOrder extends Model
 
     public static function generateOrderNumber(): string
     {
-        $companyId = config('app.current_tenant_id') ?? (auth()->check() ? auth()->user()->company_id : 1);
+        $companyId = TenantContext::id() ?? 1;
         $year = now()->year;
-        $month = now()->format('m');
-        $prefix = "OP-{$year}{$month}-";
+        $prefix = "OP-{$year}-";
 
-        // Buscar el número más alto en el mes (no solo el último por ID)
-        $maxOrderNumber = static::where('company_id', $companyId)
+        // Buscar el número más alto en el año (no solo el último por ID)
+        $maxOrderNumber = static::forTenant($companyId)
             ->where('order_number', 'LIKE', $prefix.'%')
             ->orderByRaw('CAST(SUBSTRING(order_number, -4) AS UNSIGNED) DESC')
             ->value('order_number');
@@ -162,11 +212,11 @@ class PurchaseOrder extends Model
         do {
             $orderNumber = $prefix.str_pad($sequence + $attempts, 4, '0', STR_PAD_LEFT);
 
-            $exists = static::where('company_id', $companyId)
+            $exists = static::forTenant($companyId)
                 ->where('order_number', $orderNumber)
                 ->exists();
 
-            if (!$exists) {
+            if (! $exists) {
                 return $orderNumber;
             }
 
@@ -177,44 +227,32 @@ class PurchaseOrder extends Model
         return $prefix.substr(time(), -4);
     }
 
-    public function getStatusLabelAttribute(): string
+    public function changeStatus(OrderStatus $newStatus, ?string $notes = null): bool
     {
-        return match ($this->status) {
-            'draft' => 'Borrador',
-            'sent' => 'Enviada',
-            'confirmed' => 'Confirmada',
-            'partially_received' => 'Parcialmente Recibida',
-            'completed' => 'Completada',
-            'cancelled' => 'Cancelada',
-            default => 'Desconocido'
-        };
-    }
+        if (! $this->status->canTransitionTo($newStatus)) {
+            return false;
+        }
 
-    public function getStatusColorAttribute(): string
-    {
-        return match ($this->status) {
-            'draft' => 'gray',
-            'sent' => 'warning',
-            'confirmed' => 'info',
-            'partially_received' => 'primary',
-            'completed' => 'success',
-            'cancelled' => 'danger',
-            default => 'gray'
-        };
+        $this->status = $newStatus;
+        $this->save();
+
+        // El historial se crea automáticamente en el observer
+
+        return true;
     }
 
     public function isPending(): bool
     {
-        return in_array($this->status, ['draft', 'sent', 'confirmed', 'partially_received']);
+        return in_array($this->status, [OrderStatus::DRAFT, OrderStatus::SENT, OrderStatus::CONFIRMED]);
     }
 
     public function canBeApproved(): bool
     {
-        return $this->status === 'draft';
+        return $this->status === OrderStatus::DRAFT;
     }
 
     public function canBeCancelled(): bool
     {
-        return in_array($this->status, ['draft', 'sent', 'confirmed']);
+        return in_array($this->status, [OrderStatus::DRAFT, OrderStatus::SENT, OrderStatus::CONFIRMED]);
     }
 }

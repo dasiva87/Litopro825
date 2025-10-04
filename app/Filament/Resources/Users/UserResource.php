@@ -24,6 +24,12 @@ class UserResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
     /**
+     * Ocultar del menú de navegación principal
+     * El acceso es a través del dropdown del avatar
+     */
+    protected static bool $shouldRegisterNavigation = false;
+
+    /**
      * Verificar si el usuario puede ver este Resource en el menú.
      * Solo Company Admin y Super Admin pueden acceder.
      */
@@ -84,11 +90,11 @@ class UserResource extends Resource
         $tenantId = config('app.current_tenant_id');
 
         if ($tenantId) {
-            $query->where('company_id', $tenantId);
+            $query->forTenant($tenantId);
         } else {
             // Fallback: usar company_id del usuario autenticado
             if (auth()->check() && auth()->user()->company_id) {
-                $query->where('company_id', auth()->user()->company_id);
+                $query->forCurrentTenant();
             }
         }
 

@@ -7,6 +7,7 @@ use App\Models\StockMovement;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\Services\TenantContext;
 
 class StockAlertService
 {
@@ -188,11 +189,11 @@ class StockAlertService
      */
     public function evaluateAllAlerts(?int $companyId = null): array
     {
-        $companyId = $companyId ?? config('tenant.company_id');
+        $companyId = $companyId ?? TenantContext::id();
         $results = ['created' => 0, 'updated' => 0, 'resolved' => 0];
 
         // Evaluar productos
-        $products = \App\Models\Product::where('company_id', $companyId)
+        $products = \App\Models\Product::forTenant($companyId)
             ->where('active', true)
             ->get();
 
@@ -202,7 +203,7 @@ class StockAlertService
         }
 
         // Evaluar papeles
-        $papers = \App\Models\Paper::where('company_id', $companyId)
+        $papers = \App\Models\Paper::forTenant($companyId)
             ->where('is_active', true)
             ->get();
 
@@ -223,10 +224,10 @@ class StockAlertService
      */
     public function autoResolveAlerts(?int $companyId = null): int
     {
-        $companyId = $companyId ?? config('tenant.company_id');
+        $companyId = $companyId ?? TenantContext::id();
         $resolved = 0;
 
-        $activeAlerts = StockAlert::where('company_id', $companyId)
+        $activeAlerts = StockAlert::forTenant($companyId)
             ->unresolved()
             ->with('stockable')
             ->get();
@@ -246,9 +247,9 @@ class StockAlertService
      */
     public function getAlertsSummary(?int $companyId = null): array
     {
-        $companyId = $companyId ?? config('tenant.company_id');
+        $companyId = $companyId ?? TenantContext::id();
 
-        $query = StockAlert::where('company_id', $companyId);
+        $query = StockAlert::forTenant($companyId);
 
         return [
             'total_active' => $query->clone()->active()->count(),
@@ -307,9 +308,9 @@ class StockAlertService
      */
     public function cleanupExpiredAlerts(?int $companyId = null): int
     {
-        $companyId = $companyId ?? config('tenant.company_id');
+        $companyId = $companyId ?? TenantContext::id();
 
-        return StockAlert::where('company_id', $companyId)
+        return StockAlert::forTenant($companyId)
             ->expired()
             ->whereIn('status', ['active', 'acknowledged'])
             ->update([

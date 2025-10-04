@@ -27,7 +27,7 @@ class ActiveDocumentsWidget extends BaseWidget
         return $table
             ->query(
                 Document::query()
-                    ->where('company_id', auth()->user()->company_id)
+                    ->forCurrentTenant()
                     ->whereNotIn('status', ['completed', 'cancelled'])
                     ->with(['contact', 'documentType', 'user'])
                     ->latest()

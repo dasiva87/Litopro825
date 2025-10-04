@@ -22,13 +22,13 @@ class PurchaseOrderResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-shopping-cart';
 
-    protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Ordenes;
+    protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Documentos;
 
     protected static ?string $modelLabel = 'Orden de Pedido';
 
     protected static ?string $pluralModelLabel = 'Órdenes de Pedido';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 5;
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
@@ -38,8 +38,16 @@ class PurchaseOrderResource extends Resource
             throw new \Exception('No company context found - security violation prevented');
         }
 
+        // Mostrar órdenes creadas por la empresa O órdenes recibidas como proveedor
         return parent::getEloquentQuery()
-            ->where('purchase_orders.company_id', $companyId);
+            ->where(function ($query) use ($companyId) {
+                $query->where('purchase_orders.company_id', $companyId)
+                    ->orWhere('purchase_orders.supplier_company_id', $companyId);
+            })
+            ->with([
+                'documentItems.itemable', // Can't eager load .paper - not all itemables have it (Product doesn't)
+                'documentItems.itemable.company',
+            ]);
     }
 
     public static function form(Schema $schema): Schema

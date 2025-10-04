@@ -129,7 +129,7 @@ class ProductHandler extends AbstractItemHandler
                                 ->toArray();
 
                             $products = Product::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->where(function ($query) use ($currentCompanyId, $supplierCompanyIds) {
-                                $query->where('company_id', $currentCompanyId)
+                                $query->forTenant($currentCompanyId)
                                       ->orWhereIn('company_id', $supplierCompanyIds);
                             })
                             ->where('active', true)

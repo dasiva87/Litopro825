@@ -31,7 +31,7 @@ class SupplierRequestResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Solicitudes';
 
-    protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Cotizaciones;
+    protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Documentos;
 
     protected static ?int $navigationSort = 2;
 

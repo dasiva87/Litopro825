@@ -2,11 +2,14 @@
     <x-filament-widgets::widget>
         <x-filament::section>
             <x-slot name="heading">
-                <div class="flex items-center gap-2">
-                    <svg class="h-5 w-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 002 2v14a2 2 0 002 2z"/>
-                    </svg>
-                    <span class="font-semibold text-gray-900 dark:text-white">📐 Calculadora de Cortes</span>
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary-100 dark:bg-primary-500/10">
+                        <x-filament::icon icon="heroicon-o-calculator" class="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Calculadora de Cortes</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Optimización de papel</p>
+                    </div>
                 </div>
             </x-slot>
 
@@ -60,96 +63,105 @@
                     </div>
                 </div>
 
-                <div class="flex space-x-2">
-                    <button wire:click="calculate" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2 px-3 rounded transition-colors">
-                        🔄 Calcular
-                    </button>
-                    <button wire:click="resetCalculator" class="flex-1 bg-orange-600 hover:bg-orange-700 text-white text-xs font-medium py-2 px-3 rounded transition-colors">
-                        🧮 Limpiar
-                    </button>
+                <div class="grid grid-cols-2 gap-3">
+                    <x-filament::button
+                        wire:click="calculate"
+                        color="primary"
+                        size="sm"
+                        icon="heroicon-m-calculator"
+                        class="justify-center"
+                    >
+                        Calcular
+                    </x-filament::button>
+                    <x-filament::button
+                        wire:click="resetCalculator"
+                        color="gray"
+                        size="sm"
+                        outlined
+                        icon="heroicon-m-arrow-path"
+                        class="justify-center"
+                    >
+                        Limpiar
+                    </x-filament::button>
                 </div>
 
                 @if($showResults && $calculation)
-                    <div class="mt-4 p-3 bg-gray-50 rounded-lg calculation-result">
-                        <p class="text-xs text-gray-600 mb-2">Vista previa del corte:</p>
-                        <div class="bg-white border rounded p-3 h-32 flex items-center justify-center">
-                            <canvas
-                                id="previewCanvas"
-                                width="240"
-                                height="100"
-                                class="border rounded"
-                                data-paper-width="{{ $calculation['paper_size']['width'] }}"
-                                data-paper-height="{{ $calculation['paper_size']['height'] }}"
-                                data-item-width="{{ $calculation['item_size']['width'] }}"
-                                data-item-height="{{ $calculation['item_size']['height'] }}"
-                                data-cuts-h="{{ $calculation['best']['cuts_h'] }}"
-                                data-cuts-v="{{ $calculation['best']['cuts_v'] }}"
-                            ></canvas>
-                        </div>
-
-                        <!-- Results Tabs -->
-                        <div class="mt-3">
-                            <div class="grid grid-cols-3 gap-1 text-xs">
-                                <div class="text-center p-2 bg-blue-100 rounded">
-                                    <div class="font-semibold">Horizontal</div>
-                                    <div>{{ $calculation['horizontal']['total_cuts'] }} cortes</div>
-                                    <div>{{ number_format($calculation['horizontal']['efficiency'], 1) }}%</div>
-                                </div>
-                                <div class="text-center p-2 bg-green-100 rounded">
-                                    <div class="font-semibold">Vertical</div>
-                                    <div>{{ $calculation['vertical']['total_cuts'] }} cortes</div>
-                                    <div>{{ number_format($calculation['vertical']['efficiency'], 1) }}%</div>
-                                </div>
-                                <div class="text-center p-2 bg-purple-100 rounded">
-                                    <div class="font-semibold">Máximo</div>
-                                    <div>{{ $calculation['maximum']['total_cuts'] }} cortes</div>
-                                    <div>{{ number_format($calculation['maximum']['efficiency'], 1) }}%</div>
-                                </div>
+                    <div class="mt-6 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
+                        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                            <div class="flex items-center gap-2">
+                                <x-filament::icon icon="heroicon-m-scissors" class="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                                <h4 class="text-sm font-semibold text-gray-900 dark:text-white">Resultado del Cálculo</h4>
                             </div>
                         </div>
 
-                        <div class="mt-2 text-xs text-gray-600">
-                            <p><strong>Mejor resultado:</strong> {{ $calculation['best']['total_cuts'] }} cortes ({{ $calculation['best']['cuts_h'] }}×{{ $calculation['best']['cuts_v'] }}) - Eficiencia: {{ number_format($calculation['best']['efficiency'], 1) }}%</p>
-                            <p><strong>Orientación recomendada:</strong> {{ $calculation['best']['orientation_label'] }}</p>
-                            <p><strong>Desperdicio:</strong> {{ number_format($calculation['best']['waste'], 1) }}%</p>
+                        <div class="p-4">
+                            <div class="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-lg p-3 mb-4 flex items-center justify-center h-32">
+                                <canvas
+                                    id="previewCanvas"
+                                    width="240"
+                                    height="100"
+                                    class="border rounded dark:border-gray-600"
+                                    data-paper-width="{{ $calculation['paper_size']['width'] }}"
+                                    data-paper-height="{{ $calculation['paper_size']['height'] }}"
+                                    data-item-width="{{ $calculation['item_size']['width'] }}"
+                                    data-item-height="{{ $calculation['item_size']['height'] }}"
+                                    data-cuts-h="{{ $calculation['best']['cuts_h'] }}"
+                                    data-cuts-v="{{ $calculation['best']['cuts_v'] }}"
+                                ></canvas>
+                            </div>
+
+                            <!-- Results Grid -->
+                            <div class="grid grid-cols-3 gap-2 mb-4">
+                                <div class="text-center p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900">
+                                    <div class="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-1">Horizontal</div>
+                                    <div class="text-sm font-bold text-blue-700 dark:text-blue-300">{{ $calculation['horizontal']['total_cuts'] }}</div>
+                                    <div class="text-xs text-blue-600 dark:text-blue-400">{{ number_format($calculation['horizontal']['efficiency'], 1) }}%</div>
+                                </div>
+                                <div class="text-center p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900">
+                                    <div class="text-xs font-semibold text-green-900 dark:text-green-100 mb-1">Vertical</div>
+                                    <div class="text-sm font-bold text-green-700 dark:text-green-300">{{ $calculation['vertical']['total_cuts'] }}</div>
+                                    <div class="text-xs text-green-600 dark:text-green-400">{{ number_format($calculation['vertical']['efficiency'], 1) }}%</div>
+                                </div>
+                                <div class="text-center p-3 rounded-lg bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900">
+                                    <div class="text-xs font-semibold text-purple-900 dark:text-purple-100 mb-1">Máximo</div>
+                                    <div class="text-sm font-bold text-purple-700 dark:text-purple-300">{{ $calculation['maximum']['total_cuts'] }}</div>
+                                    <div class="text-xs text-purple-600 dark:text-purple-400">{{ number_format($calculation['maximum']['efficiency'], 1) }}%</div>
+                                </div>
+                            </div>
+
+                            <!-- Best Result Summary -->
+                            <div class="space-y-2 p-3 rounded-lg bg-primary-50 dark:bg-primary-950/20 border border-primary-200 dark:border-primary-900">
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-gray-600 dark:text-gray-400">Mejor resultado:</span>
+                                    <span class="font-semibold text-gray-900 dark:text-white">
+                                        {{ $calculation['best']['total_cuts'] }} cortes ({{ $calculation['best']['cuts_h'] }}×{{ $calculation['best']['cuts_v'] }})
+                                    </span>
+                                </div>
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-gray-600 dark:text-gray-400">Eficiencia:</span>
+                                    <x-filament::badge color="success" size="sm">
+                                        {{ number_format($calculation['best']['efficiency'], 1) }}%
+                                    </x-filament::badge>
+                                </div>
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-gray-600 dark:text-gray-400">Desperdicio:</span>
+                                    <x-filament::badge color="warning" size="sm">
+                                        {{ number_format($calculation['best']['waste'], 1) }}%
+                                    </x-filament::badge>
+                                </div>
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-gray-600 dark:text-gray-400">Orientación:</span>
+                                    <span class="font-medium text-primary-700 dark:text-primary-300">
+                                        {{ $calculation['best']['orientation_label'] }}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 @endif
             </div>
         </x-filament::section>
     </x-filament-widgets::widget>
-
-    <style>
-    /* Custom styles for the calculator widget */
-    .paper-calculator-widget input:focus,
-    .paper-calculator-widget select:focus {
-        outline: none;
-        ring: 2px;
-        ring-color: #3b82f6;
-        border-color: #3b82f6;
-    }
-
-    .paper-calculator-widget canvas {
-        background-color: #f9fafb;
-        border: 1px solid #e5e7eb;
-    }
-
-    .calculation-result {
-        animation: fadeIn 0.3s ease-in-out;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Hover effects for buttons */
-    .paper-calculator-widget button:hover {
-        transform: scale(1.01);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        transition: all 0.2s ease-in-out;
-    }
-    </style>
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {

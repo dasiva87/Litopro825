@@ -13,8 +13,8 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// Rutas de registro público
-Route::middleware('guest')->group(function () {
+// Rutas de registro público con rate limiting
+Route::middleware(['guest', 'throttle:10,1'])->group(function () {
     Route::get('/register', [SimpleRegistrationController::class, 'create'])->name('register');
     Route::post('/register', [SimpleRegistrationController::class, 'store'])->name('register.store');
 
@@ -85,13 +85,15 @@ Route::middleware('auth')->group(function () {
     }
 });
 
-// Rutas públicas de perfiles de empresa
-Route::get('/empresa/{slug}', [CompanyProfileController::class, 'show'])
-    ->name('company.profile');
-Route::get('/empresa/{slug}/seguidores', [CompanyProfileController::class, 'followers'])
-    ->name('company.followers');
-Route::get('/empresa/{slug}/siguiendo', [CompanyProfileController::class, 'following'])
-    ->name('company.following');
+// Rutas públicas de perfiles de empresa con rate limiting
+Route::middleware('throttle:60,1')->group(function () {
+    Route::get('/empresa/{slug}', [CompanyProfileController::class, 'show'])
+        ->name('company.profile');
+    Route::get('/empresa/{slug}/seguidores', [CompanyProfileController::class, 'followers'])
+        ->name('company.followers');
+    Route::get('/empresa/{slug}/siguiendo', [CompanyProfileController::class, 'following'])
+        ->name('company.following');
+});
 
 
 // Rutas protegidas por autenticación

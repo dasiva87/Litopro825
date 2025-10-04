@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\PurchaseOrders\Schemas;
 
-use Filament\Actions;
+use App\Enums\OrderStatus;
 use Filament\Forms\Components;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
@@ -26,16 +26,10 @@ class PurchaseOrderForm
 
                                 Components\Select::make('status')
                                     ->label('Estado')
-                                    ->options([
-                                        'draft' => 'Borrador',
-                                        'sent' => 'Enviada',
-                                        'confirmed' => 'Confirmada',
-                                        'partially_received' => 'Parcialmente Recibida',
-                                        'completed' => 'Completada',
-                                        'cancelled' => 'Cancelada',
-                                    ])
+                                    ->options(OrderStatus::class)
                                     ->required()
-                                    ->default('draft'),
+                                    ->default(OrderStatus::DRAFT)
+                                    ->native(false),
                             ]),
 
                         Grid::make(2)

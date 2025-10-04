@@ -315,7 +315,7 @@ class StockPredictionService
         $results = [];
 
         // Productos
-        $products = Product::where('company_id', $companyId)
+        $products = Product::forTenant($companyId)
             ->where('active', true)
             ->get();
 
@@ -331,7 +331,7 @@ class StockPredictionService
         }
 
         // Papeles
-        $papers = Paper::where('company_id', $companyId)
+        $papers = Paper::forTenant($companyId)
             ->where('is_active', true)
             ->get();
 

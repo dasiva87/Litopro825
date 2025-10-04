@@ -320,7 +320,7 @@ class MagazineItemHandler extends AbstractItemHandler
                                     ->options(function () {
                                         $companyId = auth()->user()->company_id ?? 1;
                                         return Paper::query()
-                                            ->where('company_id', $companyId)
+                                            ->forTenant($companyId)
                                             ->where('is_active', true)
                                             ->get()
                                             ->mapWithKeys(function ($paper) {
@@ -337,7 +337,7 @@ class MagazineItemHandler extends AbstractItemHandler
                                     ->options(function () {
                                         $companyId = auth()->user()->company_id ?? 1;
                                         return PrintingMachine::query()
-                                            ->where('company_id', $companyId)
+                                            ->forTenant($companyId)
                                             ->where('is_active', true)
                                             ->get()
                                             ->mapWithKeys(function ($machine) {

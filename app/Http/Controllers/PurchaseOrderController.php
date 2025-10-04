@@ -6,6 +6,7 @@ use App\Models\Document;
 use App\Models\DocumentItem;
 use App\Models\PurchaseOrder;
 use App\Services\PurchaseOrderPdfService;
+use App\Services\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -29,12 +30,15 @@ class PurchaseOrderController extends Controller
     {
         $this->authorize('update', $purchaseOrder);
 
-        $request->validate([
-            'emails' => 'required|array',
-            'emails.*' => 'required|email',
+        $validated = $request->validate([
+            'emails' => 'required|array|min:1',
+            'emails.*' => 'required|email:rfc,dns',
+        ], [
+            'emails.required' => 'Debe proporcionar al menos un correo electrónico',
+            'emails.*.email' => 'Cada correo debe ser una dirección de email válida',
         ]);
 
-        $sent = $this->pdfService->emailPdf($purchaseOrder, $request->emails);
+        $sent = $this->pdfService->emailPdf($purchaseOrder, $validated['emails']);
 
         if ($sent) {
             return response()->json([
@@ -55,7 +59,7 @@ class PurchaseOrderController extends Controller
     public function searchDocuments(Request $request)
     {
         $search = $request->get('search', '');
-        $companyId = auth()->user()->company_id ?? config('app.current_tenant_id');
+        $companyId = TenantContext::id();
 
         if (!$companyId) {
             return response()->json([
@@ -64,8 +68,8 @@ class PurchaseOrderController extends Controller
             ], 400);
         }
 
-        $query = Document::with('contact')
-            ->where('company_id', $companyId)
+        $query = Document::forTenant($companyId)
+            ->with('contact')
             ->where('status', 'approved');
 
         if (!empty($search)) {
@@ -105,7 +109,7 @@ class PurchaseOrderController extends Controller
      */
     public function getDocumentItems(Request $request, $documentId)
     {
-        $companyId = auth()->user()->company_id ?? config('app.current_tenant_id');
+        $companyId = TenantContext::id();
 
         if (!$companyId) {
             return response()->json([
@@ -114,8 +118,8 @@ class PurchaseOrderController extends Controller
             ], 400);
         }
 
-        $document = Document::with(['contact', 'items.itemable', 'items.purchaseOrders'])
-            ->where('company_id', $companyId)
+        $document = Document::forTenant($companyId)
+            ->with(['contact', 'items.itemable', 'items.purchaseOrders'])
             ->where('id', $documentId)
             ->where('status', 'approved')
             ->first();
@@ -171,17 +175,20 @@ class PurchaseOrderController extends Controller
     {
         $this->authorize('update', $purchaseOrder);
 
-        $request->validate([
-            'item_ids' => 'required|array',
-            'item_ids.*' => 'exists:document_items,id',
+        $validated = $request->validate([
+            'item_ids' => 'required|array|min:1',
+            'item_ids.*' => 'integer|exists:document_items,id',
+        ], [
+            'item_ids.required' => 'Debe seleccionar al menos un item',
+            'item_ids.*.exists' => 'Uno o más items seleccionados no son válidos',
         ]);
 
-        $companyId = auth()->user()->company_id;
+        $companyId = TenantContext::id();
 
-        DB::transaction(function () use ($request, $purchaseOrder, $companyId) {
-            foreach ($request->item_ids as $itemId) {
-                $item = DocumentItem::where('id', $itemId)
-                    ->where('company_id', $companyId)
+        DB::transaction(function () use ($validated, $purchaseOrder, $companyId) {
+            foreach ($validated['item_ids'] as $itemId) {
+                $item = DocumentItem::forTenant($companyId)
+                    ->where('id', $itemId)
                     ->firstOrFail();
 
                 // Verificar si ya está en esta orden

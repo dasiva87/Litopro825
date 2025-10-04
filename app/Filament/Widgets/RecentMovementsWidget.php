@@ -16,7 +16,7 @@ class RecentMovementsWidget extends Widget
 
     public function getViewData(): array
     {
-        $movements = StockMovement::where('company_id', auth()->user()->company_id)
+        $movements = StockMovement::forCurrentTenant()
             ->with(['stockable', 'user'])
             ->latest()
             ->limit(10)

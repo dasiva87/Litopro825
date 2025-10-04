@@ -18,10 +18,12 @@ class PurchaseOrderPolicy
 
     /**
      * Determine whether the user can view the model.
+     * Allow both the company that created the order AND the supplier company to view it.
      */
     public function view(User $user, PurchaseOrder $purchaseOrder): bool
     {
-        return $user->company_id === $purchaseOrder->company_id;
+        return $user->company_id === $purchaseOrder->company_id
+            || $user->company_id === $purchaseOrder->supplier_company_id;
     }
 
     /**
@@ -34,10 +36,13 @@ class PurchaseOrderPolicy
 
     /**
      * Determine whether the user can update the model.
+     * Allow both the company that created the order AND the supplier company to update it.
+     * This allows suppliers to change order status (confirm, mark as received, etc.)
      */
     public function update(User $user, PurchaseOrder $purchaseOrder): bool
     {
-        return $user->company_id === $purchaseOrder->company_id;
+        return $user->company_id === $purchaseOrder->company_id
+            || $user->company_id === $purchaseOrder->supplier_company_id;
     }
 
     /**

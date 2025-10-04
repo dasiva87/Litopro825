@@ -88,6 +88,7 @@ class DocumentFactory extends Factory
                 $pricing = $calculatorService->calculateFinalPricing($simpleItem);
                 
                 $document->items()->create([
+                    'company_id' => $document->company_id,
                     'itemable_type' => 'App\\Models\\SimpleItem',
                     'itemable_id' => $simpleItem->id,
                     'description' => $simpleItem->description,

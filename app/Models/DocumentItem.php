@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -13,7 +14,7 @@ use App\Models\Concerns\BelongsToTenant;
 
 class DocumentItem extends Model
 {
-    use SoftDeletes, BelongsToTenant;
+    use HasFactory, SoftDeletes, BelongsToTenant;
 
     protected $fillable = [
         'document_id',
@@ -399,9 +400,24 @@ class DocumentItem extends Model
             }
         }
 
-        // Para otros tipos de items, usar el cálculo original
-        // Calcular costos base si no están definidos
-        if ($this->paper_cost == 0 && $this->paper) {
+        // Para CustomItem, respetar los precios manuales
+        if ($this->itemable_type === 'App\\Models\\CustomItem') {
+            // Los CustomItem tienen precios definidos manualmente, no recalcular
+            if ($this->unit_price > 0 && $this->total_price > 0) {
+                return;
+            }
+
+            // Si no tienen precios y hay un CustomItem relacionado, usar sus valores
+            if ($this->itemable) {
+                $this->unit_price = $this->itemable->unit_price;
+                $this->total_price = $this->itemable->total_price;
+                return;
+            }
+        }
+
+        // Para otros tipos de items (TalonarioItem, MagazineItem, etc.), usar el cálculo original
+        // Solo intentar cálculo si tiene relación paper (no todos los itemable types la tienen)
+        if ($this->paper_cost == 0 && method_exists($this, 'paper') && $this->paper) {
             $this->calculateBaseCosts();
         }
 

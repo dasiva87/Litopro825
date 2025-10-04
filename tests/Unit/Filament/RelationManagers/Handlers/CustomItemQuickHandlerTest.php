@@ -25,7 +25,7 @@ class CustomItemQuickHandlerTest extends TestCase
         parent::setUp();
 
         // Crear datos de prueba
-        $this->company = Company::factory()->create(['type' => 'litografia']);
+        $this->company = Company::factory()->create(['company_type' => 'litografia']);
         $this->user = User::factory()->create(['company_id' => $this->company->id]);
         $this->document = Document::factory()->create(['company_id' => $this->company->id]);
 
@@ -67,7 +67,7 @@ class CustomItemQuickHandlerTest extends TestCase
     public function it_is_not_visible_for_papeleria_companies()
     {
         // Cambiar tipo de empresa
-        $this->company->update(['type' => 'papeleria']);
+        $this->company->update(['company_type' => 'papeleria']);
 
         $this->assertFalse($this->handler->isVisible());
     }
@@ -116,8 +116,8 @@ class CustomItemQuickHandlerTest extends TestCase
         $this->assertEquals($customItem->id, $documentItem->itemable_id);
         $this->assertEquals('Personalizado: Test Custom Item', $documentItem->description);
         $this->assertEquals(5, $documentItem->quantity);
-        $this->assertEquals(100.00, $documentItem->unit_price);
-        $this->assertEquals(500.00, $documentItem->total_price);
+        $this->assertEquals('100.00', $documentItem->unit_price); // Cast to decimal:2
+        $this->assertEquals('500.00', $documentItem->total_price); // Cast to decimal:2
         $this->assertEquals($this->document->id, $documentItem->document_id);
     }
 
@@ -175,11 +175,11 @@ class CustomItemQuickHandlerTest extends TestCase
         $customItem = CustomItem::first();
         $documentItem = DocumentItem::first();
 
-        // Verificar que los precios se manejan correctamente
-        $this->assertEquals(12.347, $customItem->unit_price);
-        $this->assertEquals(86.429, $customItem->total_price); // 7 * 12.347
-        $this->assertEquals(12.347, $documentItem->unit_price);
-        $this->assertEquals(86.429, $documentItem->total_price);
+        // Verificar que los precios se manejan correctamente (con redondeo decimal:2)
+        $this->assertEquals('12.35', $customItem->unit_price); // Redondeado a 2 decimales
+        $this->assertEquals('86.45', $customItem->total_price); // 7 * 12.35 (cast aplicado antes del observer)
+        $this->assertEquals('12.35', $documentItem->unit_price);
+        $this->assertEquals('86.45', $documentItem->total_price);
     }
 
     /** @test */

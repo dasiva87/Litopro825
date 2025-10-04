@@ -116,9 +116,15 @@ class Document extends Model
     public function getAvailableItemsForOrder()
     {
         // Retornar items que pueden agregarse a órdenes (available u ordered)
+        // Note: Can't eager load 'itemable.paper' because not all itemable types have paper relation
+        // (Product doesn't have paper, but SimpleItem does)
         return $this->items()
             ->whereIn('order_status', ['available', 'ordered'])
-            ->with(['itemable', 'paper', 'printingMachine'])
+            ->with([
+                'itemable.company',
+                'paper',
+                'printingMachine'
+            ])
             ->get();
     }
 

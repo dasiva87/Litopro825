@@ -20,7 +20,7 @@ class StockMovements extends Page
 
     protected static ?int $navigationSort = 4;
 
-    protected static UnitEnum|string|null $navigationGroup = NavigationGroup::INVENTORY;
+    protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Inventario;
 
     protected string $view = 'filament.pages.stock-movements';
 }

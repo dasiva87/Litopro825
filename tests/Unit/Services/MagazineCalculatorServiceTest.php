@@ -83,9 +83,9 @@ class MagazineCalculatorServiceTest extends TestCase
         $this->createMagazinePages($magazine, 60); // 60 páginas totales
 
         $bindingCost = $this->calculator->calculateBindingCost($magazine);
-        
-        // Grapado: 500 base * 50 qty * 1.5 complexity (>50 pages) * 1.0 position = 37,500
-        $expectedCost = 500 * 50 * 1.5 * 1.0;
+
+        // Grapado: 500 base * 50 qty * 1.40 complexity (50-100 pages) * 1.0 position = 35,000
+        $expectedCost = 500 * 50 * 1.40 * 1.0;
         $this->assertEquals($expectedCost, $bindingCost);
     }
 
@@ -103,9 +103,9 @@ class MagazineCalculatorServiceTest extends TestCase
         $this->createMagazinePages($magazine, 10);
 
         $bindingCost = $this->calculator->calculateBindingCost($magazine);
-        
-        // Grapado: 500 base * 100 qty * 1.0 complexity * 1.2 position = 60,000
-        $expectedCost = 500 * 100 * 1.0 * 1.2;
+
+        // Grapado: 500 base * 100 qty * 1.0 complexity * 1.15 position (arriba) = 57,500
+        $expectedCost = 500 * 100 * 1.0 * 1.15;
         $this->assertEquals($expectedCost, $bindingCost);
     }
 
@@ -121,9 +121,10 @@ class MagazineCalculatorServiceTest extends TestCase
         $this->createMagazinePages($magazine, 12); // 12 páginas
 
         $assemblyCost = $this->calculator->calculateAssemblyCost($magazine);
-        
-        // Base: 300 * 100 qty * (1 + 12 * 0.02) pages factor * 1.0 special = 300 * 100 * 1.24 = 37,200
-        $expectedCost = 300 * 100 * (1 + 12 * 0.02) * 1.0;
+
+        // Base: 300 * 100 qty * (1 + 12 * 0.02) pages factor * (1 + 3*0.1) variety = 300 * 100 * 1.24 * 1.3
+        // 3 tipos de página: portada, interior, contraportada
+        $expectedCost = 300 * 100 * (1 + 12 * 0.02) * (1 + 3 * 0.1);
         $this->assertEquals($expectedCost, $assemblyCost);
     }
 
@@ -152,10 +153,10 @@ class MagazineCalculatorServiceTest extends TestCase
         ])->create();
 
         $assemblyCost = $this->calculator->calculateAssemblyCost($magazine);
-        
-        // Special factor: 1.0 + 0.15 (inserto) + 0.1 (separador) = 1.25
+
+        // Variety factor: 1.0 + 2 types * 0.1 = 1.2 (inserto, separador)
         $pagesCount = 3; // 2 + 1
-        $expectedCost = 300 * 50 * (1 + $pagesCount * 0.02) * 1.25;
+        $expectedCost = 300 * 50 * (1 + $pagesCount * 0.02) * 1.2;
         $this->assertEquals($expectedCost, $assemblyCost);
     }
 
@@ -238,8 +239,10 @@ class MagazineCalculatorServiceTest extends TestCase
         $this->createMagazinePages($magazine, 100); // Muchas páginas para grapado
 
         $validation = $this->calculator->validateTechnicalViability($magazine);
-        
-        $this->assertContains('El grapado no es recomendable para más de 80 páginas', $validation->warnings);
+
+        // Changed from warnings to errors - exceeding binding limits is a hard constraint
+        $this->assertFalse($validation->isValid);
+        $this->assertContains('El grapado no es recomendable para más de 80 páginas', $validation->errors);
     }
 
     /** @test */

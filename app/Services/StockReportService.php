@@ -16,7 +16,7 @@ class StockReportService
      */
     public function generateInventoryReport(?int $companyId = null, array $options = []): array
     {
-        $companyId = $companyId ?? config('tenant.company_id');
+        $companyId = $companyId ?? TenantContext::id();
 
         $report = [
             'generated_at' => now(),
@@ -37,8 +37,8 @@ class StockReportService
      */
     protected function getInventorySummary(?int $companyId): array
     {
-        $products = Product::where('company_id', $companyId)->where('active', true);
-        $papers = Paper::where('company_id', $companyId)->where('is_active', true);
+        $products = Product::forTenant($companyId)->where('active', true);
+        $papers = Paper::forTenant($companyId)->where('is_active', true);
 
         return [
             'total_products' => $products->count(),
@@ -50,8 +50,8 @@ class StockReportService
             'papers_low_stock' => $papers->clone()->lowStock()->count(),
             'papers_out_of_stock' => $papers->clone()->outOfStock()->count(),
             'total_stock_value' => $this->calculateTotalStockValue($companyId),
-            'active_alerts' => StockAlert::where('company_id', $companyId)->active()->count(),
-            'critical_alerts' => StockAlert::where('company_id', $companyId)->critical()->active()->count(),
+            'active_alerts' => StockAlert::forTenant($companyId)->active()->count(),
+            'critical_alerts' => StockAlert::forTenant($companyId)->critical()->active()->count(),
         ];
     }
 
@@ -60,9 +60,11 @@ class StockReportService
      */
     protected function getProductsReport(?int $companyId, array $options): array
     {
-        $query = Product::where('company_id', $companyId)
+        $query = Product::forTenant($companyId)
             ->where('active', true)
-            ->with(['supplier']);
+            ->with(['supplier', 'stockMovements' => function ($query) {
+                $query->latest()->limit(1);
+            }]);
 
         // Filtros opcionales
         if (!empty($options['stock_status'])) {
@@ -88,7 +90,7 @@ class StockReportService
                 'stock_value' => $product->stock * $product->purchase_price,
                 'is_own_product' => $product->is_own_product,
                 'supplier_name' => $product->supplier?->name,
-                'last_movement' => $product->getLastStockMovement()?->created_at?->format('d/m/Y H:i'),
+                'last_movement' => $product->stockMovements->first()?->created_at?->format('d/m/Y H:i'),
                 'profit_margin' => $product->getProfitMargin(),
             ];
         });
@@ -110,9 +112,11 @@ class StockReportService
      */
     protected function getPapersReport(?int $companyId, array $options): array
     {
-        $query = Paper::where('company_id', $companyId)
+        $query = Paper::forTenant($companyId)
             ->where('is_active', true)
-            ->with(['supplier']);
+            ->with(['supplier', 'stockMovements' => function ($query) {
+                $query->latest()->limit(1);
+            }]);
 
         if (!empty($options['stock_status'])) {
             match($options['stock_status']) {
@@ -139,7 +143,7 @@ class StockReportService
                 'stock_value' => $paper->stock * $paper->cost_per_sheet,
                 'is_own' => $paper->is_own,
                 'supplier_name' => $paper->supplier?->name,
-                'last_movement' => $paper->getLastStockMovement()?->created_at?->format('d/m/Y H:i'),
+                'last_movement' => $paper->stockMovements->first()?->created_at?->format('d/m/Y H:i'),
                 'margin' => $paper->margin,
             ];
         });
@@ -161,7 +165,7 @@ class StockReportService
      */
     protected function getAlertsReport(?int $companyId): array
     {
-        $alerts = StockAlert::where('company_id', $companyId)
+        $alerts = StockAlert::forTenant($companyId)
             ->with(['stockable'])
             ->orderBy('severity', 'desc')
             ->orderBy('triggered_at', 'desc')
@@ -196,7 +200,7 @@ class StockReportService
         $startDate = $options['start_date'] ?? now()->subDays(30);
         $endDate = $options['end_date'] ?? now();
 
-        $movements = StockMovement::where('company_id', $companyId)
+        $movements = StockMovement::forTenant($companyId)
             ->whereBetween('created_at', [$startDate, $endDate])
             ->with(['stockable', 'user'])
             ->orderBy('created_at', 'desc');
@@ -254,7 +258,7 @@ class StockReportService
     {
         $last30Days = now()->subDays(30);
 
-        $products = Product::where('company_id', $companyId)
+        $products = Product::forTenant($companyId)
             ->where('active', true)
             ->with(['stockMovements' => function ($query) use ($last30Days) {
                 $query->where('created_at', '>=', $last30Days)
@@ -292,7 +296,7 @@ class StockReportService
     {
         $last30Days = now()->subDays(30);
 
-        $topMovers = StockMovement::where('company_id', $companyId)
+        $topMovers = StockMovement::forTenant($companyId)
             ->where('created_at', '>=', $last30Days)
             ->selectRaw('stockable_type, stockable_id, sum(quantity) as total_quantity, count(*) as movement_count')
             ->groupBy('stockable_type', 'stockable_id')
@@ -335,12 +339,12 @@ class StockReportService
      */
     protected function calculateTotalStockValue(?int $companyId): float
     {
-        $productsValue = Product::where('company_id', $companyId)
+        $productsValue = Product::forTenant($companyId)
             ->where('active', true)
             ->selectRaw('sum(stock * purchase_price) as total')
             ->value('total') ?? 0;
 
-        $papersValue = Paper::where('company_id', $companyId)
+        $papersValue = Paper::forTenant($companyId)
             ->where('is_active', true)
             ->selectRaw('sum(stock * cost_per_sheet) as total')
             ->value('total') ?? 0;
@@ -366,7 +370,7 @@ class StockReportService
     protected function getSupplierAnalysis(?int $companyId): array
     {
         // Productos por proveedor
-        $productSuppliers = Product::where('company_id', $companyId)
+        $productSuppliers = Product::forTenant($companyId)
             ->where('active', true)
             ->where('is_own_product', false)
             ->with('supplier')
@@ -374,7 +378,7 @@ class StockReportService
             ->groupBy('supplier_contact_id');
 
         // Papeles por proveedor
-        $paperSuppliers = Paper::where('company_id', $companyId)
+        $paperSuppliers = Paper::forTenant($companyId)
             ->where('is_active', true)
             ->where('is_own', false)
             ->with('supplier')

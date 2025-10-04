@@ -104,14 +104,19 @@ class CustomItemQuickHandler implements QuickActionHandlerInterface
     {
         // Crear el CustomItem
         $customItem = CustomItem::create([
+            'company_id' => $document->company_id,
             'description' => $data['description'],
             'quantity' => $data['quantity'],
             'unit_price' => $data['unit_price'],
             'notes' => $data['notes'] ?? null,
         ]);
 
+        // Refrescar para obtener valores con cast aplicados
+        $customItem->refresh();
+
         // Crear el DocumentItem asociado
         $document->items()->create([
+            'company_id' => $document->company_id,
             'itemable_type' => 'App\\Models\\CustomItem',
             'itemable_id' => $customItem->id,
             'description' => 'Personalizado: '.$customItem->description,
@@ -126,7 +131,7 @@ class CustomItemQuickHandler implements QuickActionHandlerInterface
 
     public function getLabel(): string
     {
-        return 'Item Personalizado Rápido';
+        return 'Personalizado';
     }
 
     public function getIcon(): string
@@ -136,7 +141,7 @@ class CustomItemQuickHandler implements QuickActionHandlerInterface
 
     public function getColor(): string
     {
-        return 'secondary';
+        return 'primary';
     }
 
     public function getModalWidth(): string

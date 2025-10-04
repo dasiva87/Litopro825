@@ -59,8 +59,8 @@ class MagazineCalculatorService
         $total = 0;
         foreach ($magazine->pages as $page) {
             if ($page->simpleItem) {
-                // Asegurar que el SimpleItem tenga precios calculados
-                $page->simpleItem->calculateAll();
+                // Usar el precio ya calculado del SimpleItem
+                // No recalcular para preservar precios establecidos manualmente
                 $total += $page->simpleItem->final_price * $page->page_quantity;
             }
         }
@@ -188,7 +188,7 @@ class MagazineCalculatorService
 
         // Validaciones dimensionales
         if ($magazine->closed_width <= 0 || $magazine->closed_height <= 0) {
-            $errors[] = 'Las dimensiones cerradas deben ser mayores a 0';
+            $errors[] = 'Las dimensiones de la revista deben ser mayores a 0';
         }
 
         if ($magazine->closed_width > 50 || $magazine->closed_height > 70) {
@@ -227,7 +227,7 @@ class MagazineCalculatorService
 
         $limit = $bindingLimits[$magazine->binding_type] ?? 100;
         if ($totalPages > $limit) {
-            $errors[] = "El tipo de encuadernación '{$magazine->binding_type}' no es recomendable para {$totalPages} páginas (máximo recomendado: {$limit})";
+            $errors[] = "El {$magazine->binding_type} no es recomendable para más de {$limit} páginas";
         }
 
         // Validaciones de páginas críticas
@@ -296,6 +296,12 @@ class MagazineCalculatorService
         }
 
         return [
+            'metrics' => [
+                'total_pages' => $magazine->total_pages,
+                'binding_type' => $magazine->binding_type,
+                'binding_side' => $magazine->binding_side,
+                'quantity' => $magazine->quantity,
+            ],
             'pages' => [
                 'items' => $pagesBreakdown,
                 'total' => $result->pagesCost,
@@ -324,6 +330,63 @@ class MagazineCalculatorService
                 'final_price' => $result->finalPrice,
                 'unit_price' => $magazine->quantity > 0 ? $result->finalPrice / $magazine->quantity : 0,
             ]
+        ];
+    }
+
+    /**
+     * Generar configuración de páginas por defecto para una revista
+     */
+    public function generateDefaultPages(MagazineItem $magazine): array
+    {
+        return [
+            [
+                'page_type' => 'portada',
+                'page_order' => 1,
+                'page_quantity' => 1,
+            ],
+            [
+                'page_type' => 'interior',
+                'page_order' => 2,
+                'page_quantity' => 8,
+            ],
+            [
+                'page_type' => 'contraportada',
+                'page_order' => 3,
+                'page_quantity' => 1,
+            ],
+        ];
+    }
+
+    /**
+     * Sugerir acabados por defecto para revistas
+     */
+    public function suggestDefaultFinishings(): array
+    {
+        return [
+            'doblez' => [
+                'name' => 'Doblez',
+                'description' => 'Doblado de la revista',
+                'recommended' => true,
+                'typical_cost' => 200,
+            ],
+            'barniz' => [
+                'name' => 'Barniz',
+                'description' => 'Barniz protector',
+                'recommended' => false,
+                'typical_cost' => 800,
+            ],
+            'laminado' => [
+                'name' => 'Laminado',
+                'description' => 'Laminado de portada',
+                'recommended' => false,
+                'typical_cost' => 1500,
+            ],
+            'perforacion' => [
+                'name' => 'Perforación',
+                'description' => 'Perforación para archivado',
+                'recommended' => false,
+                'typical_cost' => 300,
+            ],
         ];
     }
 }

@@ -19,38 +19,36 @@ class StockKpisWidget extends BaseWidget
 
     protected function getStats(): array
     {
-        $companyId = auth()->user()->company_id;
-
         // Contadores básicos simplificados
-        $totalProducts = Product::where('company_id', $companyId)->where('active', true)->count();
-        $totalPapers = Paper::where('company_id', $companyId)->where('is_active', true)->count();
+        $totalProducts = Product::forCurrentTenant()->where('active', true)->count();
+        $totalPapers = Paper::forCurrentTenant()->where('is_active', true)->count();
 
         // Stock bajo - simplificado sin usar min_stock
-        $lowStockProducts = Product::where('company_id', $companyId)
+        $lowStockProducts = Product::forCurrentTenant()
             ->where('active', true)
             ->where('stock', '>', 0)
             ->where('stock', '<=', 10)
             ->count();
 
-        $lowStockPapers = Paper::where('company_id', $companyId)
+        $lowStockPapers = Paper::forCurrentTenant()
             ->where('is_active', true)
             ->where('stock', '>', 0)
             ->where('stock', '<=', 100)
             ->count();
 
         // Sin stock
-        $outOfStockProducts = Product::where('company_id', $companyId)
+        $outOfStockProducts = Product::forCurrentTenant()
             ->where('active', true)
             ->where('stock', '<=', 0)
             ->count();
 
-        $outOfStockPapers = Paper::where('company_id', $companyId)
+        $outOfStockPapers = Paper::forCurrentTenant()
             ->where('is_active', true)
             ->where('stock', '<=', 0)
             ->count();
 
         // Alertas críticas - simplificado sin usar relación
-        $criticalAlerts = StockAlert::where('company_id', $companyId)
+        $criticalAlerts = StockAlert::forCurrentTenant()
             ->where('severity', 'critical')
             ->where('status', 'active')
             ->count();
@@ -76,11 +74,10 @@ class StockKpisWidget extends BaseWidget
 
     protected function calculateStockCoverageDays(): int
     {
-        $companyId = auth()->user()->company_id;
         $last30Days = now()->subDays(30);
 
         // Calcular consumo promedio diario
-        $totalConsumption = StockMovement::where('company_id', $companyId)
+        $totalConsumption = StockMovement::forCurrentTenant()
             ->where('type', 'out')
             ->where('created_at', '>=', $last30Days)
             ->sum('quantity');
@@ -92,10 +89,10 @@ class StockKpisWidget extends BaseWidget
         }
 
         // Calcular stock total actual
-        $totalStock = Product::where('company_id', $companyId)
+        $totalStock = Product::forCurrentTenant()
             ->where('active', true)
             ->sum('stock') +
-            Paper::where('company_id', $companyId)
+            Paper::forCurrentTenant()
             ->where('is_active', true)
             ->sum('stock');
 

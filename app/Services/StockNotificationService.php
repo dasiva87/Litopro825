@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Notifications\StockAlertNotification;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Notification;
+use App\Services\TenantContext;
 
 class StockNotificationService
 {
@@ -44,11 +45,11 @@ class StockNotificationService
      */
     public function sendDailySummary(?int $companyId = null): array
     {
-        $companyId = $companyId ?? config('tenant.company_id');
+        $companyId = $companyId ?? TenantContext::id();
         $results = ['sent' => 0, 'skipped' => 0];
 
         // Obtener alertas activas del día
-        $todayAlerts = StockAlert::where('company_id', $companyId)
+        $todayAlerts = StockAlert::forTenant($companyId)
             ->active()
             ->where('triggered_at', '>=', now()->startOfDay())
             ->with(['stockable'])
@@ -78,9 +79,9 @@ class StockNotificationService
      */
     public function sendCriticalAlerts(?int $companyId = null): array
     {
-        $companyId = $companyId ?? config('tenant.company_id');
+        $companyId = $companyId ?? TenantContext::id();
 
-        $criticalAlerts = StockAlert::where('company_id', $companyId)
+        $criticalAlerts = StockAlert::forTenant($companyId)
             ->critical()
             ->active()
             ->where('created_at', '>=', now()->subHours(1)) // Solo alertas de la última hora
@@ -110,7 +111,7 @@ class StockNotificationService
      */
     protected function getUsersToNotify(int $companyId, string $severity): Collection
     {
-        $query = User::where('company_id', $companyId);
+        $query = User::forTenant($companyId);
 
         // Filtrar por roles dependiendo de la severidad
         if (in_array($severity, ['critical', 'high'])) {
@@ -203,23 +204,23 @@ class StockNotificationService
      */
     public function getNotificationStats(?int $companyId = null, int $days = 7): array
     {
-        $companyId = $companyId ?? config('tenant.company_id');
+        $companyId = $companyId ?? TenantContext::id();
         $startDate = now()->subDays($days);
 
         return [
             'period_days' => $days,
-            'total_alerts_created' => StockAlert::where('company_id', $companyId)
+            'total_alerts_created' => StockAlert::forTenant($companyId)
                 ->where('created_at', '>=', $startDate)
                 ->count(),
-            'alerts_notified' => StockAlert::where('company_id', $companyId)
+            'alerts_notified' => StockAlert::forTenant($companyId)
                 ->where('created_at', '>=', $startDate)
                 ->whereJsonPath('metadata->notification_sent', true)
                 ->count(),
-            'critical_alerts' => StockAlert::where('company_id', $companyId)
+            'critical_alerts' => StockAlert::forTenant($companyId)
                 ->where('created_at', '>=', $startDate)
                 ->where('severity', 'critical')
                 ->count(),
-            'users_with_notifications' => User::where('company_id', $companyId)
+            'users_with_notifications' => User::forTenant($companyId)
                 ->whereHas('notifications', function ($q) use ($startDate) {
                     $q->where('created_at', '>=', $startDate)
                       ->where('data->type', 'stock_alert');

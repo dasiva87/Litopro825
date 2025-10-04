@@ -49,9 +49,12 @@ class MagazineCalculatorServiceTest extends TestCase
             'ink_front_count' => 4,
             'ink_back_count' => 0,
         ]);
-        
-        // Forzar un precio específico para la prueba
-        $this->simpleItem->update(['final_price' => 50000]);
+
+        // Forzar un precio específico para la prueba (bypass observers)
+        \DB::table('simple_items')
+            ->where('id', $this->simpleItem->id)
+            ->update(['final_price' => 50000]);
+        $this->simpleItem->refresh();
 
         $this->magazine = MagazineItem::factory()->create([
             'description' => 'Test Magazine',

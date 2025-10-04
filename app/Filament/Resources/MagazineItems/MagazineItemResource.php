@@ -27,7 +27,7 @@ class MagazineItemResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
-    protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Cotizaciones;
+    protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Items;
 
     protected static ?string $navigationLabel = 'Revistas';
 
@@ -35,7 +35,7 @@ class MagazineItemResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Revistas';
 
-    protected static ?int $navigationSort = 30;
+    protected static ?int $navigationSort = 2;
 
     public static function form(Schema $schema): Schema
     {
@@ -74,11 +74,11 @@ class MagazineItemResource extends Resource
         $tenantId = config('app.current_tenant_id');
 
         if ($tenantId) {
-            $query->where('company_id', $tenantId);
+            $query->forTenant($tenantId);
         } else {
             // Fallback: usar company_id del usuario autenticado
             if (auth()->check() && auth()->user()->company_id) {
-                $query->where('company_id', auth()->user()->company_id);
+                $query->forCurrentTenant();
             }
         }
 

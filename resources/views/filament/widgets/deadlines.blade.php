@@ -2,78 +2,150 @@
     <x-filament-widgets::widget>
         <x-filament::section>
             <x-slot name="heading">
-                <div class="flex items-center gap-2">
-                    <svg class="h-5 w-5 text-warning-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a4 4 0 118 0v4M3 21h18l-2-9H5l-2 9z"/>
-                    </svg>
-                    <span class="font-semibold text-gray-900 dark:text-white">📅 Próximos Vencimientos</span>
-                    <x-filament::badge color="warning" size="sm">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-warning-100 dark:bg-warning-500/10">
+                            <x-filament::icon icon="heroicon-o-calendar" class="w-5 h-5 text-warning-600 dark:text-warning-400" />
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white">Próximos Vencimientos</h3>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Entregas programadas</p>
+                        </div>
+                    </div>
+                    <x-filament::badge color="warning" size="lg">
                         3
                     </x-filament::badge>
                 </div>
             </x-slot>
-            
-            <div class="space-y-3">
-                <!-- Deadline Crítico -->
-                <div class="p-3 bg-orange-50 rounded-lg border border-orange-200">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-orange-900">Volantes Restaurante</p>
-                            <p class="text-xs text-orange-700">COT-2024-089</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-sm font-bold text-orange-900">Mañana</p>
-                            <p class="text-xs text-orange-700">28 Jun</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Deadline Hoy -->
-                <div class="p-3 bg-red-50 rounded-lg border border-red-200">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-red-900">Catálogo Fashion</p>
-                            <p class="text-xs text-red-700">ORD-2024-045</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-sm font-bold text-red-900">Hoy</p>
-                            <p class="text-xs text-red-700">28 Jun</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Deadline En 2 días -->
-                <div class="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-yellow-900">Folletos Clínica</p>
-                            <p class="text-xs text-yellow-700">ORD-2024-044</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-sm font-bold text-yellow-900">29 Jun</p>
-                            <p class="text-xs text-yellow-700">En 2 días</p>
+
+            <div class="space-y-3 mt-4">
+                <!-- Deadline HOY - Crítico -->
+                <div class="group relative overflow-hidden rounded-xl border transition-all duration-200 hover:shadow-md
+                    bg-gradient-to-r from-red-50 to-red-50/50 border-red-200 hover:border-red-300
+                    dark:from-red-950/30 dark:to-red-950/10 dark:border-red-900 dark:hover:border-red-800">
+                    <div class="p-4">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <x-filament::icon icon="heroicon-m-clock" class="w-4 h-4 text-red-600 dark:text-red-400 animate-pulse" />
+                                    <h4 class="text-sm font-semibold text-red-900 dark:text-red-100">
+                                        Catálogo Fashion
+                                    </h4>
+                                    <x-filament::badge color="danger" size="sm">
+                                        HOY
+                                    </x-filament::badge>
+                                </div>
+
+                                <div class="flex items-center gap-4 text-xs">
+                                    <div class="flex items-center gap-1.5">
+                                        <x-filament::icon icon="heroicon-m-document-text" class="w-4 h-4 text-red-600 dark:text-red-400" />
+                                        <span class="font-medium text-red-700 dark:text-red-300">ORD-2024-045</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <x-filament::icon icon="heroicon-m-calendar" class="w-4 h-4 text-red-600 dark:text-red-400" />
+                                        <span class="text-red-700 dark:text-red-300">28 Jun</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
+                    <div class="h-1 bg-gray-200 dark:bg-gray-800">
+                        <div class="h-full bg-red-500 w-full"></div>
+                    </div>
                 </div>
-                
-                <!-- Botones de Acción -->
-                <div class="flex gap-2 pt-3 border-t border-gray-200 dark:border-gray-700">
+
+                <!-- Deadline MAÑANA -->
+                <div class="group relative overflow-hidden rounded-xl border transition-all duration-200 hover:shadow-md
+                    bg-gradient-to-r from-orange-50 to-orange-50/50 border-orange-200 hover:border-orange-300
+                    dark:from-orange-950/30 dark:to-orange-950/10 dark:border-orange-900 dark:hover:border-orange-800">
+                    <div class="p-4">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <x-filament::icon icon="heroicon-m-clock" class="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                                    <h4 class="text-sm font-semibold text-orange-900 dark:text-orange-100">
+                                        Volantes Restaurante
+                                    </h4>
+                                    <x-filament::badge color="warning" size="sm">
+                                        Mañana
+                                    </x-filament::badge>
+                                </div>
+
+                                <div class="flex items-center gap-4 text-xs">
+                                    <div class="flex items-center gap-1.5">
+                                        <x-filament::icon icon="heroicon-m-document-text" class="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                                        <span class="font-medium text-orange-700 dark:text-orange-300">COT-2024-089</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <x-filament::icon icon="heroicon-m-calendar" class="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                                        <span class="text-orange-700 dark:text-orange-300">28 Jun</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="h-1 bg-gray-200 dark:bg-gray-800">
+                        <div class="h-full bg-orange-500 transition-all duration-300" style="width: 85%"></div>
+                    </div>
+                </div>
+
+                <!-- Deadline EN 2 DÍAS -->
+                <div class="group relative overflow-hidden rounded-xl border transition-all duration-200 hover:shadow-md
+                    bg-gradient-to-r from-yellow-50 to-yellow-50/50 border-yellow-200 hover:border-yellow-300
+                    dark:from-yellow-950/30 dark:to-yellow-950/10 dark:border-yellow-900 dark:hover:border-yellow-800">
+                    <div class="p-4">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <x-filament::icon icon="heroicon-m-clock" class="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+                                    <h4 class="text-sm font-semibold text-yellow-900 dark:text-yellow-100">
+                                        Folletos Clínica
+                                    </h4>
+                                    <x-filament::badge color="warning" size="sm">
+                                        En 2 días
+                                    </x-filament::badge>
+                                </div>
+
+                                <div class="flex items-center gap-4 text-xs">
+                                    <div class="flex items-center gap-1.5">
+                                        <x-filament::icon icon="heroicon-m-document-text" class="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+                                        <span class="font-medium text-yellow-700 dark:text-yellow-300">ORD-2024-044</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <x-filament::icon icon="heroicon-m-calendar" class="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+                                        <span class="text-yellow-700 dark:text-yellow-300">29 Jun</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="h-1 bg-gray-200 dark:bg-gray-800">
+                        <div class="h-full bg-yellow-500 transition-all duration-300" style="width: 60%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div class="grid grid-cols-2 gap-3">
                     <x-filament::button
                         color="warning"
                         size="sm"
-                        tag="button"
-                        onclick="createDeadline()"
-                        class="flex-1"
+                        tag="a"
+                        href="{{ route('filament.admin.resources.documents.index') }}"
+                        icon="heroicon-m-plus"
+                        class="justify-center"
                     >
-                        Nuevo Deadline
+                        Nueva Entrega
                     </x-filament::button>
-                    
+
                     <x-filament::button
-                        color="info" 
+                        color="gray"
                         size="sm"
-                        tag="button"
-                        onclick="viewCalendar()"
-                        class="flex-1"
+                        tag="a"
+                        href="{{ route('filament.admin.resources.documents.index') }}"
+                        icon="heroicon-m-calendar-days"
+                        outlined
+                        class="justify-center"
                     >
                         Ver Calendario
                     </x-filament::button>
@@ -81,44 +153,4 @@
             </div>
         </x-filament::section>
     </x-filament-widgets::widget>
-
-    <style>
-    /* Animaciones para deadlines urgentes */
-    @keyframes deadline-pulse {
-        0%, 100% {
-            transform: scale(1);
-        }
-        50% {
-            transform: scale(1.02);
-        }
-    }
-
-    .deadline-overdue {
-        animation: deadline-pulse 2s ease-in-out infinite;
-    }
-
-    /* Hover effects */
-    .deadline-item:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        transition: all 0.2s ease-in-out;
-    }
-    </style>
-
-    <script>
-    function createDeadline() {
-        alert('Crear nuevo deadline: Funcionalidad por implementar');
-    }
-    
-    function viewCalendar() {
-        alert('Ver calendario: Funcionalidad por implementar');
-    }
-    
-    // Auto-refresh deadlines cada 5 minutos
-    setInterval(() => {
-        if (typeof Livewire !== 'undefined') {
-            Livewire.emit('refreshDeadlines');
-        }
-    }, 300000);
-    </script>
 </div>

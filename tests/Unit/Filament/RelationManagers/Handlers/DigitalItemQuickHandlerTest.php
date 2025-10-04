@@ -27,7 +27,7 @@ class DigitalItemQuickHandlerTest extends TestCase
         parent::setUp();
 
         // Crear datos de prueba
-        $this->company = Company::factory()->create(['type' => 'litografia']);
+        $this->company = Company::factory()->create(['company_type' => 'litografia']);
         $this->user = User::factory()->create(['company_id' => $this->company->id]);
         $this->document = Document::factory()->create(['company_id' => $this->company->id]);
 
@@ -76,7 +76,7 @@ class DigitalItemQuickHandlerTest extends TestCase
         $this->assertTrue($this->handler->isVisible());
 
         // No visible para papelerías
-        $this->company->update(['type' => 'papeleria']);
+        $this->company->update(['company_type' => 'papeleria']);
         $this->assertFalse($this->handler->isVisible());
     }
 
@@ -229,7 +229,8 @@ class DigitalItemQuickHandlerTest extends TestCase
         // Verificar que se creó el acabado relacionado
         $this->assertEquals(1, $documentItem->finishings()->count());
         $documentFinishing = $documentItem->finishings()->first();
-        $this->assertEquals($finishing->id, $documentFinishing->finishing_id);
+        // DocumentItemFinishing stores name, not ID
+        $this->assertEquals($finishing->name, $documentFinishing->finishing_name);
         $this->assertEquals(25.00, $documentFinishing->total_price);
     }
 
@@ -308,8 +309,8 @@ class DigitalItemQuickHandlerTest extends TestCase
         $this->assertArrayNotHasKey($inactiveItem->id, $options);
 
         // Verificar formato de las opciones
-        $this->assertStringContains('DIG001', $options[$this->digitalItem->id]);
-        $this->assertStringContains('Test Digital Item', $options[$this->digitalItem->id]);
+        $this->assertStringContainsString('DIG001', $options[$this->digitalItem->id]);
+        $this->assertStringContainsString('Test Digital Item', $options[$this->digitalItem->id]);
     }
 
     /** @test */
@@ -345,12 +346,17 @@ class DigitalItemQuickHandlerTest extends TestCase
             'quantity' => 4
         ];
 
-        $summary = $this->invokeMethod($this->handler, 'getCalculationSummary', [$getData]);
+        // Crear callback que simula Filament's $get
+        $get = function ($key) use ($getData) {
+            return $getData[$key] ?? null;
+        };
 
-        $this->assertStringContains('Test Digital Item', $summary);
-        $this->assertStringContains('$50.00', $summary); // Unit price
-        $this->assertStringContains('$200.00', $summary); // Total price (4 * 50)
-        $this->assertStringContains('✅ Cálculo válido', $summary);
+        $summary = $this->invokeMethod($this->handler, 'getCalculationSummary', [$get]);
+
+        $this->assertStringContainsString('Test Digital Item', $summary);
+        $this->assertStringContainsString('$50.00', $summary); // Unit price
+        $this->assertStringContainsString('$200.00', $summary); // Total price (4 * 50)
+        $this->assertStringContainsString('✅ Cálculo válido', $summary);
     }
 
     /** @test */
@@ -370,10 +376,15 @@ class DigitalItemQuickHandlerTest extends TestCase
             // Faltan dimensiones requeridas
         ];
 
-        $summary = $this->invokeMethod($this->handler, 'getCalculationSummary', [$getData]);
+        // Crear callback que simula Filament's $get
+        $get = function ($key) use ($getData) {
+            return $getData[$key] ?? null;
+        };
 
-        $this->assertStringContains('❌', $summary);
-        $this->assertStringNotContains('✅ Cálculo válido', $summary);
+        $summary = $this->invokeMethod($this->handler, 'getCalculationSummary', [$get]);
+
+        $this->assertStringContainsString('❌', $summary);
+        $this->assertStringNotContainsString('✅ Cálculo válido', $summary);
     }
 
     /**

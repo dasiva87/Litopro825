@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\DocumentItem;
 use App\Models\PurchaseOrder;
+use App\Services\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -14,9 +15,9 @@ class DocumentItemController extends Controller
      */
     public function getOpenOrders(Request $request)
     {
-        $companyId = auth()->user()->company_id;
+        $companyId = TenantContext::id();
 
-        $orders = PurchaseOrder::where('company_id', $companyId)
+        $orders = PurchaseOrder::forTenant($companyId)
             ->whereIn('status', ['draft', 'sent', 'confirmed']) // Solo órdenes abiertas
             ->with('supplierCompany')
             ->orderBy('created_at', 'desc')
@@ -43,25 +44,28 @@ class DocumentItemController extends Controller
      */
     public function addToOrders(Request $request, DocumentItem $documentItem)
     {
+        $companyId = TenantContext::id();
+
         // Verificar que el item pertenece a la empresa del usuario
-        if ($documentItem->company_id !== auth()->user()->company_id) {
+        if ($documentItem->company_id !== $companyId) {
             return response()->json([
                 'success' => false,
                 'message' => 'No tienes permiso para acceder a este item',
             ], 403);
         }
 
-        $request->validate([
-            'order_ids' => 'required|array',
-            'order_ids.*' => 'exists:purchase_orders,id',
+        $validated = $request->validate([
+            'order_ids' => 'required|array|min:1',
+            'order_ids.*' => 'integer|exists:purchase_orders,id',
+        ], [
+            'order_ids.required' => 'Debe seleccionar al menos una orden',
+            'order_ids.*.exists' => 'Una o más órdenes seleccionadas no son válidas',
         ]);
 
-        $companyId = auth()->user()->company_id;
-
-        DB::transaction(function () use ($request, $documentItem, $companyId) {
-            foreach ($request->order_ids as $orderId) {
-                $order = PurchaseOrder::where('id', $orderId)
-                    ->where('company_id', $companyId)
+        DB::transaction(function () use ($validated, $documentItem, $companyId) {
+            foreach ($validated['order_ids'] as $orderId) {
+                $order = PurchaseOrder::forTenant($companyId)
+                    ->where('id', $orderId)
                     ->firstOrFail();
 
                 // Verificar si ya está en esta orden

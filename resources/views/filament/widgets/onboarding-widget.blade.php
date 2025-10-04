@@ -99,10 +99,10 @@
             </div>
             <div style="display: flex; gap: 12px;">
                 @if($this->getData()['progress'] < 100)
-                    <button style="padding: 10px 20px; background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; backdrop-filter: blur(10px); transition: all 0.2s ease;"
+                    <button wire:click="hideOnboarding"
+                            style="padding: 10px 20px; background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; backdrop-filter: blur(10px); transition: all 0.2s ease;"
                             onmouseover="this.style.background='rgba(255,255,255,0.3)';"
-                            onmouseout="this.style.background='rgba(255,255,255,0.2)';"
-                            onclick="hideOnboardingWidget()">
+                            onmouseout="this.style.background='rgba(255,255,255,0.2)';">
                         Ocultar por ahora
                     </button>
                 @endif
@@ -141,11 +141,10 @@ function handleStepAction(stepId) {
     }
 }
 
-function hideOnboardingWidget() {
-    if(confirm('¿Estás seguro de que quieres ocultar el widget de bienvenida? Podrás volver a verlo más tarde.')) {
-        // Here you could make a request to hide the widget
-        // For now, just hide the element
-        this.closest('[style*="background: linear-gradient"]').style.display = 'none';
-    }
-}
+// Escuchar evento de Livewire para refrescar la página
+document.addEventListener('livewire:init', () => {
+    Livewire.on('onboarding-hidden', () => {
+        window.location.reload();
+    });
+});
 </script>

@@ -5,91 +5,99 @@ namespace App\Filament\Widgets;
 use App\Models\Product;
 use App\Models\Paper;
 use App\Models\StockAlert;
-use App\Services\StockAlertService;
-use App\Services\StockPredictionService;
-use Filament\Widgets\Widget;
-use Illuminate\Contracts\View\View;
+use Filament\Widgets\StatsOverviewWidget as BaseWidget;
+use Filament\Widgets\StatsOverviewWidget\Stat;
 
-class AdvancedStockAlertsWidget extends Widget
+class AdvancedStockAlertsWidget extends BaseWidget
 {
-    protected string $view = 'filament.widgets.advanced-stock-alerts-simple';
-
     protected static ?int $sort = 2;
 
-    protected int | string | array $columnSpan = [
-        'md' => 2,
-        'xl' => 2,
-    ];
+    protected int | string | array $columnSpan = 'full';
 
-    protected static ?string $heading = 'Alertas Avanzadas de Stock';
+    protected ?string $pollingInterval = '120s';
 
-    public function getHeading(): string
+    protected function getStats(): array
     {
-        return static::$heading ?? 'Alertas Avanzadas de Stock';
-    }
+        // Stats de stock general
+        $stockStats = $this->getStockStatsByType();
 
-    protected StockAlertService $alertService;
-    protected StockPredictionService $predictionService;
-
-    public function __construct()
-    {
-        $this->alertService = app(StockAlertService::class);
-        $this->predictionService = app(StockPredictionService::class);
-    }
-
-    /**
-     * Obtener resumen de alertas activas
-     */
-    public function getActiveAlerts(): array
-    {
-        return $this->alertService->getAlertsSummary();
-    }
-
-    /**
-     * Obtener alertas críticas recientes
-     */
-    public function getCriticalAlerts(): array
-    {
-        return StockAlert::where('company_id', auth()->user()->company_id)
-            ->critical()
+        // Alertas activas
+        $activeAlerts = StockAlert::forCurrentTenant()
             ->active()
-            ->with(['stockable'])
-            ->orderBy('triggered_at', 'desc')
-            ->limit(5)
-            ->get()
-            ->map(function ($alert) {
-                return [
-                    'id' => $alert->id,
-                    'item_name' => $alert->stockable->name,
-                    'item_type' => $alert->stockable_type === Product::class ? 'Producto' : 'Papel',
-                    'type_label' => $alert->type_label,
-                    'severity_label' => $alert->severity_label,
-                    'severity_color' => $alert->severity_color,
-                    'message' => $alert->message,
-                    'current_stock' => $alert->current_stock,
-                    'min_stock' => $alert->min_stock,
-                    'age_hours' => $alert->age_hours,
-                    'triggered_at' => $alert->triggered_at->format('d/m/Y H:i'),
-                ];
-            })
-            ->toArray();
-    }
+            ->count();
 
-    /**
-     * Obtener predicciones de agotamiento
-     */
-    public function getDepletionPredictions(): array
-    {
-        $reorderAlerts = $this->predictionService->getReorderAlerts(
-            auth()->user()->company_id,
-            14 // 14 días de umbral
-        );
+        $criticalAlerts = StockAlert::forCurrentTenant()
+            ->active()
+            ->critical()
+            ->count();
+
+        // Valor de inventario
+        $inventoryValue = $this->getInventoryValueMetrics();
+
+        // Items con movimiento
+        $topMovingCount = $this->getTopMovingItemsCount();
 
         return [
-            'urgent' => array_slice($reorderAlerts['urgent'], 0, 3),
-            'critical' => array_slice($reorderAlerts['critical'], 0, 3),
-            'summary' => $reorderAlerts['summary'],
+            Stat::make('📦 Total Items', number_format($stockStats['combined']['total']))
+                ->description('Productos y papeles activos')
+                ->descriptionIcon('heroicon-m-cube')
+                ->color('info')
+                ->chart($this->getStockTrend()),
+
+            Stat::make('✅ En Stock', number_format($stockStats['combined']['in_stock']))
+                ->description('Items con stock suficiente')
+                ->descriptionIcon('heroicon-m-check-circle')
+                ->color('success'),
+
+            Stat::make('⚠️ Stock Bajo', number_format($stockStats['combined']['low_stock']))
+                ->description('Próximos a reposición')
+                ->descriptionIcon('heroicon-m-exclamation-triangle')
+                ->color('warning'),
+
+            Stat::make('🚨 Sin Stock', number_format($stockStats['combined']['out_of_stock']))
+                ->description('Reposición urgente')
+                ->descriptionIcon('heroicon-m-x-circle')
+                ->color('danger'),
+
+            Stat::make('🔔 Alertas Activas', number_format($activeAlerts))
+                ->description($criticalAlerts . ' críticas')
+                ->descriptionIcon($criticalAlerts > 0 ? 'heroicon-m-bell-alert' : 'heroicon-m-bell')
+                ->color($criticalAlerts > 0 ? 'danger' : 'warning'),
+
+            Stat::make('💰 Valor Inventario', '$' . number_format($inventoryValue['total_inventory_value'], 0))
+                ->description($inventoryValue['risk_percentage'] . '% en riesgo')
+                ->descriptionIcon('heroicon-m-banknotes')
+                ->color('info'),
         ];
+    }
+
+    private function getStockTrend(): array
+    {
+        $trend = [];
+
+        for ($i = 6; $i >= 0; $i--) {
+            $date = now()->subDays($i)->startOfDay();
+
+            $stockCount = Product::forCurrentTenant()
+                ->where('active', true)
+                ->where('updated_at', '<=', $date->endOfDay())
+                ->count();
+
+            $trend[] = $stockCount;
+        }
+
+        return $trend;
+    }
+
+    private function getTopMovingItemsCount(): int
+    {
+        $last30Days = now()->subDays(30);
+
+        return \App\Models\StockMovement::forCurrentTenant()
+            ->where('type', 'out')
+            ->where('created_at', '>=', $last30Days)
+            ->distinct('stockable_type', 'stockable_id')
+            ->count();
     }
 
     /**
@@ -97,10 +105,8 @@ class AdvancedStockAlertsWidget extends Widget
      */
     public function getStockStatsByType(): array
     {
-        $companyId = auth()->user()->company_id;
-
         // Productos
-        $products = Product::where('company_id', $companyId)->where('active', true);
+        $products = Product::forCurrentTenant()->where('active', true);
         $productStats = [
             'total' => $products->count(),
             'in_stock' => $products->clone()->inStock()->count(),
@@ -109,7 +115,7 @@ class AdvancedStockAlertsWidget extends Widget
         ];
 
         // Papeles
-        $papers = Paper::where('company_id', $companyId)->where('is_active', true);
+        $papers = Paper::forCurrentTenant()->where('is_active', true);
         $paperStats = [
             'total' => $papers->count(),
             'in_stock' => $papers->clone()->inStock()->count(),
@@ -129,58 +135,17 @@ class AdvancedStockAlertsWidget extends Widget
         ];
     }
 
-    /**
-     * Obtener top items con más movimiento
-     */
-    public function getTopMovingItems(): array
+
+    private function getInventoryValueMetrics(): array
     {
-        $companyId = auth()->user()->company_id;
-        $last30Days = now()->subDays(30);
-
-        // Obtener items con más movimientos de salida en los últimos 30 días
-        $topMovers = \App\Models\StockMovement::where('company_id', $companyId)
-            ->where('type', 'out')
-            ->where('created_at', '>=', $last30Days)
-            ->selectRaw('stockable_type, stockable_id, sum(quantity) as total_out, count(*) as movement_count')
-            ->groupBy('stockable_type', 'stockable_id')
-            ->orderByDesc('total_out')
-            ->limit(5)
-            ->get();
-
-        return $topMovers->map(function ($movement) {
-            $stockable = $movement->stockable_type::find($movement->stockable_id);
-
-            if (!$stockable) {
-                return null;
-            }
-
-            return [
-                'name' => $stockable->name,
-                'type' => $movement->stockable_type === Product::class ? 'Producto' : 'Papel',
-                'total_out' => $movement->total_out,
-                'movement_count' => $movement->movement_count,
-                'current_stock' => $stockable->stock,
-                'stock_status' => $stockable->stock_status,
-                'stock_status_color' => $stockable->stock_status_color,
-            ];
-        })->filter()->values()->toArray();
-    }
-
-    /**
-     * Obtener métricas de valor de inventario
-     */
-    public function getInventoryValueMetrics(): array
-    {
-        $companyId = auth()->user()->company_id;
-
         // Valor total de productos
-        $productsValue = Product::where('company_id', $companyId)
+        $productsValue = Product::forCurrentTenant()
             ->where('active', true)
             ->selectRaw('sum(stock * purchase_price) as total_value, sum(case when stock <= min_stock then stock * purchase_price else 0 end) as low_stock_value')
             ->first();
 
         // Valor total de papeles
-        $papersValue = Paper::where('company_id', $companyId)
+        $papersValue = Paper::forCurrentTenant()
             ->where('is_active', true)
             ->selectRaw('sum(stock * cost_per_sheet) as total_value, sum(case when stock <= min_stock then stock * cost_per_sheet else 0 end) as low_stock_value')
             ->first();
@@ -192,94 +157,6 @@ class AdvancedStockAlertsWidget extends Widget
             'total_inventory_value' => $totalValue,
             'low_stock_value' => $lowStockValue,
             'risk_percentage' => $totalValue > 0 ? round(($lowStockValue / $totalValue) * 100, 1) : 0,
-            'products_value' => $productsValue->total_value ?? 0,
-            'papers_value' => $papersValue->total_value ?? 0,
         ];
-    }
-
-    /**
-     * Obtener alertas por gravedad para el gráfico
-     */
-    public function getAlertsBySeverity(): array
-    {
-        $companyId = auth()->user()->company_id;
-
-        $alertCounts = StockAlert::where('company_id', $companyId)
-            ->active()
-            ->selectRaw('severity, count(*) as count')
-            ->groupBy('severity')
-            ->pluck('count', 'severity')
-            ->toArray();
-
-        return [
-            'critical' => $alertCounts['critical'] ?? 0,
-            'high' => $alertCounts['high'] ?? 0,
-            'medium' => $alertCounts['medium'] ?? 0,
-            'low' => $alertCounts['low'] ?? 0,
-        ];
-    }
-
-    /**
-     * Acciones rápidas para el widget
-     */
-    public function acknowledgeAlert(int $alertId): void
-    {
-        $alert = StockAlert::find($alertId);
-        if ($alert && $alert->company_id === auth()->user()->company_id) {
-            $alert->acknowledge();
-        }
-    }
-
-    public function resolveAlert(int $alertId): void
-    {
-        $alert = StockAlert::find($alertId);
-        if ($alert && $alert->company_id === auth()->user()->company_id) {
-            $alert->resolve();
-        }
-    }
-
-    public function refreshAlerts(): void
-    {
-        $this->alertService->evaluateAllAlerts(auth()->user()->company_id);
-    }
-
-    /**
-     * Obtener datos para la vista
-     */
-    public function getViewData(): array
-    {
-        return [
-            'activeAlerts' => $this->getActiveAlerts(),
-            'criticalAlerts' => $this->getCriticalAlerts(),
-            'depletionPredictions' => $this->getDepletionPredictions(),
-            'stockStats' => $this->getStockStatsByType(),
-            'topMovingItems' => $this->getTopMovingItems(),
-            'inventoryValue' => $this->getInventoryValueMetrics(),
-            'alertsBySeverity' => $this->getAlertsBySeverity(),
-        ];
-    }
-
-    /**
-     * Polling para actualizaciones en tiempo real
-     */
-    public function getPollingInterval(): ?string
-    {
-        return '120s'; // Actualizar cada 2 minutos para mejor performance
-    }
-
-    /**
-     * Cache key for widget data
-     */
-    protected function getCacheKey(): string
-    {
-        return 'advanced_stock_alerts_' . auth()->user()->company_id;
-    }
-
-    /**
-     * Cache duration in seconds
-     */
-    protected function getCacheDuration(): int
-    {
-        return 60; // Cache por 1 minuto
     }
 }

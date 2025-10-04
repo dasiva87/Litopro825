@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Filament\Widgets;
+use App\Services\TenantContext;
 
 use App\Models\Product;
 use App\Models\Paper;
@@ -22,7 +23,7 @@ class StockLevelTrackingWidget extends Widget
 
     public function getViewData(): array
     {
-        $companyId = auth()->user()->company_id;
+        $companyId = TenantContext::id();
         
         // Obtener productos con stock bajo
         $lowStockProducts = Product::where('company_id', $companyId)

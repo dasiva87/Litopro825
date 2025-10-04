@@ -40,10 +40,10 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Blue,
             ])
-            ->brandName('LitoPro')
+            ->brandName('Grafired')
             ->favicon(asset('favicon.ico'))
-            ->brandLogo(fn () => view('components.litopro-logo'))
-            ->darkModeBrandLogo(fn () => view('components.litopro-logo-dark'))
+            ->brandLogo(fn () => view('components.grafired-logo'))
+            ->darkModeBrandLogo(fn () => view('components.grafired-logo-dark'))
             // ->plugin(FilamentNordThemePlugin::make()) // Comentado para Railway
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
@@ -52,7 +52,7 @@ class AdminPanelProvider extends PanelProvider
                 \App\Filament\Pages\Home::class,
             ])
             ->default()
-            ->homeUrl('admin')
+            ->homeUrl('/admin')
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
                 // Default Filament Widgets
@@ -94,6 +94,13 @@ class AdminPanelProvider extends PanelProvider
             ->spa()
             ->unsavedChangesAlerts()
             ->viteTheme('resources/css/filament/admin/theme.css')
+            ->navigationGroups([
+                'Documentos',
+                'Items',
+                'Inventario',
+                'Configuración',
+                'Sistema',
+            ])
             ->userMenuItems([
                 'dashboard' => \Filament\Navigation\MenuItem::make()
                     ->label('Dashboard')
@@ -107,6 +114,11 @@ class AdminPanelProvider extends PanelProvider
                     ->label('Red Social')
                     ->url('/admin/social-feed')
                     ->icon('heroicon-o-share'),
+                'users' => \Filament\Navigation\MenuItem::make()
+                    ->label('Usuarios')
+                    ->url('/admin/users')
+                    ->icon('heroicon-o-users')
+                    ->visible(fn () => auth()->user()->can('viewAny', \App\Models\User::class)),
                 'roles' => \Filament\Navigation\MenuItem::make()
                     ->label('Gestión de Roles')
                     ->url('/admin/roles')

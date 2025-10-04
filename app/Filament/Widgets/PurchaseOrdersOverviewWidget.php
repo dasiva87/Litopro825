@@ -19,30 +19,28 @@ class PurchaseOrdersOverviewWidget extends BaseWidget
             return [];
         }
 
-        $companyId = $user->company_id;
-
         // Estadísticas básicas
-        $totalOrders = PurchaseOrder::where('company_id', $companyId)->count();
-        $pendingOrders = PurchaseOrder::where('company_id', $companyId)
+        $totalOrders = PurchaseOrder::forCurrentTenant()->count();
+        $pendingOrders = PurchaseOrder::forCurrentTenant()
             ->whereIn('status', ['draft', 'sent', 'confirmed', 'partially_received'])
             ->count();
-        $completedOrders = PurchaseOrder::where('company_id', $companyId)
+        $completedOrders = PurchaseOrder::forCurrentTenant()
             ->where('status', 'completed')
             ->count();
 
         // Valor total pendiente
-        $pendingValue = PurchaseOrder::where('company_id', $companyId)
+        $pendingValue = PurchaseOrder::forCurrentTenant()
             ->whereIn('status', ['draft', 'sent', 'confirmed', 'partially_received'])
             ->sum('total_amount');
 
         // Órdenes este mes
-        $thisMonthOrders = PurchaseOrder::where('company_id', $companyId)
+        $thisMonthOrders = PurchaseOrder::forCurrentTenant()
             ->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
             ->count();
 
         // Comparación con mes anterior
-        $lastMonthOrders = PurchaseOrder::where('company_id', $companyId)
+        $lastMonthOrders = PurchaseOrder::forCurrentTenant()
             ->whereMonth('created_at', now()->subMonth()->month)
             ->whereYear('created_at', now()->subMonth()->year)
             ->count();
@@ -52,7 +50,7 @@ class PurchaseOrdersOverviewWidget extends BaseWidget
             : ($thisMonthOrders > 0 ? 100 : 0);
 
         // Proveedores únicos
-        $uniqueSuppliers = PurchaseOrder::where('company_id', $companyId)
+        $uniqueSuppliers = PurchaseOrder::forCurrentTenant()
             ->distinct('supplier_company_id')
             ->count();
 

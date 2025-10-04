@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\TalonarioItems;
 
+use App\Enums\NavigationGroup;
 use App\Filament\Resources\TalonarioItems\Pages\CreateTalonarioItem;
 use App\Filament\Resources\TalonarioItems\Pages\EditTalonarioItem;
 use App\Filament\Resources\TalonarioItems\Pages\ListTalonarioItems;
@@ -17,6 +18,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use UnitEnum;
 
 class TalonarioItemResource extends Resource
 {
@@ -25,6 +27,10 @@ class TalonarioItemResource extends Resource
     protected static ?string $model = TalonarioItem::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+
+    protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Items;
+
+    protected static ?int $navigationSort = 3;
 
     public static function form(Schema $schema): Schema
     {
@@ -63,11 +69,11 @@ class TalonarioItemResource extends Resource
         $tenantId = config('app.current_tenant_id');
 
         if ($tenantId) {
-            $query->where('company_id', $tenantId);
+            $query->forTenant($tenantId);
         } else {
             // Fallback: usar company_id del usuario autenticado
             if (auth()->check() && auth()->user()->company_id) {
-                $query->where('company_id', auth()->user()->company_id);
+                $query->forCurrentTenant();
             }
         }
 

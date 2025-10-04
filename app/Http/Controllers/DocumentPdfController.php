@@ -11,10 +11,8 @@ class DocumentPdfController extends Controller
 {
     public function show(Document $document)
     {
-        // Verificar que el usuario tenga acceso al documento (multi-tenant)
-        if (auth()->check() && $document->company_id !== auth()->user()->company_id) {
-            abort(403);
-        }
+        // Usar Policy para verificar acceso multi-tenant
+        $this->authorize('view', $document);
 
         // Cargar todas las relaciones necesarias para el PDF
         $document->load([
@@ -43,10 +41,8 @@ class DocumentPdfController extends Controller
 
     public function download(Document $document)
     {
-        // Verificar que el usuario tenga acceso al documento (multi-tenant)
-        if (auth()->check() && $document->company_id !== auth()->user()->company_id) {
-            abort(403);
-        }
+        // Usar Policy para verificar acceso multi-tenant
+        $this->authorize('view', $document);
 
         // Cargar todas las relaciones necesarias para el PDF
         $document->load([

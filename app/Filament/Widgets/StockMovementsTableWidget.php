@@ -31,7 +31,7 @@ class StockMovementsTableWidget extends BaseWidget
         return $table
             ->query(
                 StockMovement::query()
-                    ->where('company_id', auth()->user()->company_id)
+                    ->forCurrentTenant()
                     ->with(['stockable', 'user'])
                     ->latest()
             )
@@ -195,7 +195,7 @@ class StockMovementsTableWidget extends BaseWidget
                     ->icon('heroicon-o-eye')
                     ->color('info')
                     ->modalHeading('Detalles del Movimiento')
-                    ->modalContent(fn (StockMovement $record): string => view('filament.widgets.stock-movement-details', compact('record'))->render())
+                    ->modalContent(fn (StockMovement $record) => view('filament.widgets.stock-movement-details', compact('record')))
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Cerrar'),
             ])
@@ -242,7 +242,7 @@ class StockMovementsTableWidget extends BaseWidget
     public function exportMovements($records = null)
     {
         $movements = $records ?? StockMovement::with(['stockable', 'user'])
-            ->where('company_id', auth()->user()->company_id)
+            ->forCurrentTenant()
             ->orderBy('created_at', 'desc')
             ->get();
 

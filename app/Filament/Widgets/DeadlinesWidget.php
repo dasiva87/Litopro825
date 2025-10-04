@@ -2,196 +2,86 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\Deadline;
 use App\Models\Document;
-use App\Models\PaperOrder;
-use Filament\Widgets\Widget;
-use Illuminate\Support\Collection;
+use Filament\Widgets\StatsOverviewWidget as BaseWidget;
+use Filament\Widgets\StatsOverviewWidget\Stat;
 
-class DeadlinesWidget extends Widget
+class DeadlinesWidget extends BaseWidget
 {
-    protected string $view = 'filament.widgets.deadlines';
-    
     protected static ?int $sort = 6;
-    
-    protected int | string | array $columnSpan = [
-        'md' => 1,
-        'xl' => 1,
-    ];
-    
-    public function getUpcomingDeadlines(): Collection
+
+    protected int | string | array $columnSpan = 'full';
+
+    protected function getStats(): array
     {
-        // Get deadlines from the Deadline model
-        $modelDeadlines = Deadline::where('company_id', auth()->user()->company_id)
-            ->pending()
-            ->where('deadline_date', '>=', now())
-            ->where('deadline_date', '<=', now()->addDays(15))
-            ->orderBy('deadline_date')
-            ->with('deadlinable')
-            ->get();
-        
-        // Get document-based deadlines
-        $documentDeadlines = $this->getDocumentDeadlines();
-        
-        // Get paper order deadlines
-        $paperOrderDeadlines = $this->getPaperOrderDeadlines();
-        
-        // Combine and sort all deadlines
-        $allDeadlines = collect()
-            ->merge($modelDeadlines->map([$this, 'formatModelDeadline']))
-            ->merge($documentDeadlines)
-            ->merge($paperOrderDeadlines)
-            ->sortBy('deadline_date')
-            ->take(10);
-            
-        return $allDeadlines;
-    }
-    
-    public function getOverdueDeadlines(): Collection
-    {
-        $modelDeadlines = Deadline::where('company_id', auth()->user()->company_id)
-            ->where('status', 'pending')
-            ->where('deadline_date', '<', now())
-            ->orderBy('deadline_date', 'desc')
-            ->with('deadlinable')
-            ->limit(5)
-            ->get();
-            
-        return $modelDeadlines->map([$this, 'formatModelDeadline']);
-    }
-    
-    private function getDocumentDeadlines(): Collection
-    {
-        return Document::where('company_id', auth()->user()->company_id)
+        // Entregas hoy
+        $todayCount = Document::forCurrentTenant()
             ->whereNotIn('status', ['completed', 'cancelled'])
             ->whereNotNull('due_date')
-            ->where('due_date', '>=', now())
-            ->where('due_date', '<=', now()->addDays(15))
-            ->with(['contact', 'documentType'])
-            ->get()
-            ->map(function ($document) {
-                return [
-                    'id' => 'doc_' . $document->id,
-                    'title' => "Entrega: {$document->document_number}",
-                    'description' => "Cliente: {$document->contact->name}",
-                    'deadline_date' => $document->due_date,
-                    'type' => 'document_delivery',
-                    'type_label' => 'Entrega de Documento',
-                    'priority' => $this->calculateDocumentPriority($document),
-                    'priority_color' => $this->getPriorityColor($this->calculateDocumentPriority($document)),
-                    'status' => 'pending',
-                    'days_until' => now()->diffInDays($document->due_date, false),
-                    'related_model' => 'Document',
-                    'related_id' => $document->id,
-                    'url' => route('filament.admin.resources.documents.view', $document),
-                ];
-            });
-    }
-    
-    private function getPaperOrderDeadlines(): Collection
-    {
-        return PaperOrder::where('company_id', auth()->user()->company_id)
-            ->whereIn('status', ['pending', 'confirmed', 'in_transit'])
-            ->whereNotNull('requested_delivery_date')
-            ->where('requested_delivery_date', '>=', now())
-            ->where('requested_delivery_date', '<=', now()->addDays(15))
-            ->with('supplier')
-            ->get()
-            ->map(function ($order) {
-                return [
-                    'id' => 'order_' . $order->id,
-                    'title' => "Pedido: {$order->order_number}",
-                    'description' => "Proveedor: {$order->supplier->name}",
-                    'deadline_date' => $order->requested_delivery_date,
-                    'type' => 'material_order',
-                    'type_label' => 'Entrega de Pedido',
-                    'priority' => $order->priority,
-                    'priority_color' => $this->getPriorityColor($order->priority),
-                    'status' => 'pending',
-                    'days_until' => now()->diffInDays($order->requested_delivery_date, false),
-                    'related_model' => 'PaperOrder',
-                    'related_id' => $order->id,
-                    'url' => '#', // TODO: Add paper orders resource URL when implemented
-                ];
-            });
-    }
-    
-    public function formatModelDeadline(Deadline $deadline): array
-    {
+            ->whereDate('due_date', today())
+            ->count();
+
+        // Próximos 3 días
+        $next3Days = Document::forCurrentTenant()
+            ->whereNotIn('status', ['completed', 'cancelled'])
+            ->whereNotNull('due_date')
+            ->whereBetween('due_date', [today()->addDay(), today()->addDays(3)])
+            ->count();
+
+        // Próxima semana
+        $nextWeek = Document::forCurrentTenant()
+            ->whereNotIn('status', ['completed', 'cancelled'])
+            ->whereNotNull('due_date')
+            ->whereBetween('due_date', [today()->addDays(4), today()->addDays(7)])
+            ->count();
+
+        // Vencidos
+        $overdue = Document::forCurrentTenant()
+            ->whereNotIn('status', ['completed', 'cancelled'])
+            ->whereNotNull('due_date')
+            ->where('due_date', '<', today())
+            ->count();
+
         return [
-            'id' => 'deadline_' . $deadline->id,
-            'title' => $deadline->title,
-            'description' => $deadline->description ?? '',
-            'deadline_date' => $deadline->deadline_date,
-            'type' => $deadline->deadline_type,
-            'type_label' => $deadline->getDeadlineTypeLabel(),
-            'priority' => $deadline->priority,
-            'priority_color' => $deadline->getPriorityColor(),
-            'status' => $deadline->status,
-            'days_until' => $deadline->getDaysUntilDeadline(),
-            'related_model' => $deadline->deadlinable_type,
-            'related_id' => $deadline->deadlinable_id,
-            'url' => $this->getDeadlineUrl($deadline),
+            Stat::make('📅 Entregas Hoy', number_format($todayCount))
+                ->description($todayCount > 0 ? 'Requieren atención urgente' : 'Sin entregas')
+                ->descriptionIcon($todayCount > 0 ? 'heroicon-m-clock' : 'heroicon-m-check')
+                ->color($todayCount > 0 ? 'danger' : 'success')
+                ->chart($this->getTodayTrend()),
+
+            Stat::make('⏰ Próximos 3 Días', number_format($next3Days))
+                ->description('Entregar esta semana')
+                ->descriptionIcon('heroicon-m-calendar-days')
+                ->color($next3Days > 0 ? 'warning' : 'success'),
+
+            Stat::make('📆 Próxima Semana', number_format($nextWeek))
+                ->description('Planificar producción')
+                ->descriptionIcon('heroicon-m-calendar')
+                ->color('info'),
+
+            Stat::make('🚨 Vencidos', number_format($overdue))
+                ->description($overdue > 0 ? 'Acción inmediata' : 'Todo al día')
+                ->descriptionIcon($overdue > 0 ? 'heroicon-m-exclamation-triangle' : 'heroicon-m-check-circle')
+                ->color($overdue > 0 ? 'danger' : 'success'),
         ];
     }
-    
-    private function calculateDocumentPriority(Document $document): string
+
+    private function getTodayTrend(): array
     {
-        $daysUntil = now()->diffInDays($document->due_date, false);
-        
-        if ($daysUntil <= 1) {
-            return 'urgent';
-        } elseif ($daysUntil <= 3) {
-            return 'high';
-        } elseif ($daysUntil <= 7) {
-            return 'normal';
+        $trend = [];
+
+        for ($i = 6; $i >= 0; $i--) {
+            $date = now()->subDays($i);
+
+            $count = Document::forCurrentTenant()
+                ->whereNotIn('status', ['completed', 'cancelled'])
+                ->whereNotNull('due_date')
+                ->whereDate('due_date', $date)
+                ->count();
+
+            $trend[] = $count;
         }
-        
-        return 'low';
-    }
-    
-    private function getPriorityColor(string $priority): string
-    {
-        return match($priority) {
-            'low' => 'success',
-            'normal' => 'info',
-            'high' => 'warning',
-            'urgent' => 'danger',
-            default => 'secondary',
-        };
-    }
-    
-    private function getDeadlineUrl(Deadline $deadline): string
-    {
-        // Return URL based on the related model type
-        if ($deadline->deadlinable_type === 'App\Models\Document') {
-            return route('filament.admin.resources.documents.view', $deadline->deadlinable_id);
-        }
-        
-        // Default fallback
-        return '#';
-    }
-    
-    public function getDeadlineStats(): array
-    {
-        $upcoming = $this->getUpcomingDeadlines()->count();
-        $overdue = $this->getOverdueDeadlines()->count();
-        $urgent = $this->getUpcomingDeadlines()->where('priority', 'urgent')->count();
-        
-        return [
-            'upcoming' => $upcoming,
-            'overdue' => $overdue,
-            'urgent' => $urgent,
-            'total' => $upcoming + $overdue,
-        ];
-    }
-    
-    public function getViewData(): array
-    {
-        return [
-            'upcomingDeadlines' => $this->getUpcomingDeadlines(),
-            'overdueDeadlines' => $this->getOverdueDeadlines(),
-            'stats' => $this->getDeadlineStats(),
-        ];
+
+        return $trend;
     }
 }

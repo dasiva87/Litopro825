@@ -21,12 +21,25 @@ return new class extends Migration
         });
 
         // Poblar company_id existentes basado en la tabla documents
-        DB::statement('
-            UPDATE document_items di
-            JOIN documents d ON di.document_id = d.id
-            SET di.company_id = d.company_id
-            WHERE di.company_id IS NULL
-        ');
+        // Compatible con SQLite y MySQL
+        if (DB::getDriverName() === 'sqlite') {
+            DB::statement('
+                UPDATE document_items
+                SET company_id = (
+                    SELECT documents.company_id
+                    FROM documents
+                    WHERE documents.id = document_items.document_id
+                )
+                WHERE document_items.company_id IS NULL
+            ');
+        } else {
+            DB::statement('
+                UPDATE document_items di
+                JOIN documents d ON di.document_id = d.id
+                SET di.company_id = d.company_id
+                WHERE di.company_id IS NULL
+            ');
+        }
 
         // Hacer company_id requerido después de poblar datos
         Schema::table('document_items', function (Blueprint $table) {

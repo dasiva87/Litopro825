@@ -331,7 +331,7 @@ class TalonarioItemHandler extends AbstractItemHandler
                                                         $companyId = auth()->user()->company_id ?? 1;
 
                                                         return Paper::query()
-                                                            ->where('company_id', $companyId)
+                                                            ->forTenant($companyId)
                                                             ->where('is_active', true)
                                                             ->get()
                                                             ->mapWithKeys(function ($paper) {
@@ -351,7 +351,7 @@ class TalonarioItemHandler extends AbstractItemHandler
                                                         $companyId = auth()->user()->company_id ?? 1;
 
                                                         return PrintingMachine::query()
-                                                            ->where('company_id', $companyId)
+                                                            ->forTenant($companyId)
                                                             ->where('is_active', true)
                                                             ->get()
                                                             ->mapWithKeys(function ($machine) {
@@ -932,7 +932,7 @@ class TalonarioItemHandler extends AbstractItemHandler
                                         $companyId = auth()->user()->company_id ?? 1;
 
                                         return Paper::query()
-                                            ->where('company_id', $companyId)
+                                            ->forTenant($companyId)
                                             ->where('is_active', true)
                                             ->get()
                                             ->mapWithKeys(function ($paper) {
@@ -951,7 +951,7 @@ class TalonarioItemHandler extends AbstractItemHandler
                                         $companyId = auth()->user()->company_id ?? 1;
 
                                         return PrintingMachine::query()
-                                            ->where('company_id', $companyId)
+                                            ->forTenant($companyId)
                                             ->where('is_active', true)
                                             ->get()
                                             ->mapWithKeys(function ($machine) {

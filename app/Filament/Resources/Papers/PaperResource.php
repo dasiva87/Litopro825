@@ -30,10 +30,10 @@ class PaperResource extends Resource
     protected static ?string $modelLabel = 'Papel';
     
     protected static ?string $pluralModelLabel = 'Papeles';
-    
-    protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Configuracion;
-    
-    protected static ?int $navigationSort = 1;
+
+    protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Inventario;
+
+    protected static ?int $navigationSort = 2;
 
     public static function form(Schema $schema): Schema
     {
@@ -84,12 +84,12 @@ class PaperResource extends Resource
                     ->toArray();
 
                 $query->where(function ($query) use ($currentCompanyId, $supplierCompanyIds) {
-                    $query->where('company_id', $currentCompanyId) // Propios
+                    $query->forTenant($currentCompanyId) // Propios
                           ->orWhereIn('company_id', $supplierCompanyIds); // Solo de proveedores aprobados
                 });
             } else {
                 // Para papelerías: solo sus propios papeles
-                $query->where('company_id', $currentCompanyId);
+                $query->forTenant($currentCompanyId);
             }
         }
 
