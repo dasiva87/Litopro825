@@ -11,6 +11,9 @@ use App\Models\Plan;
 use App\Models\User;
 use BackedEnum;
 use Filament\Actions;
+use Filament\Actions\Action;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
@@ -355,10 +358,9 @@ class EnterprisePlanResource extends Resource
                     ),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
+                EditAction::make(),
 
-                Tables\Actions\Action::make('approve')
+                Action::make('approve')
                     ->label('Aprobar')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
@@ -379,7 +381,7 @@ class EnterprisePlanResource extends Resource
                             ->send();
                     }),
 
-                Tables\Actions\Action::make('reject')
+                Action::make('reject')
                     ->label('Rechazar')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
@@ -401,9 +403,7 @@ class EnterprisePlanResource extends Resource
                     }),
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
+                DeleteBulkAction::make(),
             ])
             ->defaultSort('created_at', 'desc');
     }

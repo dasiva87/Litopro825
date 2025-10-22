@@ -101,6 +101,7 @@ class DemoQuotationSeeder extends Seeder
 
         DocumentItem::create([
             'document_id' => $document->id,
+            'company_id' => $company->id,
             'itemable_type' => 'App\\Models\\SimpleItem',
             'itemable_id' => $simpleItem1->id,
             'description' => $simpleItem1->description,
@@ -130,6 +131,7 @@ class DemoQuotationSeeder extends Seeder
 
         DocumentItem::create([
             'document_id' => $document->id,
+            'company_id' => $company->id,
             'itemable_type' => 'App\\Models\\SimpleItem',
             'itemable_id' => $simpleItem2->id,
             'description' => $simpleItem2->description,
@@ -152,6 +154,7 @@ class DemoQuotationSeeder extends Seeder
 
             DocumentItem::create([
                 'document_id' => $document->id,
+                'company_id' => $company->id,
                 'itemable_type' => 'App\\Models\\Product',
                 'itemable_id' => $product->id,
                 'description' => $product->name,

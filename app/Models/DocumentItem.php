@@ -133,6 +133,19 @@ class DocumentItem extends Model
                     ->withTimestamps();
     }
 
+    public function collectionAccounts(): BelongsToMany
+    {
+        return $this->belongsToMany(CollectionAccount::class, 'document_item_collection_account')
+                    ->withPivot([
+                        'quantity_ordered',
+                        'unit_price',
+                        'total_price',
+                        'status',
+                        'notes',
+                    ])
+                    ->withTimestamps();
+    }
+
     // Scopes
     public function scopeAvailableForOrders($query)
     {

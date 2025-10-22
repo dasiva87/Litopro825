@@ -168,6 +168,80 @@ class DocumentsTable
                             return redirect()->route('filament.admin.resources.documents.edit', $newDocument);
                         }),
 
+                    Action::make('create_collection_account')
+                        ->label('Crear Cuenta de Cobro')
+                        ->icon('heroicon-o-banknotes')
+                        ->color('success')
+                        ->visible(fn ($record) => $record->status === 'approved')
+                        ->form([
+                            \Filament\Schemas\Components\Section::make('Seleccionar Items para Cuenta de Cobro')
+                                ->description('Selecciona los items que deseas incluir en la cuenta de cobro')
+                                ->schema([
+                                    \Filament\Forms\Components\CheckboxList::make('selected_items')
+                                        ->label('Items Disponibles')
+                                        ->options(function ($record) {
+                                            return $record->items
+                                                ->mapWithKeys(function ($item) {
+                                                    $total = number_format($item->total_price ?? 0, 0);
+                                                    $label = "{$item->description} - Total: \${total}";
+
+                                                    return [$item->id => $label];
+                                                });
+                                        })
+                                        ->required()
+                                        ->minItems(1)
+                                        ->columns(1),
+
+                                    \Filament\Forms\Components\Select::make('client_company_id')
+                                        ->label('Cliente')
+                                        ->relationship('contact.company', 'name')
+                                        ->default(fn ($record) => $record->contact->company_id ?? null)
+                                        ->required(),
+
+                                    \Filament\Forms\Components\DatePicker::make('due_date')
+                                        ->label('Fecha de Vencimiento')
+                                        ->default(now()->addDays(30))
+                                        ->required(),
+
+                                    \Filament\Forms\Components\Textarea::make('notes')
+                                        ->label('Notas adicionales')
+                                        ->placeholder('Notas para la cuenta de cobro...')
+                                        ->rows(3),
+                                ]),
+                        ])
+                        ->action(function ($record, array $data) {
+                            $collectionAccount = \App\Models\CollectionAccount::create([
+                                'company_id' => auth()->user()->company_id,
+                                'client_company_id' => $data['client_company_id'],
+                                'issue_date' => now(),
+                                'due_date' => $data['due_date'],
+                                'notes' => $data['notes'] ?? null,
+                                'status' => \App\Enums\CollectionAccountStatus::DRAFT,
+                            ]);
+
+                            // Agregar items seleccionados
+                            $selectedItems = \App\Models\DocumentItem::whereIn('id', $data['selected_items'])->get();
+
+                            foreach ($selectedItems as $item) {
+                                $collectionAccount->documentItems()->attach($item->id, [
+                                    'quantity_ordered' => $item->quantity ?? 1,
+                                    'unit_price' => $item->unit_price ?? 0,
+                                    'total_price' => $item->total_price ?? 0,
+                                    'status' => 'pending',
+                                ]);
+                            }
+
+                            $collectionAccount->recalculateTotal();
+
+                            \Filament\Notifications\Notification::make()
+                                ->title('Cuenta de cobro creada exitosamente')
+                                ->success()
+                                ->body("Cuenta {$collectionAccount->account_number} creada con {$selectedItems->count()} items")
+                                ->send();
+
+                            return redirect()->route('filament.admin.resources.collection-accounts.view', $collectionAccount);
+                        }),
+
                     Action::make('create_purchase_orders')
                         ->label('Crear Órdenes de Pedido')
                         ->icon('heroicon-o-shopping-cart')

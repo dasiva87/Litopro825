@@ -40,20 +40,6 @@
         <!-- Contenido Principal -->
         <div class="home-content">
             <div style="max-width: 100%; padding: 0 40px;">
-                <!-- Dashboard Stats Widget -->
-                <div style="margin-bottom: 24px;">
-                    @livewire(\App\Filament\Widgets\DashboardStatsWidget::class)
-                </div>
-
-                <!-- Advanced Stock Alerts Widget -->
-                <div style="margin-bottom: 24px;">
-                    @livewire(\App\Filament\Widgets\AdvancedStockAlertsWidget::class)
-                </div>
-
-                <!-- Active Documents Widget -->
-                <div style="margin-bottom: 24px;">
-                    @livewire(\App\Filament\Widgets\ActiveDocumentsWidget::class)
-                </div>
 
                 <!-- Widget para Crear Post -->
                 @livewire(\App\Filament\Widgets\CreatePostWidget::class)

@@ -26,6 +26,7 @@ class Dashboard extends BaseDashboard
             \App\Filament\Widgets\PurchaseOrderNotificationsWidget::class,
             \App\Filament\Widgets\PurchaseOrdersOverviewWidget::class,
             \App\Filament\Widgets\DashboardStatsWidget::class,
+            \App\Filament\Widgets\AdvancedStockAlertsWidget::class,
             \App\Filament\Widgets\ActiveDocumentsWidget::class,
             \App\Filament\Widgets\StockAlertsWidget::class,
             \App\Filament\Widgets\DeadlinesWidget::class,

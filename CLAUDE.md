@@ -46,12 +46,7 @@ class DocumentItem {
     public function itemable(): MorphTo { return $this->morphTo(); }
 }
 
-// Items implementados:
-// - SimpleItem: Cálculos automáticos con CuttingCalculatorService
-// - Product: Inventario con stock y precios
-// - DigitalItem: Servicios digitales (unit/size pricing)
-// - TalonarioItem: Numeración secuencial + hojas como SimpleItems
-// - MagazineItem: Revistas con páginas + wizard 3 pasos
+// Items: SimpleItem, Product, DigitalItem, TalonarioItem, MagazineItem
 ```
 
 ### SimpleItem - Campos
@@ -60,20 +55,6 @@ class DocumentItem {
 - **Tintas**: ink_front_count, ink_back_count, front_back_plate
 - **Costos**: design_value, transport_value, rifle_value
 - **Auto-cálculo**: profit_percentage → final_price con lógica sobrante_papel
-
-### Lógica sobrante_papel
-```php
-// Cantidad para cálculo de pliegos (SIEMPRE incluye sobrante)
-$totalQuantityWithWaste = (int) $item->quantity + ($item->sobrante_papel ?? 0);
-
-// Cantidad para impresión (sobrante solo si > 100)
-$sobrante = $item->sobrante_papel ?? 0;
-if ($sobrante > 100) {
-    $quantityForPrinting += $sobrante;
-}
-
-// Redondeo de millares (solo hacia arriba si decimal > 0.1)
-```
 
 ## Problemas Críticos Resueltos
 
@@ -86,7 +67,7 @@ if ($sobrante > 100) {
 ### TenantScope Infinite Recursion
 - ✅ **SetTenantContext Middleware**: Establece contexto tenant antes de queries
 - ✅ **TenantScope simplificado**: Solo usa Config pre-establecido, elimina auth()->user()
-- ✅ **Performance optimizada**: 0.045s response time vs infinito antes
+- ✅ **Performance optimizada**: 0.045s response time
 
 ### Sistema Multi-Tenant Robusto
 - ✅ **Scopes automáticos**: Funcionan correctamente con company_id
@@ -95,113 +76,74 @@ if ($sobrante > 100) {
 
 ## PROGRESO RECIENTE
 
-### ✅ Sesión Completada (04-Oct-2025)
-**SPRINT 7: UI/UX Polish - Filament Components Redesign**
+### ✅ Sesión Completada (04-Oct-2025 - Parte 2)
+**SPRINT 7.5: Public Registration Form UX Improvements**
 
 #### Logros Críticos de la Sesión
+1. **✅ Registration Form - Location Fields Removed**
+   - **Step 1 simplified**: Eliminados campos País, Departamento/Estado, Ciudad
+   - **JavaScript cleanup**: Removidos event listeners y fetch calls para location dropdowns
+   - **Fields remaining**: Nombre Empresa, Email, Teléfono, NIT/RUT, Tipo Empresa, Dirección
+   - **File**: resources/views/auth/register.blade.php (lines 250-296 removed)
+
+2. **✅ Registration Form - Button Layout Redesign**
+   - **Step 3 layout**: Cambiado de horizontal (flex-row) a vertical (flex-col)
+   - **Button order**: "Crear Mi Cuenta" arriba, "Anterior" abajo
+   - **Full-width buttons**: Clase `w-full` para mejor visibilidad mobile-first
+   - **File**: resources/views/auth/register.blade.php (lines 455-473)
+
+3. **✅ Registration Form - Container Improvements**
+   - **Max-width increased**: `max-w-4xl` → `max-w-6xl` para mejor visualización
+   - **Padding enhanced**: Agregado `lg:px-16` para espaciado en pantallas grandes
+   - **File**: resources/views/auth/register.blade.php (line 73, 141)
+
+#### Archivos Modificados (1 total)
+```
+resources/views/auth/register.blade.php
+  ├── Lines 73: Container max-width (max-w-4xl → max-w-6xl)
+  ├── Lines 141: Form container padding (sm:px-12 → sm:px-12 lg:px-16)
+  ├── Lines 250-296: Location fields removed (País/Departamento/Ciudad)
+  ├── Lines 455-473: Button layout (flex-row → flex-col, reordered)
+  └── Lines 829-897: JavaScript removed (location dropdowns logic)
+```
+
+#### URLs de Testing
+- **Registration Full**: http://localhost:8001/register-full
+- **Registration Simple**: http://localhost:8001/register (sin cambios)
+
+### ✅ Sesión Completada (04-Oct-2025 - Parte 1)
+**SPRINT 7: UI/UX Polish - Filament Components Redesign**
+
+#### Logros Críticos
 1. **✅ Document Items Section Redesign**
    - **Title removed**: Eliminado "Items de la Cotización" (redundante)
-   - **Button labels simplified**: Nombres cortos y concisos
-     - "Crear Revista Completa" → "Revista"
-     - "Talonario Completo" → "Talonario"
-     - "Item Sencillo Rápido" → "Sencillo"
-     - "Item Digital Rápido" → "Digital"
-     - "Producto Rápido" → "Producto"
-     - "Item Personalizado Rápido" → "Personalizado"
+   - **Button labels simplified**: "Revista", "Talonario", "Sencillo", "Digital", "Producto", "Personalizado"
    - **Files modified**: 5 (DocumentItemsRelationManager + 4 Handlers)
 
 2. **✅ Button Color Unification**
-   - **All buttons → primary**: Color consistency across all item creation actions
-   - **Before**: indigo, warning, success, purple, secondary (mixed)
-   - **After**: primary (blue) - unified design system
+   - **All buttons → primary**: Color consistency (antes: indigo, warning, success, purple, secondary)
    - **Files modified**: 5 (RelationManager + Handlers)
 
 3. **✅ Stock Movement Details Modal Redesign**
    - **Complete redesign**: Custom HTML/Tailwind → Filament native components
-   - **Components used**:
-     - `<x-filament::section>` - Semantic sections with headings
-     - `<x-filament::badge>` - Status indicators (Entrada/Salida/Producto)
-     - `<x-filament::icon>` - Heroicons (arrow-up-circle, cube, info-circle)
-   - **Sections implemented**:
-     - Header: Movement ID + timestamp + 3-column grid (Tipo/Cantidad/Razón)
-     - Item Info: Name, Type badge, Current stock, Responsible user
-     - Product Details: SKU, Price, Category, Min stock (conditional)
-     - Notes: Movement notes (conditional)
+   - **Components used**: `<x-filament::section>`, `<x-filament::badge>`, `<x-filament::icon>`
    - **Dark mode**: Full support via Filament components
    - **File**: resources/views/filament/widgets/stock-movement-details.blade.php
 
-#### Archivos Modificados (6 total)
-```
-app/Filament/Resources/Documents/RelationManagers/
-  ├── DocumentItemsRelationManager.php (title + button colors)
-  └── Handlers/
-      ├── SimpleItemQuickHandler.php (label + color)
-      ├── DigitalItemQuickHandler.php (label)
-      ├── ProductQuickHandler.php (label + color)
-      └── CustomItemQuickHandler.php (label + color)
-
-resources/views/filament/widgets/
-  └── stock-movement-details.blade.php (complete redesign)
-```
-
-### ✅ Sesión Anterior (03-Oct-2025 - Parte 3)
-**SPRINT 6: Validación & Testing + Dashboard Widgets**
-
-#### Logros Críticos
-- **Testing**: 145 passing (74% coverage), 85 → 51 failures (-40%)
-- **Request Validation**: StoreStockMovementRequest + StoreDocumentItemRequest
-- **Unit Tests**: OrderStatusTest (22) + PurchaseOrderWorkflowTest (11)
-- **Dashboard Widgets**: PendingOrdersStatsWidget + ReceivedOrdersWidget + DeliveryAlertsWidget
-- **Factory Fixes**: 18 archivos (company_id + type fixes)
-
-
-### ✅ Sesiones Anteriores (03-Oct-2025)
-**SPRINT 4-6: Performance + Architecture + Testing**
-- **Performance**: N+1 queries resueltos (7 fixes), 14 índices DB, 50-70% mejora
-- **Architecture**: Jobs/Queues (2), Events/Listeners (3+3), Cache strategy
-- **Testing**: 145 tests passing (74% coverage), Request Validation (2 classes)
-- **Dashboard**: 3 Purchase Order widgets (stats + table + alerts)
-
-### ✅ Sesiones Anteriores (Sep-Oct 2025)
-**Purchase Orders System - Arquitectura Completa**
-- **01-Oct**: Workflow estados (draft→sent→confirmed→received) + notificaciones multi-canal
-- **30-Sep**: Many-to-many architecture + Filament v4 Actions + items personalizados
+### ✅ Sesiones Anteriores (Resumen)
+- **03-Oct**: Testing (145 passing, 74% coverage) + Dashboard Widgets + Request Validation
+- **01-Oct**: Purchase Orders workflow (draft→sent→confirmed→received) + notificaciones
+- **30-Sep**: Many-to-many architecture + Filament v4 Actions
 - **29-Sep**: Security hardening + authorization framework
-- **28-Sep**: DocumentItemsRelationManager refactorización
 - **25-Sep**: Multi-tenant security + suscripciones SaaS
 
 ## Estado del Sistema
 
-### ✅ Purchase Orders - Sistema Completo Production-Ready
-
-#### Arquitectura Many-to-Many
-- **Relaciones**: Many-to-many entre órdenes e items con pivot table
-- **Flexibilidad**: Items pueden estar en múltiples órdenes simultáneamente
-- **Items personalizados**: Creación directa sin cotización asociada
-- **Multi-tenant**: Consecutivos de orden independientes por empresa
-- **Email workflow**: Formulario flexible para envío con/sin email configurado
-
-#### Workflow de Estados + Notificaciones (NEW)
-- **Estado management**: draft → sent → confirmed → received + cancelled
-- **Transiciones validadas**: Logic en OrderStatus::canTransitionTo()
-- **Auto-notifications**: Email + database al cambiar a SENT
-- **Audit trail**: OrderStatusHistory con user_id + timestamps
-- **Visibilidad bidireccional**: Emisor Y proveedor ven órdenes correspondientes
-- **UI/UX**: Badges "Enviada"/"Recibida", action modal para cambio de estado
-
-#### Flujos Operativos Completos
-- **FLOW 1**: Desde cotización → Crear órdenes múltiples (reusable)
-- **FLOW 2**: Desde orden → Agregar items desde cotizaciones
-- **FLOW 3**: Items personalizados directos a orden sin cotización
-- **FLOW 4**: Cambio de estado draft → sent → notificación automática a papelería
-- **FLOW 5**: Papelería actualiza estado → notificación a litografía
-
-#### Dashboard Purchase Orders (3 Widgets Production-Ready)
-- **PendingOrdersStatsWidget**: 5 stat cards (draft/sent/confirmed/pending value/overdue)
-- **ReceivedOrdersWidget**: Tabla para papelerías con actions (confirm/mark_received/view)
-- **DeliveryAlertsWidget**: Alertas con urgency indicators (overdue/today/tomorrow/soon)
-- **Performance optimized**: Cache 5min + polling 30s + eager loading
-- **Multi-tenant aware**: Visibility control por company_type
+### ✅ Purchase Orders - Production-Ready
+- **Arquitectura**: Many-to-many con pivot table
+- **Workflow**: draft → sent → confirmed → received + cancelled
+- **Notificaciones**: Email + database multi-canal
+- **Dashboard**: 3 widgets (stats + table + alerts) con cache 5min
 
 ### ✅ Sistema General SaaS Multi-Tenant
 - **Security**: Isolation + Authorization + Constraints por company_id
@@ -209,8 +151,7 @@ resources/views/filament/widgets/
 - **Stock System**: 2 páginas + 6 widgets + exportación
 - **Filament v4**: 100% migrado con namespaces correctos
 - **Performance**: 0.045s response time multi-tenant
-- **Notifications**: Multi-canal (mail + database) con observer pattern
-- **Testing**: 145 tests passing (74% coverage), multi-tenant integrity validated
+- **Testing**: 145 tests passing (74% coverage)
 
 ---
 
@@ -221,7 +162,7 @@ resources/views/filament/widgets/
 1. **Fix Handler Tests (20+ failures)**: Resolver logic errors en Quick Handlers
 2. **Fix Workflow Tests (15 failures)**: Purchase Order workflow edge cases
 3. **Integration Tests**: Validar end-to-end flows multi-tenant
-4. **Performance Testing**: Load testing con múltiples tenants simultáneos
+4. **Performance Testing**: Load testing (100+ concurrent users)
 5. **Production Deployment**: Docker setup + CI/CD pipeline + monitoring
 
 ### Meta Business
@@ -233,36 +174,39 @@ resources/views/filament/widgets/
 
 ## COMANDO PARA EMPEZAR MAÑANA
 ```bash
-# Iniciar LitoPro 3.0 - SPRINT 7 COMPLETADO (UI/UX Polish)
+# Iniciar LitoPro 3.0 - SPRINT 7.5 COMPLETADO (Registration Form UX)
 cd /home/dasiva/Descargas/litopro825 && php artisan serve --port=8001
 
 # URLs Operativas
-echo "✅ SPRINT 7 COMPLETADO (04-Oct-2025) - UI/UX Polish:"
+echo "✅ SPRINT 7.5 COMPLETADO (04-Oct-2025 PM) - Registration Form UX:"
+echo "   📝 Registro Full: http://localhost:8001/register-full"
 echo "   📋 Cotizaciones: http://localhost:8001/admin/documents"
 echo "   📦 Stock Movements: http://localhost:8001/admin/stock-movements"
-echo "   🏠 Dashboard: http://localhost:8001/admin/home"
 echo ""
-echo "✅ LOGROS SPRINT 7 - Filament Components Redesign:"
-echo "   ✅ Document Items: Title removed + button labels simplified"
-echo "   ✅ Button Colors: All unified to primary (blue)"
-echo "   ✅ Stock Movement Modal: Complete redesign with Filament components"
-echo "   ✅ Components Used: Section, Badge, Icon (100% native Filament)"
-echo "   ✅ Dark Mode: Full support via Filament component system"
-echo "   ✅ Files Modified: 6 (RelationManager + 4 Handlers + 1 view)"
+echo "✅ CAMBIOS SESIÓN ACTUAL - Registration Form:"
+echo "   ✅ Location Fields: País, Departamento, Ciudad removed from Step 1"
+echo "   ✅ Button Layout: Vertical stack (Crear Mi Cuenta → Anterior)"
+echo "   ✅ Container: Increased max-w-6xl + enhanced padding"
+echo "   ✅ Mobile-First: Full-width buttons (w-full)"
 echo ""
-echo "🎯 PRÓXIMA SESIÓN: Sprint 8"
-echo "   1. Fix Handler Tests (20+ failures) - Quick Handler logic errors"
-echo "   2. Fix Workflow Tests (15 failures) - Purchase Order edge cases"
-echo "   3. Integration Tests - End-to-end multi-tenant validation"
-echo "   4. Performance Testing - Load testing (100+ concurrent users)"
-echo "   5. Production Deployment - Docker + CI/CD + monitoring setup"
+echo "✅ CAMBIOS SPRINT 7 - Filament Admin UI:"
+echo "   ✅ Document Items: Simplified button labels + unified colors"
+echo "   ✅ Stock Modal: Native Filament components + dark mode support"
+echo ""
+echo "🎯 PRÓXIMA SESIÓN: Sprint 8 - Testing & Deployment"
+echo "   1. Fix Handler Tests (20+ failures)"
+echo "   2. Fix Workflow Tests (15 failures)"
+echo "   3. Integration Tests multi-tenant"
+echo "   4. Performance Testing (100+ users)"
+echo "   5. Production Deployment (Docker + CI/CD)"
 echo ""
 echo "📍 META: 95%+ test coverage + production deployment ready"
 echo ""
-echo "🔍 TESTING UI/UX:"
-echo "   1. Login → Documents → Verify button labels (Revista, Sencillo, etc)"
-echo "   2. Verify all buttons are blue/primary color (not mixed colors)"
-echo "   3. Stock Movements → Click 'Ver Detalles' → See redesigned modal"
-echo "   4. Toggle dark mode → Verify modal components adapt correctly"
-echo "   5. Check badges: Entrada (green), Salida (red), Producto (blue)"
+echo "🔍 TESTING REGISTRATION FORM:"
+echo "   1. Open http://localhost:8001/register-full in browser"
+echo "   2. Step 1: Verify NO País/Departamento/Ciudad fields"
+echo "   3. Navigate to Step 3"
+echo "   4. Verify 'Crear Mi Cuenta' button visible (green, full-width)"
+echo "   5. Verify 'Anterior' button below it (white, full-width)"
+echo "   6. Test responsive: Resize browser, check button stack"
 ```

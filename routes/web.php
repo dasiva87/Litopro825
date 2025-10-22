@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CollectionAccountPdfController;
 use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\CompleteProfileController;
 use App\Http\Controllers\DocumentPdfController;
@@ -102,6 +103,12 @@ Route::middleware('auth')->group(function () {
         ->name('documents.pdf');
     Route::get('/documents/{document}/download', [DocumentPdfController::class, 'download'])
         ->name('documents.pdf.download');
+
+    // Rutas para PDFs de cuentas de cobro
+    Route::get('/collection-accounts/{collectionAccount}/pdf', [CollectionAccountPdfController::class, 'show'])
+        ->name('collection-accounts.pdf');
+    Route::get('/collection-accounts/{collectionAccount}/download', [CollectionAccountPdfController::class, 'download'])
+        ->name('collection-accounts.pdf.download');
 
     // Rutas de impersonación
     Route::prefix('super-admin')->middleware(['role:Super Admin'])->group(function () {

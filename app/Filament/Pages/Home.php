@@ -25,17 +25,10 @@ class Home extends Page
     public function getWidgets(): array
     {
         return [
-            // Widgets principales de gestión
-            \App\Filament\Widgets\DashboardStatsWidget::class,
-            \App\Filament\Widgets\AdvancedStockAlertsWidget::class,
 
             // Widgets de acciones y calculadoras
             \App\Filament\Widgets\QuickActionsWidget::class,
             \App\Filament\Widgets\CalculadoraCorteWidget::class,
-
-            // Widgets de documentos y deadlines
-            \App\Filament\Widgets\ActiveDocumentsWidget::class,
-            \App\Filament\Widgets\DeadlinesWidget::class,
 
             // Widgets sociales
             \App\Filament\Widgets\CreatePostWidget::class,

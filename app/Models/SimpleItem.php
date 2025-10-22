@@ -17,6 +17,7 @@ class SimpleItem extends Model
     protected $fillable = [
         'company_id',
         'description',
+        'base_description', // Descripción manual del usuario
         'quantity',
         'sobrante_papel',
         'horizontal_size',
@@ -40,6 +41,9 @@ class SimpleItem extends Model
         'total_cost',
         'final_price',
     ];
+
+    // Descripción base temporal (no se guarda en BD, solo para procesamiento)
+    protected $baseDescriptionTemp = null;
 
     protected $casts = [
         'quantity' => 'decimal:2',
@@ -69,8 +73,100 @@ class SimpleItem extends Model
         parent::boot();
 
         static::saving(function ($item) {
+            // Generar descripción auto-concatenada antes de calcular
+            $item->generateAutoDescription();
+
             $item->calculateAll();
         });
+    }
+
+    /**
+     * Genera la descripción auto-concatenada basada en los campos del item
+     */
+    protected function generateAutoDescription(): void
+    {
+        // Extraer la descripción base (texto antes de "tamaño")
+        $baseDescription = $this->extractBaseDescription($this->description);
+
+        // Si hay una descripción base temporal (del formulario), usarla
+        if ($this->baseDescriptionTemp) {
+            $baseDescription = $this->baseDescriptionTemp;
+        }
+
+        // Si no hay descripción base, usar la actual o vacío
+        if (!$baseDescription) {
+            $baseDescription = $this->description ?? '';
+        }
+
+        // Construir la descripción concatenada
+        $parts = [$baseDescription];
+
+        // Agregar tamaño si están definidos horizontal_size y vertical_size
+        if ($this->horizontal_size && $this->vertical_size) {
+            $parts[] = "tamaño {$this->horizontal_size}x{$this->vertical_size}";
+        }
+
+        // Agregar impresión (tintas)
+        if (isset($this->ink_front_count) && isset($this->ink_back_count)) {
+            $parts[] = "impresión {$this->ink_front_count}x{$this->ink_back_count}";
+        }
+
+        // Agregar papel si existe la relación
+        if ($this->paper_id && $this->paper) {
+            $paperName = $this->extractPaperName($this->paper->name);
+            $parts[] = "en papel {$paperName}";
+        }
+
+        // Unir todas las partes con espacios
+        $this->description = trim(implode(' ', array_filter($parts)));
+    }
+
+    /**
+     * Extrae la descripción base del texto concatenado
+     * Ejemplo: "Volantes promocionales tamaño 10x15 impresión 4x0" → "Volantes promocionales"
+     */
+    protected function extractBaseDescription(?string $fullDescription): ?string
+    {
+        if (!$fullDescription) {
+            return null;
+        }
+
+        // Buscar la palabra "tamaño" y extraer todo lo anterior
+        $pos = strpos($fullDescription, ' tamaño ');
+        if ($pos !== false) {
+            return trim(substr($fullDescription, 0, $pos));
+        }
+
+        // Si no encuentra "tamaño", retornar la descripción completa
+        return $fullDescription;
+    }
+
+    /**
+     * Extrae el nombre limpio del papel (sin dimensiones)
+     * Ejemplo: "Bond 90gr (70x100cm)" → "Bond 90gr"
+     */
+    protected function extractPaperName(string $paperName): string
+    {
+        // Eliminar las dimensiones entre paréntesis
+        return trim(preg_replace('/\s*\([^)]*\)/', '', $paperName));
+    }
+
+    /**
+     * Mutator para capturar la descripción base cuando se asigna
+     */
+    public function setDescriptionAttribute($value): void
+    {
+        // Si es una nueva instancia o no tiene descripción previa,
+        // guardar como descripción base temporal
+        if (!$this->exists || !$this->getOriginal('description')) {
+            $this->baseDescriptionTemp = $value;
+        } else {
+            // Si ya existe, extraer la base de la descripción anterior
+            $this->baseDescriptionTemp = $this->extractBaseDescription($value);
+        }
+
+        // Guardar el valor en el atributo (será regenerado en saving)
+        $this->attributes['description'] = $value;
     }
 
     // Relaciones

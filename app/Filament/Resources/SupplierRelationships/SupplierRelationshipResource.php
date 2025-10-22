@@ -35,11 +35,18 @@ class SupplierRelationshipResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        // Mostrar en menú para litografías Y papelerías
+        $company = auth()->user()->company ?? null;
+        return $company && ($company->isLitografia() || $company->isPapeleria());
+    }
+
     public static function canViewAny(): bool
     {
-        // Solo litografías pueden ver sus proveedores
+        // Litografías y papelerías pueden ver sus proveedores
         $company = auth()->user()->company ?? null;
-        return $company && $company->isLitografia();
+        return $company && ($company->isLitografia() || $company->isPapeleria());
     }
 
     public static function canCreate(): bool
@@ -93,13 +100,17 @@ class SupplierRelationshipResource extends Resource
 
         // Aplicar filtro por empresa manualmente
         $tenantId = config('app.current_tenant_id');
+        $currentCompanyId = $tenantId ?? (auth()->check() ? auth()->user()->company_id : null);
 
-        if ($tenantId) {
-            $query->where('client_company_id', $tenantId);
-        } else {
-            // Fallback: usar company_id del usuario autenticado
-            if (auth()->check() && auth()->user()->company_id) {
-                $query->where('client_company_id', auth()->user()->company_id);
+        if ($currentCompanyId) {
+            $company = \App\Models\Company::find($currentCompanyId);
+
+            if ($company && $company->isPapeleria()) {
+                // Para papelerías: mostrar sus clientes (litografías que las tienen como proveedor)
+                $query->where('supplier_company_id', $currentCompanyId);
+            } else {
+                // Para litografías: mostrar sus proveedores (papelerías)
+                $query->where('client_company_id', $currentCompanyId);
             }
         }
 

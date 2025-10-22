@@ -13,6 +13,8 @@ class PlanSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->command->info('📋 Creando planes de suscripción...');
+
         $plans = [
             [
                 'name' => 'Plan Gratuito',
@@ -22,20 +24,20 @@ class PlanSeeder extends Seeder
                 'price' => 0.00,
                 'currency' => 'usd',
                 'interval' => 'month',
+                'trial_days' => 0,
                 'features' => [
                     '1 usuario',
-                    'Hasta 5 cotizaciones por mes',
-                    'Gestión básica de inventario (10 productos)',
+                    'Hasta 10 cotizaciones por mes',
+                    'Gestión básica de inventario (20 productos)',
                     'Calculadora de papel básica',
-                    'Soporte por email',
-                    'Acceso limitado a red social'
+                    'Soporte por email'
                 ],
                 'limits' => [
                     'max_users' => 1,
-                    'max_documents_per_month' => 5,
-                    'max_products' => 10,
+                    'max_documents_per_month' => 10,
+                    'max_products' => 20,
                     'max_storage_mb' => 100,
-                    'social_feed_access' => true,
+                    'social_feed_access' => false,
                     'advanced_reports' => false
                 ],
                 'is_active' => true,
@@ -45,23 +47,26 @@ class PlanSeeder extends Seeder
                 'name' => 'Plan Básico',
                 'slug' => 'basico',
                 'description' => 'Plan ideal para litografías pequeñas que están comenzando.',
-                'stripe_price_id' => 'price_basic_monthly_demo',
-                'price' => 29.99,
-                'currency' => 'usd',
+                'stripe_price_id' => 'price_basic_monthly',
+                'price' => 150000.00,
+                'currency' => 'cop',
                 'interval' => 'month',
+                'trial_days' => 30,
                 'features' => [
                     'Hasta 3 usuarios',
-                    'Hasta 50 cotizaciones por mes',
-                    'Gestión básica de inventario',
-                    'Calculadora de papel',
+                    'Hasta 100 cotizaciones por mes',
+                    'Gestión completa de inventario (100 productos)',
+                    'Calculadora de papel avanzada',
+                    'Órdenes de compra',
+                    'Cuentas de cobro',
                     'Soporte por email',
-                    'Acceso a red social básico'
+                    'Red social de proveedores'
                 ],
                 'limits' => [
                     'max_users' => 3,
-                    'max_documents_per_month' => 50,
-                    'max_products' => 25,
-                    'max_storage_mb' => 500,
+                    'max_documents_per_month' => 100,
+                    'max_products' => 100,
+                    'max_storage_mb' => 1000,
                     'social_feed_access' => true,
                     'advanced_reports' => false
                 ],
@@ -71,27 +76,32 @@ class PlanSeeder extends Seeder
             [
                 'name' => 'Plan Pro',
                 'slug' => 'pro',
-                'description' => 'Plan perfecto para litografías en crecimiento con necesidades avanzadas.',
-                'stripe_price_id' => 'price_pro_monthly_demo',
-                'price' => 79.99,
-                'currency' => 'usd',
+                'description' => 'Plan completo para litografías en crecimiento con todas las funcionalidades.',
+                'stripe_price_id' => 'price_pro_monthly',
+                'price' => 350000.00,
+                'currency' => 'cop',
                 'interval' => 'month',
+                'trial_days' => 30,
                 'features' => [
-                    'Hasta 10 usuarios',
+                    'Usuarios ilimitados',
                     'Cotizaciones ilimitadas',
+                    'Productos ilimitados',
                     'Gestión avanzada de inventario',
                     'Calculadora de papel avanzada',
-                    'Reportes y analytics',
-                    'Soporte prioritario',
+                    'Órdenes de compra',
+                    'Cuentas de cobro',
+                    'Reportes y analytics avanzados',
+                    'Soporte prioritario 24/7',
                     'Red social completa',
-                    'Automatización de precios',
-                    'Integración con proveedores'
+                    'Automatización de procesos',
+                    'Integración con proveedores',
+                    'API access'
                 ],
                 'limits' => [
-                    'max_users' => 10,
+                    'max_users' => -1, // Ilimitado
                     'max_documents_per_month' => -1, // Ilimitado
-                    'max_products' => 200,
-                    'max_storage_mb' => 5000,
+                    'max_products' => -1, // Ilimitado
+                    'max_storage_mb' => 10000,
                     'social_feed_access' => true,
                     'advanced_reports' => true,
                     'automation_features' => true,
@@ -99,77 +109,17 @@ class PlanSeeder extends Seeder
                 ],
                 'is_active' => true,
                 'sort_order' => 2,
-            ],
-            [
-                'name' => 'Plan Enterprise',
-                'slug' => 'enterprise',
-                'description' => 'Solución completa para grandes litografías y redes de empresas.',
-                'stripe_price_id' => 'price_enterprise_monthly_demo',
-                'price' => 199.99,
-                'currency' => 'usd',
-                'interval' => 'month',
-                'features' => [
-                    'Usuarios ilimitados',
-                    'Cotizaciones ilimitadas',
-                    'Multi-empresa/sucursales',
-                    'BI y reportes avanzados',
-                    'Soporte 24/7',
-                    'Red social premium',
-                    'Automatización completa',
-                    'Integración personalizada',
-                    'Manager dedicado',
-                    'Backup y seguridad avanzada'
-                ],
-                'limits' => [
-                    'max_users' => -1, // Ilimitado
-                    'max_documents_per_month' => -1, // Ilimitado
-                    'max_products' => -1, // Ilimitado
-                    'max_storage_mb' => -1, // Ilimitado
-                    'social_feed_access' => true,
-                    'advanced_reports' => true,
-                    'automation_features' => true,
-                    'api_access' => true,
-                    'multi_company' => true,
-                    'custom_integrations' => true
-                ],
-                'is_active' => true,
-                'sort_order' => 3,
-            ],
-            [
-                'name' => 'Plan Básico Anual',
-                'slug' => 'basico-anual',
-                'description' => 'Plan básico con descuento anual (2 meses gratis).',
-                'stripe_price_id' => 'price_basic_yearly_demo',
-                'price' => 299.99,
-                'currency' => 'usd',
-                'interval' => 'year',
-                'features' => [
-                    'Hasta 3 usuarios',
-                    'Hasta 50 cotizaciones por mes',
-                    'Gestión básica de inventario',
-                    'Calculadora de papel',
-                    'Soporte por email',
-                    'Acceso a red social básico',
-                    '2 meses gratis vs plan mensual'
-                ],
-                'limits' => [
-                    'max_users' => 3,
-                    'max_documents_per_month' => 50,
-                    'max_products' => 25,
-                    'max_storage_mb' => 500,
-                    'social_feed_access' => true,
-                    'advanced_reports' => false
-                ],
-                'is_active' => true,
-                'sort_order' => 4,
             ]
         ];
 
         foreach ($plans as $planData) {
-            Plan::updateOrCreate(
-                ['slug' => $planData['slug']], // Buscar por slug
-                $planData // Datos a actualizar o crear
+            $plan = Plan::updateOrCreate(
+                ['slug' => $planData['slug']],
+                $planData
             );
+            $this->command->info("   ✓ {$plan->name} creado/actualizado");
         }
+
+        $this->command->info('✅ Planes de suscripción creados exitosamente!');
     }
 }

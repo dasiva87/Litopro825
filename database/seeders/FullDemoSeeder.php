@@ -28,6 +28,7 @@ class FullDemoSeeder extends Seeder
             DashboardDemoSeeder::class,      // Datos para widgets del dashboard
             SocialNetworkDemoSeeder::class,  // Red social empresarial
             SocialPostSeeder::class,         // Posts de ejemplo
+            CollectionAccountSeeder::class,  // Cuentas de cobro de ejemplo
         ]);
 
         $this->command->info('✅ Demo completo seeded exitosamente!');

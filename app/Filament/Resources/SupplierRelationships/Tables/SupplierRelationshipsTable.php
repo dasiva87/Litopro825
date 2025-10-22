@@ -48,6 +48,17 @@ class SupplierRelationshipsTable
                 //
             ])
             ->headerActions([
+                Action::make('view_requests')
+                    ->label('Ver Solicitudes')
+                    ->icon('heroicon-o-inbox')
+                    ->color('info')
+                    ->url(fn () => \App\Filament\Resources\SupplierRequests\SupplierRequestResource::getUrl('index'))
+                    ->visible(function () {
+                        // Visible para litografías y papelerías
+                        $company = auth()->user()->company ?? null;
+                        return $company && ($company->isLitografia() || $company->isPapeleria());
+                    }),
+
                 Action::make('request_supplier')
                     ->label('Solicitar Proveedor')
                     ->icon('heroicon-o-plus')

@@ -35,6 +35,8 @@ class SupplierRequestResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     public static function canViewAny(): bool
     {
         // Litografías y papelerías pueden ver solicitudes (diferentes vistas)
@@ -60,6 +62,20 @@ class SupplierRequestResource extends Resource
         // Solo quien envió la solicitud puede eliminarla
         $company = auth()->user()->company ?? null;
         return $company && $company->isLitografia();
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        // Ocultar del menú de navegación principal
+        // Solo accesible desde el botón en SupplierRelationships
+        return false;
+    }
+
+    public static function canAccess(): bool
+    {
+        // Permitir acceso directo aunque no esté en el menú
+        // Usa la lógica de canViewAny() en lugar del trait
+        return static::canViewAny();
     }
 
     public static function getNavigationBadge(): ?string
