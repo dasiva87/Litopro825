@@ -6,6 +6,7 @@ use App\Enums\FinishingMeasurementUnit;
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -17,6 +18,7 @@ class Finishing extends Model
 
     protected $fillable = [
         'company_id',
+        'supplier_id',
         'code',
         'name',
         'description',
@@ -42,6 +44,14 @@ class Finishing extends Model
                 $finishing->code = 'FIN-' . strtoupper(Str::random(6));
             }
         });
+    }
+
+    /**
+     * Relación con proveedor
+     */
+    public function supplier(): BelongsTo
+    {
+        return $this->belongsTo(Contact::class, 'supplier_id');
     }
 
     /**

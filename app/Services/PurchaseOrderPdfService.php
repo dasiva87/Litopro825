@@ -13,8 +13,8 @@ class PurchaseOrderPdfService
         $order->load([
             'supplierCompany',
             'company',
-            'documentItems.itemable',
-            'documentItems.document',
+            'purchaseOrderItems.documentItem',
+            'purchaseOrderItems.paper',
             'createdBy',
             'approvedBy'
         ]);
@@ -24,7 +24,6 @@ class PurchaseOrderPdfService
 
         $data = [
             'order' => $order,
-            'items' => $order->documentItems,
             'company' => $order->company,
             'supplier' => $order->supplierCompany,
             'documents' => $documents, // Múltiples cotizaciones

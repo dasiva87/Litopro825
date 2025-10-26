@@ -38,33 +38,43 @@
         }
         .document-info {
             background: #f8f9fa;
-            padding: 12px;
-            border-radius: 3px;
-            margin-bottom: 15px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            margin-bottom: 10px;
         }
         .document-info h2 {
-            font-size: 16pt;
-            margin: 0 0 8px 0;
+            font-size: 14pt;
+            margin: 0 0 5px 0;
             color: #1e40af;
         }
-        .document-info p {
-            margin: 2px 0;
+        .info-grid {
+            display: table;
+            width: 100%;
             font-size: 10pt;
         }
+        .info-row {
+            display: table-row;
+        }
+        .info-label {
+            display: table-cell;
+            font-weight: bold;
+            width: 25%;
+            padding: 2px 4px;
+        }
+        .info-value {
+            display: table-cell;
+            padding: 2px 4px;
+        }
         .client-info {
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             border: 1px solid #ddd;
-            padding: 12px;
+            padding: 8px;
             background: #fafafa;
         }
         .client-info h3 {
-            font-size: 12pt;
-            margin: 0 0 8px 0;
+            font-size: 11pt;
+            margin: 0 0 5px 0;
             color: #1e40af;
-        }
-        .client-info p {
-            margin: 2px 0;
-            font-size: 10pt;
         }
         .items-table {
             width: 100%;
@@ -164,35 +174,51 @@
     <!-- Información del documento -->
     <div class="document-info">
         <h2>CUENTA DE COBRO</h2>
-        <p><strong>Número:</strong> {{ $collectionAccount->account_number }}</p>
-        <p><strong>Fecha de Emisión:</strong> {{ $collectionAccount->issue_date->format('d/m/Y') }}</p>
-        @if($collectionAccount->due_date)
-            <p><strong>Fecha de Vencimiento:</strong> {{ $collectionAccount->due_date->format('d/m/Y') }}</p>
-        @endif
-        <p>
-            <strong>Estado:</strong>
-            <span class="status-badge status-{{ $collectionAccount->status->value }}">
-                {{ $collectionAccount->status->label() }}
-            </span>
-        </p>
-        @if($collectionAccount->paid_date)
-            <p><strong>Fecha de Pago:</strong> {{ $collectionAccount->paid_date->format('d/m/Y') }}</p>
-        @endif
+        <div class="info-grid">
+            <div class="info-row">
+                <span class="info-label">Número:</span>
+                <span class="info-value">{{ $collectionAccount->account_number }}</span>
+                <span class="info-label">Estado:</span>
+                <span class="info-value">
+                    <span class="status-badge status-{{ $collectionAccount->status->value }}">
+                        {{ $collectionAccount->status->label() }}
+                    </span>
+                </span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Fecha Emisión:</span>
+                <span class="info-value">{{ $collectionAccount->issue_date->format('d/m/Y') }}</span>
+                <span class="info-label">Fecha Vencimiento:</span>
+                <span class="info-value">{{ $collectionAccount->due_date ? $collectionAccount->due_date->format('d/m/Y') : 'N/A' }}</span>
+            </div>
+            @if($collectionAccount->paid_date)
+            <div class="info-row">
+                <span class="info-label">Fecha de Pago:</span>
+                <span class="info-value">{{ $collectionAccount->paid_date->format('d/m/Y') }}</span>
+                <span class="info-label"></span>
+                <span class="info-value"></span>
+            </div>
+            @endif
+        </div>
     </div>
 
     <!-- Información del cliente -->
     <div class="client-info">
         <h3>CLIENTE</h3>
-        <p><strong>{{ $collectionAccount->clientCompany->name }}</strong></p>
-        @if($collectionAccount->clientCompany->email)
-            <p><strong>Email:</strong> {{ $collectionAccount->clientCompany->email }}</p>
-        @endif
-        @if($collectionAccount->clientCompany->phone)
-            <p><strong>Teléfono:</strong> {{ $collectionAccount->clientCompany->phone }}</p>
-        @endif
-        @if($collectionAccount->clientCompany->address)
-            <p><strong>Dirección:</strong> {{ $collectionAccount->clientCompany->address }}</p>
-        @endif
+        <div class="info-grid">
+            <div class="info-row">
+                <span class="info-label">Nombre:</span>
+                <span class="info-value"><strong>{{ $collectionAccount->clientCompany->name }}</strong></span>
+                <span class="info-label">Teléfono:</span>
+                <span class="info-value">{{ $collectionAccount->clientCompany->phone ?? 'N/A' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Email:</span>
+                <span class="info-value">{{ $collectionAccount->clientCompany->email ?? 'N/A' }}</span>
+                <span class="info-label">Dirección:</span>
+                <span class="info-value">{{ $collectionAccount->clientCompany->address ?? 'N/A' }}</span>
+            </div>
+        </div>
     </div>
 
     <!-- Tabla de items -->
@@ -239,7 +265,7 @@
     <!-- Footer -->
     <div class="footer">
         <p>Generado el {{ now()->format('d/m/Y H:i') }} - {{ $collectionAccount->company->name }}</p>
-        <p>Este documento fue generado automáticamente por LitoPro</p>
+        <p>Este documento fue generado automáticamente por GrafiRed</p>
     </div>
 </body>
 </html>

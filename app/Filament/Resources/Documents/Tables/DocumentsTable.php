@@ -263,8 +263,12 @@ class DocumentsTable
                                                         $simpleItem = $item->itemable;
                                                         $paper = $simpleItem->paper;
                                                         $description .= $paper ?
-                                                            " - {$paper->name} ({$simpleItem->total_sheets} pliegos - {$simpleItem->horizontal_size}x{$simpleItem->vertical_size}cm)" :
+                                                            " - {$paper->name} ({$simpleItem->mounting_quantity} pliegos - {$simpleItem->horizontal_size}x{$simpleItem->vertical_size}cm)" :
                                                             ' - Papel no definido';
+                                                    } elseif ($item->itemable_type === 'App\Models\MagazineItem' && $item->itemable) {
+                                                        $magazine = $item->itemable;
+                                                        $totalSheets = $magazine->total_sheets;
+                                                        $description .= " - Revista ({$totalSheets} pliegos totales - {$magazine->closed_width}x{$magazine->closed_height}cm cerrado)";
                                                     } elseif ($item->itemable_type === 'App\Models\Product' && $item->itemable) {
                                                         $product = $item->itemable;
                                                         $description .= " - {$product->name} ({$item->quantity} unidades)";
@@ -284,9 +288,20 @@ class DocumentsTable
                                                         $supplier = $paper && $paper->company ? $paper->company->name : 'Proveedor no definido';
                                                         $info .= " | Proveedor: {$supplier}";
                                                         if ($paper) {
-                                                            $cost = ($simpleItem->total_sheets ?? 0) * $paper->unit_price;
+                                                            $cost = ($simpleItem->mounting_quantity ?? 0) * $paper->cost_per_sheet;
                                                             $info .= ' | Costo estimado: $'.number_format($cost, 2);
                                                         }
+                                                    } elseif ($item->itemable_type === 'App\Models\MagazineItem' && $item->itemable) {
+                                                        $magazine = $item->itemable;
+                                                        $supplierId = $magazine->getMainPaperSupplier();
+                                                        $supplier = $supplierId ? \App\Models\Contact::find($supplierId)?->name : 'Múltiples proveedores';
+                                                        $info .= " | Proveedor principal: {$supplier}";
+                                                        $papersUsed = $magazine->getPapersUsed();
+                                                        $totalCost = 0;
+                                                        foreach ($papersUsed as $paperData) {
+                                                            $totalCost += $paperData['total_sheets'] * ($paperData['paper']->cost_per_sheet ?? 0);
+                                                        }
+                                                        $info .= ' | Costo estimado: $'.number_format($totalCost, 2);
                                                     } elseif ($item->itemable_type === 'App\Models\Product' && $item->itemable) {
                                                         $product = $item->itemable;
                                                         $supplier = $product->company ? $product->company->name : 'Proveedor no definido';
@@ -321,8 +336,8 @@ class DocumentsTable
                                         'App\Models\SimpleItem' => ['paper.company', 'company'],
                                         'App\Models\Product' => ['company'],
                                         'App\Models\DigitalItem' => ['company'],
-                                        'App\Models\TalonarioItem' => ['paper.company', 'company'],
-                                        'App\Models\MagazineItem' => ['paper.company', 'company'],
+                                        'App\Models\TalonarioItem' => ['sheets.simpleItem.paper.company', 'company'],
+                                        'App\Models\MagazineItem' => ['pages.simpleItem.paper.company', 'company'],
                                         'App\Models\CustomItem' => ['company'],
                                         'App\Models\Paper' => ['company'],
                                     ]);
@@ -339,12 +354,18 @@ class DocumentsTable
                                 if ($item->itemable_type === 'App\Models\SimpleItem' && $item->itemable && $item->itemable->paper) {
                                     $orderType = 'papel';
                                     $supplierId = $item->itemable->paper->company_id;
-                                } elseif ($item->itemable_type === 'App\Models\TalonarioItem' && $item->itemable && $item->itemable->paper) {
-                                    $orderType = 'papel';
-                                    $supplierId = $item->itemable->paper->company_id;
-                                } elseif ($item->itemable_type === 'App\Models\MagazineItem' && $item->itemable && $item->itemable->paper) {
-                                    $orderType = 'papel';
-                                    $supplierId = $item->itemable->paper->company_id;
+                                } elseif ($item->itemable_type === 'App\Models\TalonarioItem' && $item->itemable) {
+                                    // Para talonarios, obtener el proveedor principal de papel
+                                    $supplierId = $item->itemable->getMainPaperSupplier();
+                                    if ($supplierId) {
+                                        $orderType = 'papel';
+                                    }
+                                } elseif ($item->itemable_type === 'App\Models\MagazineItem' && $item->itemable) {
+                                    // Para revistas, obtener el proveedor principal de papel
+                                    $supplierId = $item->itemable->getMainPaperSupplier();
+                                    if ($supplierId) {
+                                        $orderType = 'papel';
+                                    }
                                 } elseif ($item->itemable_type === 'App\Models\Paper' && $item->itemable) {
                                     $orderType = 'papel';
                                     $supplierId = $item->itemable->company_id;
@@ -380,33 +401,132 @@ class DocumentsTable
 
                                 // Agregar items usando la relación many-to-many
                                 foreach ($items as $item) {
-                                    // Calcular precios según tipo
-                                    $unitPrice = 0;
-                                    $totalPrice = 0;
+                                    if ($item->itemable_type === 'App\Models\MagazineItem' && $item->itemable) {
+                                        // Para revistas, crear UNA FILA POR CADA TIPO DE PAPEL
+                                        $magazine = $item->itemable;
+                                        $papersUsed = $magazine->getPapersUsed();
 
-                                    if ($item->itemable_type === 'App\Models\SimpleItem' && $item->itemable) {
-                                        $paper = $item->itemable->paper;
-                                        $sheets = $item->itemable->total_sheets ?? 0;
-                                        $unitPrice = $paper ? ($paper->cost_per_sheet ?? 0) : 0;
-                                        $totalPrice = $sheets * $unitPrice;
-                                    } elseif ($item->itemable_type === 'App\Models\Product' && $item->itemable) {
-                                        $unitPrice = $item->itemable->sale_price ?? 0;
-                                        $totalPrice = $item->quantity * $unitPrice;
+                                        foreach ($papersUsed as $paperId => $paperData) {
+                                            $paper = $paperData['paper'];
+                                            $sheets = $paperData['total_sheets'];
+                                            $unitPrice = $paper->cost_per_sheet ?? 0;
+                                            $totalPrice = $sheets * $unitPrice;
+
+                                            // Crear descripción específica del papel
+                                            $paperDescription = "{$paper->name} - Revista: {$magazine->description}";
+
+                                            // Obtener tamaño de corte de la primera página que usa este papel
+                                            $cutWidth = null;
+                                            $cutHeight = null;
+                                            foreach ($magazine->pages as $page) {
+                                                if ($page->simpleItem && $page->simpleItem->paper_id == $paperId) {
+                                                    $cutWidth = $page->simpleItem->horizontal_size;
+                                                    $cutHeight = $page->simpleItem->vertical_size;
+                                                    break;
+                                                }
+                                            }
+
+                                            // Attach con información específica del papel
+                                            $order->documentItems()->attach($item->id, [
+                                                'paper_id' => $paperId,
+                                                'paper_description' => $paperDescription,
+                                                'quantity_ordered' => $item->quantity,
+                                                'sheets_quantity' => $sheets,
+                                                'cut_width' => $cutWidth,
+                                                'cut_height' => $cutHeight,
+                                                'unit_price' => $unitPrice,
+                                                'total_price' => $totalPrice,
+                                                'status' => 'pending',
+                                            ]);
+                                        }
+
+                                        // Actualizar order_status del item
+                                        $item->updateOrderStatus();
+
+                                    } elseif ($item->itemable_type === 'App\Models\TalonarioItem' && $item->itemable) {
+                                        // Para talonarios, crear UNA FILA POR CADA TIPO DE PAPEL
+                                        $talonario = $item->itemable;
+                                        $papersUsed = $talonario->getPapersUsed();
+
+                                        foreach ($papersUsed as $paperId => $paperData) {
+                                            $paper = $paperData['paper'];
+                                            $sheets = $paperData['total_sheets'];
+                                            $unitPrice = $paper->cost_per_sheet ?? 0;
+                                            $totalPrice = $sheets * $unitPrice;
+
+                                            // Crear descripción específica del papel con hojas que lo usan
+                                            $sheetsUsing = implode(', ', $paperData['sheets_using']);
+                                            $paperDescription = "{$paper->name} - Talonario: {$talonario->description} ({$sheetsUsing})";
+
+                                            // Obtener tamaño de corte de la primera hoja que usa este papel
+                                            $cutWidth = null;
+                                            $cutHeight = null;
+                                            foreach ($talonario->sheets as $sheet) {
+                                                if ($sheet->simpleItem && $sheet->simpleItem->paper_id == $paperId) {
+                                                    $cutWidth = $sheet->simpleItem->horizontal_size;
+                                                    $cutHeight = $sheet->simpleItem->vertical_size;
+                                                    break;
+                                                }
+                                            }
+
+                                            // Attach con información específica del papel
+                                            $order->documentItems()->attach($item->id, [
+                                                'paper_id' => $paperId,
+                                                'paper_description' => $paperDescription,
+                                                'quantity_ordered' => $item->quantity,
+                                                'sheets_quantity' => $sheets,
+                                                'cut_width' => $cutWidth,
+                                                'cut_height' => $cutHeight,
+                                                'unit_price' => $unitPrice,
+                                                'total_price' => $totalPrice,
+                                                'status' => 'pending',
+                                            ]);
+                                        }
+
+                                        // Actualizar order_status del item
+                                        $item->updateOrderStatus();
+
                                     } else {
-                                        $unitPrice = $item->unit_price ?? 0;
-                                        $totalPrice = $item->quantity * $unitPrice;
+                                        // Para SimpleItem, Product, etc. - una sola fila
+                                        $unitPrice = 0;
+                                        $totalPrice = 0;
+                                        $sheets = 0;
+                                        $paperId = null;
+                                        $cutWidth = null;
+                                        $cutHeight = null;
+
+                                        if ($item->itemable_type === 'App\Models\SimpleItem' && $item->itemable) {
+                                            $paper = $item->itemable->paper;
+                                            $sheets = $item->itemable->mounting_quantity ?? 0;
+                                            $unitPrice = $paper ? ($paper->cost_per_sheet ?? 0) : 0;
+                                            $totalPrice = $sheets * $unitPrice;
+                                            $paperId = $paper?->id;
+                                            $cutWidth = $item->itemable->horizontal_size;
+                                            $cutHeight = $item->itemable->vertical_size;
+                                        } elseif ($item->itemable_type === 'App\Models\Product' && $item->itemable) {
+                                            $unitPrice = $item->itemable->sale_price ?? 0;
+                                            $totalPrice = $item->quantity * $unitPrice;
+                                            // Product no tiene cut_width/cut_height (producto terminado)
+                                        } else {
+                                            $unitPrice = $item->unit_price ?? 0;
+                                            $totalPrice = $item->quantity * $unitPrice;
+                                        }
+
+                                        // Attach item a la orden con pivot data
+                                        $order->documentItems()->attach($item->id, [
+                                            'paper_id' => $paperId,
+                                            'quantity_ordered' => $item->quantity,
+                                            'sheets_quantity' => $sheets,
+                                            'cut_width' => $cutWidth,
+                                            'cut_height' => $cutHeight,
+                                            'unit_price' => $unitPrice,
+                                            'total_price' => $totalPrice,
+                                            'status' => 'pending',
+                                        ]);
+
+                                        // Actualizar order_status del item
+                                        $item->updateOrderStatus();
                                     }
-
-                                    // Attach item a la orden con pivot data
-                                    $order->documentItems()->attach($item->id, [
-                                        'quantity_ordered' => $item->quantity,
-                                        'unit_price' => $unitPrice,
-                                        'total_price' => $totalPrice,
-                                        'status' => 'pending',
-                                    ]);
-
-                                    // Actualizar order_status del item
-                                    $item->updateOrderStatus();
                                 }
 
                                 // Recalcular total
@@ -419,6 +539,165 @@ class DocumentsTable
                                 ->body("Se crearon {$ordersCreated} órdenes de pedido exitosamente.")
                                 ->success()
                                 ->send();
+                        })
+                        ->modalWidth('7xl'),
+
+                    Action::make('create_production_order')
+                        ->label('Crear Órdenes de Producción')
+                        ->icon('heroicon-o-cog-6-tooth')
+                        ->color('warning')
+                        ->visible(fn ($record) => $record->status === 'approved')
+                        ->form([
+                            \Filament\Schemas\Components\Section::make('Seleccionar Items para Producción')
+                                ->description('Selecciona los items. Se crearán órdenes automáticamente agrupadas por proveedor (impresión + acabados).')
+                                ->schema([
+                                    \Filament\Forms\Components\CheckboxList::make('selected_items')
+                                        ->label('Items Disponibles')
+                                        ->options(function ($record) {
+                                            return $record->items
+                                                ->where('itemable_type', 'App\Models\SimpleItem')
+                                                ->mapWithKeys(function ($item) {
+                                                    if (!$item->itemable) {
+                                                        return [$item->id => "⚠️ {$item->description} (Sin datos de producción)"];
+                                                    }
+
+                                                    $type = '📄 Impresión';
+                                                    $quantity = number_format($item->quantity ?? 0, 0);
+                                                    $size = "{$item->itemable->horizontal_size}x{$item->itemable->vertical_size} cm";
+                                                    $paper = $item->itemable->paper?->name ?? 'Sin papel';
+                                                    $tintas = "F:{$item->itemable->ink_front_count}/V:{$item->itemable->ink_back_count}";
+
+                                                    // Contar acabados
+                                                    $finishingsCount = $item->finishings()->count();
+                                                    $finishingsText = $finishingsCount > 0 ? " | 🎯 {$finishingsCount} acabado(s)" : '';
+
+                                                    $label = "{$type} {$item->description}\n";
+                                                    $label .= "   📦 Cantidad: {$quantity} | 📏 Tamaño: {$size}\n";
+                                                    $label .= "   🎨 Papel: {$paper} | 🖨️ Tintas: {$tintas}{$finishingsText}";
+
+                                                    return [$item->id => $label];
+                                                });
+                                        })
+                                        ->required()
+                                        ->minItems(1)
+                                        ->columns(1)
+                                        ->bulkToggleable(),
+
+                                    \Filament\Forms\Components\Placeholder::make('orders_preview')
+                                        ->label('Vista Previa de Órdenes')
+                                        ->content(function (callable $get) {
+                                            $selectedIds = $get('selected_items');
+                                            if (!$selectedIds || count($selectedIds) === 0) {
+                                                return 'Selecciona items para ver cuántas órdenes se crearán...';
+                                            }
+
+                                            $selectedItems = \App\Models\DocumentItem::whereIn('id', $selectedIds)
+                                                ->with(['finishings.supplier', 'itemable'])
+                                                ->get();
+
+                                            $groupingService = new \App\Services\ProductionOrderGroupingService();
+                                            $summary = $groupingService->getOrdersSummary($selectedItems);
+
+                                            if (count($summary) === 0) {
+                                                return '⚠️ Los items seleccionados no tienen acabados con proveedores asignados.';
+                                            }
+
+                                            $text = "✅ Se crearán " . count($summary) . " orden(es) de producción:\n\n";
+                                            foreach ($summary as $order) {
+                                                $text .= "📦 {$order['supplier_name']}: {$order['total_processes']} proceso(s)\n";
+                                                if ($order['printing_count'] > 0) {
+                                                    $text .= "   - 🖨️ {$order['printing_count']} impresión(es)\n";
+                                                }
+                                                if ($order['finishing_count'] > 0) {
+                                                    $text .= "   - 🎯 {$order['finishing_count']} acabado(s)\n";
+                                                }
+                                            }
+
+                                            return new \Illuminate\Support\HtmlString('<pre style="white-space: pre-wrap;">' . $text . '</pre>');
+                                        })
+                                        ->visible(fn (callable $get) => !empty($get('selected_items'))),
+
+                                    \Filament\Forms\Components\DatePicker::make('scheduled_date')
+                                        ->label('Fecha Programada (Opcional)')
+                                        ->helperText('Fecha estimada para realizar la producción')
+                                        ->native(false)
+                                        ->default(now()->addDays(7)),
+
+                                    \Filament\Forms\Components\Textarea::make('notes')
+                                        ->label('Notas adicionales')
+                                        ->placeholder('Notas sobre las órdenes de producción...')
+                                        ->rows(3),
+                                ]),
+                        ])
+                        ->action(function ($record, array $data) {
+                            $selectedItems = \App\Models\DocumentItem::whereIn('id', $data['selected_items'])
+                                ->with(['itemable', 'finishings.supplier'])
+                                ->get();
+
+                            $groupingService = new \App\Services\ProductionOrderGroupingService();
+                            $grouped = $groupingService->groupBySupplier($selectedItems);
+
+                            $createdOrders = [];
+                            $totalProcesses = 0;
+                            $errors = [];
+
+                            foreach ($grouped as $supplierId => $processes) {
+                                // Crear orden para este proveedor
+                                $productionOrder = \App\Models\ProductionOrder::create([
+                                    'company_id' => auth()->user()->company_id,
+                                    'supplier_id' => $supplierId,
+                                    'scheduled_date' => $data['scheduled_date'] ?? null,
+                                    'notes' => $data['notes'] ?? null,
+                                    'status' => \App\Enums\ProductionStatus::DRAFT,
+                                ]);
+
+                                // Agregar procesos de impresión
+                                foreach ($processes['printing'] as $process) {
+                                    if ($productionOrder->addItem(
+                                        $process['document_item'],
+                                        $process['quantity'],
+                                        'printing',
+                                        null,
+                                        $process['process_description']
+                                    )) {
+                                        $totalProcesses++;
+                                    }
+                                }
+
+                                // Agregar procesos de acabados
+                                foreach ($processes['finishings'] as $process) {
+                                    if ($productionOrder->addItem(
+                                        $process['document_item'],
+                                        $process['quantity'],
+                                        'finishing',
+                                        $process['finishing_name'],
+                                        $process['process_description']
+                                    )) {
+                                        $totalProcesses++;
+                                    }
+                                }
+
+                                $productionOrder->recalculateMetrics();
+                                $createdOrders[] = $productionOrder;
+                            }
+
+                            // Notificación
+                            if (count($createdOrders) > 0) {
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Órdenes de producción creadas exitosamente')
+                                    ->success()
+                                    ->body("Se crearon " . count($createdOrders) . " orden(es) con {$totalProcesses} proceso(s) total")
+                                    ->send();
+
+                                // Redirect to production orders list
+                                return redirect()->route('filament.admin.resources.production-orders.index');
+                            } else {
+                                \Filament\Notifications\Notification::make()
+                                    ->title('No se pudieron crear las órdenes')
+                                    ->danger()
+                                    ->body('Los items seleccionados no tienen acabados con proveedores asignados')
+                                    ->send();
+                            }
                         })
                         ->modalWidth('7xl'),
 

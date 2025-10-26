@@ -7,6 +7,7 @@ use App\Models\SocialComment;
 use App\Models\SocialLike;
 use Filament\Widgets\Widget;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Storage;
 
 class SocialFeedWidget extends Widget
 {
@@ -428,6 +429,10 @@ class SocialFeedWidget extends Widget
                         'comments_count' => $post->comments ? $post->comments->count() : 0,
                         'can_edit' => $currentUserId && $post->user_id === $currentUserId,
                         'avatar_initials' => ($post->company && $post->company->name) ? strtoupper(substr($post->company->name, 0, 2)) : '??',
+                        'avatar_url' => ($post->company && $post->company->avatar)
+                            ? Storage::disk('public')->url($post->company->avatar)
+                            : null,
+                        'company_name_full' => $post->company ? $post->company->name : 'Empresa Desconocida',
                         'recent_comments' => $post->comments ? $post->comments->sortByDesc('created_at')->take(3)->map(function ($comment) use ($currentUserId) {
                             return [
                                 'id' => $comment->id,

@@ -4,6 +4,7 @@ namespace App\Providers\Filament;
 
 use App\Filament\Pages\Auth\PasswordReset\RequestPasswordReset;
 use App\Filament\Pages\Auth\PasswordReset\ResetPassword;
+use App\Filament\Pages\Auth\Register;
 use App\Http\Middleware\CheckActiveCompany;
 use App\Http\Middleware\RedirectToHomePage;
 use Filament\Http\Middleware\Authenticate;
@@ -33,6 +34,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->registration(Register::class)
             ->passwordReset(
                 requestAction: RequestPasswordReset::class,
                 resetAction: ResetPassword::class
@@ -130,7 +132,7 @@ class AdminPanelProvider extends PanelProvider
                     ->icon('heroicon-o-cog-6-tooth'),
                 'perfil' => \Filament\Navigation\MenuItem::make()
                     ->label('Mi Perfil')
-                    ->url(fn () => '/empresa/'.auth()->user()->company->slug)
+                    ->url(fn () => '/admin/empresa/'.auth()->user()->company->slug)
                     ->icon('heroicon-o-user-circle'),
             ]);
     }

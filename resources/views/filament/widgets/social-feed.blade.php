@@ -117,9 +117,17 @@
                     <!-- Collapsed state -->
                     <div x-show="!showForm" @click="showForm = true" class="cursor-pointer">
                         <div class="flex items-center space-x-3">
-                            <div class="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-xs">
-                                {{ auth()->user() ? strtoupper(substr(auth()->user()->name, 0, 2)) : '??' }}
-                            </div>
+                            @if(auth()->user()->company && auth()->user()->company->avatar)
+                                <img
+                                    src="{{ asset('storage/' . auth()->user()->company->avatar) }}"
+                                    alt="{{ auth()->user()->company->name }}"
+                                    class="h-8 w-8 rounded-full object-cover border border-gray-200"
+                                />
+                            @else
+                                <div class="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-xs">
+                                    {{ auth()->user()->company ? strtoupper(substr(auth()->user()->company->name, 0, 2)) : '??' }}
+                                </div>
+                            @endif
                             <p class="text-gray-500 flex-1">¿Qué quieres compartir con la comunidad de LitoPro?</p>
                         </div>
                     </div>
@@ -348,9 +356,18 @@
                 <div class="p-6" x-data="{ showComments: false }">
                     <div class="flex items-start space-x-3">
                         <!-- Avatar -->
-                        <div class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm">
-                            {{ $post['avatar_initials'] }}
-                        </div>
+                        @if($post['avatar_url'])
+                            <img
+                                src="{{ $post['avatar_url'] }}"
+                                alt="{{ $post['company_name_full'] }}"
+                                class="h-10 w-10 rounded-full object-cover border-2 border-white shadow-sm"
+                                title="{{ $post['company_name_full'] }}"
+                            />
+                        @else
+                            <div class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm">
+                                {{ $post['avatar_initials'] }}
+                            </div>
+                        @endif
 
                         <div class="flex-1">
                             <div class="flex items-center space-x-2">
@@ -592,9 +609,17 @@
                                 <div class="mt-4 pl-4 border-l-2 border-blue-100 bg-blue-50 rounded-r-lg p-3">
                                     <form wire:submit.prevent="addComment({{ $post['id'] }})" class="space-y-2">
                                         <div class="flex space-x-2">
-                                            <div class="h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-xs flex-shrink-0">
-                                                {{ auth()->user() ? strtoupper(substr(auth()->user()->name, 0, 1)) : '?' }}
-                                            </div>
+                                            @if(auth()->user()->company && auth()->user()->company->avatar)
+                                                <img
+                                                    src="{{ asset('storage/' . auth()->user()->company->avatar) }}"
+                                                    alt="{{ auth()->user()->company->name }}"
+                                                    class="h-6 w-6 rounded-full object-cover border border-gray-200 flex-shrink-0"
+                                                />
+                                            @else
+                                                <div class="h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-xs flex-shrink-0">
+                                                    {{ auth()->user()->company ? strtoupper(substr(auth()->user()->company->name, 0, 1)) : '?' }}
+                                                </div>
+                                            @endif
                                             <div class="flex-1">
                                                 <textarea
                                                     wire:model="newComments.{{ $post['id'] }}"

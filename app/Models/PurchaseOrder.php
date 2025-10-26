@@ -164,6 +164,9 @@ class PurchaseOrder extends Model
                 'total_price',
                 'status',
                 'notes',
+                'paper_id',
+                'paper_description',
+                'sheets_quantity',
             ])
             ->withTimestamps();
     }
@@ -171,6 +174,14 @@ class PurchaseOrder extends Model
     public function statusHistories(): HasMany
     {
         return $this->hasMany(OrderStatusHistory::class)->orderBy('created_at', 'desc');
+    }
+
+    /**
+     * Relación directa con la tabla pivot (para mostrar cada fila por separado)
+     */
+    public function purchaseOrderItems(): HasMany
+    {
+        return $this->hasMany(PurchaseOrderItem::class);
     }
 
     /**

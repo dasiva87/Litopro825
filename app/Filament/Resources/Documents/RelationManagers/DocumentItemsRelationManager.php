@@ -689,13 +689,10 @@ class DocumentItemsRelationManager extends RelationManager
                         }
 
                         if ($record->itemable_type === 'App\\Models\\MagazineItem' && $record->itemable) {
-                            // Cargar todos los datos del MagazineItem para mostrar en el formulario
-                            $magazineData = $record->itemable->toArray();
+                            // Usar el handler para cargar datos correctamente formateados
+                            $handler = new MagazineItemHandler;
 
-                            // Cargar relaciones necesarias
-                            $record->itemable->load(['pages.simpleItem', 'finishings']);
-
-                            return $magazineData;
+                            return $handler->fillForm($record);
                         }
 
                         if ($record->itemable_type === 'App\\Models\\CustomItem' && $record->itemable) {

@@ -137,11 +137,160 @@ class MagazineItemHandler extends AbstractItemHandler
                         ->columnSpanFull()
                         ->placeholder('Información adicional sobre la revista...'),
                 ]),
+
+            Section::make('Páginas de la Revista')
+                ->description('Edita las páginas que componen la revista')
+                ->icon('heroicon-o-document-duplicate')
+                ->schema([
+                    Components\Repeater::make('pages')
+                        ->label('Páginas')
+                        ->schema([
+                            Grid::make(3)->schema([
+                                Components\Select::make('page_type')
+                                    ->label('Tipo de Página')
+                                    ->required()
+                                    ->options([
+                                        'portada' => '📖 Portada',
+                                        'contraportada' => '📗 Contraportada',
+                                        'interior' => '📄 Interior',
+                                        'inserto' => '📋 Inserto',
+                                        'separador' => '📑 Separador',
+                                        'anexo' => '📎 Anexo',
+                                    ])
+                                    ->default('interior'),
+
+                                Components\TextInput::make('page_quantity')
+                                    ->label('Cantidad')
+                                    ->numeric()
+                                    ->required()
+                                    ->default(1)
+                                    ->minValue(1)
+                                    ->suffix('pág.'),
+
+                                Components\TextInput::make('page_order')
+                                    ->label('Orden')
+                                    ->numeric()
+                                    ->required()
+                                    ->default(1)
+                                    ->minValue(1),
+                            ]),
+
+                            Components\Textarea::make('description')
+                                ->label('Descripción del Contenido')
+                                ->required()
+                                ->rows(2)
+                                ->columnSpanFull()
+                                ->placeholder('Describe el contenido de esta página...'),
+
+                            Grid::make(2)->schema([
+                                Components\Select::make('paper_id')
+                                    ->label('Papel')
+                                    ->options(function () {
+                                        $companyId = auth()->user()->company_id ?? 1;
+                                        return Paper::query()
+                                            ->forTenant($companyId)
+                                            ->where('is_active', true)
+                                            ->get()
+                                            ->mapWithKeys(function ($paper) {
+                                                $label = $paper->full_name ?: ($paper->code . ' - ' . $paper->name);
+                                                return [$paper->id => $label];
+                                            })
+                                            ->toArray();
+                                    })
+                                    ->required()
+                                    ->searchable(),
+
+                                Components\Select::make('printing_machine_id')
+                                    ->label('Máquina de Impresión')
+                                    ->options(function () {
+                                        $companyId = auth()->user()->company_id ?? 1;
+                                        return PrintingMachine::query()
+                                            ->forTenant($companyId)
+                                            ->where('is_active', true)
+                                            ->get()
+                                            ->mapWithKeys(function ($machine) {
+                                                $label = $machine->name . ' - ' . ucfirst($machine->type);
+                                                return [$machine->id => $label];
+                                            })
+                                            ->toArray();
+                                    })
+                                    ->required()
+                                    ->searchable(),
+                            ]),
+
+                            Grid::make(4)->schema([
+                                Components\TextInput::make('horizontal_size')
+                                    ->label('Ancho')
+                                    ->numeric()
+                                    ->required()
+                                    ->suffix('cm')
+                                    ->default(21),
+
+                                Components\TextInput::make('vertical_size')
+                                    ->label('Alto')
+                                    ->numeric()
+                                    ->required()
+                                    ->suffix('cm')
+                                    ->default(29.7),
+
+                                Components\TextInput::make('ink_front_count')
+                                    ->label('Tintas Frente')
+                                    ->numeric()
+                                    ->required()
+                                    ->default(1)
+                                    ->minValue(0)
+                                    ->maxValue(6),
+
+                                Components\TextInput::make('ink_back_count')
+                                    ->label('Tintas Dorso')
+                                    ->numeric()
+                                    ->required()
+                                    ->default(0)
+                                    ->minValue(0)
+                                    ->maxValue(6),
+                            ]),
+                        ])
+                        ->minItems(1)
+                        ->maxItems(20)
+                        ->collapsible()
+                        ->itemLabel(fn (array $state): ?string => isset($state['page_type']) ?
+                            '📄 ' . ucfirst($state['page_type']) . ' - ' . ($state['page_quantity'] ?? 1) . ' pág.' :
+                            'Nueva Página'
+                        )
+                        ->columnSpanFull()
+                        ->reorderable()
+                        ->cloneable(),
+                ]),
         ];
     }
 
     public function fillForm($record): array
     {
+        // Cargar las páginas con sus SimpleItems relacionados
+        $pages = $record->itemable->pages()
+            ->with('simpleItem')
+            ->orderBy('page_order')
+            ->get()
+            ->map(function ($page) {
+                $simpleItem = $page->simpleItem;
+
+                return [
+                    'id' => $page->id,
+                    'page_type' => $page->page_type,
+                    'page_quantity' => $page->page_quantity,
+                    'page_order' => $page->page_order,
+                    'description' => $simpleItem?->description ?? '',
+                    'paper_id' => $simpleItem?->paper_id,
+                    'printing_machine_id' => $simpleItem?->printing_machine_id,
+                    'horizontal_size' => $simpleItem?->horizontal_size,
+                    'vertical_size' => $simpleItem?->vertical_size,
+                    'ink_front_count' => $simpleItem?->ink_front_count,
+                    'ink_back_count' => $simpleItem?->ink_back_count,
+                    'simple_item_id' => $page->simple_item_id,
+                ];
+            })
+            ->toArray();
+
         return [
             'description' => $record->itemable->description,
             'quantity' => $record->itemable->quantity,
@@ -153,17 +302,107 @@ class MagazineItemHandler extends AbstractItemHandler
             'transport_value' => $record->itemable->transport_value,
             'profit_percentage' => $record->itemable->profit_percentage,
             'notes' => $record->itemable->notes,
+            'pages' => $pages,
         ];
     }
 
     public function handleUpdate($record, array $data): void
     {
+        // Extraer datos de páginas
+        $pagesData = $data['pages'] ?? [];
+        unset($data['pages']);
+
+        // Actualizar datos básicos del MagazineItem
         $record->itemable->update($data);
+
+        // Procesar páginas si se proporcionaron
+        if (!empty($pagesData)) {
+            $this->updatePages($record->itemable, $pagesData);
+        }
+
+        // Recalcular costos después de actualizar páginas
         $record->itemable->calculateAll();
+        $record->itemable->save();
+
+        // Actualizar DocumentItem
         $record->update([
             'unit_price' => $record->itemable->final_price / $record->itemable->quantity,
             'total_price' => $record->itemable->final_price,
         ]);
+    }
+
+    /**
+     * Actualizar páginas existentes y crear/eliminar según sea necesario
+     */
+    private function updatePages(MagazineItem $magazine, array $pagesData): void
+    {
+        $existingPageIds = [];
+
+        foreach ($pagesData as $pageData) {
+            // Si tiene ID, es una página existente - actualizar
+            if (isset($pageData['id']) && $pageData['id']) {
+                $page = $magazine->pages()->find($pageData['id']);
+
+                if ($page && $page->simpleItem) {
+                    // Actualizar SimpleItem
+                    $page->simpleItem->update([
+                        'description' => $pageData['description'],
+                        'quantity' => $magazine->quantity * ($pageData['page_quantity'] ?? 1),
+                        'horizontal_size' => $pageData['horizontal_size'],
+                        'vertical_size' => $pageData['vertical_size'],
+                        'paper_id' => $pageData['paper_id'],
+                        'printing_machine_id' => $pageData['printing_machine_id'],
+                        'ink_front_count' => $pageData['ink_front_count'] ?? 1,
+                        'ink_back_count' => $pageData['ink_back_count'] ?? 0,
+                    ]);
+
+                    // Actualizar MagazinePage
+                    $page->update([
+                        'page_type' => $pageData['page_type'],
+                        'page_quantity' => $pageData['page_quantity'],
+                        'page_order' => $pageData['page_order'],
+                    ]);
+
+                    $existingPageIds[] = $page->id;
+                }
+            } else {
+                // Es una página nueva - crear
+                $simpleItem = SimpleItem::create([
+                    'company_id' => $magazine->company_id,
+                    'description' => $pageData['description'],
+                    'quantity' => $magazine->quantity * ($pageData['page_quantity'] ?? 1),
+                    'horizontal_size' => $pageData['horizontal_size'],
+                    'vertical_size' => $pageData['vertical_size'],
+                    'paper_id' => $pageData['paper_id'],
+                    'printing_machine_id' => $pageData['printing_machine_id'],
+                    'ink_front_count' => $pageData['ink_front_count'] ?? 1,
+                    'ink_back_count' => $pageData['ink_back_count'] ?? 0,
+                    'design_value' => 0,
+                    'transport_value' => 0,
+                    'profit_percentage' => 25,
+                ]);
+
+                $newPage = $magazine->pages()->create([
+                    'simple_item_id' => $simpleItem->id,
+                    'page_type' => $pageData['page_type'],
+                    'page_quantity' => $pageData['page_quantity'],
+                    'page_order' => $pageData['page_order'],
+                ]);
+
+                $existingPageIds[] = $newPage->id;
+            }
+        }
+
+        // Eliminar páginas que ya no están en el formulario
+        $pagesToDelete = $magazine->pages()->whereNotIn('id', $existingPageIds)->get();
+        foreach ($pagesToDelete as $page) {
+            // Eliminar el SimpleItem asociado
+            if ($page->simpleItem) {
+                $page->simpleItem->delete();
+            }
+            // Eliminar la página
+            $page->delete();
+        }
     }
 
     public function getWizardSteps(): array
@@ -422,13 +661,12 @@ class MagazineItemHandler extends AbstractItemHandler
         $magazine->calculateAll();
         $magazine->save();
 
-        $this->record->documentItems()->create([
+        $this->record->items()->create([
             'itemable_type' => MagazineItem::class,
             'itemable_id' => $magazine->id,
             'quantity' => $magazine->quantity,
             'unit_price' => $magazine->final_price / $magazine->quantity,
             'total_price' => $magazine->final_price,
-            'order' => $this->record->documentItems()->max('order') + 1,
         ]);
     }
 

@@ -70,7 +70,12 @@ class CreateQuotation extends CreateRecord
         $data['company_id'] = auth()->user()->company_id;
         $data['user_id'] = auth()->id();
         $data['status'] = 'draft';
-        
+
+        // Asegurar que siempre se cree como QUOTE
+        if (!isset($data['document_type_id'])) {
+            $data['document_type_id'] = DocumentType::where('code', 'QUOTE')->first()?->id;
+        }
+
         return $data;
     }
 

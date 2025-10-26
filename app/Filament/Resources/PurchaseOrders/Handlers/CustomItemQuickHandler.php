@@ -124,11 +124,18 @@ class CustomItemQuickHandler
         ]);
 
         // Agregar el item a la orden usando la relación many-to-many
-        $order->documentItems()->attach($documentItem->id, [
+        $order->purchaseOrderItems()->create([
+            'document_item_id' => $documentItem->id,
+            'paper_id' => null,
+            'paper_description' => $customItem->description,
             'quantity_ordered' => $customItem->quantity,
+            'sheets_quantity' => 0,
+            'cut_width' => null,
+            'cut_height' => null,
             'unit_price' => $customItem->unit_price,
             'total_price' => $customItem->total_price,
             'status' => 'pending',
+            'notes' => $data['notes'] ?? null,
         ]);
 
         // Recalcular total de la orden

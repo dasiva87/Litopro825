@@ -64,10 +64,27 @@ class FinishingForm
                             ->minValue(0),
                         Toggle::make('is_own_provider')
                             ->label('Proveedor Propio')
-                            ->helperText('¿Es un servicio/producto propio?'),
+                            ->helperText('¿Es un servicio/producto propio?')
+                            ->live()
+                            ->default(true),
                         Toggle::make('active')
                             ->label('Activo')
                             ->default(true),
+                        Select::make('supplier_id')
+                            ->label('Proveedor Externo')
+                            ->helperText('Selecciona el proveedor que ofrece este acabado')
+                            ->options(function () {
+                                return \App\Models\Contact::where('company_id', auth()->user()->company_id)
+                                    ->whereIn('type', ['supplier', 'both'])
+                                    ->orderBy('name')
+                                    ->pluck('name', 'id');
+                            })
+                            ->searchable()
+                            ->preload()
+                            ->required(fn ($get) => !$get('is_own_provider'))
+                            ->visible(fn ($get) => !$get('is_own_provider'))
+                            ->native(false)
+                            ->columnSpan(2),
                     ]),
 
                 Section::make('Rangos de Precios')

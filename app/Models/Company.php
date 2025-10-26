@@ -243,7 +243,7 @@ class Company extends Model
 
     public function getProfileUrl(): string
     {
-        return route('company.profile', $this->slug);
+        return '/admin/empresa/' . $this->slug;
     }
 
     // Métodos de seguimiento

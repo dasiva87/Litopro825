@@ -95,22 +95,34 @@ class CompanySettings extends Page implements HasForms, HasActions
                         FileUpload::make('avatar')
                             ->label('Logo/Avatar')
                             ->image()
+                            ->disk('public')
                             ->directory('companies/avatars')
                             ->visibility('public')
                             ->imageResizeMode('cover')
                             ->imageCropAspectRatio('1:1')
                             ->imageResizeTargetWidth('200')
-                            ->imageResizeTargetHeight('200'),
+                            ->imageResizeTargetHeight('200')
+                            ->maxSize(2048)
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/jpg'])
+                            ->downloadable()
+                            ->deletable()
+                            ->openable(),
 
                         FileUpload::make('banner')
                             ->label('Banner/Portada')
                             ->image()
+                            ->disk('public')
                             ->directory('companies/banners')
                             ->visibility('public')
                             ->imageResizeMode('cover')
                             ->imageCropAspectRatio('16:9')
                             ->imageResizeTargetWidth('800')
-                            ->imageResizeTargetHeight('450'),
+                            ->imageResizeTargetHeight('450')
+                            ->maxSize(2048)
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/jpg'])
+                            ->downloadable()
+                            ->deletable()
+                            ->openable(),
                     ])
                     ->columns(2)
                     ->collapsible(),

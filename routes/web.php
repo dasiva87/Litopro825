@@ -4,8 +4,6 @@ use App\Http\Controllers\CollectionAccountPdfController;
 use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\CompleteProfileController;
 use App\Http\Controllers\DocumentPdfController;
-use App\Http\Controllers\RegistrationController;
-use App\Http\Controllers\SimpleRegistrationController;
 use App\Http\Controllers\StripeSubscriptionController;
 use App\Http\Controllers\SuperAdmin\ImpersonateController;
 use Illuminate\Support\Facades\Route;
@@ -14,18 +12,11 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// Rutas de registro público con rate limiting
+// Rutas de registro público - Redirige a Filament
 Route::middleware(['guest', 'throttle:10,1'])->group(function () {
-    Route::get('/register', [SimpleRegistrationController::class, 'create'])->name('register');
-    Route::post('/register', [SimpleRegistrationController::class, 'store'])->name('register.store');
-
-    // Registro completo (mantener para casos especiales)
-    Route::get('/register-full', [RegistrationController::class, 'create'])->name('register.full');
-    Route::post('/register-full', [RegistrationController::class, 'store'])->name('register.full.store');
-
-    // AJAX endpoints para ubicaciones
-    Route::post('/get-states', [RegistrationController::class, 'getStates'])->name('get-states');
-    Route::post('/get-cities', [RegistrationController::class, 'getCities'])->name('get-cities');
+    Route::get('/register', function () {
+        return redirect()->route('filament.admin.auth.register');
+    })->name('register');
 });
 
 
@@ -87,14 +78,15 @@ Route::middleware('auth')->group(function () {
 });
 
 // Rutas públicas de perfiles de empresa con rate limiting
-Route::middleware('throttle:60,1')->group(function () {
-    Route::get('/empresa/{slug}', [CompanyProfileController::class, 'show'])
-        ->name('company.profile');
-    Route::get('/empresa/{slug}/seguidores', [CompanyProfileController::class, 'followers'])
-        ->name('company.followers');
-    Route::get('/empresa/{slug}/siguiendo', [CompanyProfileController::class, 'following'])
-        ->name('company.following');
-});
+// NOTA: La ruta /empresa/{slug} ahora es manejada por Filament Page (CompanyProfile)
+// Route::middleware('throttle:60,1')->group(function () {
+//     Route::get('/empresa/{slug}', [CompanyProfileController::class, 'show'])
+//         ->name('company.profile');
+//     Route::get('/empresa/{slug}/seguidores', [CompanyProfileController::class, 'followers'])
+//         ->name('company.followers');
+//     Route::get('/empresa/{slug}/siguiendo', [CompanyProfileController::class, 'following'])
+//         ->name('company.following');
+// });
 
 
 // Rutas protegidas por autenticación

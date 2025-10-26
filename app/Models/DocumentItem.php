@@ -146,6 +146,31 @@ class DocumentItem extends Model
                     ->withTimestamps();
     }
 
+    public function productionOrders(): BelongsToMany
+    {
+        return $this->belongsToMany(ProductionOrder::class, 'document_item_production_order')
+                    ->withPivot([
+                        'quantity_to_produce',
+                        'sheets_needed',
+                        'total_impressions',
+                        'ink_front_count',
+                        'ink_back_count',
+                        'front_back_plate',
+                        'paper_id',
+                        'horizontal_size',
+                        'vertical_size',
+                        'produced_quantity',
+                        'rejected_quantity',
+                        'item_status',
+                        'production_started_at',
+                        'production_completed_at',
+                        'actual_impressions',
+                        'production_notes',
+                        'quality_notes',
+                    ])
+                    ->withTimestamps();
+    }
+
     // Scopes
     public function scopeAvailableForOrders($query)
     {

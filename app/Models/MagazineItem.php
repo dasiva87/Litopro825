@@ -332,4 +332,79 @@ class MagazineItem extends Model
             ];
         })->toArray();
     }
+
+    /**
+     * Obtener todos los papeles utilizados en las páginas de la revista
+     * Retorna un array con los papeles agrupados por tipo
+     */
+    public function getPapersUsed(): array
+    {
+        $papers = [];
+
+        foreach ($this->pages as $page) {
+            if ($page->simpleItem && $page->simpleItem->paper) {
+                $paperId = $page->simpleItem->paper_id;
+
+                if (!isset($papers[$paperId])) {
+                    $papers[$paperId] = [
+                        'paper' => $page->simpleItem->paper,
+                        'total_sheets' => 0,
+                        'pages_using' => []
+                    ];
+                }
+
+                // Sumar los pliegos necesarios de este papel
+                $papers[$paperId]['total_sheets'] += $page->simpleItem->mounting_quantity ?? 0;
+                $papers[$paperId]['pages_using'][] = $page->page_type_name;
+            }
+        }
+
+        return $papers;
+    }
+
+    /**
+     * Obtener el proveedor principal de papel (basado en la mayoría de uso)
+     */
+    public function getMainPaperSupplier(): ?int
+    {
+        $papers = $this->getPapersUsed();
+
+        if (empty($papers)) {
+            return null;
+        }
+
+        // Ordenar por cantidad de pliegos (descendente)
+        uasort($papers, function($a, $b) {
+            return $b['total_sheets'] <=> $a['total_sheets'];
+        });
+
+        // Retornar el supplier del papel más usado
+        $mainPaper = reset($papers);
+        return $mainPaper['paper']->company_id ?? null;
+    }
+
+    /**
+     * Obtener el total de pliegos necesarios para toda la revista
+     * Suma los mounting_quantity de todos los SimpleItems de las páginas
+     */
+    public function getTotalSheetsAttribute(): int
+    {
+        $totalSheets = 0;
+
+        foreach ($this->pages as $page) {
+            if ($page->simpleItem) {
+                $totalSheets += $page->simpleItem->mounting_quantity ?? 0;
+            }
+        }
+
+        return $totalSheets;
+    }
+
+    /**
+     * Obtener el total de pliegos necesarios (alias para compatibilidad)
+     */
+    public function getMountingQuantityAttribute(): int
+    {
+        return $this->getTotalSheetsAttribute();
+    }
 }

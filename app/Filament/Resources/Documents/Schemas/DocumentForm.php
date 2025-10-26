@@ -20,20 +20,22 @@ class DocumentForm
             ->components([
                 Section::make('Información Principal')
                     ->schema([
-                        Grid::make(3)
+                        // Campo oculto: siempre crea como QUOTE
+                        Select::make('document_type_id')
+                            ->label('Tipo de Documento')
+                            ->relationship('documentType', 'name')
+                            ->default(fn () => DocumentType::where('code', 'QUOTE')->first()?->id)
+                            ->hidden()
+                            ->dehydrated()
+                            ->required(),
+
+                        Grid::make(2)
                             ->schema([
-                                Select::make('document_type_id')
-                                    ->label('Tipo de Documento')
-                                    ->relationship('documentType', 'name')
-                                    ->default(fn () => DocumentType::where('code', 'QUOTE')->first()?->id)
-                                    ->required()
-                                    ->live(),
-                                    
                                 TextInput::make('document_number')
                                     ->label('Número')
                                     ->disabled()
                                     ->placeholder('Se genera automáticamente'),
-                                    
+
                                 Select::make('status')
                                     ->label('Estado')
                                     ->options([

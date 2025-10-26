@@ -9,6 +9,7 @@ class DocumentItemFinishing extends Model
 {
     protected $fillable = [
         'document_item_id',
+        'supplier_id',
         'finishing_name',
         'quantity',
         'is_double_sided',
@@ -26,5 +27,10 @@ class DocumentItemFinishing extends Model
     public function documentItem(): BelongsTo
     {
         return $this->belongsTo(DocumentItem::class);
+    }
+
+    public function supplier(): BelongsTo
+    {
+        return $this->belongsTo(Contact::class, 'supplier_id');
     }
 }

@@ -15,28 +15,34 @@ use Spatie\Permission\Models\Role;
 class SimpleRegistrationController extends Controller
 {
     /**
-     * Show the simplified registration form
+     * Show the registration form (redirects to Filament page)
      */
     public function create()
     {
-        return view('auth.register-simple');
+        return redirect()->route('filament.pages.auth.register');
     }
 
     /**
-     * Handle simplified company registration
+     * Handle company registration
      */
     public function store(Request $request)
     {
         $request->validate([
-            // Datos mínimos de la empresa
+            // Datos de la empresa
             'company_name' => ['required', 'string', 'max:255'],
+            'company_email' => ['required', 'string', 'email', 'max:255'],
+            'company_phone' => ['required', 'string', 'max:50'],
             'tax_id' => ['required', 'string', 'max:50', 'unique:companies,tax_id'],
             'company_type' => ['required', 'in:litografia,papeleria'],
+            'company_address' => ['required', 'string', 'max:500'],
 
-            // Datos mínimos del usuario administrador
+            // Datos del usuario administrador
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+
+            // Plan seleccionado
+            'plan_id' => ['required', 'exists:plans,id'],
 
             // Términos y condiciones
             'terms' => ['required', 'accepted'],
@@ -45,21 +51,24 @@ class SimpleRegistrationController extends Controller
         try {
             DB::beginTransaction();
 
-            // Crear la empresa con estado 'incomplete'
+            // Obtener el plan seleccionado
+            $selectedPlan = \App\Models\Plan::findOrFail($request->plan_id);
+
+            // Crear la empresa con todos los datos
             $company = Company::create([
                 'name' => $request->company_name,
                 'slug' => Str::slug($request->company_name),
+                'email' => $request->company_email,
+                'phone' => $request->company_phone,
+                'address' => $request->company_address,
                 'tax_id' => $request->tax_id,
                 'company_type' => $request->company_type,
-                'status' => 'active', // Empresa activa con plan gratuito
+                'status' => 'active',
                 'is_active' => true,
-                'subscription_plan' => 'free', // Plan inicial gratuito
-                'subscription_expires_at' => null, // Plan gratuito no expira
-                'max_users' => 5, // Límite inicial para plan gratuito
-                // Campos opcionales se llenarán después
-                'email' => null,
-                'phone' => null,
-                'address' => null,
+                'subscription_plan' => $selectedPlan->slug,
+                'subscription_expires_at' => $selectedPlan->price == 0 ? null : now()->addMonth(),
+                'max_users' => $selectedPlan->max_users ?? 5,
+                // Campos de ubicación opcionales
                 'country_id' => null,
                 'state_id' => null,
                 'city_id' => null,
@@ -81,21 +90,18 @@ class SimpleRegistrationController extends Controller
                 $user->assignRole($adminRole);
             }
 
-            // Crear suscripción gratuita automáticamente
-            $freePlan = \App\Models\Plan::where('slug', 'free')->first();
-            if ($freePlan) {
-                \App\Models\Subscription::create([
-                    'company_id' => $company->id,
-                    'user_id' => $user->id,
-                    'name' => $freePlan->name,
-                    'stripe_id' => 'free_' . $company->id . '_' . time(), // ID único para plan gratuito
-                    'stripe_status' => 'active', // Plan gratuito activo inmediatamente
-                    'stripe_price' => $freePlan->stripe_price_id ?? $freePlan->slug,
-                    'quantity' => 1,
-                    'trial_ends_at' => null, // Sin período de prueba
-                    'ends_at' => now()->addYear(), // Plan gratuito válido por 1 año
-                ]);
-            }
+            // Crear suscripción según el plan seleccionado
+            \App\Models\Subscription::create([
+                'company_id' => $company->id,
+                'user_id' => $user->id,
+                'name' => $selectedPlan->name,
+                'stripe_id' => ($selectedPlan->price == 0 ? 'free_' : 'plan_') . $company->id . '_' . time(),
+                'stripe_status' => 'active',
+                'stripe_price' => $selectedPlan->stripe_price_id ?? $selectedPlan->slug,
+                'quantity' => 1,
+                'trial_ends_at' => null,
+                'ends_at' => $selectedPlan->price == 0 ? now()->addYear() : now()->addMonth(),
+            ]);
 
             DB::commit();
 

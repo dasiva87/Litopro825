@@ -271,4 +271,57 @@ class TalonarioItem extends Model
             ];
         }
     }
+
+    /**
+     * Obtener los diferentes papeles usados en el talonario con sus cantidades
+     * Similar a MagazineItem::getPapersUsed()
+     *
+     * @return array Array indexado por paper_id con estructura:
+     *               ['paper' => Paper, 'total_sheets' => int, 'sheets_using' => array]
+     */
+    public function getPapersUsed(): array
+    {
+        $papers = [];
+
+        foreach ($this->sheets as $sheet) {
+            if ($sheet->simpleItem && $sheet->simpleItem->paper) {
+                $paperId = $sheet->simpleItem->paper_id;
+
+                if (!isset($papers[$paperId])) {
+                    $papers[$paperId] = [
+                        'paper' => $sheet->simpleItem->paper,
+                        'total_sheets' => 0,
+                        'sheets_using' => []
+                    ];
+                }
+
+                // Sumar los pliegos necesarios de este papel
+                $papers[$paperId]['total_sheets'] += $sheet->simpleItem->mounting_quantity ?? 0;
+                $papers[$paperId]['sheets_using'][] = $sheet->sheet_type_name;
+            }
+        }
+
+        return $papers;
+    }
+
+    /**
+     * Obtener el proveedor principal de papel (basado en la mayoría de uso)
+     */
+    public function getMainPaperSupplier(): ?int
+    {
+        $papers = $this->getPapersUsed();
+
+        if (empty($papers)) {
+            return null;
+        }
+
+        // Ordenar por cantidad de pliegos (mayor primero)
+        uasort($papers, function ($a, $b) {
+            return $b['total_sheets'] <=> $a['total_sheets'];
+        });
+
+        // Retornar el company_id del papel más usado
+        $mainPaper = reset($papers);
+        return $mainPaper['paper']->company_id ?? null;
+    }
 }

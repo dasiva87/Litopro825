@@ -37,28 +37,41 @@
         }
         .document-info {
             background: #f8f9fa;
-            padding: 12px;
-            border-radius: 3px;
-            margin-bottom: 15px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            margin-bottom: 10px;
         }
         .document-info h2 {
-            font-size: 16pt;
-            margin: 0 0 8px 0;
+            font-size: 14pt;
+            margin: 0 0 5px 0;
         }
-        .document-info p {
-            margin: 2px 0;
+        .info-grid {
+            display: table;
+            width: 100%;
             font-size: 10pt;
+        }
+        .info-row {
+            display: table-row;
+        }
+        .info-label {
+            display: table-cell;
+            font-weight: bold;
+            width: 25%;
+            padding: 2px 4px;
+        }
+        .info-value {
+            display: table-cell;
+            padding: 2px 4px;
         }
         .contact-info {
-            margin-bottom: 15px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            padding: 8px;
+            background: #fafafa;
         }
         .contact-info h3 {
-            font-size: 12pt;
-            margin: 0 0 8px 0;
-        }
-        .contact-info p {
-            margin: 2px 0;
-            font-size: 10pt;
+            font-size: 11pt;
+            margin: 0 0 5px 0;
         }
         .items-table {
             width: 100%;
@@ -133,19 +146,40 @@
         
         <div class="document-info">
             <h2>{{ $document->documentType->name ?? 'Documento' }}</h2>
-            <p><strong>Número:</strong> {{ $document->document_number }}</p>
-            <p><strong>Fecha:</strong> {{ $document->date->format('d/m/Y') }}</p>
-            <p><strong>Estado:</strong> {{ ucfirst($document->status) }}</p>
+            <div class="info-grid">
+                <div class="info-row">
+                    <span class="info-label">Número:</span>
+                    <span class="info-value">{{ $document->document_number }}</span>
+                    <span class="info-label">Estado:</span>
+                    <span class="info-value">{{ ucfirst($document->status) }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Fecha:</span>
+                    <span class="info-value">{{ $document->date->format('d/m/Y') }}</span>
+                    <span class="info-label">Válido hasta:</span>
+                    <span class="info-value">{{ $document->valid_until ? $document->valid_until->format('d/m/Y') : 'N/A' }}</span>
+                </div>
+            </div>
         </div>
     </div>
 
     <div class="contact-info">
-        <h3>Cliente:</h3>
+        <h3>CLIENTE</h3>
         @if($document->contact)
-            <p><strong>{{ $document->contact->name }}</strong></p>
-            <p>{{ $document->contact->email }}</p>
-            <p>{{ $document->contact->phone }}</p>
-            <p>{{ $document->contact->address }}</p>
+            <div class="info-grid">
+                <div class="info-row">
+                    <span class="info-label">Nombre:</span>
+                    <span class="info-value"><strong>{{ $document->contact->name }}</strong></span>
+                    <span class="info-label">Teléfono:</span>
+                    <span class="info-value">{{ $document->contact->phone ?? 'N/A' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Email:</span>
+                    <span class="info-value">{{ $document->contact->email ?? 'N/A' }}</span>
+                    <span class="info-label">Dirección:</span>
+                    <span class="info-value">{{ $document->contact->address ?? 'N/A' }}</span>
+                </div>
+            </div>
         @endif
     </div>
 
@@ -266,13 +300,8 @@
     @endif
 
     <div class="footer">
-        <p>
-            <strong>{{ $document->documentType->name ?? 'Documento' }} {{ $document->document_number }}</strong> | 
-            Generado el {{ now()->format('d/m/Y \a \l\a\s H:i') }} por {{ $document->company->name ?? 'LitoPro' }}
-        </p>
-        @if($document->valid_until)
-        <p>Válido hasta: {{ $document->valid_until->format('d/m/Y') }}</p>
-        @endif
+        <p>Generado el {{ now()->format('d/m/Y H:i') }} - {{ $document->company->name }}</p>
+        <p>Este documento fue generado automáticamente por GrafiRed</p>
     </div>
 </body>
 </html>

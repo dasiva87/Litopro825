@@ -32,6 +32,17 @@ enum CollectionAccountStatus: string
         };
     }
 
+    public function icon(): string
+    {
+        return match($this) {
+            self::DRAFT => 'heroicon-o-document',
+            self::SENT => 'heroicon-o-paper-airplane',
+            self::APPROVED => 'heroicon-o-check-circle',
+            self::PAID => 'heroicon-o-banknotes',
+            self::CANCELLED => 'heroicon-o-x-circle',
+        };
+    }
+
     public function isPending(): bool
     {
         return in_array($this, [

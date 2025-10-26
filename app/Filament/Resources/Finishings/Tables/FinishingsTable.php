@@ -42,10 +42,20 @@ class FinishingsTable
                     ->label('Precio')
                     ->money('COP')
                     ->sortable(),
-                TextColumn::make('provider_name')
+                TextColumn::make('supplier.name')
                     ->label('Proveedor')
+                    ->default(fn ($record) => $record->is_own_provider ? 'Propio' : 'Sin asignar')
                     ->badge()
-                    ->color(fn($state) => $state === 'Propio' ? 'success' : 'gray'),
+                    ->color(fn ($record) => match(true) {
+                        $record->is_own_provider => 'success',
+                        $record->supplier_id !== null => 'info',
+                        default => 'gray'
+                    })
+                    ->icon(fn ($record) => match(true) {
+                        $record->is_own_provider => 'heroicon-o-home',
+                        $record->supplier_id !== null => 'heroicon-o-building-office',
+                        default => 'heroicon-o-question-mark-circle'
+                    }),
                 IconColumn::make('active')
                     ->label('Activo')
                     ->boolean(),
