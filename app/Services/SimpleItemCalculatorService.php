@@ -10,14 +10,66 @@ use App\Models\PrintingMachine;
 class SimpleItemCalculatorService
 {
     private CuttingCalculatorService $cuttingCalculator;
-    
+    private MountingCalculatorService $mountingCalculator;
+
     public function __construct()
     {
         $this->cuttingCalculator = new CuttingCalculatorService();
+        $this->mountingCalculator = new MountingCalculatorService();
+    }
+
+    /**
+     * PASO 0: Calcular montaje puro (cuántas copias caben en un pliego)
+     * Usa MountingCalculatorService para cálculo genérico
+     */
+    public function calculatePureMounting(SimpleItem $item): ?array
+    {
+        if (!$item->printingMachine) {
+            return null;
+        }
+
+        // Dimensiones de la máquina
+        $machineWidth = $item->printingMachine->max_width ?? 50.0;
+        $machineHeight = $item->printingMachine->max_height ?? 70.0;
+
+        // Calcular montaje usando el nuevo servicio
+        $mounting = $this->mountingCalculator->calculateMounting(
+            workWidth: $item->horizontal_size,
+            workHeight: $item->vertical_size,
+            machineWidth: $machineWidth,
+            machineHeight: $machineHeight,
+            marginPerSide: 1.0  // Margen estándar 1cm
+        );
+
+        // Si necesita pliegos de papel, calcular usando el mejor montaje
+        if ($item->paper && $item->quantity > 0) {
+            $bestMounting = $mounting['maximum'];
+
+            if ($bestMounting['copies_per_sheet'] > 0) {
+                $sheetsInfo = $this->mountingCalculator->calculateRequiredSheets(
+                    requiredCopies: $item->quantity + ($item->sobrante_papel ?? 0),
+                    copiesPerSheet: $bestMounting['copies_per_sheet']
+                );
+
+                $efficiency = $this->mountingCalculator->calculateEfficiency(
+                    workWidth: $bestMounting['work_width'],
+                    workHeight: $bestMounting['work_height'],
+                    copiesPerSheet: $bestMounting['copies_per_sheet'],
+                    usableWidth: $machineWidth - 2.0,  // Restar márgenes
+                    usableHeight: $machineHeight - 2.0
+                );
+
+                $mounting['sheets_info'] = $sheetsInfo;
+                $mounting['efficiency'] = $efficiency;
+            }
+        }
+
+        return $mounting;
     }
 
     /**
      * PASO 1: Calcular opciones de montaje disponibles
+     * (Mantiene compatibilidad con código existente usando CuttingCalculatorService)
      */
     public function calculateMountingOptions(SimpleItem $item): array
     {

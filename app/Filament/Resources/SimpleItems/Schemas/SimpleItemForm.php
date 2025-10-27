@@ -19,19 +19,20 @@ class SimpleItemForm
     {
         return $schema
             ->components([
-                // Layout de 2 columnas principal
-                Grid::make(2)
+                // Sección Información del Producto - Ancho completo
+                Section::make('📝 Información del Producto')
+                    ->description('Datos básicos del trabajo de impresión')
                     ->schema([
-                        // COLUMNA IZQUIERDA - Información del Producto
-                        Section::make('📝 Información del Producto')
+                        Grid::make(3)
                             ->schema([
                                 Textarea::make('description')
-                                    ->label('Descripción')
+                                    ->label('Descripción del Trabajo')
                                     ->required()
-                                    ->rows(2)
-                                    ->placeholder('Ej: Volantes promocionales full color...'),
+                                    ->rows(3)
+                                    ->placeholder('Ej: Volantes promocionales full color...')
+                                    ->columnSpan(2),
 
-                                Grid::make(2)
+                                Grid::make(1)
                                     ->schema([
                                         TextInput::make('quantity')
                                             ->label('Cantidad')
@@ -39,49 +40,74 @@ class SimpleItemForm
                                             ->required()
                                             ->default(1)
                                             ->minValue(1)
-                                            ->suffix('uds'),
+                                            ->suffix('unidades')
+                                            ->live(onBlur: true),
 
                                         TextInput::make('sobrante_papel')
                                             ->label('Sobrante')
                                             ->numeric()
                                             ->default(0)
                                             ->minValue(0)
-                                            ->suffix('uds')
-                                            ->helperText('Desperdicios (si >100 se cobra)'),
-                                    ]),
+                                            ->suffix('unidades')
+                                            ->helperText('Desperdicios (si >100 se cobra)')
+                                            ->live(onBlur: true),
+                                    ])
+                                    ->columnSpan(1),
+                            ]),
 
-                                Grid::make(3)
-                                    ->schema([
-                                        TextInput::make('horizontal_size')
-                                            ->label('Ancho')
-                                            ->numeric()
-                                            ->required()
-                                            ->suffix('cm')
-                                            ->step(0.1),
+                        Grid::make(4)
+                            ->schema([
+                                TextInput::make('horizontal_size')
+                                    ->label('Ancho del Trabajo')
+                                    ->numeric()
+                                    ->required()
+                                    ->suffix('cm')
+                                    ->step(0.1)
+                                    ->live(onBlur: true),
 
-                                        TextInput::make('vertical_size')
-                                            ->label('Alto')
-                                            ->numeric()
-                                            ->required()
-                                            ->suffix('cm')
-                                            ->step(0.1),
+                                TextInput::make('vertical_size')
+                                    ->label('Alto del Trabajo')
+                                    ->numeric()
+                                    ->required()
+                                    ->suffix('cm')
+                                    ->step(0.1)
+                                    ->live(onBlur: true),
 
-                                        Placeholder::make('area_calculation')
-                                            ->label('Área')
-                                            ->content(function ($get) {
-                                                $h = $get('horizontal_size');
-                                                $v = $get('vertical_size');
-                                                return $h && $v ? number_format($h * $v, 2) . ' cm²' : '-';
-                                            }),
-                                    ]),
-                            ])
-                            ->columnSpan(1),
+                                Placeholder::make('area_calculation')
+                                    ->label('Área Total')
+                                    ->content(function ($get) {
+                                        $h = $get('horizontal_size');
+                                        $v = $get('vertical_size');
+                                        return $h && $v ? '<strong>' . number_format($h * $v, 2) . ' cm²</strong>' : '-';
+                                    })
+                                    ->html(),
 
-                        // COLUMNA DERECHA - Configuración de Impresión
-                        Section::make('🖨️ Configuración de Impresión')
+                                Placeholder::make('format_info')
+                                    ->label('Formato')
+                                    ->content(function ($get) {
+                                        $h = $get('horizontal_size');
+                                        $v = $get('vertical_size');
+                                        if (!$h || !$v) return '-';
+
+                                        // Detectar formatos comunes
+                                        if (abs($h - 9) < 0.5 && abs($v - 5) < 0.5) return '<span class="text-blue-600 font-semibold">📇 Tarjeta</span>';
+                                        if (abs($h - 14.8) < 0.5 && abs($v - 21) < 0.5) return '<span class="text-blue-600 font-semibold">📄 A5</span>';
+                                        if (abs($h - 21) < 0.5 && abs($v - 29.7) < 0.5) return '<span class="text-blue-600 font-semibold">📄 A4</span>';
+                                        return '<span class="text-gray-500">Personalizado</span>';
+                                    })
+                                    ->html(),
+                            ]),
+                    ])
+                    ->columnSpanFull(),
+
+                // Sección Configuración de Impresión - Ancho completo
+                Section::make('🖨️ Configuración de Impresión')
+                    ->description('Papel, máquina y tintas para el trabajo')
+                    ->schema([
+                        Grid::make(2)
                             ->schema([
                                 Select::make('paper_id')
-                                    ->label('Papel')
+                                    ->label('Tipo de Papel')
                                     ->options(function () {
                                         $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
                                         $company = $currentCompanyId ? \App\Models\Company::find($currentCompanyId) : null;
@@ -123,10 +149,11 @@ class SimpleItemForm
                                     })
                                     ->required()
                                     ->searchable()
-                                    ->preload(),
+                                    ->preload()
+                                    ->columnSpan(1),
 
                                 Select::make('printing_machine_id')
-                                    ->label('Máquina')
+                                    ->label('Máquina de Impresión')
                                     ->relationship('printingMachine', 'name')
                                     ->getOptionLabelFromRecordUsing(fn($record) =>
                                         $record->name . ' - ' . ucfirst($record->type) .
@@ -134,33 +161,238 @@ class SimpleItemForm
                                     )
                                     ->required()
                                     ->searchable()
-                                    ->preload(),
+                                    ->preload()
+                                    ->live()
+                                    ->columnSpan(1),
+                            ]),
 
-                                Grid::make(3)
-                                    ->schema([
-                                        TextInput::make('ink_front_count')
-                                            ->label('Tintas Tiro')
-                                            ->numeric()
-                                            ->required()
-                                            ->default(4)
-                                            ->minValue(0)
-                                            ->maxValue(8),
+                        Grid::make(4)
+                            ->schema([
+                                TextInput::make('ink_front_count')
+                                    ->label('Tintas Tiro (Frente)')
+                                    ->numeric()
+                                    ->required()
+                                    ->default(4)
+                                    ->minValue(0)
+                                    ->maxValue(8)
+                                    ->helperText('Colores en la cara frontal'),
 
-                                        TextInput::make('ink_back_count')
-                                            ->label('Tintas Retiro')
-                                            ->numeric()
-                                            ->required()
-                                            ->default(0)
-                                            ->minValue(0)
-                                            ->maxValue(8),
+                                TextInput::make('ink_back_count')
+                                    ->label('Tintas Retiro (Reverso)')
+                                    ->numeric()
+                                    ->required()
+                                    ->default(0)
+                                    ->minValue(0)
+                                    ->maxValue(8)
+                                    ->helperText('Colores en la cara posterior'),
 
-                                        Toggle::make('front_back_plate')
-                                            ->label('Misma Plancha')
-                                            ->inline(false),
-                                    ]),
-                            ])
-                            ->columnSpan(1),
-                    ]),
+                                Toggle::make('front_back_plate')
+                                    ->label('Tiro y Retiro en Misma Plancha')
+                                    ->helperText('Mismo arte en ambos lados')
+                                    ->inline(false),
+
+                                Placeholder::make('total_colors')
+                                    ->label('Total de Tintas')
+                                    ->content(function ($get) {
+                                        $front = $get('ink_front_count') ?? 0;
+                                        $back = $get('ink_back_count') ?? 0;
+                                        $samePlate = $get('front_back_plate');
+
+                                        if ($samePlate) {
+                                            $total = max($front, $back);
+                                            return '<span class="text-lg font-bold text-blue-600">' . $total . ' tintas</span><br><span class="text-xs text-gray-500">(Misma plancha)</span>';
+                                        }
+
+                                        $total = $front + $back;
+                                        return '<span class="text-lg font-bold text-green-600">' . $total . ' tintas</span><br><span class="text-xs text-gray-500">' . $front . '+' . $back . '</span>';
+                                    })
+                                    ->html(),
+                            ]),
+                    ])
+                    ->columnSpanFull(),
+
+                // Vista previa de montaje (visible siempre)
+                Section::make('📐 Vista Previa de Montaje')
+                    ->description('Cálculo en tiempo real de cómo se acomoda el trabajo en el pliego')
+                    ->schema([
+                        Placeholder::make('mounting_preview')
+                            ->label('')
+                            ->live()
+                            ->content(function ($get) {
+                                // Debug: Siempre mostrar algo
+                                $horizontalSize = $get('horizontal_size');
+                                $verticalSize = $get('vertical_size');
+                                $machineId = $get('printing_machine_id');
+                                $quantity = $get('quantity') ?? 0;
+                                $sobrante = $get('sobrante_papel') ?? 0;
+
+                                // Debug info
+                                $debugInfo = '<div class="text-xs text-gray-500 mb-2">
+                                    Debug: Ancho=' . ($horizontalSize ?? 'null') . ',
+                                    Alto=' . ($verticalSize ?? 'null') . ',
+                                    Máquina=' . ($machineId ?? 'null') . '
+                                </div>';
+
+                                if (!$horizontalSize || !$verticalSize || !$machineId) {
+                                    return new \Illuminate\Support\HtmlString($debugInfo . '<div class="p-4 bg-gray-50 rounded text-gray-500 text-center">
+                                        📋 Complete los campos de tamaño y máquina para ver el montaje
+                                    </div>');
+                                }
+
+                                try {
+                                    $machine = \App\Models\PrintingMachine::find($machineId);
+                                    if (!$machine) {
+                                        return new \Illuminate\Support\HtmlString('<div class="p-3 bg-yellow-50 rounded text-yellow-700 text-sm">
+                                            ⚠️ Máquina no encontrada
+                                        </div>');
+                                    }
+
+                                    $calc = new \App\Services\MountingCalculatorService();
+                                    $result = $calc->calculateMounting(
+                                        workWidth: (float) $horizontalSize,
+                                        workHeight: (float) $verticalSize,
+                                        machineWidth: $machine->max_width ?? 50.0,
+                                        machineHeight: $machine->max_height ?? 70.0,
+                                        marginPerSide: 1.0
+                                    );
+
+                                    $best = $result['maximum'];
+
+                                    if ($best['copies_per_sheet'] == 0) {
+                                        return new \Illuminate\Support\HtmlString('<div class="p-3 bg-red-50 rounded text-red-700 text-sm">
+                                            ❌ El trabajo NO cabe en la máquina seleccionada<br>
+                                            <span class="text-xs">Máquina: ' . $machine->name . ' (' . $machine->max_width . '×' . $machine->max_height . 'cm)</span>
+                                        </div>');
+                                    }
+
+                                    // Calcular pliegos necesarios si hay cantidad
+                                    $sheetsInfo = '';
+                                    if ($quantity > 0) {
+                                        $sheets = $calc->calculateRequiredSheets(
+                                            requiredCopies: (int) $quantity + (int) $sobrante,
+                                            copiesPerSheet: $best['copies_per_sheet']
+                                        );
+
+                                        $efficiency = $calc->calculateEfficiency(
+                                            workWidth: $best['work_width'],
+                                            workHeight: $best['work_height'],
+                                            copiesPerSheet: $best['copies_per_sheet'],
+                                            usableWidth: ($machine->max_width ?? 50.0) - 2.0,
+                                            usableHeight: ($machine->max_height ?? 70.0) - 2.0
+                                        );
+
+                                        $sheetsInfo = '
+                                            <div class="mt-3 p-3 bg-blue-50 rounded border border-blue-200">
+                                                <div class="font-semibold text-blue-800 mb-2">📦 Pliegos Necesarios</div>
+                                                <div class="grid grid-cols-3 gap-2 text-sm">
+                                                    <div>
+                                                        <div class="text-gray-600 text-xs">Pliegos</div>
+                                                        <div class="font-bold text-blue-600">' . $sheets['sheets_needed'] . '</div>
+                                                    </div>
+                                                    <div>
+                                                        <div class="text-gray-600 text-xs">Producción</div>
+                                                        <div class="font-bold">' . number_format($sheets['total_copies_produced']) . '</div>
+                                                    </div>
+                                                    <div>
+                                                        <div class="text-gray-600 text-xs">Desperdicio</div>
+                                                        <div class="font-bold text-orange-600">' . $sheets['waste_copies'] . '</div>
+                                                    </div>
+                                                </div>
+                                                <div class="mt-2 text-xs text-gray-600">
+                                                    Aprovechamiento: <strong>' . number_format($efficiency, 1) . '%</strong>
+                                                </div>
+                                            </div>';
+                                    }
+
+                                    // Generar visualización SVG
+                                    $svgVisual = '';
+                                    $svgDebug = '';
+                                    try {
+                                        $svgVisual = self::generateMountingSVG(
+                                            $best,
+                                            $machine->max_width ?? 50.0,
+                                            $machine->max_height ?? 70.0,
+                                            (float) $horizontalSize,
+                                            (float) $verticalSize
+                                        );
+
+                                        $svgDebug = '<div class="text-xs text-green-600 mt-1">✅ SVG generado (' . strlen($svgVisual) . ' chars)</div>';
+
+                                    } catch (\Exception $svgError) {
+                                        // Fallback visual simple si falla el SVG
+                                        $svgVisual = '<div class="p-4 bg-yellow-50 rounded border border-yellow-300 text-center">
+                                            <div class="text-yellow-800 font-semibold mb-2">⚠️ Vista simplificada</div>
+                                            <div class="text-sm text-gray-700">
+                                                <strong>' . $best['copies_per_sheet'] . ' copias</strong> por pliego
+                                                <br>
+                                                Layout: ' . $best['layout'] . ' (' . ucfirst($best['orientation']) . ')
+                                            </div>
+                                            <div class="text-xs text-gray-500 mt-2">Error SVG: ' . $svgError->getMessage() . '</div>
+                                        </div>';
+                                        $svgDebug = '<div class="text-xs text-red-600 mt-1">❌ Error: ' . $svgError->getMessage() . '</div>';
+                                    }
+
+                                    $content = '
+                                        <div class="space-y-4">
+                                            <!-- Visualización Gráfica -->
+                                            <div class="bg-gradient-to-br from-gray-50 to-gray-100 p-4 rounded-lg border border-gray-300">
+                                                <div class="text-sm font-semibold text-gray-700 mb-3 text-center">
+                                                    🎨 Vista del Pliego - Orientación ' . ucfirst($best['orientation']) . '
+                                                </div>
+                                                <div class="flex justify-center">
+                                                    ' . $svgVisual . '
+                                                </div>
+                                                <div class="mt-3 text-xs text-gray-600 text-center">
+                                                    <span class="inline-block px-2 py-1 bg-blue-100 rounded">Pliego</span>
+                                                    <span class="inline-block px-2 py-1 bg-green-100 rounded ml-2">Trabajo</span>
+                                                    <span class="inline-block px-2 py-1 bg-yellow-100 rounded ml-2">Margen</span>
+                                                </div>
+                                                ' . $svgDebug . '
+                                            </div>
+
+                                            <div class="grid grid-cols-3 gap-3">
+                                                <!-- Horizontal -->
+                                                <div class="p-3 ' . ($best['orientation'] === 'horizontal' ? 'bg-green-50 border-2 border-green-300' : 'bg-gray-50 border border-gray-200') . ' rounded">
+                                                    <div class="text-xs text-gray-600 mb-1">Horizontal</div>
+                                                    <div class="font-bold text-lg">' . $result['horizontal']['copies_per_sheet'] . '</div>
+                                                    <div class="text-xs text-gray-600">' . $result['horizontal']['layout'] . '</div>
+                                                    ' . ($best['orientation'] === 'horizontal' ? '<div class="text-xs text-green-600 mt-1">✓ Mejor</div>' : '') . '
+                                                </div>
+
+                                                <!-- Vertical -->
+                                                <div class="p-3 ' . ($best['orientation'] === 'vertical' ? 'bg-green-50 border-2 border-green-300' : 'bg-gray-50 border border-gray-200') . ' rounded">
+                                                    <div class="text-xs text-gray-600 mb-1">Vertical</div>
+                                                    <div class="font-bold text-lg">' . $result['vertical']['copies_per_sheet'] . '</div>
+                                                    <div class="text-xs text-gray-600">' . $result['vertical']['layout'] . '</div>
+                                                    ' . ($best['orientation'] === 'vertical' ? '<div class="text-xs text-green-600 mt-1">✓ Mejor</div>' : '') . '
+                                                </div>
+
+                                                <!-- Recomendado -->
+                                                <div class="p-3 bg-green-100 border-2 border-green-400 rounded">
+                                                    <div class="text-xs text-green-700 mb-1">⭐ Recomendado</div>
+                                                    <div class="font-bold text-xl text-green-700">' . $best['copies_per_sheet'] . '</div>
+                                                    <div class="text-xs text-green-600">copias/pliego</div>
+                                                </div>
+                                            </div>
+
+                                            ' . $sheetsInfo . '
+
+                                            <div class="text-xs text-gray-500 text-center">
+                                                Máquina: ' . $machine->name . ' (' . ($machine->max_width ?? 50) . '×' . ($machine->max_height ?? 70) . 'cm) | Margen: 1cm por lado
+                                            </div>
+                                        </div>';
+
+                                    return new \Illuminate\Support\HtmlString($content);
+
+                                } catch (\Exception $e) {
+                                    return new \Illuminate\Support\HtmlString('<div class="p-3 bg-red-50 rounded text-red-700 text-sm">
+                                        ❌ Error al calcular montaje: ' . $e->getMessage() . '
+                                    </div>');
+                                }
+                            })
+                            ->columnSpanFull(),
+                    ])
+                    ->columnSpanFull(),
 
                 // Sección de costos - ancho completo pero más compacta
                 Section::make('💰 Costos y Márgenes')
@@ -386,5 +618,120 @@ class SimpleItemForm
                             ->columnSpanFull(),
                     ]),
             ]);
+    }
+
+    /**
+     * Genera visualización SVG del montaje
+     */
+    public static function generateMountingSVG(
+        array $mounting,
+        float $machineWidth,
+        float $machineHeight,
+        float $workWidth,
+        float $workHeight
+    ): string {
+        // Escala para que el SVG sea responsive (max 500px de ancho)
+        $maxSvgWidth = 500;
+        $scale = $maxSvgWidth / max($machineWidth, $machineHeight);
+
+        // Dimensiones del SVG
+        $svgWidth = $machineWidth * $scale;
+        $svgHeight = $machineHeight * $scale;
+
+        // Margen de 1cm escalado
+        $margin = 1 * $scale;
+
+        // Área útil
+        $usableX = $margin;
+        $usableY = $margin;
+        $usableWidth = $svgWidth - (2 * $margin);
+        $usableHeight = $svgHeight - (2 * $margin);
+
+        // Dimensiones del trabajo (según orientación)
+        $itemWidth = $mounting['work_width'] * $scale;
+        $itemHeight = $mounting['work_height'] * $scale;
+
+        // Número de copias en cada dirección
+        $cols = $mounting['cols'];
+        $rows = $mounting['rows'];
+
+        // Calcular el espacio total que ocupan todos los trabajos PEGADOS (sin espaciado entre ellos)
+        $totalWorksWidth = $cols * $itemWidth;
+        $totalWorksHeight = $rows * $itemHeight;
+
+        // NO hay espaciado entre copias - están pegadas
+        $spacingX = 0;
+        $spacingY = 0;
+
+        // Calcular el offset para centrar todo el bloque de trabajos pegados
+        $offsetX = $margin + ($usableWidth - $totalWorksWidth) / 2;
+        $offsetY = $margin + ($usableHeight - $totalWorksHeight) / 2;
+
+        $svg = '<svg width="' . $svgWidth . '" height="' . $svgHeight . '" viewBox="0 0 ' . $svgWidth . ' ' . $svgHeight . '" xmlns="http://www.w3.org/2000/svg" class="border-2 border-gray-400 rounded shadow-sm">';
+
+        // Fondo del pliego (azul claro)
+        $svg .= '<rect x="0" y="0" width="' . $svgWidth . '" height="' . $svgHeight . '" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>';
+
+        // Área de margen (amarillo claro con patrón)
+        $svg .= '<defs>
+            <pattern id="marginPattern" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
+                <rect width="10" height="10" fill="#fef3c7"/>
+                <path d="M0,10 l10,-10 M-2.5,2.5 l5,-5 M7.5,12.5 l5,-5" stroke="#fbbf24" stroke-width="1" opacity="0.3"/>
+            </pattern>
+        </defs>';
+
+        // Márgenes superior e inferior
+        $svg .= '<rect x="0" y="0" width="' . $svgWidth . '" height="' . $margin . '" fill="url(#marginPattern)" stroke="#f59e0b" stroke-width="1" opacity="0.7"/>';
+        $svg .= '<rect x="0" y="' . ($svgHeight - $margin) . '" width="' . $svgWidth . '" height="' . $margin . '" fill="url(#marginPattern)" stroke="#f59e0b" stroke-width="1" opacity="0.7"/>';
+
+        // Márgenes izquierdo y derecho
+        $svg .= '<rect x="0" y="' . $margin . '" width="' . $margin . '" height="' . ($svgHeight - 2 * $margin) . '" fill="url(#marginPattern)" stroke="#f59e0b" stroke-width="1" opacity="0.7"/>';
+        $svg .= '<rect x="' . ($svgWidth - $margin) . '" y="' . $margin . '" width="' . $margin . '" height="' . ($svgHeight - 2 * $margin) . '" fill="url(#marginPattern)" stroke="#f59e0b" stroke-width="1" opacity="0.7"/>';
+
+        // Dibujar cada copia del trabajo (centradas)
+        for ($row = 0; $row < $rows; $row++) {
+            for ($col = 0; $col < $cols; $col++) {
+                $x = $offsetX + ($col * ($itemWidth + $spacingX));
+                $y = $offsetY + ($row * ($itemHeight + $spacingY));
+
+                // Rectángulo del trabajo (verde con gradiente)
+                $svg .= '<rect x="' . $x . '" y="' . $y . '" width="' . $itemWidth . '" height="' . $itemHeight . '"
+                    fill="#86efac"
+                    stroke="#16a34a"
+                    stroke-width="1.5"
+                    rx="2"
+                    opacity="0.85"/>';
+
+                // Número de copia (si caben más de 9, reducir tamaño de fuente)
+                $fontSize = $mounting['copies_per_sheet'] > 20 ? 8 : 10;
+                $copyNumber = ($row * $cols) + $col + 1;
+
+                // Solo mostrar número si el item es lo suficientemente grande
+                if ($itemWidth > 15 && $itemHeight > 15) {
+                    $svg .= '<text x="' . ($x + $itemWidth / 2) . '" y="' . ($y + $itemHeight / 2) . '"
+                        font-size="' . $fontSize . '"
+                        fill="#166534"
+                        font-weight="bold"
+                        text-anchor="middle"
+                        dominant-baseline="middle">' . $copyNumber . '</text>';
+                }
+            }
+        }
+
+        // Dimensiones del pliego (texto)
+        $svg .= '<text x="' . ($svgWidth / 2) . '" y="15" font-size="12" fill="#1e40af" font-weight="bold" text-anchor="middle">' . $machineWidth . 'cm</text>';
+        $svg .= '<text x="15" y="' . ($svgHeight / 2) . '" font-size="12" fill="#1e40af" font-weight="bold" text-anchor="middle" transform="rotate(-90 15 ' . ($svgHeight / 2) . ')">' . $machineHeight . 'cm</text>';
+
+        // Dimensiones del trabajo (en la primera copia centrada)
+        if ($cols > 0 && $rows > 0 && $itemWidth > 30 && $itemHeight > 20) {
+            $firstX = $offsetX;
+            $firstY = $offsetY;
+
+            $svg .= '<text x="' . ($firstX + $itemWidth / 2) . '" y="' . ($firstY + $itemHeight + 12) . '" font-size="9" fill="#15803d" font-weight="bold" text-anchor="middle">' . number_format($mounting['work_width'], 1) . '×' . number_format($mounting['work_height'], 1) . 'cm</text>';
+        }
+
+        $svg .= '</svg>';
+
+        return $svg;
     }
 }

@@ -367,6 +367,41 @@ class SimpleItem extends Model
         }
     }
 
+    /**
+     * Obtiene el cálculo de montaje puro (cuántas copias caben por pliego)
+     * Usa el nuevo MountingCalculatorService
+     *
+     * @return array|null [
+     *   'horizontal' => [...],
+     *   'vertical' => [...],
+     *   'maximum' => [...],
+     *   'sheets_info' => [...],  (si hay papel y cantidad)
+     *   'efficiency' => float     (si hay papel y cantidad)
+     * ]
+     */
+    public function getPureMounting(): ?array
+    {
+        try {
+            $calculator = new \App\Services\SimpleItemCalculatorService;
+
+            return $calculator->calculatePureMounting($this);
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Obtiene solo la información del mejor montaje (máximo)
+     *
+     * @return array|null
+     */
+    public function getBestMounting(): ?array
+    {
+        $mounting = $this->getPureMounting();
+
+        return $mounting ? $mounting['maximum'] : null;
+    }
+
     // Método para obtener el desglose detallado de costos
     public function getDetailedCostBreakdown(): array
     {

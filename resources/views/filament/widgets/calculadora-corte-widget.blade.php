@@ -158,16 +158,11 @@
                     </div>
                 </div>
 
-                <!-- Visualización con canvas -->
+                <!-- Visualización con SVG -->
                 <div style="margin-top: 20px; background: white; border-radius: 8px; border: 1px solid #e5e7eb; padding: 16px;">
                     <h5 style="color: #374151; margin: 0 0 12px 0; font-size: 14px; font-weight: 600;">Distribución visual del corte:</h5>
                     <div style="display: flex; justify-content: center; align-items: center; background: #f9fafb; border-radius: 6px; padding: 20px; min-height: 300px;">
-                        <canvas
-                            id="corteCanvas"
-                            style="border: 2px solid #d1d5db; border-radius: 4px; max-width: 100%; height: auto;"
-                            width="400"
-                            height="300"
-                        ></canvas>
+                        {!! $this->generateCuttingSVG() !!}
                     </div>
                     <div style="display: flex; justify-content: center; gap: 20px; margin-top: 12px;">
                         <div style="display: flex; align-items: center; gap: 6px;">
@@ -180,114 +175,6 @@
                         </div>
                     </div>
                 </div>
-
-                <script>
-                    document.addEventListener('livewire:init', function () {
-                        Livewire.on('orientation-changed', () => {
-                            setTimeout(() => {
-                                if (document.getElementById('corteCanvas')) {
-                                    dibujarCorte();
-                                }
-                            }, 100);
-                        });
-                    });
-
-                    document.addEventListener('livewire:update', function () {
-                        setTimeout(() => {
-                            if (document.getElementById('corteCanvas')) {
-                                dibujarCorte();
-                            }
-                        }, 100);
-                    });
-
-                    document.addEventListener('DOMContentLoaded', function () {
-                        setTimeout(() => {
-                            if (document.getElementById('corteCanvas')) {
-                                dibujarCorte();
-                            }
-                        }, 500);
-                    });
-
-                    function dibujarCorte() {
-                        const canvas = document.getElementById('corteCanvas');
-                        if (!canvas) return;
-
-                        const ctx = canvas.getContext('2d');
-                        const canvasWidth = canvas.width;
-                        const canvasHeight = canvas.height;
-
-                        // Limpiar canvas
-                        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-
-                        // Obtener valores desde Livewire
-                        const anchoPapel = {{ $anchoPapel }};
-                        const largoPapel = {{ $largoPapel }};
-                        const anchoCorte = {{ $anchoCorte }};
-                        const largoCorte = {{ $largoCorte }};
-                        const piezasPorAncho = {{ $resultado['piezasPorAncho'] ?? 0 }};
-                        const piezasPorLargo = {{ $resultado['piezasPorLargo'] ?? 0 }};
-
-                        // Calcular escala para que el papel quepa en el canvas con margen
-                        const margen = 40;
-                        const escalaAncho = (canvasWidth - margen * 2) / anchoPapel;
-                        const escalaLargo = (canvasHeight - margen * 2) / largoPapel;
-                        const escala = Math.min(escalaAncho, escalaLargo);
-
-                        // Dimensiones escaladas
-                        const papelAnchoEscalado = anchoPapel * escala;
-                        const papelLargoEscalado = largoPapel * escala;
-                        const corteAnchoEscalado = anchoCorte * escala;
-                        const corteLargoEscalado = largoCorte * escala;
-
-                        // Centrar el papel en el canvas
-                        const offsetX = (canvasWidth - papelAnchoEscalado) / 2;
-                        const offsetY = (canvasHeight - papelLargoEscalado) / 2;
-
-                        // Dibujar fondo del papel
-                        ctx.fillStyle = '#3b82f6';
-                        ctx.fillRect(offsetX, offsetY, papelAnchoEscalado, papelLargoEscalado);
-
-                        // Dibujar borde del papel
-                        ctx.strokeStyle = '#1e40af';
-                        ctx.lineWidth = 2;
-                        ctx.strokeRect(offsetX, offsetY, papelAnchoEscalado, papelLargoEscalado);
-
-                        // Dibujar las piezas
-                        ctx.fillStyle = '#22c55e';
-                        ctx.strokeStyle = '#16a34a';
-                        ctx.lineWidth = 1;
-
-                        for (let fila = 0; fila < piezasPorLargo; fila++) {
-                            for (let col = 0; col < piezasPorAncho; col++) {
-                                const x = offsetX + (col * corteAnchoEscalado);
-                                const y = offsetY + (fila * corteLargoEscalado);
-
-                                // Rellenar pieza
-                                ctx.fillRect(x, y, corteAnchoEscalado, corteLargoEscalado);
-
-                                // Contorno de pieza
-                                ctx.strokeRect(x, y, corteAnchoEscalado, corteLargoEscalado);
-                            }
-                        }
-
-                        // Agregar texto con medidas
-                        ctx.fillStyle = '#374151';
-                        ctx.font = 'bold 12px Arial';
-                        ctx.textAlign = 'center';
-
-                        // Texto del papel
-                        ctx.fillText(`${anchoPapel}×${largoPapel}cm`,
-                            offsetX + papelAnchoEscalado / 2,
-                            offsetY + papelLargoEscalado + 20);
-
-                        // Información de eficiencia
-                        const eficiencia = {{ $resultado['eficiencia'] ?? 0 }};
-                        ctx.font = '11px Arial';
-                        ctx.fillText(`${piezasPorAncho}×${piezasPorLargo} = ${piezasPorAncho * piezasPorLargo} piezas | ${eficiencia}% eficiencia`,
-                            canvasWidth / 2,
-                            offsetY - 10);
-                    }
-                </script>
             
         @endif
     @else

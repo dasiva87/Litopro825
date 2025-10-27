@@ -35,339 +35,272 @@ app/Filament/Resources/[Entity]/
 
 ## PROGRESO RECIENTE
 
-### ✅ Sesión Completada (25-Oct-2025)
-**SPRINT 11: Purchase Orders - Magazine Items Multi-Paper Support**
+### ✅ Sesión Completada (26-Oct-2025)
+**SPRINT 12.5: Calculadora de Cortes - SVG Boundary Fix**
 
 #### Logros de la Sesión
 
-1. **✅ Purchase Orders para Magazine Items**
-   - **Problema**: Revistas con múltiples papeles mostraban un solo row en purchase orders
-   - **Solución**: Sistema de rows múltiples - un row por cada tipo de papel usado
-   - **Arquitectura nueva**:
-     - Migración: `add_paper_details_to_document_item_purchase_order_table`
-     - Campos agregados: `paper_id`, `paper_description`, `sheets_quantity`
-     - Unique constraint: `['document_item_id', 'purchase_order_id', 'paper_id']`
-     - Modelo nuevo: `PurchaseOrderItem` (pivot table como entity)
-     - Relación cambiada: `BelongsToMany` → `HasMany purchaseOrderItems`
+1. **✅ Fix Overflow en SVG de Calculadora de Cortes**
+   - **Problema**: Piezas auxiliares (naranja) se dibujaban fuera de los límites del papel
+   - **Solución**: Validación de límites antes de dibujar cada pieza
+   - **Archivo**: `app/Filament/Widgets/CalculadoraCorteWidget.php`
+   - **Cambios**:
+     - Líneas 410-423: Validación para arreglo principal (verde)
+     - Líneas 453-466: Validación para arreglo auxiliar (naranja)
+   - **Lógica**: Solo dibujar si `pieceEndX <= svgWidth && pieceEndY <= svgHeight`
 
-2. **✅ Accessor paper_name Optimizado**
-   - **Archivo**: `app/Models/PurchaseOrderItem.php:50-100`
-   - **Features**:
-     - Carga dinámica: Solo carga relaciones cuando son necesarias
-     - Verifica `relationLoaded()` antes de hacer queries
-     - Usa `instanceof` para verificar tipos de itemable
-     - Maneja 3 casos: SimpleItem (papel), Product, MagazineItem
-
-3. **✅ Eager Loading Corregido**
-   - **Problema**: Intentaba cargar `itemable.paper` causando error con MagazineItem
-   - **Solución**: Eager loading simple solo de relaciones directas
-   - **Archivo**: `PurchaseOrderItemsRelationManager.php:34`
-   - **Fix crítico línea 217**: Eliminado segundo `modifyQueryUsing()` duplicado
-
-#### Archivos Modificados (5 total)
-
-**Migration (1):**
-```
-database/migrations/2025_10_25_042542_add_paper_details_to_document_item_purchase_order_table.php
-  ├── Agrega paper_id, paper_description, sheets_quantity
-  ├── Cambia unique constraint para permitir múltiples rows por item
-  └── Unique key: document_item_id + purchase_order_id + paper_id
-```
-
-**Models (2):**
-```
-app/Models/PurchaseOrder.php:158-185
-  ├── withPivot agregado: paper_id, paper_description, sheets_quantity
-  └── Nueva relación: purchaseOrderItems(): HasMany
-
-app/Models/PurchaseOrderItem.php (NUEVO)
-  ├── Table: document_item_purchase_order
-  ├── Relaciones: documentItem(), purchaseOrder(), paper()
-  └── Accessor: getPaperNameAttribute() con carga dinámica
-```
-
-**RelationManager (1):**
-```
-app/Filament/Resources/PurchaseOrders/RelationManagers/PurchaseOrderItemsRelationManager.php
-  ├── Línea 21: relationship cambiado a 'purchaseOrderItems'
-  ├── Línea 34: Eager loading: ['documentItem', 'paper']
-  └── Línea 217: ELIMINADO modifyQueryUsing duplicado (causaba error)
-```
-
-**DocumentsTable (1):**
-```
-app/Filament/Resources/Documents/Tables/DocumentsTable.php:399-464
-  └── Lógica de creación: Crea múltiples rows para MagazineItem (uno por papel)
-```
-
-#### Errores Resueltos en Sesión
-
-1. ❌ "Call to undefined relationship [paper] on model [App\Models\MagazineItem]"
-   - **Causa**: Eager loading `documentItem.itemable.paper` (MagazineItem no tiene paper)
-   - **Fix**: Simplificado a `->with(['documentItem', 'paper'])`
-
-2. ❌ "Call to undefined relationship [itemable] on model [App\Models\PurchaseOrderItem]"
-   - **Causa**: Segundo `modifyQueryUsing()` duplicado intentando cargar `'itemable'`
-   - **Fix**: Eliminado bloque de código residual (líneas 218-220)
-
-3. ❌ Accessor usando `$this->itemable` en PurchaseOrderItem
-   - **Causa**: PurchaseOrderItem no tiene relación itemable directa
-   - **Fix**: Acceso vía `$this->documentItem->itemable` con carga dinámica
+2. **✅ Testing Completo en Todos los Modos**
+   - **Caso 100×70 con 42×28**:
+     - Óptimo: 5 piezas ✅
+     - Vertical: 5 piezas ✅
+     - Horizontal: 4 piezas ✅
+   - **Caso 70×100 con 22×28** (regresión):
+     - Óptimo: 10 piezas ✅
+   - Todas las piezas dentro de límites del papel
 
 #### Testing Realizado
 
-✅ Purchase Orders ahora muestra:
-- **SimpleItem**: 1 row con papel, pliegos, precio
-- **MagazineItem**: N rows (uno por cada papel usado en páginas)
-- **Product**: 1 row con nombre producto, cantidad, precio
+✅ **Papel siempre vertical** (portrait orientation)
+✅ **Piezas rotan** según modo (no el papel)
+✅ **Arreglo principal** (verde) + **arreglo auxiliar** (naranja)
+✅ **Sin overflow** en ningún modo
 
 ---
 
-### ✅ Sesión Completada (24-Oct-2025)
-**SPRINT 10.5: Company Profile UI Redesign + Critical Fixes**
+### ✅ Sesión Completada (26-Oct-2025 - Anterior)
+**SPRINT 12: MountingCalculatorService - Cálculo Puro de Montaje**
 
 #### Logros de la Sesión
 
-1. **✅ Company Profile - Filament Integration**
-   - **Problema**: Perfil de empresa (/empresa/{slug}) usaba layout diferente al dashboard
-   - **Solución**: Convertido a Filament Page manteniendo topbar consistente
-   - **Archivos creados/modificados**:
-     - `app/Filament/Pages/CompanyProfile.php` - Nueva Filament Page
-     - `resources/views/filament/pages/company-profile.blade.php` - Vista con layout Home
-     - `routes/web.php:81-89` - Ruta legacy comentada (ahora manejada por Filament)
-     - `app/Providers/Filament/AdminPanelProvider.php:135` - URL perfil actualizada
-   - **Features implementados**:
-     - Layout de dos columnas (igual que /admin/home)
-     - Sidebar derecho con información de contacto (400px fijo)
-     - Iconos de Filament (heroicon-o-envelope, phone, globe-alt)
-     - Computed property `getPostsProperty()` para paginación Livewire
-     - Método `getSlug()` con firma correcta: `?Filament\Panel $panel = null`
+1. **✅ Nuevo Servicio: MountingCalculatorService**
+   - **Propósito**: Cálculo puro de montaje (cuántas copias caben en un pliego)
+   - **Características**:
+     - Totalmente desacoplado de modelos (función pura)
+     - Reutilizable para SimpleItem, MagazineItem, o cualquier tipo
+     - 3 métodos principales: `calculateMounting()`, `calculateRequiredSheets()`, `calculateEfficiency()`
+   - **Inputs**: Dimensiones del trabajo, dimensiones de la máquina, márgenes
+   - **Outputs**: Montaje horizontal, vertical, y máximo (mejor opción)
 
-2. **✅ Avatar Upload Fix**
-   - **Problema**: FileUpload sin opciones de eliminación/descarga
-   - **Solución**: Agregadas opciones al componente
-   - **Archivo**: `app/Filament/Pages/CompanySettings.php:95-125`
-   - **Cambios**: `->deletable()`, `->downloadable()`, `->openable()`
+2. **✅ Integración con SimpleItemCalculatorService**
+   - **Nuevo método**: `calculatePureMounting()` - usa MountingCalculatorService
+   - **Retrocompatibilidad**: Método `calculateMountingOptions()` sigue funcionando
 
-3. **✅ APP_URL Configuration Fix**
-   - **Problema**: CORS errors con `http://localhost` vs `http://localhost:8000`
-   - **Solución**: Actualizado `.env` con puerto correcto
-   - **Archivo**: `.env:5`
-   - **Cambio**: `APP_URL=http://localhost:8000`
+3. **✅ Métodos Agregados a SimpleItem**
+   - `getPureMounting()`: Retorna montaje completo (horizontal, vertical, maximum)
+   - `getBestMounting()`: Retorna solo el mejor montaje (maximum)
 
-4. **✅ Company Profile Route Error Fix**
-   - **Problema**: `Route [company.profile] not defined` en SuggestedCompaniesWidget
-   - **Solución**: Actualizado método `getProfileUrl()` en Company model
-   - **Archivo**: `app/Models/Company.php:244-247`
-   - **Antes**: `return route('company.profile', $this->slug);`
-   - **Después**: `return '/admin/empresa/' . $this->slug;`
+#### Archivos Creados
 
-5. **✅ Magazine Item Creation Fix**
-   - **Problema**: `Call to undefined method Document::documentItems()`
-   - **Solución**: Corregida relación en MagazineItemHandler
-   - **Archivo**: `app/Filament/Resources/Documents/RelationManagers/Handlers/MagazineItemHandler.php:425,431`
-   - **Cambio**: `->documentItems()` → `->items()`
-
-6. **✅ Order Column Error Fix**
-   - **Problema**: `Column 'order' not found` en document_items
-   - **Solución**: Removida referencia a columna inexistente
-   - **Archivo**: `MagazineItemHandler.php:431`
-   - **Cambio**: Eliminada línea `'order' => $this->record->items()->max('order') + 1,`
-
-#### Archivos Modificados (9 total)
-
-**Nuevas Pages (2):**
-```
-app/Filament/Pages/CompanyProfile.php
-  ├── mount(): Carga empresa por slug, valida acceso público/privado
-  ├── getPostsProperty(): Computed property para posts paginados
-  ├── getTitle() / getHeading(): Retorna nombre empresa
-  └── getSlug(): 'empresa/{slug}' con firma compatible Panel
-
-resources/views/filament/pages/company-profile.blade.php
-  ├── Layout: Igual que home.blade.php (profile-layout, profile-content, profile-sidebar)
-  ├── Banner + Avatar con overlay
-  ├── Stats: Posts, Seguidores, Siguiendo
-  ├── Publicaciones con paginación
-  └── Sidebar: Card "Información de Contacto" con iconos Filament
-```
-
-**Routes (1):**
-```
-routes/web.php:81-89
-  └── Comentadas rutas legacy /empresa/{slug} (ahora manejadas por Filament)
-```
-
-**Providers (1):**
-```
-app/Providers/Filament/AdminPanelProvider.php:135
-  └── URL perfil actualizada: '/admin/empresa/'.auth()->user()->company->slug
-```
-
-**Models (1):**
-```
-app/Models/Company.php:244-247
-  └── getProfileUrl() retorna directamente '/admin/empresa/'.$slug (sin route())
-```
-
-**Settings (1):**
-```
-app/Filament/Pages/CompanySettings.php:95-125
-  └── FileUpload avatar/banner: ->deletable(), ->downloadable(), ->openable()
-```
-
-**Handlers (1):**
-```
-app/Filament/Resources/Documents/RelationManagers/Handlers/MagazineItemHandler.php
-  ├── Línea 425: ->documentItems() → ->items()
-  └── Línea 431: Removida referencia a columna 'order'
-```
-
-**Config (1):**
-```
-.env:5
-  └── APP_URL=http://localhost:8000 (añadido puerto)
-```
-
-#### URLs de Testing
-- **Perfil Empresa**: http://localhost:8000/admin/empresa/litopro-demo
-- **Company Settings**: http://localhost:8000/admin/company-settings
-- **Home (referencia layout)**: http://localhost:8000/admin/home
-- **Cotizaciones**: http://localhost:8000/admin/documents
+**Servicio**: `app/Services/MountingCalculatorService.php`
+**Documentación**: `MOUNTING_SERVICE_USAGE.md`, `TEST_MOUNTING_INTEGRATION.md`
 
 ---
 
-### ✅ Sesión Completada (23-Oct-2025)
-**SPRINT 9: Production Orders - Grouped by Supplier + Finishing System**
+### ✅ Sesión Completada (25-Oct-2025)
+**SPRINT 11: Purchase Orders - Magazine Items Multi-Paper Support**
 
-#### Logros Críticos
+#### Logros
 
-1. **Production Orders Agrupadas por Proveedor**
-   - Sistema completo: Órdenes se crean automáticamente agrupadas por proveedor
-   - Arquitectura: Un item puede tener impresión + múltiples acabados con diferentes proveedores
-   - Lógica: Item con acabados de 3 proveedores → 3 órdenes automáticas
+1. **✅ Purchase Orders para Magazine Items**
+   - Sistema de rows múltiples - un row por cada tipo de papel usado
+   - Migración: `add_paper_details_to_document_item_purchase_order_table`
+   - Modelo nuevo: `PurchaseOrderItem` (pivot table como entity)
 
-2. **Migraciones (3 nuevas)**
-   - `add_supplier_id_to_finishings_table`
-   - `add_supplier_id_to_document_item_finishings_table`
-   - `add_process_fields_to_document_item_production_order_table`
-
-3. **Nuevo Servicio: ProductionOrderGroupingService**
-   - `groupBySupplier()`: Agrupa items/acabados por proveedor
-   - `getOrdersSummary()`: Vista previa de órdenes
-
-4. **UI/UX Mejorada**
-   - Vista previa dinámica en modal antes de crear órdenes
-   - Acabados con campo supplier_id reactivo
-   - Columnas proceso_type y finishing_name en ProductionOrderItemsRelationManager
+2. **✅ Accessor paper_name Optimizado**
+   - Carga dinámica: Solo carga relaciones cuando son necesarias
+   - Maneja 3 casos: SimpleItem (papel), Product, MagazineItem
 
 ---
 
 ## 🎯 PRÓXIMA TAREA PRIORITARIA
-**Sprint 12: Testing Completo + Production Orders Printing Supplier**
+**Sprint 13: Nuevo Sistema de Montaje para SimpleItem**
 
-### Objetivos Críticos
+### Contexto
 
-1. **Testing Purchase Orders con Magazine Items**
-   - Crear cotización con Magazine Item (mínimo 2 páginas con diferentes papeles)
-   - Aprobar cotización y generar Purchase Order
-   - Verificar que se creen múltiples rows (uno por papel)
-   - Validar cálculos: sheets_quantity, unit_price, total_price por papel
-   - **URL**: http://localhost:8000/admin/purchase-orders
+El usuario quiere implementar un **nuevo sistema de cálculo de montaje** para SimpleItem:
 
-2. **Implementar supplier_id para Impresión**
-   - Decidir: ¿supplier_id en SimpleItem o PrintingMachine?
-   - Completar `getPrintingSupplier()` en ProductionOrderGroupingService
-   - Testing: Production Orders con supplier de impresión asignado
+**Concepto**: Si un trabajo cabe múltiples veces en el tamaño máximo de la máquina, usar ese montaje para reducir pliegos necesarios.
 
-3. **Production Orders Testing Completo**
-   - Crear cotización con items mixtos (SimpleItem + Product + Magazine)
-   - Asignar proveedores a acabados (Finishings)
-   - Aprobar → Crear Production Orders
-   - Verificar agrupación por supplier
+**Ejemplo**:
+- Trabajo: 22×28cm
+- Máquina: 50×35cm
+- Montaje: 2 copias caben en 50×35 (1×2 o 2×1)
+- Papel disponible: 100×70cm (pliego completo)
+- Corte: 50×35 es 1/4 de 100×70 (100÷50=2, 70÷35=2 → 2×2=4)
 
-4. **Bug Fixes si aparecen en Testing**
-   - Prioridad a errores críticos que bloqueen workflow
-   - Documentar cualquier edge case encontrado
+**Cálculo**:
+```
+Cantidad: 1000 membretes
+Montaje: 2 copias por impresión
+Corte: 1/4 de pliego
+Pliegos = (1000 ÷ 2) ÷ 4 = 125 pliegos + sobrante
+```
 
-### Meta Business
-- Purchase Orders 100% funcional para todos los tipos de items
-- Production System completo con suppliers
-- Workflow end-to-end validado
+### Preguntas Pendientes (Usuario debe responder)
+
+1. **¿El papel siempre será el pliego completo (70×100)?** ¿O puede haber papeles ya cortados a 50×35?
+
+2. **¿El divisor (1/4, 1/2, etc.) se calcula automáticamente** comparando:
+   - Tamaño máximo de máquina (50×35)
+   - Tamaño del papel disponible (100×70)
+
+   O ¿se debe ingresar manualmente?
+
+3. **¿Cómo afecta esto a la impresión?**:
+   - ¿Se imprime 1 vez por cada papel de 50×35 (con 2 copias montadas)?
+   - ¿O se imprimen las 2 copias en pasadas separadas?
+
+4. **¿El cálculo de millares cambia?**:
+   - Antes: `millares = 1000 pliegos / 1000 = 1 millar`
+   - Ahora: `millares = 125 pliegos / 1000 = 0.125 millares`
+
+   ¿O se calcula sobre las **impresiones** (125 impresiones × 2 copias = 250)?
+
+### Tareas Técnicas (una vez aclarado)
+
+1. **Modificar SimpleItemCalculatorService**:
+   - Usar `MountingCalculatorService::calculateMounting()` con tamaño de máquina
+   - Calcular divisor de papel (cuántas veces cabe tamaño máquina en pliego)
+   - Ajustar cálculo de pliegos: `(cantidad ÷ montaje) ÷ divisor + sobrante`
+
+2. **Actualizar campos en SimpleItem**:
+   - `mounting_quantity`: Copias que caben en tamaño máximo máquina
+   - `paper_cuts_h/v`: Cuántos cortes del tamaño de máquina en el pliego
+   - `sheets_needed`: Pliegos necesarios con nuevo cálculo
+
+3. **Actualizar cálculo de millares**:
+   - Definir si millares = impresiones o pliegos × montaje
+   - Ajustar `calculatePrintingMillares()` en SimpleItemCalculatorService
 
 ---
 
 ## COMANDO PARA EMPEZAR MAÑANA
 
 ```bash
-# Iniciar LitoPro 3.0 - SPRINT 11 COMPLETADO (Purchase Orders Multi-Paper)
+# Iniciar LitoPro 3.0 - SPRINT 12.5 COMPLETADO (Calculadora SVG Fix)
 cd /home/dasiva/Descargas/litopro825 && php artisan serve --port=8000
 
 # URLs Operativas
-echo "✅ SPRINT 11 COMPLETADO (25-Oct-2025) - Purchase Orders Multi-Paper para Revistas"
+echo "✅ SPRINT 12.5 COMPLETADO (26-Oct-2025) - Calculadora de Cortes SVG Fix"
 echo ""
 echo "📍 URLs de Testing:"
+echo "   🏠 Home (Calculadora): http://localhost:8000/admin/home"
 echo "   📋 Cotizaciones: http://localhost:8000/admin/documents"
 echo "   🛒 Purchase Orders: http://localhost:8000/admin/purchase-orders"
 echo "   🏭 Production Orders: http://localhost:8000/admin/production-orders"
-echo "   ⚙️  Acabados: http://localhost:8000/admin/finishings"
 echo ""
-echo "✅ CAMBIOS SESIÓN 25-OCT:"
-echo "   ✅ Purchase Orders: Ahora muestra múltiples rows por Magazine Item"
-echo "   ✅ Cada papel de revista = 1 row independiente con su cantidad y precio"
-echo "   ✅ PurchaseOrderItem: Nuevo modelo (pivot como entity)"
-echo "   ✅ Migration: paper_id, paper_description, sheets_quantity agregados"
-echo "   ✅ Accessor paper_name: Carga dinámica inteligente de relaciones"
-echo "   ✅ Fix: Eliminado eager loading duplicado que causaba errores"
+echo "✅ CAMBIOS SESIÓN 26-OCT (PARTE 2):"
+echo "   ✅ Calculadora de Cortes: Fix overflow de piezas auxiliares en SVG"
+echo "   ✅ Validación de límites: Solo dibujar piezas dentro del papel"
+echo "   ✅ Testing: ✅ 100×70 con 42×28, ✅ 70×100 con 22×28"
+echo "   ✅ 3 modos: Óptimo, Vertical, Horizontal - todos funcionando"
 echo ""
-echo "🎯 PRÓXIMA SESIÓN: Sprint 12 - Testing + Printing Supplier"
+echo "✅ CAMBIOS SESIÓN 26-OCT (PARTE 1):"
+echo "   ✅ MountingCalculatorService: Nuevo servicio para cálculo puro de montaje"
+echo "   ✅ SimpleItem: getPureMounting() y getBestMounting() agregados"
+echo "   ✅ Documentación: MOUNTING_SERVICE_USAGE.md + TEST_MOUNTING_INTEGRATION.md"
 echo ""
-echo "🧪 TESTING CRÍTICO (HACER PRIMERO):"
-echo "   1. PURCHASE ORDER CON REVISTA:"
-echo "      a) Ir a /admin/documents → Nueva Cotización"
-echo "      b) Agregar Item Revista con 2-3 páginas (DIFERENTES papeles)"
-echo "      c) Aprobar cotización → Ver botón 'Crear Orden de Pedido'"
-echo "      d) Crear Purchase Order al proveedor"
-echo "      e) Abrir Purchase Order → Verificar tabla de items"
-echo "      f) ¿Se ven múltiples rows? (1 por cada papel usado)"
-echo "      g) ¿Cada row muestra cantidad pliegos correcta?"
-echo "      h) ¿Precios unitarios y totales correctos?"
+echo "🎯 PRÓXIMA SESIÓN: Sprint 13 - Nuevo Sistema de Montaje SimpleItem"
 echo ""
-echo "   2. SI FUNCIONA → Implementar supplier_id para impresión"
-echo "   3. SI FALLA → Reportar error exacto que aparece"
+echo "❓ DECISIONES PENDIENTES (USUARIO DEBE RESPONDER):"
+echo "   1. ¿Papel siempre es pliego completo o puede ser pre-cortado?"
+echo "   2. ¿Divisor se calcula automático o manual?"
+echo "   3. ¿Impresión: 1 pasada con montaje o pasadas separadas?"
+echo "   4. ¿Millares = impresiones o pliegos × montaje?"
 echo ""
-echo "📍 META: Purchase Orders 100% funcional antes de continuar con Production"
+echo "💡 CONCEPTO NUEVO SISTEMA:"
+echo "   Trabajo 22×28 → Caben 2 en máquina 50×35"
+echo "   Papel 100×70 → 50×35 es 1/4 de pliego"
+echo "   1000 membretes ÷ 2 (montaje) ÷ 4 (corte) = 125 pliegos"
+echo ""
+echo "📍 Una vez aclarado, modificar SimpleItemCalculatorService"
 ```
 
 ---
 
 ## Notas Técnicas Importantes
 
+### MountingCalculatorService - Cálculo Puro
+```php
+use App\Services\MountingCalculatorService;
+
+$calc = new MountingCalculatorService();
+
+// Calcular montaje (3 orientaciones)
+$result = $calc->calculateMounting(
+    workWidth: 22.0,       // Ancho del trabajo en cm
+    workHeight: 28.0,      // Alto del trabajo en cm
+    machineWidth: 50.0,    // Ancho máximo máquina en cm
+    machineHeight: 35.0,   // Alto máximo máquina en cm
+    marginPerSide: 1.0     // Margen por lado en cm
+);
+
+// Resultado:
+// [
+//     'horizontal' => ['copies_per_sheet' => 2, 'layout' => '1 × 2', ...],
+//     'vertical' => ['copies_per_sheet' => 2, 'layout' => '2 × 1', ...],
+//     'maximum' => ['copies_per_sheet' => 2, ...] // La mejor opción
+// ]
+
+// Calcular pliegos necesarios
+$sheets = $calc->calculateRequiredSheets(500, 2);
+// ['sheets_needed' => 250, 'total_copies_produced' => 500, 'waste_copies' => 0]
+```
+
+### Integración con SimpleItem
+```php
+$item = SimpleItem::first();
+
+// Obtener montaje completo
+$mounting = $item->getPureMounting();
+// Retorna: ['horizontal', 'vertical', 'maximum', 'sheets_info', 'efficiency']
+
+// Solo la mejor opción
+$best = $item->getBestMounting();
+// Retorna: ['copies_per_sheet' => 2, 'layout' => '2 × 1', ...]
+```
+
+### Calculadora de Cortes - SVG Boundary Validation
+```php
+// app/Filament/Widgets/CalculadoraCorteWidget.php
+
+// Validación antes de dibujar cada pieza
+$pieceEndX = $x + $pieceWidth;
+$pieceEndY = $y + $pieceHeight;
+
+if ($pieceEndX <= $svgWidth && $pieceEndY <= $svgHeight) {
+    // Dibujar pieza
+    $svg .= '<rect x="' . $x . '" y="' . $y . '" ...>';
+}
+```
+
+### Purchase Orders - Multi-Paper Support
+```php
+// PurchaseOrderItem (pivot como entity)
+// Permite múltiples rows por DocumentItem (revistas con varios papeles)
+
+// Relación en PurchaseOrder:
+public function purchaseOrderItems(): HasMany {
+    return $this->hasMany(PurchaseOrderItem::class);
+}
+
+// Accessor con carga dinámica:
+public function getPaperNameAttribute(): string {
+    if ($this->paper_description) return $this->paper_description;
+    if ($this->paper_id && $this->paper) return $this->paper->name;
+
+    // Carga itemable dinámicamente si no está cargado
+    if (!$this->documentItem->relationLoaded('itemable')) {
+        $this->documentItem->load('itemable');
+    }
+}
+```
+
 ### Filament Pages - Slug Pattern
 ```php
 // ✅ CORRECTO: Slug dinámico con parámetro Panel
 public static function getSlug(?\Filament\Panel $panel = null): string {
     return 'empresa/{slug}';
-}
-
-// ❌ INCORRECTO: Sin parámetro Panel (error de firma)
-public static function getSlug(): string {
-    return 'empresa/{slug}';
-}
-```
-
-### Livewire + Filament - Computed Properties
-```php
-// ✅ CORRECTO: Computed property para relaciones paginadas
-public function getPostsProperty() {
-    return SocialPost::where('company_id', $this->company->id)
-        ->paginate(10);
-}
-
-// ❌ INCORRECTO: Property normal (error de serialización)
-public $posts;
-public function mount() {
-    $this->posts = SocialPost::paginate(10); // ERROR
 }
 ```
 
@@ -377,85 +310,7 @@ public function mount() {
 $document->items()->create([...]);
 
 // ❌ INCORRECTO: documentItems() no existe
-$document->documentItems()->create([...]);
-
-// Verificar en app/Models/Document.php:
 public function items(): HasMany {
     return $this->hasMany(DocumentItem::class);
 }
-```
-
-### Table Columns - Verificar Existencia
-```php
-// Antes de usar columna 'order' en query:
-// 1. Verificar con: php artisan db:table document_items
-// 2. Si no existe, NO usar en ->max('order') o orderBy('order')
-// 3. Alternativas: ->latest('id') o ->latest('created_at')
-```
-
-### FileUpload Best Practice
-```php
-// ✅ COMPLETO: Todas las opciones para UX óptima
-FileUpload::make('avatar')
-    ->disk('public')        // Disco público
-    ->directory('companies/avatars')
-    ->visibility('public')
-    ->imageResizeMode('cover')
-    ->imageCropAspectRatio('1:1')
-    ->imageResizeTargetWidth('200')
-    ->imageResizeTargetHeight('200')
-    ->maxSize(2048)
-    ->deletable()           // ← Permite eliminar
-    ->downloadable()        // ← Permite descargar
-    ->openable()            // ← Permite abrir en nueva pestaña
-```
-
-### Purchase Orders - Multi-Paper Support
-```php
-// PurchaseOrderItem (pivot como entity)
-// Permite múltiples rows por DocumentItem (caso: revistas con varios papeles)
-
-// Relación en PurchaseOrder:
-public function purchaseOrderItems(): HasMany {
-    return $this->hasMany(PurchaseOrderItem::class);
-}
-
-// Accessor con carga dinámica:
-public function getPaperNameAttribute(): string {
-    // 1. Verifica paper_description (revistas)
-    if ($this->paper_description) return $this->paper_description;
-
-    // 2. Carga paper solo si existe paper_id
-    if ($this->paper_id && $this->paper) return $this->paper->name;
-
-    // 3. Carga itemable dinámicamente si no está cargado
-    if (!$this->documentItem->relationLoaded('itemable')) {
-        $this->documentItem->load('itemable');
-    }
-
-    // 4. Usa instanceof para verificar tipo
-    if ($itemable instanceof SimpleItem) {
-        // Carga paper solo si no está cargado
-        if (!$itemable->relationLoaded('paper')) {
-            $itemable->load('paper');
-        }
-        return $itemable->paper->name;
-    }
-}
-
-// ⚠️ IMPORTANTE: NO eager loadear 'itemable.paper'
-// MagazineItem no tiene relación paper → Error
-// Solución: Eager load solo relaciones directas
-```
-
-### Sistema de Producción
-```php
-// Estructura de agrupación por proveedor
-$grouped = [
-    'supplier_id_1' => [
-        'printing' => [DocumentItem, ...],
-        'finishings' => [FinishingProcess, ...]
-    ],
-    'supplier_id_2' => [...]
-];
 ```
