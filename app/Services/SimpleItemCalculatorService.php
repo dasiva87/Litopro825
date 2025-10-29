@@ -21,16 +21,30 @@ class SimpleItemCalculatorService
     /**
      * PASO 0: Calcular montaje puro (cuántas copias caben en un pliego)
      * Usa MountingCalculatorService para cálculo genérico
+     * Soporta montaje automático (máquina) y manual (papel personalizado)
      */
     public function calculatePureMounting(SimpleItem $item): ?array
     {
-        if (!$item->printingMachine) {
-            return null;
-        }
+        // Determinar dimensiones según tipo de montaje
+        $machineWidth = null;
+        $machineHeight = null;
+        $mountingType = $item->mounting_type ?? 'automatic';
 
-        // Dimensiones de la máquina
-        $machineWidth = $item->printingMachine->max_width ?? 50.0;
-        $machineHeight = $item->printingMachine->max_height ?? 70.0;
+        if ($mountingType === 'custom') {
+            // Montaje manual: usar dimensiones del papel personalizado
+            if (!$item->custom_paper_width || !$item->custom_paper_height) {
+                return null; // No se puede calcular sin dimensiones custom
+            }
+            $machineWidth = $item->custom_paper_width;
+            $machineHeight = $item->custom_paper_height;
+        } else {
+            // Montaje automático: usar dimensiones de la máquina
+            if (!$item->printingMachine) {
+                return null;
+            }
+            $machineWidth = $item->printingMachine->max_width ?? 50.0;
+            $machineHeight = $item->printingMachine->max_height ?? 70.0;
+        }
 
         // Calcular montaje usando el nuevo servicio
         $mounting = $this->mountingCalculator->calculateMounting(
@@ -40,6 +54,11 @@ class SimpleItemCalculatorService
             machineHeight: $machineHeight,
             marginPerSide: 1.0  // Margen estándar 1cm
         );
+
+        // Agregar información del tipo de montaje usado
+        $mounting['mounting_type'] = $mountingType;
+        $mounting['paper_width'] = $machineWidth;
+        $mounting['paper_height'] = $machineHeight;
 
         // Si necesita pliegos de papel, calcular usando el mejor montaje
         if ($item->paper && $item->quantity > 0) {
@@ -70,11 +89,23 @@ class SimpleItemCalculatorService
     /**
      * PASO 1: Calcular opciones de montaje disponibles
      * (Mantiene compatibilidad con código existente usando CuttingCalculatorService)
+     * Soporta montaje automático y manual
      */
     public function calculateMountingOptions(SimpleItem $item): array
     {
-        if (!$item->paper || !$item->printingMachine) {
+        if (!$item->paper) {
             return [];
+        }
+
+        // Determinar dimensiones del papel según tipo de montaje
+        $paperWidth = $item->paper->width;
+        $paperHeight = $item->paper->height;
+        $mountingType = $item->mounting_type ?? 'automatic';
+
+        // Si es montaje custom, usar dimensiones personalizadas del papel
+        if ($mountingType === 'custom' && $item->custom_paper_width && $item->custom_paper_height) {
+            $paperWidth = $item->custom_paper_width;
+            $paperHeight = $item->custom_paper_height;
         }
 
         $options = [];
@@ -86,8 +117,8 @@ class SimpleItemCalculatorService
         foreach ($orientations as $orientation) {
             try {
                 $result = $this->cuttingCalculator->calculateCuts(
-                    paperWidth: $item->paper->width,
-                    paperHeight: $item->paper->height,
+                    paperWidth: $paperWidth,
+                    paperHeight: $paperHeight,
                     cutWidth: $item->horizontal_size,
                     cutHeight: $item->vertical_size,
                     desiredCuts: $totalQuantityWithWaste,

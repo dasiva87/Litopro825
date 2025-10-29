@@ -211,14 +211,20 @@ class SimpleItemForm
                     ])
                     ->columnSpanFull(),
 
-                // Vista previa de montaje (visible siempre)
+                // Vista previa de montaje con Tabs (automático y manual)
                 Section::make('📐 Vista Previa de Montaje')
-                    ->description('Cálculo en tiempo real de cómo se acomoda el trabajo en el pliego')
+                    ->description('Selecciona el tipo de montaje y visualiza los resultados')
                     ->schema([
-                        Placeholder::make('mounting_preview')
-                            ->label('')
-                            ->live()
-                            ->content(function ($get) {
+                        \Filament\Schemas\Components\Tabs::make('Mounting Tabs')
+                            ->tabs([
+                                // TAB 1: Montaje Automático
+                                \Filament\Schemas\Components\Tabs\Tab::make('Montaje Automático')
+                                    ->icon('heroicon-o-cog')
+                                    ->schema([
+                                        Placeholder::make('mounting_preview_auto')
+                                            ->label('')
+                                            ->live()
+                                            ->content(function ($get) {
                                 // Debug: Siempre mostrar algo
                                 $horizontalSize = $get('horizontal_size');
                                 $verticalSize = $get('vertical_size');
@@ -391,6 +397,227 @@ class SimpleItemForm
                                 }
                             })
                             ->columnSpanFull(),
+                                    ]), // Cierre Tab Automático
+
+                                // TAB 2: Montaje Manual
+                                \Filament\Schemas\Components\Tabs\Tab::make('Montaje Manual')
+                                    ->icon('heroicon-o-pencil-square')
+                                    ->schema([
+                                        Grid::make(3)
+                                            ->schema([
+                                                TextInput::make('custom_paper_width')
+                                                    ->label('Ancho del Papel Personalizado')
+                                                    ->numeric()
+                                                    ->suffix('cm')
+                                                    ->step(0.1)
+                                                    ->live(onBlur: true)
+                                                    ->helperText('Ingresa el ancho del papel que deseas utilizar'),
+
+                                                TextInput::make('custom_paper_height')
+                                                    ->label('Alto del Papel Personalizado')
+                                                    ->numeric()
+                                                    ->suffix('cm')
+                                                    ->step(0.1)
+                                                    ->live(onBlur: true)
+                                                    ->helperText('Ingresa el alto del papel que deseas utilizar'),
+
+                                                Placeholder::make('custom_paper_area')
+                                                    ->label('Área del Papel')
+                                                    ->content(function ($get) {
+                                                        $w = $get('custom_paper_width');
+                                                        $h = $get('custom_paper_height');
+                                                        return $w && $h ? '<strong>' . number_format($w * $h, 2) . ' cm²</strong>' : '-';
+                                                    })
+                                                    ->html(),
+                                            ]),
+
+                                        Placeholder::make('mounting_preview_custom')
+                                            ->label('')
+                                            ->live()
+                                            ->content(function ($get) {
+                                                $horizontalSize = $get('horizontal_size');
+                                                $verticalSize = $get('vertical_size');
+                                                $customWidth = $get('custom_paper_width');
+                                                $customHeight = $get('custom_paper_height');
+                                                $quantity = $get('quantity') ?? 0;
+                                                $sobrante = $get('sobrante_papel') ?? 0;
+
+                                                if (!$horizontalSize || !$verticalSize) {
+                                                    return new \Illuminate\Support\HtmlString('<div class="p-4 bg-gray-50 rounded text-gray-500 text-center">
+                                                        📋 Complete los campos de tamaño del trabajo primero
+                                                    </div>');
+                                                }
+
+                                                if (!$customWidth || !$customHeight) {
+                                                    return new \Illuminate\Support\HtmlString('<div class="p-4 bg-blue-50 rounded text-blue-700 text-center">
+                                                        ✏️ Ingresa las dimensiones del papel personalizado arriba para ver el montaje
+                                                    </div>');
+                                                }
+
+                                                try {
+                                                    $calc = new \App\Services\MountingCalculatorService();
+                                                    $result = $calc->calculateMounting(
+                                                        workWidth: (float) $horizontalSize,
+                                                        workHeight: (float) $verticalSize,
+                                                        machineWidth: (float) $customWidth,
+                                                        machineHeight: (float) $customHeight,
+                                                        marginPerSide: 1.0
+                                                    );
+
+                                                    $best = $result['maximum'];
+
+                                                    if ($best['copies_per_sheet'] == 0) {
+                                                        return new \Illuminate\Support\HtmlString('<div class="p-3 bg-red-50 rounded text-red-700 text-sm">
+                                                            ❌ El trabajo NO cabe en el papel personalizado<br>
+                                                            <span class="text-xs">Papel: ' . $customWidth . '×' . $customHeight . 'cm</span>
+                                                        </div>');
+                                                    }
+
+                                                    // Calcular pliegos necesarios
+                                                    $sheetsInfo = '';
+                                                    if ($quantity > 0) {
+                                                        $sheets = $calc->calculateRequiredSheets(
+                                                            requiredCopies: (int) $quantity + (int) $sobrante,
+                                                            copiesPerSheet: $best['copies_per_sheet']
+                                                        );
+
+                                                        $efficiency = $calc->calculateEfficiency(
+                                                            workWidth: $best['work_width'],
+                                                            workHeight: $best['work_height'],
+                                                            copiesPerSheet: $best['copies_per_sheet'],
+                                                            usableWidth: $customWidth - 2.0,
+                                                            usableHeight: $customHeight - 2.0
+                                                        );
+
+                                                        $sheetsInfo = '
+                                                            <div class="mt-3 p-3 bg-purple-50 rounded border border-purple-200">
+                                                                <div class="font-semibold text-purple-800 mb-2">📦 Pliegos Necesarios (Montaje Manual)</div>
+                                                                <div class="grid grid-cols-3 gap-2 text-sm">
+                                                                    <div>
+                                                                        <div class="text-gray-600 text-xs">Pliegos</div>
+                                                                        <div class="font-bold text-purple-600">' . $sheets['sheets_needed'] . '</div>
+                                                                    </div>
+                                                                    <div>
+                                                                        <div class="text-gray-600 text-xs">Producción</div>
+                                                                        <div class="font-bold">' . number_format($sheets['total_copies_produced']) . '</div>
+                                                                    </div>
+                                                                    <div>
+                                                                        <div class="text-gray-600 text-xs">Desperdicio</div>
+                                                                        <div class="font-bold text-orange-600">' . $sheets['waste_copies'] . '</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="mt-2 text-xs text-gray-600">
+                                                                    Aprovechamiento: <strong>' . number_format($efficiency, 1) . '%</strong>
+                                                                </div>
+                                                            </div>';
+                                                    }
+
+                                                    // Generar visualización SVG
+                                                    $svgVisual = '';
+                                                    try {
+                                                        $svgVisual = self::generateMountingSVG(
+                                                            $best,
+                                                            (float) $customWidth,
+                                                            (float) $customHeight,
+                                                            (float) $horizontalSize,
+                                                            (float) $verticalSize
+                                                        );
+                                                    } catch (\Exception $svgError) {
+                                                        $svgVisual = '<div class="p-4 bg-yellow-50 rounded border border-yellow-300 text-center">
+                                                            <div class="text-yellow-800 font-semibold mb-2">⚠️ Vista simplificada</div>
+                                                            <div class="text-sm text-gray-700">
+                                                                <strong>' . $best['copies_per_sheet'] . ' copias</strong> por pliego
+                                                                <br>
+                                                                Layout: ' . $best['layout'] . ' (' . ucfirst($best['orientation']) . ')
+                                                            </div>
+                                                        </div>';
+                                                    }
+
+                                                    $content = '
+                                                        <div class="space-y-4">
+                                                            <!-- Visualización Gráfica -->
+                                                            <div class="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-300">
+                                                                <div class="text-sm font-semibold text-purple-700 mb-3 text-center">
+                                                                    🎨 Vista del Papel Personalizado - Orientación ' . ucfirst($best['orientation']) . '
+                                                                </div>
+                                                                <div class="flex justify-center">
+                                                                    ' . $svgVisual . '
+                                                                </div>
+                                                                <div class="mt-3 text-xs text-gray-600 text-center">
+                                                                    <span class="inline-block px-2 py-1 bg-blue-100 rounded">Papel</span>
+                                                                    <span class="inline-block px-2 py-1 bg-green-100 rounded ml-2">Trabajo</span>
+                                                                    <span class="inline-block px-2 py-1 bg-yellow-100 rounded ml-2">Margen</span>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="grid grid-cols-3 gap-3">
+                                                                <!-- Horizontal -->
+                                                                <div class="p-3 ' . ($best['orientation'] === 'horizontal' ? 'bg-purple-50 border-2 border-purple-300' : 'bg-gray-50 border border-gray-200') . ' rounded">
+                                                                    <div class="text-xs text-gray-600 mb-1">Horizontal</div>
+                                                                    <div class="font-bold text-lg">' . $result['horizontal']['copies_per_sheet'] . '</div>
+                                                                    <div class="text-xs text-gray-600">' . $result['horizontal']['layout'] . '</div>
+                                                                    ' . ($best['orientation'] === 'horizontal' ? '<div class="text-xs text-purple-600 mt-1">✓ Mejor</div>' : '') . '
+                                                                </div>
+
+                                                                <!-- Vertical -->
+                                                                <div class="p-3 ' . ($best['orientation'] === 'vertical' ? 'bg-purple-50 border-2 border-purple-300' : 'bg-gray-50 border border-gray-200') . ' rounded">
+                                                                    <div class="text-xs text-gray-600 mb-1">Vertical</div>
+                                                                    <div class="font-bold text-lg">' . $result['vertical']['copies_per_sheet'] . '</div>
+                                                                    <div class="text-xs text-gray-600">' . $result['vertical']['layout'] . '</div>
+                                                                    ' . ($best['orientation'] === 'vertical' ? '<div class="text-xs text-purple-600 mt-1">✓ Mejor</div>' : '') . '
+                                                                </div>
+
+                                                                <!-- Recomendado -->
+                                                                <div class="p-3 bg-purple-100 border-2 border-purple-400 rounded">
+                                                                    <div class="text-xs text-purple-700 mb-1">⭐ Recomendado</div>
+                                                                    <div class="font-bold text-xl text-purple-700">' . $best['copies_per_sheet'] . '</div>
+                                                                    <div class="text-xs text-purple-600">copias/pliego</div>
+                                                                </div>
+                                                            </div>
+
+                                                            ' . $sheetsInfo . '
+
+                                                            <div class="text-xs text-gray-500 text-center">
+                                                                Papel Personalizado: ' . $customWidth . '×' . $customHeight . 'cm | Margen: 1cm por lado
+                                                            </div>
+                                                        </div>';
+
+                                                    return new \Illuminate\Support\HtmlString($content);
+
+                                                } catch (\Exception $e) {
+                                                    return new \Illuminate\Support\HtmlString('<div class="p-3 bg-red-50 rounded text-red-700 text-sm">
+                                                        ❌ Error al calcular montaje: ' . $e->getMessage() . '
+                                                    </div>');
+                                                }
+                                            })
+                                            ->columnSpanFull(),
+                                    ]), // Cierre Tab Manual
+                            ]) // Cierre Tabs
+                            ->columnSpanFull(),
+                    ])
+                    ->columnSpanFull(),
+
+                // Selector de tipo de montaje
+                Section::make('✅ Selección de Montaje')
+                    ->description('Elige qué montaje quieres usar para los cálculos de esta cotización')
+                    ->schema([
+                        \Filament\Forms\Components\Radio::make('mounting_type')
+                            ->label('Tipo de Montaje a Utilizar')
+                            ->options([
+                                'automatic' => 'Usar Montaje Automático (tamaño máximo de máquina)',
+                                'custom' => 'Usar Montaje Manual (papel personalizado)',
+                            ])
+                            ->default('automatic')
+                            ->inline()
+                            ->live()
+                            ->helperText(function ($get) {
+                                $type = $get('mounting_type');
+                                if ($type === 'automatic') {
+                                    return '✓ Se usarán las dimensiones máximas de la máquina seleccionada para calcular el montaje';
+                                } else {
+                                    return '✓ Se usarán las dimensiones del papel personalizado que ingresaste';
+                                }
+                            }),
                     ])
                     ->columnSpanFull(),
 

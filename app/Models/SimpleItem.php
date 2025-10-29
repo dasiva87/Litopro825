@@ -23,6 +23,10 @@ class SimpleItem extends Model
         'horizontal_size',
         'vertical_size',
         'mounting_quantity',
+        'custom_paper_width', // Ancho de papel personalizado
+        'custom_paper_height', // Alto de papel personalizado
+        'mounting_type', // 'automatic' o 'custom'
+        'custom_mounting_data', // JSON con datos del montaje custom
         'paper_cuts_h',
         'paper_cuts_v',
         'ink_front_count',
@@ -50,6 +54,9 @@ class SimpleItem extends Model
         'sobrante_papel' => 'integer',
         'horizontal_size' => 'decimal:2',
         'vertical_size' => 'decimal:2',
+        'custom_paper_width' => 'decimal:2',
+        'custom_paper_height' => 'decimal:2',
+        'custom_mounting_data' => 'array',
         'paper_cuts_h' => 'decimal:2',
         'paper_cuts_v' => 'decimal:2',
         'mounting_quantity' => 'integer',
@@ -310,6 +317,11 @@ class SimpleItem extends Model
 
     public function calculateAll(): void
     {
+        // Si usa montaje custom, guardar los datos del montaje antes de calcular
+        if ($this->mounting_type === 'custom') {
+            $this->saveCustomMountingData();
+        }
+
         // Usar el nuevo sistema de cálculo avanzado
         try {
             $calculator = new \App\Services\SimpleItemCalculatorService;
@@ -336,6 +348,34 @@ class SimpleItem extends Model
         } catch (\Exception $e) {
             // Fallback al sistema anterior si hay error
             $this->calculateAllLegacy();
+        }
+    }
+
+    /**
+     * Guardar los datos del montaje custom para referencia futura
+     */
+    private function saveCustomMountingData(): void
+    {
+        if ($this->mounting_type !== 'custom' || !$this->custom_paper_width || !$this->custom_paper_height) {
+            return;
+        }
+
+        try {
+            $mounting = $this->getPureMounting();
+
+            if ($mounting) {
+                $this->custom_mounting_data = [
+                    'paper_width' => $this->custom_paper_width,
+                    'paper_height' => $this->custom_paper_height,
+                    'mounting_result' => $mounting['maximum'],
+                    'sheets_info' => $mounting['sheets_info'] ?? null,
+                    'efficiency' => $mounting['efficiency'] ?? null,
+                    'calculated_at' => now()->toIso8601String(),
+                ];
+            }
+        } catch (\Exception $e) {
+            // Si falla, no guardar datos
+            $this->custom_mounting_data = null;
         }
     }
 

@@ -82,6 +82,7 @@ class DigitalItemQuickHandler implements QuickActionHandlerInterface
                         ->schema([
                             Components\Repeater::make('finishings')
                                 ->label('Acabados')
+                                ->defaultItems(0)
                                 ->schema([
                                     Components\Select::make('finishing_id')
                                         ->label('Acabado')
