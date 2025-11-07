@@ -19,11 +19,9 @@ class SimpleItemQuickHandler implements QuickActionHandlerInterface
     public function getFormSchema(): array
     {
         return [
-            \Filament\Schemas\Components\Section::make('Item Sencillo Rápido')
-                ->description('Crea un item sencillo con parámetros optimizados')
-                ->schema(SimpleItemForm::configure(new \Filament\Schemas\Schema)->getComponents()),
+            ...SimpleItemForm::configure(new \Filament\Schemas\Schema)->getComponents(),
 
-            // Sección de Acabados para Item Sencillo Rápido
+            // Sección de Acabados
             \Filament\Schemas\Components\Section::make('🎨 Acabados Opcionales')
                 ->description('Agrega acabados adicionales que se calcularán automáticamente')
                 ->schema([

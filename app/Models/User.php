@@ -71,6 +71,26 @@ class User extends Authenticatable
 
     // Relaciones Multi-Tenant (heredadas del trait BelongsToTenant)
 
+    /**
+     * Override del método notifications para usar nuestro modelo personalizado
+     * que no tiene el TenantScope aplicado.
+     */
+    public function notifications()
+    {
+        return $this->morphMany(DatabaseNotification::class, 'notifiable')
+            ->latest();
+    }
+
+    /**
+     * Override del método databaseNotifications que usa Filament
+     * para mostrar las notificaciones en el panel.
+     */
+    public function databaseNotifications()
+    {
+        return $this->morphMany(DatabaseNotification::class, 'notifiable')
+            ->latest();
+    }
+
     // Relaciones geográficas
     public function country(): BelongsTo
     {

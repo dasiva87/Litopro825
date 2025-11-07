@@ -90,6 +90,26 @@ class RoleForm
                     ])
                     ->collapsible(),
 
+                Section::make('Gestión de Empresas')
+                    ->schema([
+                        CheckboxList::make('company_permissions')
+                            ->label('Permisos de Empresas')
+                            ->options(self::getPermissionsByCategory('companies'))
+                            ->columns(2)
+                            ->visible(fn() => auth()->user()->hasRole('Super Admin')),
+                    ])
+                    ->collapsible()
+                    ->visible(fn() => auth()->user()->hasRole('Super Admin')),
+
+                Section::make('Inventario')
+                    ->schema([
+                        CheckboxList::make('inventory_permissions')
+                            ->label('Permisos de Inventario')
+                            ->options(self::getPermissionsByCategory('inventory'))
+                            ->columns(2),
+                    ])
+                    ->collapsible(),
+
                 Section::make('Sistema y Configuraciones')
                     ->schema([
                         CheckboxList::make('system_permissions')
@@ -129,7 +149,9 @@ class RoleForm
             'paper-orders' => ['view-paper-orders', 'create-paper-orders', 'edit-paper-orders', 'delete-paper-orders'],
             'products' => ['view-products', 'create-products', 'edit-products', 'delete-products'],
             'equipment' => ['view-equipment', 'create-equipment', 'edit-equipment', 'delete-equipment'],
-            'system' => ['view-settings', 'edit-settings', 'manage-company-settings', 'manage-paper-catalog', 'manage-printing-machines', 'access-admin-panel', 'manage-roles', 'view-system-logs'],
+            'companies' => ['view-companies', 'create-companies', 'edit-companies', 'delete-companies'],
+            'inventory' => ['manage-inventory', 'manage-paper-catalog', 'manage-printing-machines'],
+            'system' => ['view-settings', 'edit-settings', 'manage-company-settings', 'access-admin-panel', 'manage-roles', 'view-system-logs'],
             'reports' => ['view-reports', 'export-reports'],
             'posts' => ['view-posts', 'create-posts', 'edit-posts', 'delete-posts', 'moderate-posts'],
         ];

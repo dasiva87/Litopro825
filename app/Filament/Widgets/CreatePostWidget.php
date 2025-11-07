@@ -24,8 +24,22 @@ class CreatePostWidget extends Widget
     public $is_public = true;
     public $image;
 
+    /**
+     * Verificar si el widget debe mostrarse
+     */
+    public static function canView(): bool
+    {
+        return auth()->check() && auth()->user()->can('create', SocialPost::class);
+    }
+
     public function createPost()
     {
+        // Verificar permiso antes de crear el post
+        if (!auth()->user()->can('create', SocialPost::class)) {
+            session()->flash('error', 'No tienes permiso para crear posts.');
+            return;
+        }
+
         if (empty(trim($this->content))) {
             return;
         }

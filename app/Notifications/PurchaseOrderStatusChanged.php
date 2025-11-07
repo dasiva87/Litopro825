@@ -61,6 +61,7 @@ class PurchaseOrderStatusChanged extends Notification
         $purchaseOrder = $this->getPurchaseOrder();
 
         return [
+            'format' => 'filament', // Requerido por Filament para mostrar notificaciones
             'purchase_order_id' => $purchaseOrder->id,
             'order_number' => $purchaseOrder->order_number,
             'old_status' => $this->oldStatusValue,

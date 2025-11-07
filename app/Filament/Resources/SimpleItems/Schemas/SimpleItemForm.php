@@ -166,7 +166,7 @@ class SimpleItemForm
                                     ->columnSpan(1),
                             ]),
 
-                        Grid::make(4)
+                        Grid::make(3)
                             ->schema([
                                 TextInput::make('ink_front_count')
                                     ->label('Tintas Tiro (Frente)')
@@ -186,22 +186,11 @@ class SimpleItemForm
                                     ->maxValue(8)
                                     ->helperText('Colores en la cara posterior'),
 
-                                Toggle::make('front_back_plate')
-                                    ->label('Tiro y Retiro en Misma Plancha')
-                                    ->helperText('Mismo arte en ambos lados')
-                                    ->inline(false),
-
                                 Placeholder::make('total_colors')
                                     ->label('Total de Tintas')
                                     ->content(function ($get) {
                                         $front = $get('ink_front_count') ?? 0;
                                         $back = $get('ink_back_count') ?? 0;
-                                        $samePlate = $get('front_back_plate');
-
-                                        if ($samePlate) {
-                                            $total = max($front, $back);
-                                            return '<span class="text-lg font-bold text-blue-600">' . $total . ' tintas</span><br><span class="text-xs text-gray-500">(Misma plancha)</span>';
-                                        }
 
                                         $total = $front + $back;
                                         return '<span class="text-lg font-bold text-green-600">' . $total . ' tintas</span><br><span class="text-xs text-gray-500">' . $front . '+' . $back . '</span>';
@@ -673,7 +662,196 @@ class SimpleItemForm
                                     ->default(0)
                                     ->minValue(0),
                             ]),
-                    ]),
+                    ])
+                    ->columnSpanFull(),
+
+                // Sección de Acabados Sugeridos
+                Section::make('🎨 Acabados Sugeridos')
+                    ->description('Acabados recomendados para este tipo de trabajo (opcionales)')
+                    ->collapsed()
+                    ->schema([
+                        \Filament\Forms\Components\Repeater::make('finishings_data')
+                            ->label('Acabados')
+                            ->relationship('finishings')
+                            ->defaultItems(0)
+                            ->schema([
+                                Grid::make(3)
+                                    ->schema([
+                                        Select::make('finishing_id')
+                                            ->label('Acabado')
+                                            ->options(function () {
+                                                $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+
+                                                return \App\Models\Finishing::where('company_id', $currentCompanyId)
+                                                    ->where('active', true)
+                                                    ->get()
+                                                    ->mapWithKeys(function ($finishing) {
+                                                        return [$finishing->id => $finishing->name . ' - ' . $finishing->measurement_unit->label()];
+                                                    })
+                                                    ->toArray();
+                                            })
+                                            ->required()
+                                            ->searchable()
+                                            ->preload()
+                                            ->live()
+                                            ->afterStateUpdated(function ($set, $get, $state) {
+                                                // Auto-poblar parámetros basados en el SimpleItem
+                                                if ($state) {
+                                                    $finishing = \App\Models\Finishing::find($state);
+                                                    if ($finishing) {
+                                                        $parentState = $get('../../');
+
+                                                        switch ($finishing->measurement_unit->value) {
+                                                            case 'millar':
+                                                            case 'rango':
+                                                            case 'unidad':
+                                                                $set('quantity', $parentState['quantity'] ?? 1);
+                                                                break;
+                                                            case 'tamaño':
+                                                                $set('width', $parentState['horizontal_size'] ?? 0);
+                                                                $set('height', $parentState['vertical_size'] ?? 0);
+                                                                break;
+                                                        }
+                                                    }
+                                                }
+                                            })
+                                            ->columnSpan(3),
+
+                                        // Campos de cantidad (para MILLAR, RANGO, UNIDAD)
+                                        TextInput::make('quantity')
+                                            ->label('Cantidad')
+                                            ->numeric()
+                                            ->default(1)
+                                            ->minValue(0)
+                                            ->live(onBlur: true)
+                                            ->visible(function ($get) {
+                                                $finishingId = $get('finishing_id');
+                                                if (!$finishingId) return false;
+
+                                                $finishing = \App\Models\Finishing::find($finishingId);
+                                                if (!$finishing) return false;
+
+                                                return in_array($finishing->measurement_unit->value, ['millar', 'rango', 'unidad']);
+                                            })
+                                            ->columnSpan(1),
+
+                                        // Campos de tamaño (para TAMAÑO)
+                                        TextInput::make('width')
+                                            ->label('Ancho (cm)')
+                                            ->numeric()
+                                            ->step(0.1)
+                                            ->minValue(0)
+                                            ->live(onBlur: true)
+                                            ->visible(function ($get) {
+                                                $finishingId = $get('finishing_id');
+                                                if (!$finishingId) return false;
+
+                                                $finishing = \App\Models\Finishing::find($finishingId);
+                                                if (!$finishing) return false;
+
+                                                return $finishing->measurement_unit->value === 'tamaño';
+                                            })
+                                            ->columnSpan(1),
+
+                                        TextInput::make('height')
+                                            ->label('Alto (cm)')
+                                            ->numeric()
+                                            ->step(0.1)
+                                            ->minValue(0)
+                                            ->live(onBlur: true)
+                                            ->visible(function ($get) {
+                                                $finishingId = $get('finishing_id');
+                                                if (!$finishingId) return false;
+
+                                                $finishing = \App\Models\Finishing::find($finishingId);
+                                                if (!$finishing) return false;
+
+                                                return $finishing->measurement_unit->value === 'tamaño';
+                                            })
+                                            ->columnSpan(1),
+
+                                        // Placeholder para mostrar el costo calculado
+                                        Placeholder::make('cost_preview')
+                                            ->label('Costo Estimado')
+                                            ->content(function ($get) {
+                                                $finishingId = $get('finishing_id');
+                                                $quantity = $get('quantity') ?? 0;
+                                                $width = $get('width') ?? 0;
+                                                $height = $get('height') ?? 0;
+
+                                                if (!$finishingId) {
+                                                    return '<span class="text-gray-400">Seleccione un acabado</span>';
+                                                }
+
+                                                try {
+                                                    $finishing = \App\Models\Finishing::find($finishingId);
+                                                    if (!$finishing) {
+                                                        return '<span class="text-red-500">Acabado no encontrado</span>';
+                                                    }
+
+                                                    $calculator = app(\App\Services\FinishingCalculatorService::class);
+
+                                                    $params = [];
+                                                    switch ($finishing->measurement_unit->value) {
+                                                        case 'millar':
+                                                        case 'rango':
+                                                        case 'unidad':
+                                                            $params = ['quantity' => (int) $quantity];
+                                                            break;
+                                                        case 'tamaño':
+                                                            $params = [
+                                                                'width' => (float) $width,
+                                                                'height' => (float) $height
+                                                            ];
+                                                            break;
+                                                    }
+
+                                                    $cost = $calculator->calculateCost($finishing, $params);
+
+                                                    return '<span class="text-lg font-bold text-green-600">$' . number_format($cost, 2) . '</span>';
+
+                                                } catch (\Exception $e) {
+                                                    return '<span class="text-red-500">Error: ' . $e->getMessage() . '</span>';
+                                                }
+                                            })
+                                            ->html()
+                                            ->columnSpan(3),
+
+                                        Toggle::make('is_default')
+                                            ->label('Sugerencia por defecto')
+                                            ->default(true)
+                                            ->inline(false)
+                                            ->helperText('Este acabado se sugerirá automáticamente')
+                                            ->columnSpan(3),
+                                    ]),
+                            ])
+                            ->collapsible()
+                            ->collapsed(false)
+                            ->addActionLabel('+ Agregar Acabado Sugerido')
+                            ->helperText('Estos acabados se calcularán automáticamente en el precio del item'),
+
+                        Placeholder::make('finishings_total')
+                            ->label('Costo Total de Acabados')
+                            ->content(function ($get, $record) {
+                                if (!$record || !$record->exists) {
+                                    return '<span class="text-gray-400">Guarde el item para ver el total</span>';
+                                }
+
+                                try {
+                                    $record->load('finishings');
+                                    $total = $record->calculateFinishingsCost();
+
+                                    return '<div class="p-3 bg-green-50 rounded border border-green-200">
+                                        <div class="text-2xl font-bold text-green-700">$' . number_format($total, 2) . '</div>
+                                        <div class="text-xs text-gray-600 mt-1">' . $record->finishings->count() . ' acabado(s) configurado(s)</div>
+                                    </div>';
+                                } catch (\Exception $e) {
+                                    return '<span class="text-red-500">Error al calcular: ' . $e->getMessage() . '</span>';
+                                }
+                            })
+                            ->html(),
+                    ])
+                    ->columnSpanFull(),
 
                 // Sección de resultados - solo visible en edición
                 Section::make('📊 Resultados del Cálculo')

@@ -25,13 +25,16 @@ class EditRole extends EditRecord
             'paper_permissions' => ['view-paper-orders', 'create-paper-orders', 'edit-paper-orders', 'delete-paper-orders'],
             'product_permissions' => ['view-products', 'create-products', 'edit-products', 'delete-products'],
             'equipment_permissions' => ['view-equipment', 'create-equipment', 'edit-equipment', 'delete-equipment'],
-            'system_permissions' => ['view-settings', 'edit-settings', 'manage-company-settings', 'manage-paper-catalog', 'manage-printing-machines', 'access-admin-panel', 'manage-roles', 'view-system-logs'],
+            'company_permissions' => ['view-companies', 'create-companies', 'edit-companies', 'delete-companies'],
+            'inventory_permissions' => ['manage-inventory', 'manage-paper-catalog', 'manage-printing-machines'],
+            'system_permissions' => ['view-settings', 'edit-settings', 'manage-company-settings', 'access-admin-panel', 'manage-roles', 'view-system-logs'],
             'report_permissions' => ['view-reports', 'export-reports'],
             'social_permissions' => ['view-posts', 'create-posts', 'edit-posts', 'delete-posts', 'moderate-posts'],
         ];
 
         foreach ($permissionCategories as $category => $permissions) {
-            $data[$category] = array_intersect($rolePermissions, $permissions);
+            // array_intersect devuelve valores con índices preservados, pero CheckboxList necesita valores planos
+            $data[$category] = array_values(array_intersect($rolePermissions, $permissions));
         }
 
         return $data;
@@ -54,6 +57,8 @@ class EditRole extends EditRecord
             'paper_permissions',
             'product_permissions',
             'equipment_permissions',
+            'company_permissions',
+            'inventory_permissions',
             'system_permissions',
             'report_permissions',
             'social_permissions'

@@ -192,6 +192,14 @@ class SimpleItem extends Model
         return $this->belongsTo(PrintingMachine::class);
     }
 
+    public function finishings(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Finishing::class, 'simple_item_finishing')
+            ->withPivot(['quantity', 'width', 'height', 'calculated_cost', 'is_default', 'sort_order'])
+            ->withTimestamps()
+            ->orderBy('sort_order');
+    }
+
     // Métodos de cálculo automático
     public function calculateMounting(): int
     {
@@ -322,10 +330,16 @@ class SimpleItem extends Model
             $this->saveCustomMountingData();
         }
 
-        // Usar el nuevo sistema de cálculo avanzado
+        // Usar el NUEVO sistema de cálculo con montaje y cortes integrado
         try {
             $calculator = new \App\Services\SimpleItemCalculatorService;
-            $pricingResult = $calculator->calculateFinalPricing($this);
+            $pricingResult = $calculator->calculateFinalPricingNew($this);
+
+            // Si el nuevo sistema retorna null, usar el sistema legacy
+            if (!$pricingResult) {
+                $this->calculateAllLegacy();
+                return;
+            }
 
             // Actualizar campos con los resultados del nuevo calculador
             $this->mounting_quantity = $pricingResult->mountingOption->sheetsNeeded;
@@ -404,6 +418,33 @@ class SimpleItem extends Model
             return $calculator->calculateMountingOptions($this);
         } catch (\Exception $e) {
             return [];
+        }
+    }
+
+    /**
+     * Obtiene el cálculo completo del NUEVO sistema de montaje con cortes
+     *
+     * @return array|null [
+     *   'mounting' => [...],
+     *   'copies_per_mounting' => int,
+     *   'divisor' => int,
+     *   'divisor_layout' => [...],
+     *   'impressions_needed' => int,
+     *   'sheets_needed' => int,
+     *   'total_impressions' => int,
+     *   'total_copies_produced' => int,
+     *   'waste_copies' => int,
+     *   'paper_cost' => float
+     * ]
+     */
+    public function getMountingWithCuts(): ?array
+    {
+        try {
+            $calculator = new \App\Services\SimpleItemCalculatorService;
+
+            return $calculator->calculateMountingWithCuts($this);
+        } catch (\Exception $e) {
+            return null;
         }
     }
 
@@ -494,5 +535,148 @@ class SimpleItem extends Model
         $total_rotated = $cutsH_rotated * $cutsV_rotated;
 
         return $total_rotated > $total ? 'vertical' : 'horizontal';
+    }
+
+    // ==================== MÉTODOS DE ACABADOS ====================
+
+    /**
+     * Agregar un acabado al SimpleItem
+     *
+     * @param Finishing $finishing
+     * @param array $params Parámetros según el tipo de medición
+     * @param bool $isDefault Si es un acabado sugerido por defecto
+     * @return void
+     */
+    public function addFinishing(Finishing $finishing, array $params = [], bool $isDefault = true): void
+    {
+        $calculator = new \App\Services\FinishingCalculatorService();
+
+        // Construir parámetros automáticamente si no se proporcionan
+        if (empty($params)) {
+            $params = $this->buildFinishingParams($finishing);
+        }
+
+        // Calcular el costo
+        $cost = $calculator->calculateCost($finishing, $params);
+
+        // Verificar si ya existe
+        $existingFinishing = $this->finishings()->where('finishing_id', $finishing->id)->first();
+
+        if ($existingFinishing) {
+            // Actualizar el existente
+            $this->finishings()->updateExistingPivot($finishing->id, [
+                'quantity' => $params['quantity'] ?? null,
+                'width' => $params['width'] ?? null,
+                'height' => $params['height'] ?? null,
+                'calculated_cost' => $cost,
+                'is_default' => $isDefault,
+            ]);
+        } else {
+            // Agregar nuevo
+            $this->finishings()->attach($finishing->id, [
+                'quantity' => $params['quantity'] ?? null,
+                'width' => $params['width'] ?? null,
+                'height' => $params['height'] ?? null,
+                'calculated_cost' => $cost,
+                'is_default' => $isDefault,
+                'sort_order' => $this->finishings()->count(),
+            ]);
+        }
+    }
+
+    /**
+     * Remover un acabado del SimpleItem
+     *
+     * @param Finishing $finishing
+     * @return void
+     */
+    public function removeFinishing(Finishing $finishing): void
+    {
+        $this->finishings()->detach($finishing->id);
+    }
+
+    /**
+     * Calcular el costo total de todos los acabados
+     *
+     * @return float
+     */
+    public function calculateFinishingsCost(): float
+    {
+        if (!$this->relationLoaded('finishings') || $this->finishings->isEmpty()) {
+            return 0;
+        }
+
+        $total = 0;
+        $calculator = new \App\Services\FinishingCalculatorService();
+
+        foreach ($this->finishings as $finishing) {
+            $params = $this->buildFinishingParams($finishing);
+            $total += $calculator->calculateCost($finishing, $params);
+        }
+
+        return $total;
+    }
+
+    /**
+     * Construir parámetros para el cálculo de acabado según su tipo
+     *
+     * @param Finishing $finishing
+     * @return array
+     */
+    private function buildFinishingParams(Finishing $finishing): array
+    {
+        return match($finishing->measurement_unit) {
+            \App\Enums\FinishingMeasurementUnit::MILLAR,
+            \App\Enums\FinishingMeasurementUnit::RANGO,
+            \App\Enums\FinishingMeasurementUnit::UNIDAD => [
+                'quantity' => (int) $this->quantity
+            ],
+            \App\Enums\FinishingMeasurementUnit::TAMAÑO => [
+                'width' => (float) $this->horizontal_size,
+                'height' => (float) $this->vertical_size
+            ],
+            default => []
+        };
+    }
+
+    /**
+     * Obtener desglose detallado de acabados
+     *
+     * @return array
+     */
+    public function getFinishingsBreakdown(): array
+    {
+        if (!$this->relationLoaded('finishings') || $this->finishings->isEmpty()) {
+            return [];
+        }
+
+        $breakdown = [];
+        $calculator = new \App\Services\FinishingCalculatorService();
+
+        foreach ($this->finishings as $finishing) {
+            $params = $this->buildFinishingParams($finishing);
+            $cost = $calculator->calculateCost($finishing, $params);
+
+            $breakdown[] = [
+                'finishing_id' => $finishing->id,
+                'finishing_name' => $finishing->name,
+                'measurement_unit' => $finishing->measurement_unit->value,
+                'params' => $params,
+                'cost' => $cost,
+                'is_default' => $finishing->pivot->is_default,
+            ];
+        }
+
+        return $breakdown;
+    }
+
+    /**
+     * Verificar si tiene acabados
+     *
+     * @return bool
+     */
+    public function hasFinishings(): bool
+    {
+        return $this->relationLoaded('finishings') && $this->finishings->isNotEmpty();
     }
 }

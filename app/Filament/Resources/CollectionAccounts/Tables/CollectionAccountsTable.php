@@ -239,7 +239,7 @@ class CollectionAccountsTable
                         Select::make('new_status')
                             ->label('Nuevo Estado')
                             ->options(fn ($record) => collect(CollectionAccountStatus::cases())
-                                ->filter(fn ($status) => $record->status->canTransitionTo($status))
+                                ->filter(fn ($status) => $status !== $record->status) // Mostrar todos excepto el actual
                                 ->mapWithKeys(fn ($status) => [$status->value => $status->label()])
                             )
                             ->required()
@@ -267,7 +267,7 @@ class CollectionAccountsTable
                                 ->send();
                         }
                     })
-                    ->visible(fn ($record) => $record->status !== CollectionAccountStatus::PAID && $record->status !== CollectionAccountStatus::CANCELLED),
+                    ->visible(fn ($record) => true), // Siempre visible para permitir cualquier cambio
 
                 Action::make('mark_as_paid')
                     ->label('Marcar como Pagada')

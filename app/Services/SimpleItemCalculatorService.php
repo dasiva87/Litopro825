@@ -87,7 +87,78 @@ class SimpleItemCalculatorService
     }
 
     /**
-     * PASO 1: Calcular opciones de montaje disponibles
+     * NUEVO PASO 1: Calcular montaje con sistema de cortes integrado
+     * Calcula: montaje (copias en máquina) + divisor (cortes de máquina en pliego) + pliegos necesarios
+     */
+    public function calculateMountingWithCuts(SimpleItem $item): ?array
+    {
+        if (!$item->paper || !$item->printingMachine) {
+            return null;
+        }
+
+        // PASO 1A: Calcular montaje (cuántas copias caben en tamaño máquina)
+        $mountingResult = $this->mountingCalculator->calculateMounting(
+            workWidth: $item->horizontal_size,
+            workHeight: $item->vertical_size,
+            machineWidth: $item->printingMachine->max_width ?? 50.0,
+            machineHeight: $item->printingMachine->max_height ?? 70.0,
+            marginPerSide: 1.0
+        );
+
+        $copiesPerMounting = $mountingResult['maximum']['copies_per_sheet'];
+
+        if ($copiesPerMounting <= 0) {
+            return null; // No cabe ni una copia
+        }
+
+        // PASO 1B: Calcular divisor (cuántos cortes del tamaño máquina caben en el pliego)
+        $divisorResult = $this->cuttingCalculator->calculateCuts(
+            paperWidth: $item->paper->width,
+            paperHeight: $item->paper->height,
+            cutWidth: $item->printingMachine->max_width ?? 50.0,
+            cutHeight: $item->printingMachine->max_height ?? 70.0,
+            desiredCuts: 0, // Solo calcular divisor, no pliegos
+            orientation: 'maximum'
+        );
+
+        $divisor = $divisorResult['cutsPerSheet']; // Cuántos cortes de máquina en pliego
+
+        if ($divisor <= 0) {
+            return null; // El tamaño de máquina no cabe en el pliego
+        }
+
+        // PASO 1C: Calcular pliegos necesarios
+        $totalQuantity = (int) $item->quantity + ($item->sobrante_papel ?? 0);
+        $impressionsNeeded = ceil($totalQuantity / $copiesPerMounting);
+        $sheetsNeeded = ceil($impressionsNeeded / $divisor);
+
+        // PASO 1D: Calcular impresiones totales
+        $totalImpressions = $sheetsNeeded * $divisor;
+
+        // PASO 1E: Calcular copias producidas
+        $totalCopiesProduced = $totalImpressions * $copiesPerMounting;
+
+        return [
+            'mounting' => $mountingResult['maximum'],
+            'copies_per_mounting' => $copiesPerMounting,
+            'divisor' => $divisor,
+            'divisor_layout' => [
+                'vertical_cuts' => $divisorResult['verticalCuts'],
+                'horizontal_cuts' => $divisorResult['horizontalCuts']
+            ],
+            'impressions_needed' => $impressionsNeeded,
+            'sheets_needed' => $sheetsNeeded,
+            'total_impressions' => $totalImpressions,
+            'total_copies_produced' => $totalCopiesProduced,
+            'waste_copies' => $totalCopiesProduced - $totalQuantity,
+            'paper_cost' => $sheetsNeeded * $item->paper->cost_per_sheet,
+            'utilization_percentage' => $divisorResult['usedAreaPercentage'],
+            'raw_divisor_result' => $divisorResult
+        ];
+    }
+
+    /**
+     * PASO 1 LEGACY: Calcular opciones de montaje disponibles
      * (Mantiene compatibilidad con código existente usando CuttingCalculatorService)
      * Soporta montaje automático y manual
      */
@@ -152,7 +223,57 @@ class SimpleItemCalculatorService
     }
 
     /**
-     * PASO 2: Calcular millares de impresión con redondeo hacia arriba
+     * PASO 2 NUEVO: Calcular millares de impresión basado en IMPRESIONES (no pliegos)
+     * Fórmula: Millares = (Impresiones × Colores) ÷ 1000
+     */
+    public function calculatePrintingMillaresNew(SimpleItem $item, array $mountingWithCuts): PrintingCalculation
+    {
+        // Calcular total de colores
+        if ($item->front_back_plate) {
+            $totalColors = max($item->ink_front_count, $item->ink_back_count);
+        } else {
+            $totalColors = $item->ink_front_count + $item->ink_back_count;
+        }
+
+        // Obtener impresiones totales del nuevo cálculo
+        $totalImpressions = $mountingWithCuts['total_impressions'];
+
+        // Determinar cantidad a cobrar en impresión según regla de sobrante
+        $quantityForPrinting = $totalImpressions;
+        $sobrante = $item->sobrante_papel ?? 0;
+
+        // Si el sobrante es mayor a 100, cobrar la cantidad total (original + sobrante)
+        if ($sobrante > 100) {
+            $quantityForPrinting = $totalImpressions + ceil($sobrante / $mountingWithCuts['copies_per_mounting']);
+        }
+
+        // Fórmula NUEVA: Impresiones ÷ 1000
+        $millaresRaw = $quantityForPrinting / 1000;
+
+        // REGLA: Siempre redondear HACIA ARRIBA si son más de 100 ejemplares de más
+        $millaresFinal = $this->roundUpMillares($millaresRaw) * $totalColors;
+
+        // Calcular costo
+        $printingCost = $millaresFinal * $item->printingMachine->cost_per_impression;
+
+        // Agregar costo de alistamiento
+        $setupCost = $item->printingMachine->setup_cost ?? 0;
+        $totalPrintingCost = $printingCost + $setupCost;
+
+        return new PrintingCalculation(
+            totalColors: $totalColors,
+            millaresRaw: $millaresRaw,
+            millaresFinal: $millaresFinal,
+            printingCost: $printingCost,
+            setupCost: $setupCost,
+            totalCost: $totalPrintingCost,
+            frontBackPlate: (bool) ($item->front_back_plate ?? false)
+        );
+    }
+
+    /**
+     * PASO 2 LEGACY: Calcular millares de impresión con redondeo hacia arriba
+     * (Mantiene compatibilidad con código existente)
      */
     public function calculatePrintingMillares(SimpleItem $item, MountingOption $mountingOption): PrintingCalculation
     {
@@ -173,15 +294,15 @@ class SimpleItemCalculatorService
             $quantityForPrinting = $mountingOption->sheetsNeeded * $mountingOption->cutsPerSheet + $sobrante;
         }
 
-        // Fórmula: (Total_colores × Cantidad_para_impresión) ÷ 1000 
+        // Fórmula: (Total_colores × Cantidad_para_impresión) ÷ 1000
         $millaresRaw = ($quantityForPrinting) / 1000;
-        
+
         // REGLA: Siempre redondear HACIA ARRIBA si son mas de 100 ejemplares de más
         $millaresFinal = $this->roundUpMillares($millaresRaw) * $totalColors;
-        
+
         // Calcular costo
         $printingCost = $millaresFinal  * $item->printingMachine->cost_per_impression;
-        
+
         // Agregar costo de alistamiento
         $setupCost = $item->printingMachine->setup_cost ?? 0;
         $totalPrintingCost = $printingCost + $setupCost;
@@ -209,18 +330,95 @@ class SimpleItemCalculatorService
         // CTP siempre se calcula automáticamente basado en tintas y máquina
         $ctpCost = $this->calculateCtpCost($item);
 
+        // Calcular acabados si existen
+        $finishingsCost = $this->calculateFinishingsCost($item);
+
         return new AdditionalCosts(
             designCost: $item->design_value ?? 0,
             transportCost: $item->transport_value ?? 0,
             rifleCost: $item->rifle_value ?? 0,
             cuttingCost: $cuttingCost,
             mountingCost: $mountingCost,
-            ctpCost: $ctpCost
+            ctpCost: $ctpCost,
+            finishingsCost: $finishingsCost
         );
     }
 
     /**
-     * PASO 4: Calcular precio final con desglose completo
+     * PASO 4 NUEVO: Calcular precio final con sistema de montaje y cortes integrado
+     */
+    public function calculateFinalPricingNew(SimpleItem $item): ?PricingResult
+    {
+        // Usar el nuevo sistema de cálculo
+        $mountingWithCuts = $this->calculateMountingWithCuts($item);
+
+        if (!$mountingWithCuts) {
+            return null;
+        }
+
+        // Calcular millares con el nuevo método
+        $printingCalc = $this->calculatePrintingMillaresNew($item, $mountingWithCuts);
+
+        // Calcular costos adicionales (usar pliegos del nuevo cálculo)
+        $cuttingCost = ($item->cutting_cost > 0)
+            ? $item->cutting_cost
+            : $this->calculateCuttingCostFromSheets($mountingWithCuts['sheets_needed']);
+
+        $mountingCost = ($item->mounting_cost > 0)
+            ? $item->mounting_cost
+            : $this->calculateMountingCost($item, null);
+
+        $ctpCost = $this->calculateCtpCost($item);
+
+        // Calcular acabados si existen
+        $finishingsCost = $this->calculateFinishingsCost($item);
+
+        $additionalCosts = new AdditionalCosts(
+            designCost: $item->design_value ?? 0,
+            transportCost: $item->transport_value ?? 0,
+            rifleCost: $item->rifle_value ?? 0,
+            cuttingCost: $cuttingCost,
+            mountingCost: $mountingCost,
+            ctpCost: $ctpCost,
+            finishingsCost: $finishingsCost
+        );
+
+        // Sumar costos base
+        $subtotal = $mountingWithCuts['paper_cost'] +
+                   $printingCalc->totalCost +
+                   $additionalCosts->getTotalCost();
+
+        // Aplicar margen de ganancia
+        $profitAmount = $subtotal * ($item->profit_percentage / 100);
+        $finalPrice = $subtotal + $profitAmount;
+
+        // Crear MountingOption compatible para el resultado
+        $mountingOption = new MountingOption(
+            orientation: 'maximum',
+            cutsPerSheet: $mountingWithCuts['copies_per_mounting'],
+            sheetsNeeded: $mountingWithCuts['sheets_needed'],
+            utilizationPercentage: $mountingWithCuts['utilization_percentage'],
+            wastePercentage: 100 - $mountingWithCuts['utilization_percentage'],
+            paperCost: $mountingWithCuts['paper_cost'],
+            cuttingLayout: $mountingWithCuts['divisor_layout'],
+            rawCalculation: $mountingWithCuts
+        );
+
+        return new PricingResult(
+            mountingOption: $mountingOption,
+            printingCalculation: $printingCalc,
+            additionalCosts: $additionalCosts,
+            subtotal: $subtotal,
+            profitPercentage: $item->profit_percentage,
+            profitAmount: $profitAmount,
+            finalPrice: $finalPrice,
+            unitPrice: $finalPrice / $item->quantity,
+            costBreakdown: $this->generateCostBreakdownNew($mountingWithCuts, $printingCalc, $additionalCosts)
+        );
+    }
+
+    /**
+     * PASO 4 LEGACY: Calcular precio final con desglose completo
      */
     public function calculateFinalPricing(SimpleItem $item, MountingOption $mountingOption = null): PricingResult
     {
@@ -330,17 +528,25 @@ class SimpleItemCalculatorService
     {
         // Costo base por corte
         $baseCostPerSheet = 50; // $50 por pliego cortado
-        
+
         // Multiplicador por complejidad del corte
         $complexityMultiplier = 1;
         if ($mountingOption->cutsPerSheet > 20) {
             $complexityMultiplier = 1.5; // Cortes más complejos
         }
-        
+
         return $mountingOption->sheetsNeeded * $baseCostPerSheet * $complexityMultiplier;
     }
 
-    private function calculateMountingCost(SimpleItem $item, MountingOption $mountingOption): float
+    private function calculateCuttingCostFromSheets(int $sheetsNeeded): float
+    {
+        // Costo base por corte
+        $baseCostPerSheet = 50; // $50 por pliego cortado
+
+        return $sheetsNeeded * $baseCostPerSheet;
+    }
+
+    private function calculateMountingCost(SimpleItem $item, ?MountingOption $mountingOption): float
     {
         $baseMountingCost = 8000; // Costo base de montaje
 
@@ -366,6 +572,108 @@ class SimpleItemCalculatorService
         $ctpCostPerPlate = $item->printingMachine->costo_ctp ?? 0;
 
         return $totalInks * $ctpCostPerPlate;
+    }
+
+    /**
+     * Calcular el costo total de todos los acabados del SimpleItem
+     */
+    private function calculateFinishingsCost(SimpleItem $item): float
+    {
+        if (!$item->relationLoaded('finishings') || $item->finishings->isEmpty()) {
+            return 0;
+        }
+
+        $total = 0;
+        $finishingCalculator = new FinishingCalculatorService();
+
+        foreach ($item->finishings as $finishing) {
+            $params = $this->buildFinishingParams($item, $finishing);
+
+            try {
+                $cost = $finishingCalculator->calculateCost($finishing, $params);
+                $total += $cost;
+            } catch (\Exception $e) {
+                // Si hay error en el cálculo, continuar con el siguiente
+                continue;
+            }
+        }
+
+        return $total;
+    }
+
+    /**
+     * Construir parámetros para el cálculo de un acabado según su tipo
+     */
+    private function buildFinishingParams(SimpleItem $item, \App\Models\Finishing $finishing): array
+    {
+        return match($finishing->measurement_unit) {
+            \App\Enums\FinishingMeasurementUnit::MILLAR,
+            \App\Enums\FinishingMeasurementUnit::RANGO,
+            \App\Enums\FinishingMeasurementUnit::UNIDAD => [
+                'quantity' => (int) $item->quantity
+            ],
+            \App\Enums\FinishingMeasurementUnit::TAMAÑO => [
+                'width' => (float) $item->horizontal_size,
+                'height' => (float) $item->vertical_size
+            ],
+            default => []
+        };
+    }
+
+    private function generateCostBreakdownNew(array $mountingWithCuts, PrintingCalculation $printing, AdditionalCosts $additional): array
+    {
+        return [
+            'paper' => [
+                'description' => 'Papel',
+                'quantity' => $mountingWithCuts['sheets_needed'] . ' pliegos',
+                'cost' => $mountingWithCuts['paper_cost']
+            ],
+            'printing' => [
+                'description' => 'Impresión',
+                'quantity' => $printing->millaresFinal . ' millares (' . $mountingWithCuts['total_impressions'] . ' impresiones)',
+                'cost' => $printing->printingCost
+            ],
+            'setup' => [
+                'description' => 'Alistamiento',
+                'quantity' => '1 trabajo',
+                'cost' => $printing->setupCost
+            ],
+            'cutting' => [
+                'description' => 'Corte',
+                'quantity' => $mountingWithCuts['sheets_needed'] . ' pliegos',
+                'cost' => $additional->cuttingCost
+            ],
+            'mounting' => [
+                'description' => 'Montaje',
+                'quantity' => $mountingWithCuts['copies_per_mounting'] . ' copias/montaje × ' . $mountingWithCuts['divisor'] . ' cortes',
+                'cost' => $additional->mountingCost
+            ],
+            'design' => [
+                'description' => 'Diseño',
+                'quantity' => '1 trabajo',
+                'cost' => $additional->designCost
+            ],
+            'transport' => [
+                'description' => 'Transporte',
+                'quantity' => '1 envío',
+                'cost' => $additional->transportCost
+            ],
+            'rifle' => [
+                'description' => 'Rifle/Doblez',
+                'quantity' => '1 proceso',
+                'cost' => $additional->rifleCost
+            ],
+            'ctp' => [
+                'description' => 'Planchas CTP',
+                'quantity' => '1 juego',
+                'cost' => $additional->ctpCost
+            ],
+            'finishings' => [
+                'description' => 'Acabados',
+                'quantity' => 'Varios',
+                'cost' => $additional->finishingsCost
+            ]
+        ];
     }
 
     private function generateCostBreakdown(MountingOption $mountingOption, PrintingCalculation $printing, AdditionalCosts $additional): array
@@ -398,7 +706,7 @@ class SimpleItemCalculatorService
             ],
             'design' => [
                 'description' => 'Diseño',
-                'quantity' => '1 trabajo', 
+                'quantity' => '1 trabajo',
                 'cost' => $additional->designCost
             ],
             'transport' => [
@@ -415,6 +723,11 @@ class SimpleItemCalculatorService
                 'description' => 'Planchas CTP',
                 'quantity' => '1 juego',
                 'cost' => $additional->ctpCost
+            ],
+            'finishings' => [
+                'description' => 'Acabados',
+                'quantity' => 'Varios',
+                'cost' => $additional->finishingsCost
             ]
         ];
     }
@@ -488,7 +801,8 @@ class AdditionalCosts
         public readonly float $rifleCost = 0,
         public readonly float $cuttingCost = 0,
         public readonly float $mountingCost = 0,
-        public readonly float $ctpCost = 0
+        public readonly float $ctpCost = 0,
+        public readonly float $finishingsCost = 0
     ) {}
 
     public function getTotalCost(): float
@@ -498,7 +812,8 @@ class AdditionalCosts
                $this->rifleCost +
                $this->cuttingCost +
                $this->mountingCost +
-               $this->ctpCost;
+               $this->ctpCost +
+               $this->finishingsCost;
     }
 
     public function getBreakdown(): array
@@ -509,7 +824,8 @@ class AdditionalCosts
             'rifle' => $this->rifleCost,
             'cutting' => $this->cuttingCost,
             'mounting' => $this->mountingCost,
-            'ctp' => $this->ctpCost
+            'ctp' => $this->ctpCost,
+            'finishings' => $this->finishingsCost
         ];
     }
 }

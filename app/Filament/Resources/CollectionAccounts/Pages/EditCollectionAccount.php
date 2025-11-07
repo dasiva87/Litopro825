@@ -104,7 +104,7 @@ class EditCollectionAccount extends EditRecord
                     \Filament\Forms\Components\Select::make('new_status')
                         ->label('Nuevo Estado')
                         ->options(fn () => collect(CollectionAccountStatus::cases())
-                            ->filter(fn ($status) => $this->record->status->canTransitionTo($status))
+                            ->filter(fn ($status) => $status !== $this->record->status) // Mostrar todos excepto el actual
                             ->mapWithKeys(fn ($status) => [$status->value => $status->label()])
                         )
                         ->required()
@@ -137,7 +137,7 @@ class EditCollectionAccount extends EditRecord
                             ->send();
                     }
                 })
-                ->visible(fn () => $this->record->status !== CollectionAccountStatus::PAID && $this->record->status !== CollectionAccountStatus::CANCELLED),
+                ->visible(fn () => true), // Siempre visible para permitir cualquier cambio
 
             Action::make('mark_as_paid')
                 ->label('Marcar como Pagada')

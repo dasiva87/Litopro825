@@ -26,7 +26,9 @@ class CollectionAccountForm
 
                                 Components\Select::make('status')
                                     ->label('Estado')
-                                    ->options(CollectionAccountStatus::class)
+                                    ->options(fn () => collect(CollectionAccountStatus::cases())
+                                        ->mapWithKeys(fn ($status) => [$status->value => $status->label()])
+                                    )
                                     ->required()
                                     ->default(CollectionAccountStatus::DRAFT)
                                     ->native(false),

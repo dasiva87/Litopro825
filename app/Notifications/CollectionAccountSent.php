@@ -50,6 +50,7 @@ class CollectionAccountSent extends Notification
         $collectionAccount = $this->getCollectionAccount();
 
         return [
+            'format' => 'filament', // Requerido por Filament para mostrar notificaciones
             'collection_account_id' => $collectionAccount->id,
             'account_number' => $collectionAccount->account_number,
             'client_company' => $collectionAccount->clientCompany->name ?? 'Sin cliente',

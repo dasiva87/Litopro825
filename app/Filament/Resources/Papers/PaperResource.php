@@ -35,6 +35,16 @@ class PaperResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
+    /**
+     * Verificar si el usuario puede ver este Resource.
+     * Solo Company Admin, Manager y Super Admin pueden acceder.
+     */
+    public static function canViewAny(): bool
+    {
+        $user = auth()->user();
+        return $user && $user->hasAnyRole(['Super Admin', 'Company Admin', 'Manager']);
+    }
+
     public static function form(Schema $schema): Schema
     {
         return PaperForm::configure($schema);

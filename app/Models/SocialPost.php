@@ -201,7 +201,7 @@ class SocialPost extends Model
             return null;
         }
 
-        return '/empresa/' . $this->company->slug;
+        return '/admin/empresa/' . $this->company->slug;
     }
 
     public function getCompanyAvatarUrl(): ?string

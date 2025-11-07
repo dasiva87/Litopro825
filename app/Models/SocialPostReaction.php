@@ -2,14 +2,16 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SocialPostReaction extends Model
 {
-    use HasFactory, BelongsToTenant;
+    use HasFactory;
+
+    // NOTA: NO usa BelongsToTenant porque las reacciones deben ser cross-tenant
+    // (usuarios de una empresa pueden reaccionar a posts de otras empresas)
 
     protected $fillable = [
         'company_id',

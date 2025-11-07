@@ -29,7 +29,9 @@ class SocialPostWidget extends Widget
     {
         $userCompanyId = auth()->user()?->company_id;
 
-        $query = SocialPost::with([
+        // Remover el scope global para permitir posts cross-tenant
+        $query = SocialPost::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
+            ->with([
                 'author.company.city',
                 'company',
                 'reactions',
@@ -88,7 +90,8 @@ class SocialPostWidget extends Widget
             return;
         }
 
-        $post = SocialPost::findOrFail($postId);
+        // Usar withoutGlobalScope para permitir interacciones cross-tenant
+        $post = SocialPost::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->findOrFail($postId);
         $userId = $user->id;
         $companyId = $user->company_id;
 
@@ -137,7 +140,8 @@ class SocialPostWidget extends Widget
             return;
         }
 
-        $post = SocialPost::findOrFail($postId);
+        // Usar withoutGlobalScope para permitir interacciones cross-tenant
+        $post = SocialPost::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->findOrFail($postId);
 
         $newComment = $post->comments()->create([
             'company_id' => $user->company_id,

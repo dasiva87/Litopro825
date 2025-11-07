@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,7 +9,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class SocialPostComment extends Model
 {
-    use HasFactory, BelongsToTenant, SoftDeletes;
+    use HasFactory, SoftDeletes;
+
+    // NOTA: NO usa BelongsToTenant porque los comentarios deben ser cross-tenant
+    // (usuarios de una empresa pueden comentar posts de otras empresas)
 
     protected $fillable = [
         'company_id',

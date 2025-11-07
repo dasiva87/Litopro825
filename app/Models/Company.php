@@ -312,11 +312,12 @@ class Company extends Model
 
     public function getCurrentPlan(): ?Plan
     {
-        if (! $this->subscription_plan || $this->subscription_plan === 'free') {
+        if (! $this->subscription_plan) {
             return null;
         }
 
-        return Plan::where('name', $this->subscription_plan)->first();
+        // Buscar por slug (que es lo que se almacena en subscription_plan)
+        return Plan::where('slug', $this->subscription_plan)->first();
     }
 
     // PayU subscriptions - to be implemented

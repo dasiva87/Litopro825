@@ -66,7 +66,7 @@ class AdminPanelProvider extends PanelProvider
                 // LitoPro Central Panel Widgets (optimized load)
                 \App\Filament\Widgets\DashboardStatsWidget::class,
                 \App\Filament\Widgets\ActiveDocumentsWidget::class,
-                // \App\Filament\Widgets\SocialFeedWidget::class, // Disabled temporarily for performance
+                \App\Filament\Widgets\SocialFeedWidget::class,
 
                 // LitoPro Sidebar Widgets (specialized tools)
                 \App\Filament\Widgets\StockAlertsWidget::class,

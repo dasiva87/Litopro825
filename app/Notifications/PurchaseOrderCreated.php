@@ -48,6 +48,7 @@ class PurchaseOrderCreated extends Notification
         $purchaseOrder = $this->getPurchaseOrder();
 
         return [
+            'format' => 'filament', // Requerido por Filament para mostrar notificaciones
             'purchase_order_id' => $purchaseOrder->id,
             'order_number' => $purchaseOrder->order_number,
             'supplier_company' => $purchaseOrder->supplierCompany->name ?? 'Sin proveedor',

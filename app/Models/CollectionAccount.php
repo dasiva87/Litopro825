@@ -231,10 +231,7 @@ class CollectionAccount extends Model
 
     public function changeStatus(CollectionAccountStatus $newStatus, ?string $notes = null): bool
     {
-        if (! $this->status->canTransitionTo($newStatus)) {
-            return false;
-        }
-
+        // Permitir cualquier cambio de estado sin restricciones
         $this->status = $newStatus;
 
         // Si se cambia a pagada, registrar fecha de pago
