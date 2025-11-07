@@ -3,7 +3,6 @@
 namespace App\Filament\Pages;
 
 use App\Models\Company;
-use App\Models\SocialPost;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Route;
 
@@ -46,19 +45,6 @@ class CompanyProfile extends Page
         ];
     }
 
-    // Método para obtener posts (computed property)
-    public function getPostsProperty()
-    {
-        return SocialPost::with(['author.company', 'reactions', 'comments.author'])
-            ->whereHas('author', function ($query) {
-                $query->where('company_id', $this->company->id);
-            })
-            ->public()
-            ->notExpired()
-            ->recent()
-            ->paginate(10);
-    }
-
     public function getTitle(): string
     {
         return $this->company->name ?? 'Perfil de Empresa';
@@ -66,7 +52,7 @@ class CompanyProfile extends Page
 
     public function getHeading(): string
     {
-        return $this->company->name ?? 'Perfil de Empresa';
+        return ''; // Sin heading visible
     }
 
     public static function getSlug(?\Filament\Panel $panel = null): string

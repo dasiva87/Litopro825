@@ -53,7 +53,7 @@
 
                     @if($company->company_type)
                         <div style="display: inline-flex; align-items: center; padding: 6px 14px; background: #eff6ff; border-radius: 20px; margin-bottom: 12px;">
-                            <span style="font-size: 13px; font-weight: 600; color: #2563eb;">{{ ucfirst($company->company_type) }}</span>
+                            <span style="font-size: 13px; font-weight: 600; color: #2563eb;">{{ $company->company_type->label() }}</span>
                         </div>
                     @endif
 
@@ -99,102 +99,7 @@
         <div class="profile-grid" style="display: grid; grid-template-columns: 1fr 400px; gap: 24px;">
             <!-- Columna Principal: Publicaciones -->
             <div>
-                <div style="background: white; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.07); overflow: hidden;">
-                    <!-- Header de Publicaciones -->
-                    <div style="padding: 20px 24px; border-bottom: 2px solid #f3f4f6; background: linear-gradient(to right, #f9fafb, #ffffff);">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <svg style="width: 24px; height: 24px; color: #667eea;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/>
-                            </svg>
-                            <h2 style="font-size: 20px; font-weight: 700; color: #111827; margin: 0;">Publicaciones Recientes</h2>
-                        </div>
-                    </div>
-
-                    <!-- Lista de Posts -->
-                    <div>
-                        @forelse($this->posts as $post)
-                            <div style="padding: 24px; border-bottom: 1px solid #f3f4f6;">
-                                <div style="display: flex; gap: 16px;">
-                                    <!-- Avatar del Autor -->
-                                    <div style="flex-shrink: 0;">
-                                        @if($post->author->company && $post->author->company->avatar)
-                                            <img src="{{ asset('storage/' . $post->author->company->avatar) }}" alt="{{ $post->author->company->name }}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid #e5e7eb;">
-                                        @else
-                                            <div style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;">
-                                                <span style="color: white; font-size: 16px; font-weight: 700;">
-                                                    {{ strtoupper(substr($post->author->name ?? 'U', 0, 2)) }}
-                                                </span>
-                                            </div>
-                                        @endif
-                                    </div>
-
-                                    <!-- Contenido del Post -->
-                                    <div style="flex: 1; min-width: 0;">
-                                        <!-- Header del Post -->
-                                        <div style="margin-bottom: 12px;">
-                                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                                                <span style="font-size: 15px; font-weight: 600; color: #111827;">{{ $post->author->name }}</span>
-                                                <span style="color: #d1d5db;">•</span>
-                                                <span style="font-size: 14px; color: #9ca3af;">{{ $post->created_at->diffForHumans() }}</span>
-                                            </div>
-                                        </div>
-
-                                        <!-- Contenido -->
-                                        <div style="margin-bottom: 12px;">
-                                            <p style="font-size: 15px; color: #374151; line-height: 1.6; white-space: pre-wrap; word-break: break-word;">{{ $post->content }}</p>
-                                        </div>
-
-                                        <!-- Imagen del Post (si existe) -->
-                                        @if($post->image_path)
-                                            <div style="margin-top: 16px; margin-bottom: 16px;">
-                                                <img src="{{ asset('storage/' . $post->image_path) }}" alt="Post image" style="max-width: 100%; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                                            </div>
-                                        @endif
-
-                                        <!-- Estadísticas de Interacción -->
-                                        @if($post->reactions->count() > 0 || $post->comments->count() > 0)
-                                            <div style="display: flex; gap: 20px; padding-top: 12px; border-top: 1px solid #f3f4f6;">
-                                                @if($post->reactions->count() > 0)
-                                                    <div style="display: flex; align-items: center; gap: 6px;">
-                                                        <svg style="width: 16px; height: 16px; color: #ef4444;" fill="currentColor" viewBox="0 0 20 20">
-                                                            <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/>
-                                                        </svg>
-                                                        <span style="font-size: 14px; color: #6b7280; font-weight: 500;">{{ $post->reactions->count() }}</span>
-                                                    </div>
-                                                @endif
-                                                @if($post->comments->count() > 0)
-                                                    <div style="display: flex; align-items: center; gap: 6px;">
-                                                        <svg style="width: 16px; height: 16px; color: #3b82f6;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-                                                        </svg>
-                                                        <span style="font-size: 14px; color: #6b7280; font-weight: 500;">{{ $post->comments->count() }}</span>
-                                                    </div>
-                                                @endif
-                                            </div>
-                                        @endif
-                                    </div>
-                                </div>
-                            </div>
-                        @empty
-                            <div style="padding: 80px 24px; text-align: center;">
-                                <div style="width: 80px; height: 80px; margin: 0 auto 20px; background: #f3f4f6; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                                    <svg style="width: 40px; height: 40px; color: #9ca3af;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-                                    </svg>
-                                </div>
-                                <p style="font-size: 16px; color: #9ca3af; font-weight: 500;">No hay publicaciones aún</p>
-                                <p style="font-size: 14px; color: #d1d5db; margin-top: 8px;">Las publicaciones de esta empresa aparecerán aquí</p>
-                            </div>
-                        @endforelse
-                    </div>
-
-                    <!-- Paginación -->
-                    @if($this->posts->hasPages())
-                        <div style="padding: 20px 24px; border-top: 2px solid #f3f4f6; background: #f9fafb;">
-                            {{ $this->posts->links() }}
-                        </div>
-                    @endif
-                </div>
+                @livewire(\App\Filament\Widgets\CompanyPostsWidget::class, ['companyId' => $company->id])
             </div>
 
             <!-- Sidebar: Información de Contacto -->

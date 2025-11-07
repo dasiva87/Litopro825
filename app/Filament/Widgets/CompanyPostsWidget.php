@@ -3,34 +3,27 @@
 namespace App\Filament\Widgets;
 
 use App\Models\SocialPost;
-use App\Models\SocialPostReaction;
-use App\Models\City;
-use App\Services\NotificationService;
 use Filament\Widgets\Widget;
-use Livewire\Component;
-use Carbon\Carbon;
 
-class SocialPostWidget extends Widget
+class CompanyPostsWidget extends Widget
 {
     protected string $view = 'filament.widgets.social-post-widget';
 
     protected int | string | array $columnSpan = 'full';
 
+    // Propiedad pública para recibir el company_id desde la página
+    public ?int $companyId = null;
+
+    // Controlar si se muestran los filtros (false para perfiles de empresa)
+    public bool $showFilters = false;
+
     protected $listeners = ['post-created' => 'refreshPosts'];
-
-    // Mostrar filtros (true para el home, false para perfiles)
-    public bool $showFilters = true;
-
-    // Filtros
-    public $filterType = '';
-    public $filterCity = '';
-    public $filterDateFrom = '';
-    public $filterDateTo = '';
-    public $filterSearch = '';
 
     public function getSocialPosts()
     {
-        $userCompanyId = auth()->user()?->company_id;
+        if (!$this->companyId) {
+            return collect();
+        }
 
         // Remover el scope global para permitir posts cross-tenant
         $query = SocialPost::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
@@ -40,38 +33,9 @@ class SocialPostWidget extends Widget
                 'reactions',
                 'comments.author'
             ])
-            ->forFeed($userCompanyId); // Usar el nuevo scope personalizado
-
-        // Filtro por tipo de post
-        if (!empty($this->filterType)) {
-            $query->where('post_type', $this->filterType);
-        }
-
-        // Filtro por ciudad
-        if (!empty($this->filterCity)) {
-            $query->whereHas('company', function ($q) {
-                $q->where('city_id', $this->filterCity);
-            });
-        }
-
-        // Filtro por fecha desde
-        if (!empty($this->filterDateFrom)) {
-            $query->whereDate('created_at', '>=', $this->filterDateFrom);
-        }
-
-        // Filtro por fecha hasta
-        if (!empty($this->filterDateTo)) {
-            $query->whereDate('created_at', '<=', $this->filterDateTo);
-        }
-
-        // Filtro por búsqueda en contenido
-        if (!empty($this->filterSearch)) {
-            $searchTerm = '%' . $this->filterSearch . '%';
-            $query->where(function ($q) use ($searchTerm) {
-                $q->where('content', 'LIKE', $searchTerm)
-                  ->orWhere('title', 'LIKE', $searchTerm);
-            });
-        }
+            ->where('company_id', $this->companyId) // Filtrar solo posts de esta empresa
+            ->public()
+            ->notExpired();
 
         return $query->recent()
             ->limit(20)
@@ -80,8 +44,6 @@ class SocialPostWidget extends Widget
 
     public function refreshPosts()
     {
-        // Este método se ejecuta cuando se recibe el evento 'post-created'
-        // Livewire automáticamente re-renderiza el componente
         $this->dispatch('$refresh');
     }
 
@@ -112,7 +74,7 @@ class SocialPostWidget extends Widget
             $post->reactions()->where('user_id', $userId)->delete();
 
             // Agregar nueva reacción
-            SocialPostReaction::create([
+            \App\Models\SocialPostReaction::create([
                 'company_id' => $companyId,
                 'post_id' => $postId,
                 'user_id' => $userId,
@@ -120,7 +82,7 @@ class SocialPostWidget extends Widget
             ]);
 
             // Enviar notificación al autor del post
-            $notificationService = app(NotificationService::class);
+            $notificationService = app(\App\Services\NotificationService::class);
             $notificationService->notifyNewReaction($post, $reactionType, $user);
 
             // Emitir evento para actualizar notificaciones
@@ -154,7 +116,7 @@ class SocialPostWidget extends Widget
         ]);
 
         // Enviar notificación al autor del post
-        $notificationService = app(NotificationService::class);
+        $notificationService = app(\App\Services\NotificationService::class);
         $notificationService->notifyNewComment($post, [
             'id' => $newComment->id,
             'content' => trim($comment)
@@ -186,16 +148,6 @@ class SocialPostWidget extends Widget
             ->toArray();
     }
 
-    public function clearFilters()
-    {
-        $this->filterType = '';
-        $this->filterCity = '';
-        $this->filterDateFrom = '';
-        $this->filterDateTo = '';
-        $this->filterSearch = '';
-        $this->dispatch('$refresh');
-    }
-
     public function getPostTypes()
     {
         return [
@@ -210,7 +162,7 @@ class SocialPostWidget extends Widget
 
     public function getCities()
     {
-        return City::where('is_active', 1)
+        return \App\Models\City::where('is_active', 1)
             ->orderBy('name')
             ->pluck('name', 'id')
             ->toArray();
