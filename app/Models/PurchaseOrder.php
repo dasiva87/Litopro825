@@ -22,6 +22,7 @@ class PurchaseOrder extends Model
     protected $fillable = [
         'company_id',
         'supplier_company_id',
+        'supplier_id',
         'order_number',
         'status',
         'order_date',
@@ -145,6 +146,11 @@ class PurchaseOrder extends Model
         return $this->belongsTo(Company::class, 'supplier_company_id');
     }
 
+    public function supplier(): BelongsTo
+    {
+        return $this->belongsTo(Contact::class, 'supplier_id');
+    }
+
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -207,35 +213,20 @@ class PurchaseOrder extends Model
     public static function generateOrderNumber(): string
     {
         $companyId = TenantContext::id() ?? 1;
-        $year = now()->year;
-        $prefix = "OP-{$year}-";
 
-        // Buscar el número más alto en el año (no solo el último por ID)
-        $maxOrderNumber = static::forTenant($companyId)
-            ->where('order_number', 'LIKE', $prefix.'%')
-            ->orderByRaw('CAST(SUBSTRING(order_number, -4) AS UNSIGNED) DESC')
-            ->value('order_number');
+        // Obtener el último número para este tipo de orden (sin filtrar por año)
+        $lastOrder = static::forTenant($companyId)
+            ->orderBy('id', 'desc')
+            ->first();
 
-        $sequence = $maxOrderNumber ? (int) substr($maxOrderNumber, -4) + 1 : 1;
+        $nextNumber = 1;
+        if ($lastOrder) {
+            // Extraer el número del último documento
+            preg_match('/(\d+)$/', $lastOrder->order_number, $matches);
+            $nextNumber = isset($matches[1]) ? (int)$matches[1] + 1 : 1;
+        }
 
-        // Generar número con retry en caso de colisión (máximo 10 intentos)
-        $attempts = 0;
-        do {
-            $orderNumber = $prefix.str_pad($sequence + $attempts, 4, '0', STR_PAD_LEFT);
-
-            $exists = static::forTenant($companyId)
-                ->where('order_number', $orderNumber)
-                ->exists();
-
-            if (! $exists) {
-                return $orderNumber;
-            }
-
-            $attempts++;
-        } while ($attempts < 10);
-
-        // Si después de 10 intentos aún hay colisión, usar timestamp
-        return $prefix.substr(time(), -4);
+        return str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
     }
 
     public function changeStatus(OrderStatus $newStatus, ?string $notes = null): bool
@@ -265,5 +256,37 @@ class PurchaseOrder extends Model
     public function canBeCancelled(): bool
     {
         return in_array($this->status, [OrderStatus::DRAFT, OrderStatus::SENT, OrderStatus::CONFIRMED]);
+    }
+
+    /**
+     * Get the supplier name (from Company or Contact)
+     */
+    public function getSupplierNameAttribute(): string
+    {
+        if ($this->supplier_id && $this->supplier) {
+            return $this->supplier->name;
+        }
+
+        if ($this->supplier_company_id && $this->supplierCompany) {
+            return $this->supplierCompany->name;
+        }
+
+        return 'Sin proveedor';
+    }
+
+    /**
+     * Get the supplier email (from Company or Contact)
+     */
+    public function getSupplierEmailAttribute(): ?string
+    {
+        if ($this->supplier_id && $this->supplier) {
+            return $this->supplier->email;
+        }
+
+        if ($this->supplier_company_id && $this->supplierCompany) {
+            return $this->supplierCompany->email;
+        }
+
+        return null;
     }
 }

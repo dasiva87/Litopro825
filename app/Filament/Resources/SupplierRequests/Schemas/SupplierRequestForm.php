@@ -27,7 +27,7 @@ class SupplierRequestForm
                                     ->content(fn ($record) => $record?->requesterCompany?->name ?? 'N/A'),
 
                                 Placeholder::make('supplier_company')
-                                    ->label('Papelería Proveedora')
+                                    ->label('Empresa Proveedora')
                                     ->content(fn ($record) => $record?->supplierCompany?->name ?? 'N/A'),
 
                                 Placeholder::make('requested_by')

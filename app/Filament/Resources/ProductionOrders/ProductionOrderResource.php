@@ -32,6 +32,11 @@ class ProductionOrderResource extends Resource
 
     protected static ?int $navigationSort = 6;
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->can('viewAny', ProductionOrder::class);
+    }
+
     public static function form(Schema $schema): Schema
     {
         return ProductionOrderForm::configure($schema);

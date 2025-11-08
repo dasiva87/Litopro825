@@ -22,6 +22,7 @@ class CollectionAccount extends Model
     protected $fillable = [
         'company_id',
         'client_company_id',
+        'contact_id',
         'account_number',
         'status',
         'issue_date',
@@ -147,6 +148,11 @@ class CollectionAccount extends Model
         return $this->belongsTo(Company::class, 'client_company_id');
     }
 
+    public function contact(): BelongsTo
+    {
+        return $this->belongsTo(Contact::class, 'contact_id');
+    }
+
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -198,35 +204,20 @@ class CollectionAccount extends Model
     public static function generateAccountNumber(): string
     {
         $companyId = TenantContext::id() ?? 1;
-        $year = now()->year;
-        $prefix = "COB-{$year}-";
 
-        // Buscar el número más alto en el año
-        $maxAccountNumber = static::forTenant($companyId)
-            ->where('account_number', 'LIKE', $prefix.'%')
-            ->orderByRaw('CAST(SUBSTRING(account_number, -4) AS UNSIGNED) DESC')
-            ->value('account_number');
+        // Obtener el último número para este tipo de cuenta (sin filtrar por año)
+        $lastAccount = static::forTenant($companyId)
+            ->orderBy('id', 'desc')
+            ->first();
 
-        $sequence = $maxAccountNumber ? (int) substr($maxAccountNumber, -4) + 1 : 1;
+        $nextNumber = 1;
+        if ($lastAccount) {
+            // Extraer el número del último documento
+            preg_match('/(\d+)$/', $lastAccount->account_number, $matches);
+            $nextNumber = isset($matches[1]) ? (int)$matches[1] + 1 : 1;
+        }
 
-        // Generar número con retry en caso de colisión (máximo 10 intentos)
-        $attempts = 0;
-        do {
-            $accountNumber = $prefix.str_pad($sequence + $attempts, 4, '0', STR_PAD_LEFT);
-
-            $exists = static::forTenant($companyId)
-                ->where('account_number', $accountNumber)
-                ->exists();
-
-            if (! $exists) {
-                return $accountNumber;
-            }
-
-            $attempts++;
-        } while ($attempts < 10);
-
-        // Si después de 10 intentos aún hay colisión, usar timestamp
-        return $prefix.substr(time(), -4);
+        return str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
     }
 
     public function changeStatus(CollectionAccountStatus $newStatus, ?string $notes = null): bool
@@ -252,5 +243,37 @@ class CollectionAccount extends Model
     public function canBeCancelled(): bool
     {
         return $this->status->canBeCancelled();
+    }
+
+    /**
+     * Get the client name (from Company or Contact)
+     */
+    public function getClientNameAttribute(): string
+    {
+        if ($this->contact_id && $this->contact) {
+            return $this->contact->name;
+        }
+
+        if ($this->client_company_id && $this->clientCompany) {
+            return $this->clientCompany->name;
+        }
+
+        return 'Sin cliente';
+    }
+
+    /**
+     * Get the client email (from Company or Contact)
+     */
+    public function getClientEmailAttribute(): ?string
+    {
+        if ($this->contact_id && $this->contact) {
+            return $this->contact->email;
+        }
+
+        if ($this->client_company_id && $this->clientCompany) {
+            return $this->clientCompany->email;
+        }
+
+        return null;
     }
 }

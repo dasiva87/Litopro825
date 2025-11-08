@@ -9,6 +9,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\FileUpload;
 use Filament\Schemas\Schema;
 use App\Models\Contact;
 
@@ -43,7 +44,37 @@ class ProductForm
                                     ->helperText('Código único para identificar el producto'),
                             ]),
                     ]),
-                    
+
+                Section::make('Imágenes del Producto')
+                    ->description('Puedes subir hasta 3 imágenes del producto')
+                    ->schema([
+                        FileUpload::make('image_1')
+                            ->label('Imagen 1')
+                            ->image()
+                            ->disk('public')
+                            ->directory('products')
+                            ->maxSize(2048)
+                            ->columnSpanFull(),
+
+                        FileUpload::make('image_2')
+                            ->label('Imagen 2')
+                            ->image()
+                            ->disk('public')
+                            ->directory('products')
+                            ->maxSize(2048)
+                            ->columnSpanFull(),
+
+                        FileUpload::make('image_3')
+                            ->label('Imagen 3')
+                            ->image()
+                            ->disk('public')
+                            ->directory('products')
+                            ->maxSize(2048)
+                            ->columnSpanFull(),
+                    ])
+                    ->collapsible()
+                    ->collapsed(fn ($record) => $record && !$record->image_1 && !$record->image_2 && !$record->image_3),
+
                 Section::make('Información de Precios')
                     ->schema([
                         Grid::make(3)

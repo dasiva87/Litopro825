@@ -35,6 +35,11 @@ class ContactResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->can('viewAny', Contact::class);
+    }
+
     public static function form(Schema $schema): Schema
     {
         return ContactForm::configure($schema);

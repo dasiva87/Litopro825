@@ -2,15 +2,25 @@
 
 namespace App\Providers;
 
+use App\Models\CollectionAccount;
 use App\Models\Contact;
 use App\Models\Document;
+use App\Models\Finishing;
+use App\Models\Paper;
+use App\Models\PrintingMachine;
 use App\Models\Product;
+use App\Models\ProductionOrder;
 use App\Models\PurchaseOrder;
 use App\Models\SimpleItem;
 use App\Models\SupplierRequest;
 use App\Models\User;
+use App\Policies\CollectionAccountPolicy;
 use App\Policies\ContactPolicy;
 use App\Policies\DocumentPolicy;
+use App\Policies\FinishingPolicy;
+use App\Policies\PaperPolicy;
+use App\Policies\PrintingMachinePolicy;
+use App\Policies\ProductionOrderPolicy;
 use App\Policies\ProductPolicy;
 use App\Policies\PurchaseOrderPolicy;
 use App\Policies\RolePolicy;
@@ -38,9 +48,16 @@ class AuthServiceProvider extends ServiceProvider
         Product::class => ProductPolicy::class,
         SimpleItem::class => SimpleItemPolicy::class,
 
-        // Purchase Orders
+        // Orders & Accounting
         PurchaseOrder::class => PurchaseOrderPolicy::class,
+        ProductionOrder::class => ProductionOrderPolicy::class,
+        CollectionAccount::class => CollectionAccountPolicy::class,
         SupplierRequest::class => SupplierRequestPolicy::class,
+
+        // Configuration & Resources
+        Paper::class => PaperPolicy::class,
+        PrintingMachine::class => PrintingMachinePolicy::class,
+        Finishing::class => FinishingPolicy::class,
     ];
 
     /**

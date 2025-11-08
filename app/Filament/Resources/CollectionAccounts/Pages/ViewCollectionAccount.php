@@ -17,7 +17,8 @@ class ViewCollectionAccount extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            EditAction::make(),
+            EditAction::make()
+                ->visible(fn () => $this->record->status !== CollectionAccountStatus::PAID),
 
             Action::make('view_pdf')
                 ->label('Ver PDF')
@@ -25,12 +26,6 @@ class ViewCollectionAccount extends ViewRecord
                 ->color('info')
                 ->url(fn () => route('collection-accounts.pdf', $this->record))
                 ->openUrlInNewTab(),
-
-            Action::make('download_pdf')
-                ->label('Descargar PDF')
-                ->icon('heroicon-o-arrow-down-tray')
-                ->color('success')
-                ->url(fn () => route('collection-accounts.pdf.download', $this->record)),
 
             Action::make('send_email')
                 ->label('Enviar por Email')
@@ -134,7 +129,7 @@ class ViewCollectionAccount extends ViewRecord
                             ->send();
                     }
                 })
-                ->visible(fn () => true), // Siempre visible para permitir cualquier cambio
+                ->visible(fn () => $this->record->status !== CollectionAccountStatus::PAID), // No se puede cambiar si ya está pagada
 
             Action::make('mark_as_paid')
                 ->label('Marcar como Pagada')

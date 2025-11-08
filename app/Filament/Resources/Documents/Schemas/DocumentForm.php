@@ -51,18 +51,72 @@ class DocumentForm
                                     ->required(),
                             ]),
                             
-                        Grid::make(2)
+                        Grid::make(3)
                             ->schema([
-                                Select::make('contact_id')
-                                    ->label('Cliente')
+                                Select::make('client_type')
+                                    ->label('Tipo de Cliente')
+                                    ->options([
+                                        'company' => 'Empresa Conectada',
+                                        'contact' => 'Cliente/Contacto',
+                                    ])
+                                    ->default('contact')
+                                    ->required()
+                                    ->live()
+                                    ->helperText('Selecciona si el cliente es una empresa del sistema o un contacto externo'),
+
+                                Select::make('client_company_id')
+                                    ->label('Empresa Cliente')
                                     ->relationship(
-                                        name: 'contact',
+                                        name: 'clientCompany',
                                         titleAttribute: 'name',
-                                        modifyQueryUsing: fn (Builder $query) => $query->whereIn('type', ['customer', 'both'])
+                                        modifyQueryUsing: function ($query) {
+                                            $currentCompanyId = auth()->user()->company_id ?? config('app.current_tenant_id');
+
+                                            if (!$currentCompanyId) {
+                                                return $query->whereRaw('1 = 0');
+                                            }
+
+                                            // Obtener IDs de empresas conectadas como clientes aprobados
+                                            $clientCompanyIds = \App\Models\CompanyConnection::where('company_id', $currentCompanyId)
+                                                ->where('connection_type', \App\Models\CompanyConnection::TYPE_CLIENT)
+                                                ->where('status', \App\Models\CompanyConnection::STATUS_APPROVED)
+                                                ->pluck('connected_company_id');
+
+                                            return $query->whereIn('id', $clientCompanyIds);
+                                        }
                                     )
                                     ->searchable()
                                     ->preload()
-                                    ->required()
+                                    ->visible(fn ($get) => $get('client_type') === 'company')
+                                    ->required(fn ($get) => $get('client_type') === 'company')
+                                    ->helperText('Empresas conectadas como clientes aprobados')
+                                    ->reactive()
+                                    ->afterStateUpdated(fn ($state, callable $set) => $state ? $set('contact_id', null) : null),
+
+                                Select::make('contact_id')
+                                    ->label('Cliente/Contacto')
+                                    ->relationship(
+                                        name: 'contact',
+                                        titleAttribute: 'name',
+                                        modifyQueryUsing: function ($query) {
+                                            $currentCompanyId = auth()->user()->company_id ?? config('app.current_tenant_id');
+
+                                            if (!$currentCompanyId) {
+                                                return $query->whereRaw('1 = 0');
+                                            }
+
+                                            // Solo contactos de tipo cliente de la empresa actual
+                                            return $query->where('company_id', $currentCompanyId)
+                                                ->whereIn('type', ['customer', 'both']);
+                                        }
+                                    )
+                                    ->searchable()
+                                    ->preload()
+                                    ->visible(fn ($get) => $get('client_type') === 'contact')
+                                    ->required(fn ($get) => $get('client_type') === 'contact')
+                                    ->helperText('Clientes y contactos registrados en el sistema')
+                                    ->reactive()
+                                    ->afterStateUpdated(fn ($state, callable $set) => $state ? $set('client_company_id', null) : null)
                                     ->createOptionForm([
                                         TextInput::make('name')
                                             ->label('Nombre')
@@ -82,7 +136,10 @@ class DocumentForm
                                         TextInput::make('phone')
                                             ->label('Teléfono'),
                                     ]),
-                                    
+                            ]),
+
+                        Grid::make(1)
+                            ->schema([
                                 TextInput::make('reference')
                                     ->label('Referencia')
                                     ->maxLength(255),
@@ -97,76 +154,23 @@ class DocumentForm
                                     ->label('Fecha')
                                     ->default(now())
                                     ->required(),
-                                    
+
                                 DatePicker::make('due_date')
                                     ->label('Fecha de Vencimiento')
                                     ->default(now()->addDays(30)),
-                                    
+
                                 DatePicker::make('valid_until')
                                     ->label('Válida Hasta')
                                     ->default(now()->addDays(15)),
                             ]),
                     ]),
-                    
-                Section::make('Información Financiera')
-                    ->schema([
-                        Grid::make(3)
-                            ->schema([
-                                TextInput::make('discount_percentage')
-                                    ->label('Descuento (%)')
-                                    ->numeric()
-                                    ->suffix('%')
-                                    ->maxValue(100)
-                                    ->default(0)
-                                    ->live(onBlur: true),
-                                    
-                                TextInput::make('discount_amount')
-                                    ->label('Descuento ($)')
-                                    ->numeric()
-                                    ->prefix('$')
-                                    ->disabled()
-                                    ->dehydrated(false),
-                                    
-                                TextInput::make('tax_percentage')
-                                    ->label('IVA (%)')
-                                    ->numeric()
-                                    ->suffix('%')
-                                    ->default(19)
-                                    ->live(onBlur: true),
-                            ]),
-                            
-                        Grid::make(3)
-                            ->schema([
-                                TextInput::make('subtotal')
-                                    ->label('Subtotal')
-                                    ->numeric()
-                                    ->prefix('$')
-                                    ->disabled()
-                                    ->dehydrated(false),
-                                    
-                                TextInput::make('tax_amount')
-                                    ->label('IVA')
-                                    ->numeric()
-                                    ->prefix('$')
-                                    ->disabled()
-                                    ->dehydrated(false),
-                                    
-                                TextInput::make('total')
-                                    ->label('Total')
-                                    ->numeric()
-                                    ->prefix('$')
-                                    ->disabled()
-                                    ->dehydrated(false),
-                            ]),
-                    ])
-                    ->collapsed(),
-                    
+
                 Section::make('Notas')
                     ->schema([
                         Textarea::make('notes')
                             ->label('Notas para el Cliente')
                             ->rows(3),
-                            
+
                         Textarea::make('internal_notes')
                             ->label('Notas Internas')
                             ->rows(3),

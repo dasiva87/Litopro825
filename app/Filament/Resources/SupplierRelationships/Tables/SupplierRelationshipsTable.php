@@ -22,7 +22,7 @@ class SupplierRelationshipsTable
         return $table
             ->columns([
                 TextColumn::make('supplierCompany.name')
-                    ->label('Papelería')
+                    ->label('Proveedor')
                     ->searchable()
                     ->sortable(),
 
@@ -65,7 +65,7 @@ class SupplierRelationshipsTable
                     ->color('primary')
                     ->form([
                         Select::make('supplier_company_id')
-                            ->label('Papelería')
+                            ->label('Proveedor')
                             ->options(function () {
                                 return Company::papelerias()
                                     ->active()

@@ -30,7 +30,7 @@ class SupplierRequestsTable
                     }),
 
                 TextColumn::make('supplierCompany.name')
-                    ->label('Papelería')
+                    ->label('Proveedor')
                     ->searchable()
                     ->sortable()
                     ->visible(function () {

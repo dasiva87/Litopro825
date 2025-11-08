@@ -17,7 +17,11 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\ViewField;
 use Livewire\Features\SupportFileUploads\WithFileUploads;
+use Illuminate\Support\HtmlString;
+use Illuminate\Support\Facades\Storage;
 
 class CompanySettings extends Page implements HasForms, HasActions
 {
@@ -36,7 +40,16 @@ class CompanySettings extends Page implements HasForms, HasActions
     public function mount(): void
     {
         $this->company = auth()->user()->company;
-        $this->form->fill($this->company->toArray());
+
+        // Cargar datos del formulario
+        $data = $this->company->toArray();
+
+        // NO cargar archivos existentes en el formulario
+        // FileUpload mostrará un campo vacío, pero preservaremos los archivos en save()
+        unset($data['avatar']);
+        unset($data['banner']);
+
+        $this->form->fill($data);
     }
 
     public function form(Schema $form): Schema
@@ -92,8 +105,20 @@ class CompanySettings extends Page implements HasForms, HasActions
                             ->rows(3)
                             ->columnSpanFull(),
 
+                        Placeholder::make('current_avatar')
+                            ->label('Logo/Avatar Actual')
+                            ->content(function () {
+                                if ($this->company->avatar && Storage::disk('public')->exists($this->company->avatar)) {
+                                    $url = Storage::disk('public')->url($this->company->avatar);
+                                    return new HtmlString('<img src="' . $url . '" style="max-width: 200px; border-radius: 8px;" />');
+                                }
+                                return 'Sin logo/avatar';
+                            })
+                            ->columnSpanFull(),
+
                         FileUpload::make('avatar')
-                            ->label('Logo/Avatar')
+                            ->label('Nuevo Logo/Avatar (opcional)')
+                            ->helperText('Selecciona una imagen solo si deseas cambiar el logo actual')
                             ->image()
                             ->disk('public')
                             ->directory('companies/avatars')
@@ -103,13 +128,24 @@ class CompanySettings extends Page implements HasForms, HasActions
                             ->imageResizeTargetWidth('200')
                             ->imageResizeTargetHeight('200')
                             ->maxSize(2048)
-                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/jpg'])
-                            ->downloadable()
-                            ->deletable()
-                            ->openable(),
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                            ->imageEditor()
+                            ->columnSpanFull(),
+
+                        Placeholder::make('current_banner')
+                            ->label('Banner/Portada Actual')
+                            ->content(function () {
+                                if ($this->company->banner && Storage::disk('public')->exists($this->company->banner)) {
+                                    $url = Storage::disk('public')->url($this->company->banner);
+                                    return new HtmlString('<img src="' . $url . '" style="max-width: 100%; border-radius: 8px;" />');
+                                }
+                                return 'Sin banner/portada';
+                            })
+                            ->columnSpanFull(),
 
                         FileUpload::make('banner')
-                            ->label('Banner/Portada')
+                            ->label('Nuevo Banner/Portada (opcional)')
+                            ->helperText('Selecciona una imagen solo si deseas cambiar el banner actual')
                             ->image()
                             ->disk('public')
                             ->directory('companies/banners')
@@ -119,12 +155,11 @@ class CompanySettings extends Page implements HasForms, HasActions
                             ->imageResizeTargetWidth('800')
                             ->imageResizeTargetHeight('450')
                             ->maxSize(2048)
-                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/jpg'])
-                            ->downloadable()
-                            ->deletable()
-                            ->openable(),
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                            ->imageEditor()
+                            ->columnSpanFull(),
                     ])
-                    ->columns(2)
+                    ->columns(1)
                     ->collapsible(),
 
                 Section::make('Redes Sociales')
@@ -191,7 +226,21 @@ class CompanySettings extends Page implements HasForms, HasActions
     {
         try {
             $data = $this->form->getState();
+
+            // Filament FileUpload maneja automáticamente la carga de archivos
+            // Solo necesitamos limpiar valores null para mantener archivos existentes
+            if (array_key_exists('avatar', $data) && is_null($data['avatar'])) {
+                unset($data['avatar']);
+            }
+
+            if (array_key_exists('banner', $data) && is_null($data['banner'])) {
+                unset($data['banner']);
+            }
+
             $this->company->update($data);
+
+            // Refrescar el modelo desde la base de datos
+            $this->company->refresh();
 
             Notification::make()
                 ->title('Configuración guardada')

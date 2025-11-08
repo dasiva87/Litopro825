@@ -40,7 +40,7 @@ class SuppliersRelationManager extends RelationManager
             ->recordTitleAttribute('name')
             ->columns([
                 TextColumn::make('supplierCompany.name')
-                    ->label('Papelería')
+                    ->label('Proveedor')
                     ->searchable()
                     ->sortable(),
 
@@ -72,7 +72,7 @@ class SuppliersRelationManager extends RelationManager
                     ->color('primary')
                     ->form([
                         Select::make('supplier_company_id')
-                            ->label('Papelería')
+                            ->label('Proveedor')
                             ->options(function () {
                                 return Company::papelerias()
                                     ->active()

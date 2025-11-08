@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ProductionOrders\RelationManagers;
 
+use App\Filament\Resources\ProductionOrders\Handlers\CustomItemQuickHandler;
 use App\Models\Document;
 use App\Models\DocumentItem;
 use Filament\Actions\Action;
@@ -25,6 +26,14 @@ class ProductionOrderItemsRelationManager extends RelationManager
     protected static ?string $pluralModelLabel = 'Items';
 
     protected static ?string $recordTitleAttribute = 'description';
+
+    /**
+     * Get the class name of the current page
+     */
+    public function getPageClass(): string
+    {
+        return $this->pageClass ?? get_class($this->getPage());
+    }
 
     public function table(Table $table): Table
     {
@@ -155,7 +164,11 @@ class ProductionOrderItemsRelationManager extends RelationManager
                     ->modalDescription('Selecciona items desde cotizaciones aprobadas para enviar a producción')
                     ->modalWidth('7xl')
                     ->modalSubmitActionLabel('Agregar a Producción')
-                    ->visible(fn () => $this->getOwnerRecord()->canBeEdited())
+                    ->visible(function () {
+                        $pageClass = $this->getPageClass();
+                        $isEditPage = $pageClass === \App\Filament\Resources\ProductionOrders\Pages\EditProductionOrder::class;
+                        return $isEditPage;
+                    })
                     ->form([
                         Components\Select::make('document_id')
                             ->label('Buscar Cotización')
@@ -271,6 +284,30 @@ class ProductionOrderItemsRelationManager extends RelationManager
                                 ->body(implode("\n", array_slice($errors, 0, 3)))
                                 ->send();
                         }
+                    }),
+
+                // Item Personalizado Rápido
+                Action::make('quick_custom_item')
+                    ->label((new CustomItemQuickHandler)->getLabel())
+                    ->icon((new CustomItemQuickHandler)->getIcon())
+                    ->color((new CustomItemQuickHandler)->getColor())
+                    ->visible(function () {
+                        $pageClass = $this->getPageClass();
+                        $isEditPage = $pageClass === \App\Filament\Resources\ProductionOrders\Pages\EditProductionOrder::class;
+                        return $isEditPage;
+                    })
+                    ->modalWidth((new CustomItemQuickHandler)->getModalWidth())
+                    ->form((new CustomItemQuickHandler)->getFormSchema())
+                    ->action(function (array $data, $livewire) {
+                        $productionOrder = $livewire->getOwnerRecord();
+                        (new CustomItemQuickHandler)->handleCreate($data, $productionOrder);
+
+                        Notification::make()
+                            ->title((new CustomItemQuickHandler)->getSuccessNotificationTitle())
+                            ->success()
+                            ->send();
+
+                        $livewire->dispatch('$refresh');
                     }),
             ])
             ->actions([

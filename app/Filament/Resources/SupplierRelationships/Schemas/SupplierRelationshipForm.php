@@ -17,7 +17,7 @@ class SupplierRelationshipForm
                 Section::make('Información del Proveedor')
                     ->schema([
                         Select::make('supplier_company_id')
-                            ->label('Papelería')
+                            ->label('Proveedor')
                             ->relationship('supplierCompany', 'name')
                             ->searchable()
                             ->required()

@@ -32,15 +32,97 @@ class PurchaseOrderForm
                                     ->native(false),
                             ]),
 
-                        Grid::make(2)
+                        Grid::make(3)
                             ->schema([
+                                Components\Select::make('supplier_type')
+                                    ->label('Tipo de Proveedor')
+                                    ->options([
+                                        'company' => 'Empresa Conectada',
+                                        'contact' => 'Proveedor/Contacto',
+                                    ])
+                                    ->default('contact')
+                                    ->required()
+                                    ->live()
+                                    ->helperText('Selecciona si el proveedor es una empresa del sistema o un contacto externo'),
+
                                 Components\Select::make('supplier_company_id')
-                                    ->label('Proveedor')
-                                    ->relationship('supplierCompany', 'name')
+                                    ->label('Empresa Proveedora')
+                                    ->relationship(
+                                        name: 'supplierCompany',
+                                        titleAttribute: 'name',
+                                        modifyQueryUsing: function ($query) {
+                                            $currentCompanyId = auth()->user()->company_id ?? config('app.current_tenant_id');
+
+                                            if (!$currentCompanyId) {
+                                                return $query->whereRaw('1 = 0');
+                                            }
+
+                                            // Obtener IDs de empresas conectadas como proveedores aprobados
+                                            $supplierCompanyIds = \App\Models\CompanyConnection::where('company_id', $currentCompanyId)
+                                                ->where('connection_type', \App\Models\CompanyConnection::TYPE_SUPPLIER)
+                                                ->where('status', \App\Models\CompanyConnection::STATUS_APPROVED)
+                                                ->pluck('connected_company_id');
+
+                                            return $query->whereIn('id', $supplierCompanyIds);
+                                        }
+                                    )
                                     ->searchable()
                                     ->preload()
-                                    ->required(),
+                                    ->visible(fn ($get) => $get('supplier_type') === 'company')
+                                    ->required(fn ($get) => $get('supplier_type') === 'company')
+                                    ->helperText('Empresas conectadas como proveedores aprobados')
+                                    ->reactive()
+                                    ->afterStateUpdated(fn ($state, callable $set) => $state ? $set('supplier_id', null) : null),
 
+                                Components\Select::make('supplier_id')
+                                    ->label('Proveedor/Contacto')
+                                    ->relationship(
+                                        name: 'supplier',
+                                        titleAttribute: 'name',
+                                        modifyQueryUsing: function ($query) {
+                                            $currentCompanyId = auth()->user()->company_id ?? config('app.current_tenant_id');
+
+                                            if (!$currentCompanyId) {
+                                                return $query->whereRaw('1 = 0');
+                                            }
+
+                                            // Solo contactos de tipo proveedor de la empresa actual
+                                            return $query->where('company_id', $currentCompanyId)
+                                                ->whereIn('type', ['supplier', 'both']);
+                                        }
+                                    )
+                                    ->searchable()
+                                    ->preload()
+                                    ->visible(fn ($get) => $get('supplier_type') === 'contact')
+                                    ->required(fn ($get) => $get('supplier_type') === 'contact')
+                                    ->helperText('Proveedores y contactos registrados en el sistema')
+                                    ->reactive()
+                                    ->afterStateUpdated(fn ($state, callable $set) => $state ? $set('supplier_company_id', null) : null)
+                                    ->createOptionForm([
+                                        Components\TextInput::make('name')
+                                            ->label('Nombre')
+                                            ->required(),
+                                        Components\TextInput::make('contact_person')
+                                            ->label('Persona de Contacto'),
+                                        Components\TextInput::make('email')
+                                            ->label('Email')
+                                            ->email(),
+                                        Components\TextInput::make('phone')
+                                            ->label('Teléfono'),
+                                        Components\TextInput::make('tax_id')
+                                            ->label('NIT/RUT'),
+                                        Components\Textarea::make('address')
+                                            ->label('Dirección')
+                                            ->rows(2),
+                                        Components\Hidden::make('type')
+                                            ->default('supplier'),
+                                        Components\Hidden::make('company_id')
+                                            ->default(fn () => auth()->user()->company_id),
+                                    ]),
+                            ]),
+
+                        Grid::make(1)
+                            ->schema([
                                 Components\TextInput::make('total_amount')
                                     ->label('Total')
                                     ->numeric()

@@ -27,6 +27,9 @@ class Product extends Model
         'min_stock',
         'active',
         'metadata',
+        'image_1',
+        'image_2',
+        'image_3',
     ];
 
     protected $casts = [
@@ -90,6 +93,26 @@ class Product extends Model
     public function getSupplierTypeAttribute(): string
     {
         return $this->is_own_product ? 'Producto Propio' : 'Producto de Terceros';
+    }
+
+    /**
+     * Obtener todas las imágenes del producto como array
+     */
+    public function getImagesAttribute(): array
+    {
+        return array_filter([
+            $this->image_1,
+            $this->image_2,
+            $this->image_3,
+        ]);
+    }
+
+    /**
+     * Obtener la primera imagen o una imagen por defecto
+     */
+    public function getPrimaryImageAttribute(): ?string
+    {
+        return $this->image_1 ?? $this->image_2 ?? $this->image_3 ?? null;
     }
 
     // Scopes

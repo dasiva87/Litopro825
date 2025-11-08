@@ -9,6 +9,7 @@ use App\Filament\Resources\Documents\Pages\EditDocument;
 use App\Filament\Resources\Documents\Pages\ListDocuments;
 use App\Filament\Resources\Documents\Pages\ViewDocument;
 use App\Filament\Resources\Documents\Schemas\DocumentForm;
+use App\Filament\Resources\Documents\Schemas\DocumentInfolist;
 use App\Filament\Resources\Documents\Tables\DocumentsTable;
 use App\Models\Document;
 use BackedEnum;
@@ -36,9 +37,19 @@ class DocumentResource extends Resource
 
     protected static ?int $navigationSort = 4;
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->can('viewAny', Document::class);
+    }
+
     public static function form(Schema $schema): Schema
     {
         return DocumentForm::configure($schema);
+    }
+
+    public static function infolist(Schema $schema): Schema
+    {
+        return DocumentInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table

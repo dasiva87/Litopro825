@@ -25,27 +25,34 @@ use Spatie\Permission\Models\Role;
 
 class Register extends BaseRegister
 {
-    protected Width | string | null $maxWidth = '7xl'; // Opciones: sm, md, lg, xl, 2xl, 3xl, 4xl, 5xl, 6xl, 7xl
+    // Ancho optimizado: 5xl para mejor lectura en escritorio, responsive en móvil
+    protected Width | string | null $maxWidth = '5xl';
+
+    public function getHeading(): string
+    {
+        return 'Registrarse';
+    }
 
     public function form(Schema $schema): Schema
     {
         return $schema
             ->components([
                 Wizard::make([
-                    // Step 1: Company Information
+                    // Paso 1: Información de la Empresa
                     Wizard\Step::make('Empresa')
                         ->description('Información de tu negocio')
                         ->icon('heroicon-o-building-office-2')
                         ->schema([
                             Section::make()
                                 ->schema([
-                                    Grid::make(2)
+                                    // Grid responsive: 2 columnas en escritorio, 1 en móvil
+                                    Grid::make(['default' => 1, 'sm' => 1, 'md' => 2])
                                         ->schema([
                                             TextInput::make('company_name')
                                                 ->label('Nombre de la Empresa')
                                                 ->required()
                                                 ->maxLength(255)
-                                                ->columnSpan(2)
+                                                ->columnSpan(['default' => 1, 'md' => 2])
                                                 ->prefixIcon('heroicon-o-building-office-2')
                                                 ->placeholder('Ej: Litografía Moderna S.A.S.'),
 
@@ -53,7 +60,7 @@ class Register extends BaseRegister
                                                 ->label('Email Corporativo')
                                                 ->email()
                                                 ->required()
-                                                ->columnSpan(1)
+                                                ->columnSpan(['default' => 1, 'md' => 1])
                                                 ->prefixIcon('heroicon-o-envelope')
                                                 ->placeholder('contacto@tuempresa.com'),
 
@@ -61,7 +68,7 @@ class Register extends BaseRegister
                                                 ->label('Teléfono')
                                                 ->tel()
                                                 ->required()
-                                                ->columnSpan(1)
+                                                ->columnSpan(['default' => 1, 'md' => 1])
                                                 ->prefixIcon('heroicon-o-phone')
                                                 ->placeholder('+57 300 123 4567'),
 
@@ -69,7 +76,7 @@ class Register extends BaseRegister
                                                 ->label('NIT / RUT')
                                                 ->required()
                                                 ->unique('companies', 'tax_id')
-                                                ->columnSpan(1)
+                                                ->columnSpan(['default' => 1, 'md' => 1])
                                                 ->prefixIcon('heroicon-o-document-text')
                                                 ->placeholder('000000000-0'),
 
@@ -78,48 +85,56 @@ class Register extends BaseRegister
                                                 ->required()
                                                 ->options([
                                                     'litografia' => 'Litografía',
-                                                    'papeleria' => 'Papelería',
+                                                    'papeleria' => 'Papelería y Productos',
                                                 ])
                                                 ->default('litografia')
                                                 ->native(false)
-                                                ->columnSpan(1)
+                                                ->columnSpan(['default' => 1, 'md' => 1])
                                                 ->prefixIcon('heroicon-o-tag'),
 
                                             Textarea::make('company_address')
                                                 ->label('Dirección Completa')
                                                 ->required()
                                                 ->rows(3)
-                                                ->columnSpan(2)
+                                                ->columnSpan(['default' => 1, 'md' => 2])
                                                 ->placeholder('Calle 123 #45-67, Edificio XYZ, Oficina 101'),
                                         ]),
                                 ]),
                         ]),
 
-                    // Step 2: User Information
+                    // Paso 2: Información del Usuario
                     Wizard\Step::make('Usuario')
                         ->description('Crea tu cuenta de administrador')
                         ->icon('heroicon-o-user-circle')
                         ->schema([
                             Section::make()
                                 ->schema([
-                                    Grid::make(2)
+                                    Grid::make(['default' => 1, 'sm' => 1, 'md' => 2])
                                         ->schema([
                                             $this->getNameFormComponent()
-                                                ->columnSpan(2),
+                                                ->label('Nombre Completo')
+                                                ->placeholder('Juan Pérez')
+                                                ->columnSpan(['default' => 1, 'md' => 2]),
 
                                             $this->getEmailFormComponent()
-                                                ->columnSpan(2),
+                                                ->label('Correo Electrónico')
+                                                ->placeholder('tu@email.com')
+                                                ->columnSpan(['default' => 1, 'md' => 2]),
 
                                             $this->getPasswordFormComponent()
-                                                ->columnSpan(1),
+                                                ->label('Contraseña')
+                                                ->placeholder('Mínimo 8 caracteres')
+                                                ->columnSpan(['default' => 1, 'md' => 1]),
 
                                             $this->getPasswordConfirmationFormComponent()
-                                                ->columnSpan(1),
+                                                ->label('Confirmar Contraseña')
+                                                ->placeholder('Repite tu contraseña')
+                                                ->columnSpan(['default' => 1, 'md' => 1]),
                                         ]),
                                 ]),
                         ]),
 
-                    // Step 3: Plan Selection
+                    // Paso 3: Selección de Plan
                     Wizard\Step::make('Plan')
                         ->description('Selecciona tu plan')
                         ->icon('heroicon-o-sparkles')
@@ -156,7 +171,8 @@ class Register extends BaseRegister
                                         ->validationAttribute('términos y condiciones'),
                                 ]),
                         ]),
-                ]),
+                ])
+                    ->submitAction(view('filament.pages.auth.register-submit-button')),
             ]);
     }
 
@@ -216,7 +232,7 @@ class Register extends BaseRegister
 
             Notification::make()
                 ->success()
-                ->title('¡Bienvenido a LitoPro!')
+                ->title('¡Bienvenido a GrafiRed!')
                 ->body('Tu cuenta ha sido creada exitosamente.')
                 ->send();
 

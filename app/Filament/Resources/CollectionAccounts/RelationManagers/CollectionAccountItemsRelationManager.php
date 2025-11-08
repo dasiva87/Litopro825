@@ -27,6 +27,14 @@ class CollectionAccountItemsRelationManager extends RelationManager
 
     protected static ?string $recordTitleAttribute = 'description';
 
+    /**
+     * Get the class name of the current page
+     */
+    public function getPageClass(): string
+    {
+        return $this->pageClass ?? get_class($this->getPage());
+    }
+
     public function table(Table $table): Table
     {
         return $table
@@ -98,6 +106,13 @@ class CollectionAccountItemsRelationManager extends RelationManager
                     ->label('Agregar Items')
                     ->icon('heroicon-o-plus-circle')
                     ->color('success')
+                    ->visible(function () {
+                        // Verificar si estamos en modo edición usando la clase de la página
+                        $pageClass = $this->getPageClass();
+                        $isEditPage = $pageClass === \App\Filament\Resources\CollectionAccounts\Pages\EditCollectionAccount::class;
+
+                        return $isEditPage;
+                    })
                     ->modalHeading('Buscar y Agregar Items desde Cotizaciones')
                     ->modalDescription('Busca cotizaciones aprobadas y selecciona items para agregar a esta cuenta de cobro')
                     ->modalWidth('7xl')
@@ -200,6 +215,13 @@ class CollectionAccountItemsRelationManager extends RelationManager
                     ->label((new CustomItemQuickHandler)->getLabel())
                     ->icon((new CustomItemQuickHandler)->getIcon())
                     ->color((new CustomItemQuickHandler)->getColor())
+                    ->visible(function () {
+                        // Verificar si estamos en modo edición usando la clase de la página
+                        $pageClass = $this->getPageClass();
+                        $isEditPage = $pageClass === \App\Filament\Resources\CollectionAccounts\Pages\EditCollectionAccount::class;
+
+                        return $isEditPage;
+                    })
                     ->modalWidth((new CustomItemQuickHandler)->getModalWidth())
                     ->form((new CustomItemQuickHandler)->getFormSchema())
                     ->action(function (array $data, RelationManager $livewire) {

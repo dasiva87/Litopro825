@@ -171,7 +171,7 @@ class PapersTable
                     ->searchable(),
 
                 SelectFilter::make('company_id')
-                    ->label('Papelería')
+                    ->label('Proveedor')
                     ->options(function () {
                         // Solo mostrar este filtro para litografías
                         $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;

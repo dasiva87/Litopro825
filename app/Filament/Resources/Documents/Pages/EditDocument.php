@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Documents\Pages;
 
 use App\Filament\Resources\Documents\DocumentResource;
+use App\Filament\Resources\Documents\Widgets\FinancialSummaryWidget;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 
@@ -18,7 +19,7 @@ class EditDocument extends EditRecord
                 ->visible(fn () => $this->record->isDraft()),
             Actions\ForceDeleteAction::make(),
             Actions\RestoreAction::make(),
-            
+
             Actions\Action::make('send')
                 ->label('Enviar Cotización')
                 ->icon('heroicon-o-paper-airplane')
@@ -31,7 +32,7 @@ class EditDocument extends EditRecord
                     $this->record->markAsSent();
                     $this->redirect($this->getResource()::getUrl('index'));
                 }),
-                
+
             Actions\Action::make('new_version')
                 ->label('Nueva Versión')
                 ->icon('heroicon-o-document-duplicate')
@@ -44,6 +45,15 @@ class EditDocument extends EditRecord
                     $newDocument = $this->record->createNewVersion();
                     $this->redirect($this->getResource()::getUrl('edit', ['record' => $newDocument]));
                 }),
+        ];
+    }
+
+    protected function getFooterWidgets(): array
+    {
+        return [
+            FinancialSummaryWidget::make([
+                'record' => $this->record,
+            ]),
         ];
     }
 }

@@ -237,7 +237,12 @@ class DocumentItemsRelationManager extends RelationManager
                             return $record->quantity;
                         }
 
-                        // Para SimpleItems, usar quantity del item relacionado
+                        // Para items digitales, usar quantity del DocumentItem (DigitalItem no tiene quantity)
+                        if ($record->itemable_type === 'App\\Models\\DigitalItem') {
+                            return $record->quantity;
+                        }
+
+                        // Para SimpleItems, MagazineItems, TalonarioItems, CustomItems: usar quantity del item relacionado
                         return $record->itemable ? $record->itemable->quantity : $record->quantity;
                     })
                     ->numeric()
@@ -401,6 +406,14 @@ class DocumentItemsRelationManager extends RelationManager
                     ->icon('heroicon-o-rectangle-stack')
                     ->color('primary')
                     ->visible(function () {
+                        // Verificar si estamos en modo edición usando la clase de la página
+                        $pageClass = $this->getPageClass();
+                        $isEditPage = $pageClass === \App\Filament\Resources\Documents\Pages\EditDocument::class;
+
+                        if (!$isEditPage) {
+                            return false;
+                        }
+
                         $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
                         $company = $currentCompanyId ? \App\Models\Company::find($currentCompanyId) : null;
 
@@ -442,6 +455,14 @@ class DocumentItemsRelationManager extends RelationManager
                     ->icon('heroicon-o-document-check')
                     ->color('primary')
                     ->visible(function () {
+                        // Verificar si estamos en modo edición usando la clase de la página
+                        $pageClass = $this->getPageClass();
+                        $isEditPage = $pageClass === \App\Filament\Resources\Documents\Pages\EditDocument::class;
+
+                        if (!$isEditPage) {
+                            return false;
+                        }
+
                         $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
                         $company = $currentCompanyId ? \App\Models\Company::find($currentCompanyId) : null;
 
@@ -537,6 +558,14 @@ class DocumentItemsRelationManager extends RelationManager
                     ->icon('heroicon-o-document-text')
                     ->color('green')
                     ->visible(function () {
+                        // Verificar si estamos en modo edición usando la clase de la página
+                        $pageClass = $this->getPageClass();
+                        $isEditPage = $pageClass === \App\Filament\Resources\Documents\Pages\EditDocument::class;
+
+                        if (!$isEditPage) {
+                            return false;
+                        }
+
                         $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
                         $company = $currentCompanyId ? \App\Models\Company::find($currentCompanyId) : null;
 
@@ -674,6 +703,13 @@ class DocumentItemsRelationManager extends RelationManager
                         if ($record->itemable_type === 'App\Models\TalonarioItem') {
                             return TalonarioItemForm::configure(new \Filament\Schemas\Schema)->getComponents();
                         }
+
+                        // DigitalItem - Con acabados opcionales
+                        if ($record->itemable_type === 'App\\Models\\DigitalItem') {
+                            $handler = new DigitalItemQuickHandler;
+
+                            return $handler->getFormSchema();
+                        }
                     })
                     ->mutateRecordDataUsing(function (array $data, $record): array {
                         if ($record->itemable_type === 'App\\Models\\SimpleItem' && $record->itemable) {
@@ -741,6 +777,7 @@ class DocumentItemsRelationManager extends RelationManager
                                 'item_type' => 'digital',
                                 'itemable_type' => $record->itemable_type,
                                 'itemable_id' => $record->itemable_id,
+                                'digital_item_id' => $record->itemable_id, // Para pre-llenar el select
                                 'quantity' => $record->quantity,
                                 'finishings' => $finishingsData,
                                 'unit_price' => $record->unit_price,
@@ -1423,7 +1460,17 @@ class DocumentItemsRelationManager extends RelationManager
             ->label($handler->getLabel())
             ->icon($handler->getIcon())
             ->color($handler->getColor())
-            ->visible($handler->isVisible())
+            ->visible(function () use ($handler) {
+                // Verificar si estamos en modo edición usando la clase de la página
+                $pageClass = $this->getPageClass();
+                $isEditPage = $pageClass === \App\Filament\Resources\Documents\Pages\EditDocument::class;
+
+                if (!$isEditPage) {
+                    return false;
+                }
+
+                return $handler->isVisible();
+            })
             ->form($handler->getFormSchema())
             ->action(function (array $data) use ($handler) {
                 $handler->handleCreate($data, $this->getOwnerRecord());

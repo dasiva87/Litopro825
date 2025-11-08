@@ -637,15 +637,34 @@ class DocumentsTable
                             $groupingService = new \App\Services\ProductionOrderGroupingService();
                             $grouped = $groupingService->groupBySupplier($selectedItems);
 
+                            // Validar que haya al menos un proveedor agrupado
+                            if (count($grouped) === 0) {
+                                \Filament\Notifications\Notification::make()
+                                    ->title('No se pueden crear órdenes de producción')
+                                    ->danger()
+                                    ->body('Los items seleccionados no tienen acabados con proveedores asignados. Por favor, asigna proveedores a los acabados de los items antes de crear órdenes de producción.')
+                                    ->send();
+                                return;
+                            }
+
                             $createdOrders = [];
                             $totalProcesses = 0;
                             $errors = [];
 
                             foreach ($grouped as $supplierId => $processes) {
-                                // Crear orden para este proveedor
+                                // Verificar que el supplierId sea válido (es un Contact)
+                                $supplier = \App\Models\Contact::find($supplierId);
+
+                                if (!$supplier) {
+                                    $errors[] = "Proveedor con ID {$supplierId} no encontrado";
+                                    continue;
+                                }
+
+                                // Crear orden para este proveedor (Contact)
                                 $productionOrder = \App\Models\ProductionOrder::create([
                                     'company_id' => auth()->user()->company_id,
-                                    'supplier_id' => $supplierId,
+                                    'supplier_id' => $supplierId, // Contact ID
+                                    'supplier_company_id' => null, // No es empresa del sistema
                                     'scheduled_date' => $data['scheduled_date'] ?? null,
                                     'notes' => $data['notes'] ?? null,
                                     'status' => \App\Enums\ProductionStatus::DRAFT,
@@ -683,19 +702,29 @@ class DocumentsTable
 
                             // Notificación
                             if (count($createdOrders) > 0) {
+                                $message = "Se crearon " . count($createdOrders) . " orden(es) con {$totalProcesses} proceso(s) total";
+                                if (count($errors) > 0) {
+                                    $message .= "\n\nAdvertencias:\n" . implode("\n", $errors);
+                                }
+
                                 \Filament\Notifications\Notification::make()
                                     ->title('Órdenes de producción creadas exitosamente')
                                     ->success()
-                                    ->body("Se crearon " . count($createdOrders) . " orden(es) con {$totalProcesses} proceso(s) total")
+                                    ->body($message)
                                     ->send();
 
                                 // Redirect to production orders list
                                 return redirect()->route('filament.admin.resources.production-orders.index');
                             } else {
+                                $errorMessage = 'Los items seleccionados no tienen acabados con proveedores asignados';
+                                if (count($errors) > 0) {
+                                    $errorMessage = implode("\n", $errors);
+                                }
+
                                 \Filament\Notifications\Notification::make()
                                     ->title('No se pudieron crear las órdenes')
                                     ->danger()
-                                    ->body('Los items seleccionados no tienen acabados con proveedores asignados')
+                                    ->body($errorMessage)
                                     ->send();
                             }
                         })

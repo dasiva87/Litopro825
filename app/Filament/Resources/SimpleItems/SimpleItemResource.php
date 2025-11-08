@@ -37,6 +37,11 @@ class SimpleItemResource extends Resource
     
     protected static ?int $navigationSort = 1;
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->can('viewAny', SimpleItem::class);
+    }
+
     public static function form(Schema $schema): Schema
     {
         return SimpleItemForm::configure($schema);

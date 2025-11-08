@@ -6,6 +6,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Actions\EditAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
@@ -27,6 +28,13 @@ class ProductsTable
     {
         return $table
             ->columns([
+                ImageColumn::make('image_1')
+                    ->label('Imagen')
+                    ->disk('public')
+                    ->circular()
+                    ->defaultImageUrl(url('/images/default-product.png'))
+                    ->toggleable(),
+
                 TextColumn::make('code')
                     ->label('Código')
                     ->searchable()
@@ -182,7 +190,7 @@ class ProductsTable
                     ]),
 
                 Tables\Filters\SelectFilter::make('company_id')
-                    ->label('Papelería')
+                    ->label('Proveedor')
                     ->options(function () {
                         // Solo mostrar este filtro para litografías
                         $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;

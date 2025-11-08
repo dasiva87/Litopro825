@@ -560,7 +560,7 @@
                                        required>
                                 <div>
                                     <label for="terms" class="font-bold text-slate-900 cursor-pointer">
-                                        Acepto los términos y condiciones <span class="text-red-500">*</span>
+                                        Acepto los términos y condiciones <span class="text-red-500">*</span> 
                                     </label>
                                     <p class="text-sm text-slate-600 mt-1">
                                         Al registrarme, acepto los

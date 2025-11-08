@@ -43,7 +43,7 @@ class AdminPanelProvider extends PanelProvider
                 'primary' => Color::Blue,
             ])
             ->brandName('Grafired')
-            ->favicon(asset('favicon.ico'))
+            ->favicon(asset('images/favicon.jpg'))
             ->brandLogo(fn () => view('components.grafired-logo'))
             ->darkModeBrandLogo(fn () => view('components.grafired-logo-dark'))
             // ->plugin(FilamentNordThemePlugin::make()) // Comentado para Railway
@@ -104,18 +104,10 @@ class AdminPanelProvider extends PanelProvider
                 'Sistema',
             ])
             ->userMenuItems([
-                'dashboard' => \Filament\Navigation\MenuItem::make()
-                    ->label('Dashboard')
-                    ->url('/admin/home')
-                    ->icon('heroicon-o-squares-2x2'),
-                'facturacion' => \Filament\Navigation\MenuItem::make()
-                    ->label('Facturación')
-                    ->url('/admin/billing')
-                    ->icon('heroicon-o-credit-card'),
-                'red-social' => \Filament\Navigation\MenuItem::make()
-                    ->label('Red Social')
-                    ->url('/admin/social-feed')
-                    ->icon('heroicon-o-share'),
+                'perfil' => \Filament\Navigation\MenuItem::make()
+                    ->label('Mi Perfil')
+                    ->url(fn () => '/admin/empresa/'.auth()->user()->company->slug)
+                    ->icon('heroicon-o-user-circle'),
                 'users' => \Filament\Navigation\MenuItem::make()
                     ->label('Usuarios')
                     ->url('/admin/users')
@@ -130,10 +122,11 @@ class AdminPanelProvider extends PanelProvider
                     ->label('Configuración')
                     ->url('/admin/company-settings')
                     ->icon('heroicon-o-cog-6-tooth'),
-                'perfil' => \Filament\Navigation\MenuItem::make()
-                    ->label('Mi Perfil')
-                    ->url(fn () => '/admin/empresa/'.auth()->user()->company->slug)
-                    ->icon('heroicon-o-user-circle'),
+                'facturacion' => \Filament\Navigation\MenuItem::make()
+                    ->label('Facturación')
+                    ->url('/admin/billing')
+                    ->icon('heroicon-o-credit-card'),
+                
             ]);
     }
 }

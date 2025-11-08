@@ -17,6 +17,7 @@ class Document extends Model
         'company_id',
         'user_id',
         'contact_id',
+        'client_company_id',
         'document_type_id',
         'document_number',
         'reference',
@@ -75,6 +76,11 @@ class Document extends Model
     public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class);
+    }
+
+    public function clientCompany(): BelongsTo
+    {
+        return $this->belongsTo(Company::class, 'client_company_id');
     }
 
     public function documentType(): BelongsTo
@@ -296,25 +302,22 @@ class Document extends Model
     // Generación de número de documento
     public function generateDocumentNumber(): string
     {
-        $prefix = $this->getDocumentPrefix();
-        $year = now()->year;
         $companyId = $this->company_id ?? auth()->user()->company_id;
-        
-        // Obtener el último número para este tipo de documento
+
+        // Obtener el último número para este tipo de documento (sin filtrar por año)
         $lastDocument = self::where('company_id', $companyId)
             ->where('document_type_id', $this->document_type_id)
-            ->whereYear('created_at', $year)
             ->orderBy('id', 'desc')
             ->first();
-        
+
         $nextNumber = 1;
         if ($lastDocument) {
             // Extraer el número del último documento
             preg_match('/(\d+)$/', $lastDocument->document_number, $matches);
             $nextNumber = isset($matches[1]) ? (int)$matches[1] + 1 : 1;
         }
-        
-        return $prefix . '-' . $year . '-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+
+        return str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
     }
 
     private function getDocumentPrefix(): string
@@ -390,6 +393,38 @@ class Document extends Model
         }
 
         return $newDocument;
+    }
+
+    /**
+     * Get the client name (from Company or Contact)
+     */
+    public function getClientNameAttribute(): string
+    {
+        if ($this->contact_id && $this->contact) {
+            return $this->contact->name;
+        }
+
+        if ($this->client_company_id && $this->clientCompany) {
+            return $this->clientCompany->name;
+        }
+
+        return 'Sin cliente';
+    }
+
+    /**
+     * Get the client email (from Company or Contact)
+     */
+    public function getClientEmailAttribute(): ?string
+    {
+        if ($this->contact_id && $this->contact) {
+            return $this->contact->email;
+        }
+
+        if ($this->client_company_id && $this->clientCompany) {
+            return $this->clientCompany->email;
+        }
+
+        return null;
     }
 
     // Constantes de estado

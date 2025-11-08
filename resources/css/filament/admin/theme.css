@@ -31,3 +31,8 @@
 .fi-sidebar-nav-item:hover {
     transform: translateZ(0);
 }
+
+/* Background color para páginas de autenticación */
+.fi-body:has(.fi-simple-main) {
+    background-color: #1A2752 !important;
+}

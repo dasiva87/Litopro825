@@ -15,6 +15,22 @@ class EditCollectionAccount extends EditRecord
 {
     protected static string $resource = CollectionAccountResource::class;
 
+    public function mount(int | string $record): void
+    {
+        parent::mount($record);
+
+        // Redirigir a la vista si la cuenta ya está pagada
+        if ($this->record->status === CollectionAccountStatus::PAID) {
+            \Filament\Notifications\Notification::make()
+                ->title('No se puede editar')
+                ->warning()
+                ->body('No se puede editar una cuenta de cobro que ya está pagada.')
+                ->send();
+
+            redirect()->to(CollectionAccountResource::getUrl('view', ['record' => $this->record]));
+        }
+    }
+
     protected function getHeaderActions(): array
     {
         return [
@@ -26,12 +42,6 @@ class EditCollectionAccount extends EditRecord
                 ->color('info')
                 ->url(fn () => route('collection-accounts.pdf', $this->record))
                 ->openUrlInNewTab(),
-
-            Action::make('download_pdf')
-                ->label('Descargar PDF')
-                ->icon('heroicon-o-arrow-down-tray')
-                ->color('success')
-                ->url(fn () => route('collection-accounts.pdf.download', $this->record)),
 
             Action::make('send_email')
                 ->label('Enviar por Email')
@@ -137,7 +147,7 @@ class EditCollectionAccount extends EditRecord
                             ->send();
                     }
                 })
-                ->visible(fn () => true), // Siempre visible para permitir cualquier cambio
+                ->visible(fn () => $this->record->status !== CollectionAccountStatus::PAID), // No se puede cambiar si ya está pagada
 
             Action::make('mark_as_paid')
                 ->label('Marcar como Pagada')

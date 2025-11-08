@@ -27,7 +27,7 @@ class OnboardingWidget extends Widget
         return [
             [
                 'id' => 'welcome',
-                'title' => 'Bienvenido a LitoPro',
+                'title' => 'Bienvenido a GrafiRed',
                 'description' => 'Conoce las funcionalidades principales de tu nueva plataforma de gestión para litografías.',
                 'icon' => 'heroicon-o-hand-raised',
                 'completed' => true,

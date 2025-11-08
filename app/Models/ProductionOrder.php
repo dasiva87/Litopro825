@@ -20,6 +20,7 @@ class ProductionOrder extends Model
         'company_id',
         'production_number',
         'supplier_id',
+        'supplier_company_id',
         'operator_user_id',
         'status',
         'scheduled_date',
@@ -80,6 +81,11 @@ class ProductionOrder extends Model
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Contact::class, 'supplier_id');
+    }
+
+    public function supplierCompany(): BelongsTo
+    {
+        return $this->belongsTo(Company::class, 'supplier_company_id');
     }
 
     public function operator(): BelongsTo
@@ -145,35 +151,20 @@ class ProductionOrder extends Model
     public static function generateProductionNumber(): string
     {
         $companyId = TenantContext::id() ?? 1;
-        $year = now()->year;
-        $prefix = "PROD-{$year}-";
 
-        // Find highest number in the year
-        $maxProductionNumber = static::forTenant($companyId)
-            ->where('production_number', 'LIKE', $prefix.'%')
-            ->orderByRaw('CAST(SUBSTRING(production_number, -4) AS UNSIGNED) DESC')
-            ->value('production_number');
+        // Obtener el último número para este tipo de orden (sin filtrar por año)
+        $lastOrder = static::forTenant($companyId)
+            ->orderBy('id', 'desc')
+            ->first();
 
-        $sequence = $maxProductionNumber ? (int) substr($maxProductionNumber, -4) + 1 : 1;
+        $nextNumber = 1;
+        if ($lastOrder) {
+            // Extraer el número del último documento
+            preg_match('/(\d+)$/', $lastOrder->production_number, $matches);
+            $nextNumber = isset($matches[1]) ? (int)$matches[1] + 1 : 1;
+        }
 
-        // Generate number with retry in case of collision (max 10 attempts)
-        $attempts = 0;
-        do {
-            $productionNumber = $prefix.str_pad($sequence + $attempts, 4, '0', STR_PAD_LEFT);
-
-            $exists = static::forTenant($companyId)
-                ->where('production_number', $productionNumber)
-                ->exists();
-
-            if (!$exists) {
-                return $productionNumber;
-            }
-
-            $attempts++;
-        } while ($attempts < 10);
-
-        // If after 10 attempts there's still collision, use timestamp
-        return $prefix.substr(time(), -4);
+        return str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -437,5 +428,37 @@ class ProductionOrder extends Model
             'efficiency_percentage' => round($efficiency, 2),
             'fulfillment_percentage' => $totalExpected > 0 ? round(($validProduced / $totalExpected) * 100, 2) : 0,
         ];
+    }
+
+    /**
+     * Get the supplier name (from Company or Contact)
+     */
+    public function getSupplierNameAttribute(): string
+    {
+        if ($this->supplier_id && $this->supplier) {
+            return $this->supplier->name;
+        }
+
+        if ($this->supplier_company_id && $this->supplierCompany) {
+            return $this->supplierCompany->name;
+        }
+
+        return 'Sin proveedor';
+    }
+
+    /**
+     * Get the supplier email (from Company or Contact)
+     */
+    public function getSupplierEmailAttribute(): ?string
+    {
+        if ($this->supplier_id && $this->supplier) {
+            return $this->supplier->email;
+        }
+
+        if ($this->supplier_company_id && $this->supplierCompany) {
+            return $this->supplierCompany->email;
+        }
+
+        return null;
     }
 }

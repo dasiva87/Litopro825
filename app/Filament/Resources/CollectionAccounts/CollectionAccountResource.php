@@ -31,14 +31,9 @@ class CollectionAccountResource extends Resource
 
     protected static ?int $navigationSort = 6;
 
-    /**
-     * Verificar si el usuario puede ver este Resource.
-     * Solo Company Admin, Manager y Super Admin pueden acceder.
-     */
     public static function canViewAny(): bool
     {
-        $user = auth()->user();
-        return $user && $user->hasAnyRole(['Super Admin', 'Company Admin', 'Manager']);
+        return auth()->user()->can('viewAny', CollectionAccount::class);
     }
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder

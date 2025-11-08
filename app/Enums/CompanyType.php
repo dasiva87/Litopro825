@@ -11,7 +11,7 @@ enum CompanyType: string
     {
         return match($this) {
             self::LITOGRAFIA => 'Litografía',
-            self::PAPELERIA => 'Papelería',
+            self::PAPELERIA => 'Papelería y Productos',
         };
     }
 
@@ -19,7 +19,7 @@ enum CompanyType: string
     {
         return match($this) {
             self::LITOGRAFIA => 'Empresa especializada en servicios de impresión y producción gráfica',
-            self::PAPELERIA => 'Empresa dedicada a la venta de papeles y productos de oficina',
+            self::PAPELERIA => 'Empresa dedicada a la venta de papeles, productos y suministros de oficina',
         };
     }
 

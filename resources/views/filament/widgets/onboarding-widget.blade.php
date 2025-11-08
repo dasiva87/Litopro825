@@ -1,4 +1,4 @@
-<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); margin-bottom: 24px; position: relative; overflow: hidden;">
+<div style="background-color:#1A2752; border-radius: 16px; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); margin-bottom: 24px; position: relative; overflow: hidden;">
     <!-- Decorative background elements -->
     <div style="position: absolute; top: -50px; right: -50px; width: 100px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 50%; opacity: 0.5;"></div>
     <div style="position: absolute; bottom: -30px; left: -30px; width: 80px; height: 80px; background: rgba(255,255,255,0.08); border-radius: 50%; opacity: 0.7;"></div>
@@ -13,7 +13,7 @@
             </div>
             <div>
                 <h3 style="font-size: 24px; font-weight: 700; color: white; margin: 0; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">
-                    ¡Bienvenido a LitoPro!
+                    ¡Bienvenido a GrafiRed!
                 </h3>
                 <p style="font-size: 16px; color: rgba(255,255,255,0.9); margin: 4px 0 0 0; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">
                     Te ayudamos a configurar tu plataforma paso a paso

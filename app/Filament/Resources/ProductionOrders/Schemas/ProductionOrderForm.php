@@ -35,21 +35,73 @@ class ProductionOrderForm
                                     ->native(false),
                             ]),
 
-                        Grid::make(2)
+                        Grid::make(3)
                             ->schema([
-                                Components\Select::make('supplier_id')
-                                    ->label('Proveedor')
+                                Components\Select::make('supplier_type')
+                                    ->label('Tipo de Proveedor')
+                                    ->options([
+                                        'company' => 'Empresa Conectada',
+                                        'contact' => 'Proveedor/Contacto',
+                                    ])
+                                    ->default('contact')
+                                    ->required()
+                                    ->live()
+                                    ->helperText('Selecciona si el proveedor es una empresa del sistema o un contacto externo'),
+
+                                Components\Select::make('supplier_company_id')
+                                    ->label('Empresa Proveedora')
                                     ->relationship(
-                                        name: 'supplier',
+                                        name: 'supplierCompany',
                                         titleAttribute: 'name',
-                                        modifyQueryUsing: fn ($query) => $query
-                                            ->where('company_id', auth()->user()->company_id)
-                                            ->whereIn('type', ['supplier', 'both'])
+                                        modifyQueryUsing: function ($query) {
+                                            $currentCompanyId = auth()->user()->company_id ?? config('app.current_tenant_id');
+
+                                            if (!$currentCompanyId) {
+                                                return $query->whereRaw('1 = 0');
+                                            }
+
+                                            // Obtener IDs de empresas conectadas como proveedores aprobados
+                                            $supplierCompanyIds = \App\Models\CompanyConnection::where('company_id', $currentCompanyId)
+                                                ->where('connection_type', \App\Models\CompanyConnection::TYPE_SUPPLIER)
+                                                ->where('status', \App\Models\CompanyConnection::STATUS_APPROVED)
+                                                ->pluck('connected_company_id');
+
+                                            return $query->whereIn('id', $supplierCompanyIds);
+                                        }
                                     )
                                     ->searchable()
                                     ->preload()
+                                    ->visible(fn ($get) => $get('supplier_type') === 'company')
+                                    ->required(fn ($get) => $get('supplier_type') === 'company')
+                                    ->helperText('Empresas conectadas como proveedores aprobados')
+                                    ->reactive()
+                                    ->afterStateUpdated(fn ($state, callable $set) => $state ? $set('supplier_id', null) : null),
+
+                                Components\Select::make('supplier_id')
+                                    ->label('Proveedor/Contacto')
+                                    ->relationship(
+                                        name: 'supplier',
+                                        titleAttribute: 'name',
+                                        modifyQueryUsing: function ($query) {
+                                            $currentCompanyId = auth()->user()->company_id ?? config('app.current_tenant_id');
+
+                                            if (!$currentCompanyId) {
+                                                return $query->whereRaw('1 = 0');
+                                            }
+
+                                            // Solo contactos de tipo proveedor de la empresa actual
+                                            return $query->where('company_id', $currentCompanyId)
+                                                ->whereIn('type', ['supplier', 'both']);
+                                        }
+                                    )
+                                    ->searchable()
+                                    ->preload()
+                                    ->visible(fn ($get) => $get('supplier_type') === 'contact')
+                                    ->required(fn ($get) => $get('supplier_type') === 'contact')
                                     ->getOptionLabelFromRecordUsing(fn (Contact $record) => "{$record->name}" . ($record->tax_id ? " - {$record->tax_id}" : ''))
-                                    ->helperText('Selecciona el proveedor que realizará la producción')
+                                    ->helperText('Proveedores y contactos registrados en el sistema')
+                                    ->reactive()
+                                    ->afterStateUpdated(fn ($state, callable $set) => $state ? $set('supplier_company_id', null) : null)
                                     ->createOptionForm([
                                         Components\TextInput::make('name')
                                             ->label('Nombre')
@@ -71,7 +123,10 @@ class ProductionOrderForm
                                         Components\Hidden::make('company_id')
                                             ->default(fn () => auth()->user()->company_id),
                                     ]),
+                            ]),
 
+                        Grid::make(1)
+                            ->schema([
                                 Components\Select::make('operator_user_id')
                                     ->label('Operador Asignado')
                                     ->relationship(
