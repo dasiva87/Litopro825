@@ -180,8 +180,9 @@ class ProductionOrderItemsRelationManager extends RelationManager
                                     ->limit(50)
                                     ->get()
                                     ->mapWithKeys(function ($doc) {
+                                        $contactName = $doc->contact ? $doc->contact->name : 'Sin cliente';
                                         return [
-                                            $doc->id => "{$doc->document_number} - {$doc->contact->name} ({$doc->created_at->format('d/m/Y')})"
+                                            $doc->id => "{$doc->document_number} - {$contactName} ({$doc->created_at->format('d/m/Y')})"
                                         ];
                                     });
                             })

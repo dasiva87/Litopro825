@@ -18,6 +18,7 @@ class Document extends Model
         'user_id',
         'contact_id',
         'client_company_id',
+        'client_type',
         'document_type_id',
         'document_number',
         'reference',

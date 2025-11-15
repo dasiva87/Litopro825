@@ -609,12 +609,15 @@ class SimpleItemCalculatorService
         return match($finishing->measurement_unit) {
             \App\Enums\FinishingMeasurementUnit::MILLAR,
             \App\Enums\FinishingMeasurementUnit::RANGO,
-            \App\Enums\FinishingMeasurementUnit::UNIDAD => [
+            \App\Enums\FinishingMeasurementUnit::UNIDAD,
+            \App\Enums\FinishingMeasurementUnit::POR_NUMERO,
+            \App\Enums\FinishingMeasurementUnit::POR_TALONARIO => [
                 'quantity' => (int) $item->quantity
             ],
             \App\Enums\FinishingMeasurementUnit::TAMAÑO => [
                 'width' => (float) $item->horizontal_size,
-                'height' => (float) $item->vertical_size
+                'height' => (float) $item->vertical_size,
+                'quantity' => (int) $item->quantity
             ],
             default => []
         };

@@ -18,10 +18,6 @@ class FinishingsTable
     {
         return $table
             ->columns([
-                TextColumn::make('code')
-                    ->label('Código')
-                    ->searchable()
-                    ->sortable(),
                 TextColumn::make('name')
                     ->label('Nombre')
                     ->searchable()

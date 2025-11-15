@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ProductionOrders\Tables;
 
 use App\Enums\ProductionStatus;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -28,6 +29,7 @@ class ProductionOrdersTable
                 TextColumn::make('status')
                     ->label('Estado')
                     ->badge()
+                    ->formatStateUsing(fn ($state) => $state->getLabel())
                     ->sortable(),
 
                 TextColumn::make('supplier.name')
@@ -135,11 +137,20 @@ class ProductionOrdersTable
             ])
             ->actions([
                 ViewAction::make()
-                    ->label('Ver'),
+                    ->label('')
+                    ->icon('heroicon-o-eye'),
+
+                Action::make('view_pdf')
+                    ->label('')
+                    ->icon('heroicon-o-document-text')
+                    ->color('info')
+                    ->tooltip('Ver PDF')
+                    ->url(fn ($record) => route('production-orders.pdf', $record))
+                    ->openUrlInNewTab(),
+
                 EditAction::make()
-                    ->label('Editar'),
-                DeleteAction::make()
-                    ->label('Eliminar'),
+                    ->label('')
+                    ->icon('heroicon-o-pencil'),
             ])
             ->bulkActions([
                 BulkActionGroup::make([

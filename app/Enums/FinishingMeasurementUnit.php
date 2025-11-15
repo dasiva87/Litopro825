@@ -31,7 +31,7 @@ enum FinishingMeasurementUnit: string
             self::MILLAR => 'Cálculo: ceil(cantidad ÷ 1000) × precio_millar',
             self::RANGO => 'Cálculo: Buscar rango según cantidad',
             self::UNIDAD => 'Cálculo: cantidad × precio_unitario',
-            self::TAMAÑO => 'Cálculo: ancho × alto × precio_unitario',
+            self::TAMAÑO => 'Cálculo: ancho × alto × cantidad × precio_unitario',
             self::POR_NUMERO => 'Cálculo: total_números × precio_por_numero',
             self::POR_TALONARIO => 'Cálculo: cantidad_talonarios × precio_por_talonario',
         };

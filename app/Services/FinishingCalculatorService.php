@@ -16,20 +16,29 @@ class FinishingCalculatorService
     {
         return match ($finishing->measurement_unit) {
             FinishingMeasurementUnit::MILLAR => $this->calculateMillarCost(
-                $params['quantity'], 
+                $params['quantity'],
                 $finishing->unit_price
             ),
             FinishingMeasurementUnit::RANGO => $this->calculateRangeCost(
-                $params['quantity'], 
+                $params['quantity'],
                 $finishing->ranges
             ),
             FinishingMeasurementUnit::UNIDAD => $this->calculateUnitCost(
-                $params['quantity'], 
+                $params['quantity'],
                 $finishing->unit_price
             ),
             FinishingMeasurementUnit::TAMAÑO => $this->calculateSizeCost(
-                $params['width'], 
-                $params['height'], 
+                $params['width'],
+                $params['height'],
+                $params['quantity'] ?? 1,
+                $finishing->unit_price
+            ),
+            FinishingMeasurementUnit::POR_NUMERO => $this->calculateUnitCost(
+                $params['quantity'] ?? 0,
+                $finishing->unit_price
+            ),
+            FinishingMeasurementUnit::POR_TALONARIO => $this->calculateUnitCost(
+                $params['quantity'] ?? 0,
                 $finishing->unit_price
             ),
         };
@@ -92,17 +101,17 @@ class FinishingCalculatorService
 
     /**
      * Calcular costo por tamaño
-     * Fórmula: ancho × alto × precio_unitario
+     * Fórmula: ancho × alto × cantidad × precio_unitario
      */
-    public function calculateSizeCost(float $width, float $height, float $unitPrice): float
+    public function calculateSizeCost(float $width, float $height, int $quantity, float $unitPrice): float
     {
-        if ($width <= 0 || $height <= 0) {
+        if ($width <= 0 || $height <= 0 || $quantity <= 0) {
             return 0.0;
         }
 
         $area = $width * $height;
-        
-        return (float) ($area * $unitPrice);
+
+        return (float) ($area * $quantity * $unitPrice);
     }
 
     /**
@@ -116,6 +125,8 @@ class FinishingCalculatorService
             case FinishingMeasurementUnit::MILLAR:
             case FinishingMeasurementUnit::RANGO:
             case FinishingMeasurementUnit::UNIDAD:
+            case FinishingMeasurementUnit::POR_NUMERO:
+            case FinishingMeasurementUnit::POR_TALONARIO:
                 if (!isset($params['quantity']) || $params['quantity'] <= 0) {
                     $errors[] = 'La cantidad debe ser mayor a 0';
                 }
@@ -127,6 +138,9 @@ class FinishingCalculatorService
                 }
                 if (!isset($params['height']) || $params['height'] <= 0) {
                     $errors[] = 'El alto debe ser mayor a 0';
+                }
+                if (!isset($params['quantity']) || $params['quantity'] <= 0) {
+                    $errors[] = 'La cantidad debe ser mayor a 0';
                 }
                 break;
         }
@@ -142,8 +156,10 @@ class FinishingCalculatorService
         return match ($measurementUnit) {
             FinishingMeasurementUnit::MILLAR,
             FinishingMeasurementUnit::RANGO,
-            FinishingMeasurementUnit::UNIDAD => ['quantity' => 1],
-            FinishingMeasurementUnit::TAMAÑO => ['width' => 1.0, 'height' => 1.0],
+            FinishingMeasurementUnit::UNIDAD,
+            FinishingMeasurementUnit::POR_NUMERO,
+            FinishingMeasurementUnit::POR_TALONARIO => ['quantity' => 1],
+            FinishingMeasurementUnit::TAMAÑO => ['width' => 1.0, 'height' => 1.0, 'quantity' => 1],
         };
     }
 
@@ -155,8 +171,10 @@ class FinishingCalculatorService
         return match ($measurementUnit) {
             FinishingMeasurementUnit::MILLAR,
             FinishingMeasurementUnit::RANGO,
-            FinishingMeasurementUnit::UNIDAD => ['quantity'],
-            FinishingMeasurementUnit::TAMAÑO => ['width', 'height'],
+            FinishingMeasurementUnit::UNIDAD,
+            FinishingMeasurementUnit::POR_NUMERO,
+            FinishingMeasurementUnit::POR_TALONARIO => ['quantity'],
+            FinishingMeasurementUnit::TAMAÑO => ['width', 'height', 'quantity'],
         };
     }
 }

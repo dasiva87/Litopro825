@@ -23,7 +23,6 @@ class PaperForm
                             ->schema([
                                 TextInput::make('code')
                                     ->label('Código')
-                                    ->required()
                                     ->maxLength(50)
                                     ->placeholder('Ej: BOND75, OPA150, COU300...')
                                     ->unique(ignoreRecord: true)

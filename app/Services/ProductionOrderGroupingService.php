@@ -9,38 +9,40 @@ use Illuminate\Support\Collection;
 class ProductionOrderGroupingService
 {
     /**
-     * Agrupa items y sus acabados por proveedor
+     * Agrupa items para producción
+     * IMPORTANTE: Se enfoca en IMPRESIÓN (millares), no en acabados
+     * Los acabados son opcionales y se agregan si tienen proveedor asignado
      *
      * @param Collection $documentItems
-     * @return array ['supplier_id' => ['printing' => [...], 'finishings' => [...]]]
+     * @return array ['internal' => ['printing' => [...], 'finishings' => [...]]] o ['supplier_id' => [...]]
      */
     public function groupBySupplier(Collection $documentItems): array
     {
         $grouped = [];
 
         foreach ($documentItems as $item) {
-            // 1. Procesar impresión (si es SimpleItem y tiene printing_machine)
-            if ($item->itemable_type === 'App\Models\SimpleItem' && $item->itemable) {
-                $printingSupplierId = $this->getPrintingSupplier($item);
+            // 1. SIEMPRE procesar impresión para items con millares (producción interna)
+            // Esto es lo MÁS IMPORTANTE de las órdenes de producción
+            if ($this->hasImpression($item)) {
+                $supplierId = 'internal'; // Producción interna por defecto
 
-                if ($printingSupplierId) {
-                    if (!isset($grouped[$printingSupplierId])) {
-                        $grouped[$printingSupplierId] = [
-                            'printing' => [],
-                            'finishings' => [],
-                        ];
-                    }
-
-                    $grouped[$printingSupplierId]['printing'][] = [
-                        'document_item' => $item,
-                        'quantity' => $item->quantity,
-                        'process_type' => 'printing',
-                        'process_description' => "Impresión: {$item->description}",
+                if (!isset($grouped[$supplierId])) {
+                    $grouped[$supplierId] = [
+                        'printing' => [],
+                        'finishings' => [],
+                        'is_internal' => true,
                     ];
                 }
+
+                $grouped[$supplierId]['printing'][] = [
+                    'document_item' => $item,
+                    'quantity' => $item->quantity,
+                    'process_type' => 'printing',
+                    'process_description' => "Impresión: {$item->description}",
+                ];
             }
 
-            // 2. Procesar acabados del item
+            // 2. OPCIONALMENTE procesar acabados (solo si tienen proveedor asignado)
             $finishings = $item->finishings()->with('supplier')->get();
 
             foreach ($finishings as $finishing) {
@@ -54,6 +56,7 @@ class ProductionOrderGroupingService
                     $grouped[$finishingSupplierId] = [
                         'printing' => [],
                         'finishings' => [],
+                        'is_internal' => false,
                     ];
                 }
 
@@ -69,6 +72,37 @@ class ProductionOrderGroupingService
         }
 
         return $grouped;
+    }
+
+    /**
+     * Verifica si un item tiene impresiones (millares)
+     */
+    protected function hasImpression(DocumentItem $item): bool
+    {
+        // Si tiene sheets_needed (pliegos), entonces tiene impresión
+        if (isset($item->sheets_needed) && $item->sheets_needed > 0) {
+            return true;
+        }
+
+        // Verificar en el itemable si existe
+        if ($item->itemable) {
+            // SimpleItem, DigitalItem tienen total_impressions
+            if (isset($item->itemable->total_impressions) && $item->itemable->total_impressions > 0) {
+                return true;
+            }
+
+            // MagazineItem tiene sheets_needed
+            if (isset($item->itemable->sheets_needed) && $item->itemable->sheets_needed > 0) {
+                return true;
+            }
+        }
+
+        // Si tiene máquina de impresión asignada, asumimos que hay impresión
+        if ($item->printing_machine_id) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -106,12 +140,18 @@ class ProductionOrderGroupingService
         $summary = [];
 
         foreach ($grouped as $supplierId => $processes) {
-            $supplier = Contact::find($supplierId);
+            $supplierName = 'Producción Interna';
+
+            if ($supplierId !== 'internal') {
+                $supplier = Contact::find($supplierId);
+                $supplierName = $supplier?->name ?? 'Desconocido';
+            }
+
             $totalProcesses = count($processes['printing']) + count($processes['finishings']);
 
             $summary[] = [
                 'supplier_id' => $supplierId,
-                'supplier_name' => $supplier?->name ?? 'Desconocido',
+                'supplier_name' => $supplierName,
                 'printing_count' => count($processes['printing']),
                 'finishing_count' => count($processes['finishings']),
                 'total_processes' => $totalProcesses,

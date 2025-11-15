@@ -164,138 +164,24 @@ class PurchaseOrdersTable
                     ->label('')
                     ->icon('heroicon-o-eye'),
 
-                Action::make('change_status')
-                    ->label('')
-                    ->icon('heroicon-o-arrow-path')
-                    ->color('primary')
-                    ->tooltip('Cambiar Estado')
-                    ->visible(fn ($record) => $record && ! in_array($record->status, [OrderStatus::RECEIVED, OrderStatus::CANCELLED]))
-                    ->fillForm(fn ($record): array => [
-                        'current_status' => $record->status->getLabel(),
-                    ])
-                    ->form(fn ($record): array => [
-                        \Filament\Forms\Components\Placeholder::make('current_status')
-                            ->label('Estado Actual')
-                            ->content(fn ($record) => $record->status->getLabel()),
-
-                        Select::make('new_status')
-                            ->label('Nuevo Estado')
-                            ->options(fn ($record) => collect($record->status->getNextStatuses())->mapWithKeys(fn ($status) => [$status->value => $status->getLabel()]))
-                            ->required()
-                            ->native(false),
-
-                        Textarea::make('notes')
-                            ->label('Notas')
-                            ->rows(3)
-                            ->placeholder('Opcional: Agrega notas sobre este cambio de estado'),
-                    ])
-                    ->modalHeading(fn ($record) => "Cambiar Estado - Orden #{$record->order_number}")
-                    ->modalWidth('md')
-                    ->action(function ($record, array $data) {
-                        if (!$record) {
-                            return;
-                        }
-
-                        $newStatus = OrderStatus::from($data['new_status']);
-                        $oldStatus = $record->status;
-
-                        if ($record->changeStatus($newStatus, $data['notes'] ?? null)) {
-                            \Filament\Notifications\Notification::make()
-                                ->title('Estado actualizado')
-                                ->body("Orden cambiada de {$oldStatus->getLabel()} a {$newStatus->getLabel()}")
-                                ->success()
-                                ->send();
-
-                            // Si se cambió a 'sent', notificar
-                            if ($newStatus === OrderStatus::SENT) {
-                                \Filament\Notifications\Notification::make()
-                                    ->title('Notificación enviada')
-                                    ->body('Se ha enviado una notificación al proveedor')
-                                    ->info()
-                                    ->send();
-                            }
-                        } else {
-                            \Filament\Notifications\Notification::make()
-                                ->title('Error')
-                                ->body("No se puede cambiar de {$oldStatus->getLabel()} a {$newStatus->getLabel()}")
-                                ->danger()
-                                ->send();
-                        }
-                    }),
-
-                Action::make('download_pdf')
-                    ->label('')
-                    ->icon('heroicon-o-document-arrow-down')
-                    ->color('success')
-                    ->action(function ($record) {
-                        $pdfService = new PurchaseOrderPdfService;
-
-                        return $pdfService->downloadPdf($record);
-                    }),
-
                 Action::make('view_pdf')
                     ->label('')
                     ->icon('heroicon-o-document-text')
                     ->color('info')
+                    ->tooltip('Ver PDF')
                     ->url(function ($record) {
                         return route('purchase-orders.pdf', $record->id);
                     })
                     ->openUrlInNewTab(),
 
-                Action::make('send_email')
-                    ->label('')
-                    ->icon('heroicon-o-envelope')
-                    ->color('warning')
-                    ->tooltip('Enviar por Email')
-                    ->form([
-                        \Filament\Forms\Components\TextInput::make('email')
-                            ->label('Email del Proveedor')
-                            ->email()
-                            ->required()
-                            ->default(fn ($record) => $record->supplierCompany?->email)
-                            ->helperText(fn ($record) => $record->supplierCompany?->email
-                                ? 'Email configurado en el proveedor'
-                                : 'El proveedor no tiene email configurado. Ingresa uno manualmente.'),
-
-                        \Filament\Forms\Components\Checkbox::make('change_status_to_sent')
-                            ->label('Cambiar estado a "Enviada"')
-                            ->default(fn ($record) => $record->status === OrderStatus::DRAFT)
-                            ->visible(fn ($record) => $record->status === OrderStatus::DRAFT)
-                            ->helperText('Esto actualizará el estado de la orden y enviará notificación al proveedor'),
-                    ])
-                    ->modalHeading('Enviar Orden por Email')
-                    ->modalDescription(fn ($record) => "Enviar orden #{$record->order_number} a {$record->supplierCompany?->name}")
-                    ->action(function ($record, array $data) {
-                        $pdfService = new PurchaseOrderPdfService;
-                        $sent = $pdfService->emailPdf($record, [$data['email']]);
-
-                        if ($sent) {
-                            // Cambiar estado si está marcado
-                            if (($data['change_status_to_sent'] ?? false) && $record->status === OrderStatus::DRAFT) {
-                                $record->changeStatus(OrderStatus::SENT);
-                            }
-
-                            \Filament\Notifications\Notification::make()
-                                ->title('Email enviado')
-                                ->body("Orden enviada exitosamente a {$data['email']}")
-                                ->success()
-                                ->send();
-                        } else {
-                            \Filament\Notifications\Notification::make()
-                                ->title('Error al enviar')
-                                ->body('No se pudo enviar el email. Revisa la configuración SMTP.')
-                                ->danger()
-                                ->send();
-                        }
-                    }),
-
                 EditAction::make()
                     ->label('')
-                    ->icon('heroicon-o-pencil'),
-
-                DeleteAction::make()
-                    ->label('')
-                    ->icon('heroicon-o-trash'),
+                    ->icon('heroicon-o-pencil')
+                    ->hidden(fn ($record) => in_array($record->status, [
+                        OrderStatus::CONFIRMED,
+                        OrderStatus::RECEIVED,
+                        OrderStatus::CANCELLED
+                    ])),
             ])
             ->bulkActions([
                 BulkActionGroup::make([

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\PurchaseOrders;
 
 use App\Enums\NavigationGroup;
+use App\Enums\OrderStatus;
 use App\Filament\Resources\PurchaseOrders\Pages\CreatePurchaseOrder;
 use App\Filament\Resources\PurchaseOrders\Pages\EditPurchaseOrder;
 use App\Filament\Resources\PurchaseOrders\Pages\ListPurchaseOrders;
@@ -34,6 +35,20 @@ class PurchaseOrderResource extends Resource
     public static function canViewAny(): bool
     {
         return auth()->user()->can('viewAny', PurchaseOrder::class);
+    }
+
+    public static function canEdit($record): bool
+    {
+        // No permitir editar si el estado es CONFIRMED, RECEIVED o CANCELLED
+        if ($record && in_array($record->status, [
+            OrderStatus::CONFIRMED,
+            OrderStatus::RECEIVED,
+            OrderStatus::CANCELLED
+        ])) {
+            return false;
+        }
+
+        return auth()->user()->can('update', $record);
     }
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder

@@ -713,8 +713,27 @@ class DocumentItemsRelationManager extends RelationManager
                     })
                     ->mutateRecordDataUsing(function (array $data, $record): array {
                         if ($record->itemable_type === 'App\\Models\\SimpleItem' && $record->itemable) {
+                            // Cargar el SimpleItem con la relación de acabados
+                            $simpleItem = $record->itemable;
+                            $simpleItem->load('finishings');
+
                             // Cargar todos los datos del SimpleItem para mostrar en el formulario
-                            $simpleItemData = $record->itemable->toArray();
+                            $simpleItemData = $simpleItem->toArray();
+
+                            // Cargar acabados existentes en el formato correcto para el repeater
+                            $finishingsData = [];
+                            foreach ($simpleItem->finishings as $finishing) {
+                                $finishingsData[] = [
+                                    'finishing_id' => $finishing->id,
+                                    'quantity' => $finishing->pivot->quantity ?? null,
+                                    'width' => $finishing->pivot->width ?? null,
+                                    'height' => $finishing->pivot->height ?? null,
+                                    'calculated_cost' => $finishing->pivot->calculated_cost ?? 0,
+                                ];
+                            }
+
+                            // Usar el nombre correcto del repeater (no colisiona con DocumentItem::finishings)
+                            $simpleItemData['simple_item_finishings'] = $finishingsData;
 
                             // Agregar campos adicionales que no están en la tabla
                             $simpleItemData['item_type'] = 'simple';
@@ -803,15 +822,40 @@ class DocumentItemsRelationManager extends RelationManager
                                 throw new \Exception('Error: El item relacionado no es un SimpleItem válido');
                             }
 
-                            // Filtrar solo los campos que pertenecen al SimpleItem
+                            // Extraer acabados antes de filtrar (usando el nombre correcto del repeater)
+                            $finishingsData = $data['simple_item_finishings'] ?? [];
+
+                            // Filtrar solo los campos que pertenecen al SimpleItem (excluyendo acabados y campos extra)
                             $simpleItemData = array_filter($data, function ($key) {
-                                return ! in_array($key, ['item_type', 'itemable_type', 'itemable_id']);
+                                return ! in_array($key, ['item_type', 'itemable_type', 'itemable_id', 'simple_item_finishings']);
                             }, ARRAY_FILTER_USE_KEY);
 
                             // Actualizar el SimpleItem
                             $simpleItem->fill($simpleItemData);
+                            $simpleItem->save();
 
-                            // Recalcular automáticamente
+                            // Sincronizar acabados (relación many-to-many)
+                            if (!empty($finishingsData)) {
+                                $syncData = [];
+                                foreach ($finishingsData as $finishingData) {
+                                    if (isset($finishingData['finishing_id'])) {
+                                        $syncData[$finishingData['finishing_id']] = [
+                                            'quantity' => $finishingData['quantity'] ?? null,
+                                            'width' => $finishingData['width'] ?? null,
+                                            'height' => $finishingData['height'] ?? null,
+                                            'calculated_cost' => $finishingData['calculated_cost'] ?? 0,
+                                            'is_default' => $finishingData['is_default'] ?? true,
+                                            'sort_order' => array_search($finishingData, $finishingsData),
+                                        ];
+                                    }
+                                }
+                                $simpleItem->finishings()->sync($syncData);
+                            } else {
+                                // Si no hay acabados, desvincular todos
+                                $simpleItem->finishings()->sync([]);
+                            }
+
+                            // Recalcular automáticamente después de actualizar acabados
                             if (method_exists($simpleItem, 'calculateAll')) {
                                 $simpleItem->calculateAll();
                             }

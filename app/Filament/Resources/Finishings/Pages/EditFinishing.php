@@ -20,4 +20,28 @@ class EditFinishing extends EditRecord
             RestoreAction::make(),
         ];
     }
+
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        // Cargar la relación ranges si existe
+        $this->record->load('ranges');
+
+        return $data;
+    }
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        // Asegurar que company_id se preserve
+        if (!isset($data['company_id'])) {
+            $data['company_id'] = auth()->user()->company_id;
+        }
+
+        return $data;
+    }
+
+    protected function afterSave(): void
+    {
+        // La relación ranges se maneja automáticamente por Filament
+        // debido a que usamos ->relationship('ranges') en el Repeater
+    }
 }

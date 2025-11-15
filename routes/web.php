@@ -102,6 +102,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/collection-accounts/{collectionAccount}/download', [CollectionAccountPdfController::class, 'download'])
         ->name('collection-accounts.pdf.download');
 
+    // Rutas para PDFs de órdenes de producción
+    Route::get('/production-orders/{productionOrder}/pdf', [\App\Http\Controllers\ProductionOrderPdfController::class, 'show'])
+        ->name('production-orders.pdf');
+    Route::get('/production-orders/{productionOrder}/download', [\App\Http\Controllers\ProductionOrderPdfController::class, 'download'])
+        ->name('production-orders.pdf.download');
+
     // Rutas de impersonación
     Route::prefix('super-admin')->middleware(['role:Super Admin'])->group(function () {
         Route::post('/impersonate/{user}', [ImpersonateController::class, 'impersonate'])

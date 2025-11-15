@@ -461,4 +461,54 @@ class ProductionOrder extends Model
 
         return null;
     }
+
+    /**
+     * Duplicate this production order
+     */
+    public function duplicate(): self
+    {
+        // Replicar la orden
+        $newOrder = $this->replicate();
+
+        // Resetear campos específicos
+        $newOrder->status = ProductionStatus::DRAFT;
+        $newOrder->production_number = null; // Se generará automáticamente
+        $newOrder->started_at = null;
+        $newOrder->completed_at = null;
+        $newOrder->quality_checked = false;
+        $newOrder->quality_checked_by = null;
+        $newOrder->quality_checked_at = null;
+        $newOrder->operator_notes = null;
+
+        $newOrder->save();
+
+        // Copiar los items de la tabla pivot
+        foreach ($this->documentItems as $item) {
+            $pivotData = $item->pivot->toArray();
+
+            // Limpiar datos que no deben duplicarse
+            unset($pivotData['id']);
+            unset($pivotData['production_order_id']);
+            unset($pivotData['document_item_id']);
+            unset($pivotData['created_at']);
+            unset($pivotData['updated_at']);
+
+            // Resetear campos de progreso
+            $pivotData['produced_quantity'] = 0;
+            $pivotData['rejected_quantity'] = 0;
+            $pivotData['item_status'] = 'pending';
+            $pivotData['production_started_at'] = null;
+            $pivotData['production_completed_at'] = null;
+            $pivotData['actual_impressions'] = null;
+            $pivotData['production_notes'] = null;
+            $pivotData['quality_notes'] = null;
+
+            $newOrder->documentItems()->attach($item->id, $pivotData);
+        }
+
+        // Recalcular métricas
+        $newOrder->recalculateMetrics();
+
+        return $newOrder;
+    }
 }

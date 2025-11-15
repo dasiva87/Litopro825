@@ -665,14 +665,13 @@ class SimpleItemForm
                     ])
                     ->columnSpanFull(),
 
-                // Sección de Acabados Sugeridos
-                Section::make('🎨 Acabados Sugeridos')
-                    ->description('Acabados recomendados para este tipo de trabajo (opcionales)')
+                // Sección de Acabados
+                Section::make('🎨 Acabados')
+                    ->description('Acabados adicionales para este tipo de trabajo (opcionales)')
                     ->collapsed()
                     ->schema([
-                        \Filament\Forms\Components\Repeater::make('finishings_data')
+                        \Filament\Forms\Components\Repeater::make('simple_item_finishings')
                             ->label('Acabados')
-                            ->relationship('finishings')
                             ->defaultItems(0)
                             ->schema([
                                 Grid::make(3)
@@ -705,9 +704,12 @@ class SimpleItemForm
                                                             case 'millar':
                                                             case 'rango':
                                                             case 'unidad':
+                                                            case 'por_numero':
+                                                            case 'por_talonario':
                                                                 $set('quantity', $parentState['quantity'] ?? 1);
                                                                 break;
                                                             case 'tamaño':
+                                                                $set('quantity', $parentState['quantity'] ?? 1);
                                                                 $set('width', $parentState['horizontal_size'] ?? 0);
                                                                 $set('height', $parentState['vertical_size'] ?? 0);
                                                                 break;
@@ -717,7 +719,7 @@ class SimpleItemForm
                                             })
                                             ->columnSpan(3),
 
-                                        // Campos de cantidad (para MILLAR, RANGO, UNIDAD)
+                                        // Campos de cantidad (para MILLAR, RANGO, UNIDAD, POR_NUMERO, POR_TALONARIO, TAMAÑO)
                                         TextInput::make('quantity')
                                             ->label('Cantidad')
                                             ->numeric()
@@ -731,7 +733,7 @@ class SimpleItemForm
                                                 $finishing = \App\Models\Finishing::find($finishingId);
                                                 if (!$finishing) return false;
 
-                                                return in_array($finishing->measurement_unit->value, ['millar', 'rango', 'unidad']);
+                                                return in_array($finishing->measurement_unit->value, ['millar', 'rango', 'unidad', 'por_numero', 'por_talonario', 'tamaño']);
                                             })
                                             ->columnSpan(1),
 
@@ -796,12 +798,15 @@ class SimpleItemForm
                                                         case 'millar':
                                                         case 'rango':
                                                         case 'unidad':
+                                                        case 'por_numero':
+                                                        case 'por_talonario':
                                                             $params = ['quantity' => (int) $quantity];
                                                             break;
                                                         case 'tamaño':
                                                             $params = [
                                                                 'width' => (float) $width,
-                                                                'height' => (float) $height
+                                                                'height' => (float) $height,
+                                                                'quantity' => (int) $quantity
                                                             ];
                                                             break;
                                                     }
@@ -816,19 +821,12 @@ class SimpleItemForm
                                             })
                                             ->html()
                                             ->columnSpan(3),
-
-                                        Toggle::make('is_default')
-                                            ->label('Sugerencia por defecto')
-                                            ->default(true)
-                                            ->inline(false)
-                                            ->helperText('Este acabado se sugerirá automáticamente')
-                                            ->columnSpan(3),
                                     ]),
                             ])
                             ->collapsible()
                             ->collapsed(false)
-                            ->addActionLabel('+ Agregar Acabado Sugerido')
-                            ->helperText('Estos acabados se calcularán automáticamente en el precio del item'),
+                            ->addActionLabel('+ Agregar Acabado')
+                            ->helperText('Los acabados se calcularán automáticamente en el precio del item'),
 
                         Placeholder::make('finishings_total')
                             ->label('Costo Total de Acabados')

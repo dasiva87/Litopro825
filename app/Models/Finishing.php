@@ -73,6 +73,16 @@ class Finishing extends Model
     }
 
     /**
+     * Relación con SimpleItems a través de tabla pivote
+     */
+    public function simpleItems(): BelongsToMany
+    {
+        return $this->belongsToMany(SimpleItem::class, 'simple_item_finishing')
+            ->withPivot(['quantity', 'width', 'height', 'calculated_cost', 'is_default', 'sort_order'])
+            ->withTimestamps();
+    }
+
+    /**
      * Scope para acabados activos
      */
     public function scopeActive($query)

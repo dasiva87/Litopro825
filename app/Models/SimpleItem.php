@@ -628,12 +628,15 @@ class SimpleItem extends Model
         return match($finishing->measurement_unit) {
             \App\Enums\FinishingMeasurementUnit::MILLAR,
             \App\Enums\FinishingMeasurementUnit::RANGO,
-            \App\Enums\FinishingMeasurementUnit::UNIDAD => [
+            \App\Enums\FinishingMeasurementUnit::UNIDAD,
+            \App\Enums\FinishingMeasurementUnit::POR_NUMERO,
+            \App\Enums\FinishingMeasurementUnit::POR_TALONARIO => [
                 'quantity' => (int) $this->quantity
             ],
             \App\Enums\FinishingMeasurementUnit::TAMAÑO => [
                 'width' => (float) $this->horizontal_size,
-                'height' => (float) $this->vertical_size
+                'height' => (float) $this->vertical_size,
+                'quantity' => (int) $this->quantity
             ],
             default => []
         };

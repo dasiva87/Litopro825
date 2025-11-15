@@ -154,139 +154,21 @@ class CollectionAccountsTable
                     ->toggle(),
             ])
             ->actions([
-                ViewAction::make(),
-                EditAction::make(),
+                ViewAction::make()
+                    ->label('')
+                    ->icon('heroicon-o-eye'),
 
                 Action::make('view_pdf')
-                    ->label('Ver PDF')
+                    ->label('')
                     ->icon('heroicon-o-document-text')
                     ->color('info')
+                    ->tooltip('Ver PDF')
                     ->url(fn ($record) => route('collection-accounts.pdf', $record))
                     ->openUrlInNewTab(),
 
-                Action::make('download_pdf')
-                    ->label('Descargar PDF')
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->color('success')
-                    ->url(fn ($record) => route('collection-accounts.pdf.download', $record)),
-
-                Action::make('send_email')
-                    ->label('Enviar por Email')
-                    ->icon('heroicon-o-envelope')
-                    ->color('primary')
-                    ->form([
-                        \Filament\Forms\Components\TextInput::make('email')
-                            ->label('Email del Cliente')
-                            ->email()
-                            ->default(fn ($record) => $record->clientCompany->email)
-                            ->required(),
-
-                        \Filament\Forms\Components\Textarea::make('message')
-                            ->label('Mensaje Adicional')
-                            ->placeholder('Mensaje personalizado para incluir en el email...')
-                            ->rows(3),
-                    ])
-                    ->action(function ($record, array $data) {
-                        try {
-                            // Generar PDF
-                            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('collection-accounts.pdf', ['collectionAccount' => $record->load([
-                                'company',
-                                'clientCompany',
-                                'documentItems.itemable',
-                                'documentItems.document',
-                                'createdBy'
-                            ])])
-                            ->setPaper('letter', 'portrait')
-                            ->setOptions([
-                                'defaultFont' => 'Arial',
-                                'isRemoteEnabled' => true,
-                                'isHtml5ParserEnabled' => true,
-                                'dpi' => 150,
-                                'defaultPaperSize' => 'letter',
-                            ]);
-
-                            // Enviar email
-                            \Illuminate\Support\Facades\Mail::send('emails.collection-account-sent', [
-                                'collectionAccount' => $record,
-                                'customMessage' => $data['message'] ?? null,
-                            ], function ($message) use ($record, $data, $pdf) {
-                                $message->to($data['email'])
-                                    ->subject("Cuenta de Cobro #{$record->account_number} - {$record->company->name}")
-                                    ->attachData($pdf->output(), $record->account_number . '.pdf', [
-                                        'mime' => 'application/pdf',
-                                    ]);
-                            });
-
-                            \Filament\Notifications\Notification::make()
-                                ->title('Email enviado')
-                                ->success()
-                                ->body("Cuenta de cobro enviada a {$data['email']}")
-                                ->send();
-                        } catch (\Exception $e) {
-                            \Filament\Notifications\Notification::make()
-                                ->title('Error al enviar email')
-                                ->danger()
-                                ->body($e->getMessage())
-                                ->send();
-                        }
-                    }),
-
-                Action::make('change_status')
-                    ->label('Cambiar Estado')
-                    ->icon('heroicon-o-arrow-path')
-                    ->color('warning')
-                    ->form([
-                        Select::make('new_status')
-                            ->label('Nuevo Estado')
-                            ->options(fn ($record) => collect(CollectionAccountStatus::cases())
-                                ->filter(fn ($status) => $status !== $record->status) // Mostrar todos excepto el actual
-                                ->mapWithKeys(fn ($status) => [$status->value => $status->label()])
-                            )
-                            ->required()
-                            ->native(false),
-
-                        Textarea::make('notes')
-                            ->label('Notas')
-                            ->placeholder('Notas sobre el cambio de estado...')
-                            ->rows(3),
-                    ])
-                    ->action(function ($record, array $data) {
-                        $newStatus = CollectionAccountStatus::from($data['new_status']);
-
-                        if ($record->changeStatus($newStatus, $data['notes'] ?? null)) {
-                            \Filament\Notifications\Notification::make()
-                                ->title('Estado actualizado')
-                                ->success()
-                                ->body("La cuenta cambió a: {$newStatus->label()}")
-                                ->send();
-                        } else {
-                            \Filament\Notifications\Notification::make()
-                                ->title('Error al cambiar estado')
-                                ->danger()
-                                ->body('La transición de estado no es válida')
-                                ->send();
-                        }
-                    })
-                    ->visible(fn ($record) => true), // Siempre visible para permitir cualquier cambio
-
-                Action::make('mark_as_paid')
-                    ->label('Marcar como Pagada')
-                    ->icon('heroicon-o-check-circle')
-                    ->color('success')
-                    ->requiresConfirmation()
-                    ->modalHeading('Confirmar Pago')
-                    ->modalDescription('¿Confirmas que esta cuenta de cobro ha sido pagada?')
-                    ->action(function ($record) {
-                        if ($record->changeStatus(CollectionAccountStatus::PAID)) {
-                            \Filament\Notifications\Notification::make()
-                                ->title('Cuenta marcada como pagada')
-                                ->success()
-                                ->send();
-                        }
-                    })
-                    ->visible(fn ($record) => $record->status === CollectionAccountStatus::APPROVED),
-
-                DeleteAction::make(),
+                EditAction::make()
+                    ->label('')
+                    ->icon('heroicon-o-pencil'),
             ])
             ->bulkActions([
                 BulkActionGroup::make([

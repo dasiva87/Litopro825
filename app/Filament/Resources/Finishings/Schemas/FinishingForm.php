@@ -23,13 +23,8 @@ class FinishingForm
                     ->description('Datos básicos del acabado')
                     ->icon('heroicon-o-information-circle')
                     ->components([
-                        Grid::make(3)
+                        Grid::make(2)
                             ->components([
-                                TextInput::make('code')
-                                    ->label('Código')
-                                    ->placeholder('Se genera automáticamente')
-                                    ->disabled()
-                                    ->dehydrated(false),
                                 TextInput::make('name')
                                     ->label('Nombre')
                                     ->required()
@@ -39,7 +34,7 @@ class FinishingForm
                                     ->options(FinishingMeasurementUnit::options())
                                     ->required()
                                     ->live()
-                                    ->helperText(fn($state) => 
+                                    ->helperText(fn($state) =>
                                         $state ? FinishingMeasurementUnit::from($state)->description() : null
                                     ),
                             ]),
@@ -97,21 +92,30 @@ class FinishingForm
                             ->relationship('ranges')
                             ->label('')
                             ->addActionLabel('Agregar Rango')
-                            ->defaultItems(1)
+                            ->defaultItems(0)
                             ->orderColumn('sort_order')
                             ->reorderableWithButtons()
                             ->columns(4)
+                            ->itemLabel(fn (array $state): ?string =>
+                                isset($state['min_quantity'])
+                                    ? "Rango: {$state['min_quantity']}" . (isset($state['max_quantity']) && $state['max_quantity'] ? " - {$state['max_quantity']}" : '+')
+                                    : null
+                            )
+                            ->collapsed()
+                            ->cloneable()
                             ->components([
                                 TextInput::make('min_quantity')
                                     ->label('Cantidad Mínima')
                                     ->required()
                                     ->numeric()
-                                    ->minValue(1),
+                                    ->minValue(1)
+                                    ->live(onBlur: true),
                                 TextInput::make('max_quantity')
                                     ->label('Cantidad Máxima')
                                     ->numeric()
-                                    ->minValue(1)
-                                    ->helperText('Dejar vacío para "sin límite"'),
+                                    ->minValue(fn($get) => $get('min_quantity') ?? 1)
+                                    ->helperText('Dejar vacío para "sin límite"')
+                                    ->nullable(),
                                 TextInput::make('range_price')
                                     ->label('Precio del Rango')
                                     ->required()
@@ -123,7 +127,8 @@ class FinishingForm
                                     ->label('Orden')
                                     ->numeric()
                                     ->default(0)
-                                    ->helperText('Orden de presentación'),
+                                    ->hidden()
+                                    ->dehydrated(),
                             ]),
                     ]),
             ]);
