@@ -80,12 +80,13 @@ class DigitalItemQuickHandler implements QuickActionHandlerInterface
                     \Filament\Schemas\Components\Section::make('🎨 Acabados Opcionales')
                         ->description('Agrega acabados adicionales que se calcularán automáticamente')
                         ->schema([
-                            Components\Repeater::make('finishings')
+                            Components\Repeater::make('finishings_data')
                                 ->label('Acabados')
                                 ->defaultItems(0)
                                 ->schema([
                                     Components\Select::make('finishing_id')
                                         ->label('Acabado')
+                                        ->helperText('⚠️ El proveedor se asigna desde el catálogo de Acabados')
                                         ->options(function () {
                                             return $this->getFinishingOptions();
                                         })
@@ -184,7 +185,7 @@ class DigitalItemQuickHandler implements QuickActionHandlerInterface
 
         // Procesar acabados si existen
         $finishingsCost = 0;
-        $finishingsData = $data['finishings'] ?? [];
+        $finishingsData = $data['finishings_data'] ?? [];
 
         if (!empty($finishingsData)) {
             foreach ($finishingsData as $finishingData) {
@@ -243,12 +244,12 @@ class DigitalItemQuickHandler implements QuickActionHandlerInterface
                             $finishingParams['height'] = $finishingData['height'];
                         }
 
-                        $documentItem->finishings()->create([
-                            'finishing_name' => $finishing->name,
+                        // Attach finishing a DigitalItem usando tabla pivot (Arquitectura 1)
+                        $digitalItem->finishings()->attach($finishingData['finishing_id'], [
                             'quantity' => $finishingParams['quantity'],
-                            'is_double_sided' => false,
-                            'unit_price' => $finishingParams['unit_price'],
-                            'total_price' => $finishingParams['total_price'],
+                            'width' => $finishingParams['width'] ?? null,
+                            'height' => $finishingParams['height'] ?? null,
+                            'calculated_cost' => $finishingParams['total_price'],
                         ]);
                     }
                 }

@@ -130,47 +130,50 @@ class DocumentItemFormFactory
                                 }),
                         ]),
 
-                    // Sección simplificada de acabados
-                    \Filament\Schemas\Components\Section::make('🎨 Acabados Opcionales')
-                        ->description('Agrega acabados adicionales')
-                        ->schema([
-                            Forms\Components\Repeater::make('finishings')
-                                ->label('')
-                                ->relationship('finishings')
-                                ->schema([
-                                    \Filament\Schemas\Components\Grid::make(3)
-                                        ->schema([
-                                            Forms\Components\Select::make('finishing_id')
-                                                ->label('Acabado')
-                                                ->options(function () {
-                                                    return \App\Models\Finishing::where('company_id', auth()->user()->company_id)
-                                                        ->where('active', true)
-                                                        ->pluck('name', 'id');
-                                                })
-                                                ->required()
-                                                ->live(),
+                    // ARQUITECTURA 1: Acabados se manejan a nivel de itemable (DigitalItem)
+                    // Los acabados se agregan desde DigitalItemQuickHandler, no desde DocumentItem
+                    // Comentado para evitar conflicto con relationship 'finishings' que no existe en DocumentItem
 
-                                            Forms\Components\TextInput::make('quantity')
-                                                ->label('Cantidad')
-                                                ->numeric()
-                                                ->default(1)
-                                                ->required()
-                                                ->live(),
-
-                                            Forms\Components\TextInput::make('calculated_cost')
-                                                ->label('Costo Calculado')
-                                                ->numeric()
-                                                ->prefix('$')
-                                                ->disabled()
-                                                ->dehydrated(),
-                                        ])
-                                ])
-                                ->addActionLabel('Agregar Acabado')
-                                ->collapsed()
-                                ->columnSpanFull(),
-                        ])
-                        ->collapsible()
-                        ->collapsed(),
+                    // \Filament\Schemas\Components\Section::make('🎨 Acabados Opcionales')
+                    //     ->description('Agrega acabados adicionales')
+                    //     ->schema([
+                    //         Forms\Components\Repeater::make('finishings')
+                    //             ->label('')
+                    //             ->relationship('finishings')
+                    //             ->schema([
+                    //                 \Filament\Schemas\Components\Grid::make(3)
+                    //                     ->schema([
+                    //                         Forms\Components\Select::make('finishing_id')
+                    //                             ->label('Acabado')
+                    //                             ->options(function () {
+                    //                                 return \App\Models\Finishing::where('company_id', auth()->user()->company_id)
+                    //                                     ->where('active', true)
+                    //                                     ->pluck('name', 'id');
+                    //                             })
+                    //                             ->required()
+                    //                             ->live(),
+                    //
+                    //                         Forms\Components\TextInput::make('quantity')
+                    //                             ->label('Cantidad')
+                    //                             ->numeric()
+                    //                             ->default(1)
+                    //                             ->required()
+                    //                             ->live(),
+                    //
+                    //                         Forms\Components\TextInput::make('calculated_cost')
+                    //                             ->label('Costo Calculado')
+                    //                             ->numeric()
+                    //                             ->prefix('$')
+                    //                             ->disabled()
+                    //                             ->dehydrated(),
+                    //                     ])
+                    //             ])
+                    //             ->addActionLabel('Agregar Acabado')
+                    //             ->collapsed()
+                    //             ->columnSpanFull(),
+                    //     ])
+                    //     ->collapsible()
+                    //     ->collapsed(),
                 ]),
         ];
     }

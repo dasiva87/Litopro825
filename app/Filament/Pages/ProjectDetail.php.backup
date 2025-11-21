@@ -1,0 +1,111 @@
+<?php
+
+namespace App\Filament\Pages;
+
+use App\Models\Document;
+use App\Models\PurchaseOrder;
+use App\Models\ProductionOrder;
+use App\Models\CollectionAccount;
+use Filament\Pages\Page;
+
+class ProjectDetail extends Page
+{
+    protected static bool $shouldRegisterNavigation = false;
+
+    public $code = '';
+
+    public function getView(): string
+    {
+        return 'filament.pages.project-detail';
+    }
+
+    public function mount(): void
+    {
+        // Obtener el código desde la URL
+        $this->code = request()->route('code');
+
+        if (!$this->code) {
+            abort(404, 'Código de proyecto no especificado');
+        }
+
+        // Verificar que el proyecto existe
+        $companyId = auth()->user()->company_id ?? config('app.current_tenant_id');
+        $exists = Document::where('company_id', $companyId)
+            ->where('reference', $this->code)
+            ->exists();
+
+        if (!$exists) {
+            abort(404, 'Proyecto no encontrado');
+        }
+    }
+
+    public function getTitle(): string
+    {
+        return 'Proyecto: ' . $this->code;
+    }
+
+    public function getDocuments()
+    {
+        $companyId = auth()->user()->company_id ?? config('app.current_tenant_id');
+
+        return Document::where('company_id', $companyId)
+            ->where('reference', $this->code)
+            ->with(['documentType', 'contact', 'clientCompany'])
+            ->orderBy('date', 'desc')
+            ->get();
+    }
+
+    public function getPurchaseOrders()
+    {
+        $companyId = auth()->user()->company_id ?? config('app.current_tenant_id');
+
+        // Obtener IDs de documentos del proyecto
+        $documentIds = Document::where('company_id', $companyId)
+            ->where('reference', $this->code)
+            ->pluck('id');
+
+        return PurchaseOrder::where('company_id', $companyId)
+            ->whereHas('documentItems', function ($query) use ($documentIds) {
+                $query->whereIn('document_id', $documentIds);
+            })
+            ->with(['supplier', 'supplierCompany'])
+            ->orderBy('order_date', 'desc')
+            ->get();
+    }
+
+    public function getProductionOrders()
+    {
+        $companyId = auth()->user()->company_id ?? config('app.current_tenant_id');
+
+        // Obtener IDs de documentos del proyecto
+        $documentIds = Document::where('company_id', $companyId)
+            ->where('reference', $this->code)
+            ->pluck('id');
+
+        return ProductionOrder::where('company_id', $companyId)
+            ->whereHas('documentItems', function ($query) use ($documentIds) {
+                $query->whereIn('document_id', $documentIds);
+            })
+            ->with(['supplier', 'supplierCompany', 'operator'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+    }
+
+    public function getCollectionAccounts()
+    {
+        $companyId = auth()->user()->company_id ?? config('app.current_tenant_id');
+
+        // Obtener IDs de documentos del proyecto
+        $documentIds = Document::where('company_id', $companyId)
+            ->where('reference', $this->code)
+            ->pluck('id');
+
+        return CollectionAccount::where('company_id', $companyId)
+            ->whereHas('documentItems', function ($query) use ($documentIds) {
+                $query->whereIn('document_id', $documentIds);
+            })
+            ->with(['contact', 'clientCompany'])
+            ->orderBy('issue_date', 'desc')
+            ->get();
+    }
+}

@@ -43,9 +43,10 @@ class ProductionOrderForm
                                         'company' => 'Empresa Conectada',
                                         'contact' => 'Proveedor/Contacto',
                                     ])
-                                    ->default('contact')
+                                    ->default(fn ($record) => $record && $record->supplier_company_id ? 'company' : 'contact')
                                     ->required()
                                     ->live()
+                                    ->dehydrated(false) // No guardar en BD
                                     ->helperText('Selecciona si el proveedor es una empresa del sistema o un contacto externo'),
 
                                 Components\Select::make('supplier_company_id')

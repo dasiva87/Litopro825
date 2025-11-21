@@ -35,6 +35,227 @@ app/Filament/Resources/[Entity]/
 
 ## PROGRESO RECIENTE
 
+### ✅ Sesión Completada (19-Nov-2025)
+**SPRINT 21: Sistema de Acabados para Productos en Cotizaciones**
+
+#### Logros de la Sesión
+
+1. **✅ Stock Insuficiente - Modal de Advertencia**
+   - Cambió excepción por notificación elegante
+   - `Filament\Support\Exceptions\Halt` detiene sin cerrar modal
+   - Usuario puede corregir cantidad sin perder datos
+
+2. **✅ Acabados en Productos - Integración Completa**
+   - **CalculatesProducts Trait**: Método `calculateProductTotalWithFinishings()`
+   - **Cálculo reactivo**: Precio se actualiza al agregar/modificar acabados
+   - **Recálculo dinámico**: Acabados se ajustan a cantidad solicitada
+   - **Guardado en item_config**: Acabados personalizados por cotización
+
+3. **✅ Formulario de Creación de Productos**
+   - Repeater de acabados con campos dinámicos
+   - Carga automática de acabados predefinidos del producto
+   - Preview de costo en tiempo real
+   - Guardado en `item_config` del DocumentItem
+
+4. **✅ Formulario de Edición de Productos (ProductHandler)**
+   - Sección de acabados en modal de edición
+   - Carga acabados desde `item_config` o producto base
+   - `fillForm()`: Carga acabados guardados
+   - `handleUpdate()`: Guarda acabados editados y recalcula precio
+
+5. **✅ Debugging Tools**
+   - Placeholder de debug para visualizar cálculo
+   - Logs en Laravel para tracking de cálculos
+   - Información detallada de acabados y costos
+
+#### Archivos Modificados (Sprint 21)
+
+**Handlers (2)**:
+1. `app/Filament/Resources/Documents/RelationManagers/Handlers/ProductQuickHandler.php`
+   - Cambió excepción por `Halt` + notificación
+   - Repeater de acabados con live updates
+   - Carga acabados del producto al seleccionar
+   - Placeholder de debug agregado
+   - handleCreate() calcula y guarda acabados en item_config
+
+2. `app/Filament/Resources/Documents/RelationManagers/Handlers/ProductHandler.php`
+   - getEditForm() con sección de acabados
+   - fillForm() carga acabados desde item_config
+   - handleUpdate() guarda acabados y recalcula precios
+
+**Traits (1)**:
+3. `app/Filament/Resources/Documents/RelationManagers/Traits/CalculatesProducts.php`
+   - calculateProductTotalWithFinishings() (public)
+   - Recálculo de acabados por cantidad solicitada
+   - Soporte para acabados personalizados o del producto
+   - Todos los métodos cambiados a public
+
+**Total Sprint 21**: 3 archivos modificados
+
+#### Flujo de Acabados Implementado
+
+```
+AGREGAR PRODUCTO:
+1. Seleccionar producto → Carga acabados predefinidos
+2. Usuario modifica/agrega acabados en repeater
+3. Precio se calcula: (Producto × Cant) + Acabados + Margen
+4. Guardar → item_config = {finishings, finishings_cost}
+
+EDITAR PRODUCTO:
+1. Abrir modal → Carga acabados desde item_config
+2. Usuario modifica acabados
+3. Precio se recalcula en tiempo real
+4. Guardar → Actualiza item_config y precios
+```
+
+#### Testing Realizado
+
+```php
+✅ Producto sin stock → Modal de advertencia (no cierra)
+✅ Producto con acabados → Se cargan en repeater
+✅ Cálculo reactivo → Precio actualiza al cambiar acabados
+✅ Guardado → item_config guarda acabados correctamente
+✅ Edición → Carga y guarda acabados modificados
+✅ Recálculo → Acabados proporcionales a cantidad
+```
+
+---
+
+### ✅ Sesión Completada (16-Nov-2025)
+**SPRINT 20: Sistema Completo de Órdenes de Producción con Impresión + Acabados**
+
+#### Logros de la Sesión
+
+1. **✅ Implementación de Órdenes de Producción para Impresión**
+   - **getPrintingSupplier()**: Extrae supplier_id desde PrintingMachine
+   - **Máquinas propias**: Asignan contacto autorreferencial (ID: 9)
+   - **Máquinas externas**: Usan supplier_id de la máquina
+   - **buildPrintingDescription()**: Genera descripción detallada del proceso
+
+2. **✅ Auto-Asignación de Proveedores en PrintingMachines**
+   - **5 máquinas actualizadas**: Heidelberg, Xerox, Komori, GTO 52 (×2)
+   - **supplier_id = 9**: Para todas las máquinas propias (is_own = true)
+   - **Contacto reutilizado**: "LitoPro Demo (Producción Propia)"
+
+3. **✅ Agrupación Completa por Proveedor**
+   - **Impresión + Acabados**: Ambos procesos en el mismo servicio
+   - **Múltiples órdenes**: Separa por proveedor automáticamente
+   - **Ejemplo real**: 2 órdenes (1 propia para impresión + 1 externa para acabado)
+
+4. **✅ Testing Exhaustivo**
+   - **Caso 1**: Item con impresión propia → 1 orden con 🖨️ Impresión
+   - **Caso 2**: Item con acabado propio → 1 orden con 🎯 Acabado
+   - **Caso 3**: Impresión propia + Acabado externo → 2 órdenes separadas
+   - **Validación**: Todos los campos de pivot correctos
+
+#### Archivos Modificados (Sprint 20)
+
+**Servicios (1)**:
+1. `app/Services/ProductionOrderGroupingService.php`
+   - getPrintingSupplier() implementado (extrae de PrintingMachine)
+   - getSelfContactId() agregado (reutiliza lógica de Finishing)
+   - buildPrintingDescription() genera descripción detallada
+   - Procesamiento de impresión + acabados en groupBySupplier()
+
+**Total Sprint 20**: 1 archivo modificado, 0 nuevos archivos
+
+#### Testing Realizado
+
+```php
+✅ Test 1: Item simple con impresión
+   → 1 orden propia con 1 proceso de impresión
+
+✅ Test 2: Item con impresión + acabado mismo proveedor
+   → 1 orden propia con 2 procesos (impresión + acabado)
+
+✅ Test 3: Item con impresión propia + acabado externo
+   → 2 órdenes:
+      - Orden 1 (Propia): Impresión
+      - Orden 2 (Externa): Acabado levante
+
+✅ Validación: 5 PrintingMachines actualizadas con supplier_id = 9
+```
+
+---
+
+### ✅ Sesión Completada (15-Nov-2025)
+**SPRINT 19: Sistema de Acabados con Auto-Asignación de Proveedores**
+
+#### Logros de la Sesión
+
+1. **✅ Fix Error de Columna 'code' en Finishing**
+   - **Problema**: boot() auto-generaba campo 'code' que no existe en BD
+   - **Solución**:
+     - Removido 'code' de $fillable en Finishing.php
+     - Eliminada auto-generación en boot()
+     - Removido campo del formulario FinishingForm.php
+     - Grid cambiado de 3 a 2 columnas
+
+2. **✅ Auto-Asignación Inteligente de Proveedores**
+   - **Contacto autorreferencial**: "LitoPro Demo (Producción Propia)" (ID: 9)
+   - **Método getSelfContactId()**: Crea/obtiene contacto si no existe
+   - **Toggle propio ↔ externo**: Funciona correctamente
+   - **boot() events**:
+     - creating: Asigna supplier_id si is_own_provider = true
+     - updating: Actualiza supplier_id según toggle
+
+3. **✅ Acabados en SimpleItem/DigitalItem - Sistema Completo**
+   - **Eliminado duplicado**: Repeater de acabados solo en handlers
+   - **Edición funcional**: Carga/guarda acabados desde pivot
+   - **Cálculo reactivo**: Precio se actualiza en tiempo real
+   - **Relación agregada**: simpleItems() en Finishing model
+
+4. **✅ ProductionOrders - Validación y Agrupación**
+   - **Validación temprana**: Items sin proveedores generan error claro
+   - **Agrupación correcta**: ProductionOrderGroupingService agrupa por supplier_id
+   - **Separación propios/externos**: 2 órdenes (1 propia + 1 externa)
+
+#### Archivos Modificados (Sprint 19)
+
+**Modelos (1)**:
+1. `app/Models/Finishing.php`
+   - Removido 'code' de $fillable
+   - Actualizado boot() para auto-asignar supplier en toggle
+   - getSelfContactId() crea contacto autorreferencial
+   - Agregada relación simpleItems()
+
+**Formularios (1)**:
+2. `app/Filament/Resources/Finishings/Schemas/FinishingForm.php`
+   - Removido campo 'code'
+   - Grid 3 → 2 columnas
+
+**RelationManagers (1)**:
+3. `app/Filament/Resources/Documents/RelationManagers/DocumentItemsRelationManager.php`
+   - Carga acabados desde pivot en edición
+   - Guarda acabados a pivot (detach → attach)
+   - TextInput reactivo para calculated_cost
+
+**Pages (2)**:
+4. `app/Filament/Resources/SimpleItems/Pages/CreateSimpleItem.php`
+   - afterCreate() guarda acabados a pivot
+
+5. `app/Filament/Resources/SimpleItems/Pages/EditSimpleItem.php`
+   - mutateFormDataBeforeFill() carga acabados
+   - afterSave() sincroniza acabados
+
+**Total Sprint 19**: 5 archivos modificados, 0 nuevos archivos
+
+#### Testing Realizado
+
+```php
+✅ Crear acabado propio → supplier_id = 9 (auto-asignado)
+✅ Crear acabado externo → supplier_id = 3 (manual)
+✅ Toggle externo → propio → supplier_id = 9
+✅ Toggle propio → externo → supplier_id = 3
+✅ Agregar acabados a SimpleItem/DigitalItem
+✅ Editar items con acabados (carga correctamente)
+✅ Cálculo reactivo de costos funciona
+✅ ProductionOrderGroupingService agrupa correctamente
+✅ 2 órdenes: 1 propia (ID:9) + 1 externa (ID:3)
+```
+
+---
+
 ### ✅ Sesión Completada (08-Nov-2025)
 **SPRINT 18: Sistema Completo de Imágenes para Productos + Múltiples Mejoras de UX**
 
@@ -188,659 +409,212 @@ app/Filament/Resources/[Entity]/
 
 ---
 
-### ✅ Sesión Completada (07-Nov-2025 - Parte 3)
-**SPRINT 17: Actualización de Nomenclatura - Papelería → Papelería y Productos**
-
-#### Logros de la Sesión
-
-1. **✅ Actualizado CompanyType Enum**
-   - **Archivo**: `app/Enums/CompanyType.php`
-   - **Cambios**:
-     - Label: "Papelería" → "Papelería y Productos"
-     - Descripción: "Empresa dedicada a la venta de papeles y productos de oficina" → "Empresa dedicada a la venta de papeles, productos y suministros de oficina"
-
-2. **✅ Formularios Actualizados** (2 archivos)
-   - `app/Filament/Pages/Auth/Register.php` - Select del tipo de empresa
-   - Opciones ahora muestra "Papelería y Productos" en lugar de "Papelería"
-
-3. **✅ Labels de Interfaz Actualizados** (8 archivos)
-   - **Filtros de tablas**: "Papelería" → "Proveedor" (más genérico y preciso)
-     - `ProductsTable.php` - Filtro por proveedor
-     - `PapersTable.php` - Filtro por proveedor
-   - **Relaciones con proveedores**: "Papelería" → "Proveedor"
-     - `SupplierRelationshipsTable.php` - Columna y select de proveedor
-     - `SupplierRelationshipForm.php` - Select de proveedor
-     - `SupplierRequestsTable.php` - Columna de proveedor
-     - `SupplierRequestForm.php` - "Papelería Proveedora" → "Empresa Proveedora"
-     - `SuppliersRelationManager.php` - Columna y select de proveedor (2 lugares)
-
-#### Razón del Cambio
-
-El nombre "Papelería" limitaba conceptualmente el alcance del tipo de empresa. El nuevo nombre "Papelería y Productos" refleja mejor que estas empresas no solo venden papel, sino también:
-- Productos de oficina
-- Suministros generales
-- Artículos para litografías
-
-#### Archivos Modificados (10)
-
-**Enum (1)**:
-1. `app/Enums/CompanyType.php` - label() y description()
-
-**Formularios (2)**:
-2. `app/Filament/Pages/Auth/Register.php` - Opciones del select
-
-**Tablas y Formularios de UI (7)**:
-3. `app/Filament/Resources/Products/Tables/ProductsTable.php`
-4. `app/Filament/Resources/Papers/Tables/PapersTable.php`
-5. `app/Filament/Resources/SupplierRelationships/Tables/SupplierRelationshipsTable.php` (2 cambios)
-6. `app/Filament/Resources/SupplierRelationships/Schemas/SupplierRelationshipForm.php`
-7. `app/Filament/Resources/SupplierRequests/Tables/SupplierRequestsTable.php`
-8. `app/Filament/Resources/SupplierRequests/Schemas/SupplierRequestForm.php`
-9. `app/Filament/Resources/Contacts/RelationManagers/SuppliersRelationManager.php` (2 cambios)
-
-**Total**: 10 archivos modificados, 15 cambios de texto
-
-#### Validación
-
-```bash
-✅ Sintaxis verificada en todos los archivos
-✅ 0 errores de sintaxis
-✅ Lógica de negocio intacta (solo cambios de labels)
-```
-
----
-
-### ✅ Sesión Completada (07-Nov-2025 - Parte 2)
-**SPRINT 16.2: Finalización Completa Sistema de Permisos - 12 Recursos con 3 Capas**
-
-#### Logros de la Sesión
-
-1. **✅ Creadas 4 Nuevas Policies Completas**
-   - **PaperPolicy** (105 líneas) - app/Policies/PaperPolicy.php
-     - Métodos: viewAny, view, create, update, delete, restore, forceDelete, adjustStock, toggleActive
-     - Verificación de proveedores aprobados para litografías
-   - **PrintingMachinePolicy** (86 líneas) - app/Policies/PrintingMachinePolicy.php
-     - Métodos: viewAny, view, create, update, delete, restore, forceDelete, toggleActive
-   - **FinishingPolicy** (95 líneas) - app/Policies/FinishingPolicy.php
-     - Métodos: viewAny, view, create, update, delete, restore, forceDelete, toggleActive, manageRanges
-   - **CollectionAccountPolicy** (128 líneas) - app/Policies/CollectionAccountPolicy.php
-     - Métodos: viewAny, view, create, update, delete, restore, forceDelete, send, approve, markAsPaid, changeStatus
-     - Vista dual: empresa creadora O empresa cliente
-
-2. **✅ AuthServiceProvider Actualizado**
-   - **Archivo**: app/Providers/AuthServiceProvider.php
-   - **Agregadas 4 Policies**: Paper, PrintingMachine, Finishing, CollectionAccount
-   - **Imports ordenados**: 12 modelos + 12 policies
-   - **Categorización mejorada**: User & Role / Core Business / Orders & Accounting / Configuration & Resources
-
-3. **✅ Recursos Actualizados para Usar Policies**
-   - **PaperResource**: Ahora usa `can('viewAny', Paper::class)` en lugar de verificación directa de roles
-   - **PrintingMachineResource**: Ahora usa `can('viewAny', PrintingMachine::class)`
-   - **FinishingResource**: Ahora usa `can('viewAny', Finishing::class)`
-   - **CollectionAccountResource**: Ahora usa `can('viewAny', CollectionAccount::class)`
-
-#### Estado Final Completo de Verificación de Permisos
-
-| Recurso | canViewAny() | Policy | Estado |
-|---------|--------------|--------|--------|
-| Users | ✅ | ✅ | **Completo (3 capas)** |
-| Roles | ✅ | ✅ | **Completo (3 capas)** |
-| Posts (Widget) | ✅ | ✅ | **Completo (3 capas)** |
-| Documents | ✅ | ✅ | **Completo (3 capas)** |
-| Contacts | ✅ | ✅ | **Completo (3 capas)** |
-| Products | ✅ | ✅ | **Completo (3 capas)** |
-| SimpleItems | ✅ | ✅ | **Completo (3 capas)** |
-| PurchaseOrders | ✅ | ✅ | **Completo (3 capas)** |
-| ProductionOrders | ✅ | ✅ | **Completo (3 capas)** |
-| Papers | ✅ | ✅ | **Completo (3 capas)** ⭐ |
-| PrintingMachines | ✅ | ✅ | **Completo (3 capas)** ⭐ |
-| Finishings | ✅ | ✅ | **Completo (3 capas)** ⭐ |
-| CollectionAccounts | ✅ | ✅ | **Completo (3 capas)** ⭐ |
-
-**Resultado FINAL**: 🎉 **12 de 12 recursos con verificación completa de 3 capas** (100%)
-
-#### Archivos Creados/Modificados (Sprint 16.2)
-
-**Nuevos archivos (4 Policies)**:
-1. `app/Policies/PaperPolicy.php` (105 líneas)
-2. `app/Policies/PrintingMachinePolicy.php` (86 líneas)
-3. `app/Policies/FinishingPolicy.php` (95 líneas)
-4. `app/Policies/CollectionAccountPolicy.php` (128 líneas)
-
-**Archivos modificados (5)**:
-1. `app/Providers/AuthServiceProvider.php` (+12 imports, +3 policies en array)
-2. `app/Filament/Resources/Papers/PaperResource.php` (simplificado canViewAny)
-3. `app/Filament/Resources/PrintingMachines/PrintingMachineResource.php` (simplificado canViewAny)
-4. `app/Filament/Resources/Finishings/FinishingResource.php` (simplificado canViewAny)
-5. `app/Filament/Resources/CollectionAccounts/CollectionAccountResource.php` (simplificado canViewAny)
-
-**Total Sprint 16.2**: 4 archivos nuevos (414 líneas), 5 archivos modificados
-
-#### Características Clave de las Policies
-
-**PaperPolicy**:
-- ✅ Proveedores aprobados: Litografías pueden ver papeles de proveedores activos
-- ✅ Stock protection: No permite eliminar si tiene movimientos de stock
-- ✅ Solo Admin/Manager pueden gestionar papeles
-
-**PrintingMachinePolicy**:
-- ✅ Aislamiento estricto por empresa
-- ✅ No permite eliminar si tiene items asociados
-- ✅ Solo Admin/Manager pueden gestionar máquinas
-
-**FinishingPolicy**:
-- ✅ Verificación de items asociados (SimpleItems + DigitalItems)
-- ✅ Gestión de rangos de precios (manageRanges)
-- ✅ Solo Admin/Manager pueden gestionar acabados
-
-**CollectionAccountPolicy**:
-- ✅ Vista dual completa: empresa creadora O cliente
-- ✅ Estado-dependent operations (draft/pending/sent)
-- ✅ Cliente puede marcar como pagado
-- ✅ Solo Admin puede aprobar cuentas
-
----
-
-### ✅ Sesión Completada (07-Nov-2025 - Parte 1)
-**SPRINT 16.1: Completar Sistema de Permisos - Arquitectura de 3 Capas**
-
-#### Logros de la Sesión
-
-1. **✅ Generación de Sitemap Completo (145 KB)**
-   - **Archivo**: `LITOPRO_SITEMAP.md`
-   - **Contenido**: 9 secciones + 4 anexos técnicos
-   - **Documentación de**:
-     - 19 Recursos CRUD completos
-     - 11 Páginas personalizadas
-     - 29 Widgets de dashboard
-     - 40+ Rutas web
-     - 9 API Endpoints
-     - 67 Modelos con relaciones
-     - 8 Roles y 56 Permisos
-     - 10 Flujos principales de negocio
-
-2. **✅ Sistema de Permisos Completado (3 Capas)**
-   - **Agregado `canViewAny()` a 5 recursos**:
-     - `DocumentResource` (app/Filament/Resources/Documents/DocumentResource.php:39-42)
-     - `ContactResource` (app/Filament/Resources/Contacts/ContactResource.php:38-41)
-     - `ProductResource` (app/Filament/Resources/Products/ProductResource.php:34-37)
-     - `SimpleItemResource` (app/Filament/Resources/SimpleItems/SimpleItemResource.php:40-43)
-     - `PurchaseOrderResource` (app/Filament/Resources/PurchaseOrders/PurchaseOrderResource.php:33-36)
-
-3. **✅ Creada ProductionOrderPolicy (110 líneas)**
-   - **Archivo**: `app/Policies/ProductionOrderPolicy.php`
-   - **Métodos implementados**:
-     - `viewAny()` - Usuarios con empresa pueden ver órdenes
-     - `view()` - Solo empresa propietaria O operador asignado
-     - `create()` - Usuarios con empresa pueden crear
-     - `update()` - Empresa propietaria O operador asignado
-     - `delete()` - Solo empresa propietaria y estado pending/draft
-     - `restore()` / `forceDelete()` - Solo empresa propietaria
-     - `assignOperator()` - Solo usuarios de la empresa
-     - `qualityCheck()` - Solo Admin/Manager de la empresa
-     - `changeStatus()` - Operador O Admin/Manager
-   - **Agregado `canViewAny()` a ProductionOrderResource** (línea 35-38)
-   - **Registrada en AuthServiceProvider** (línea 45)
-
-#### Estado Final de Verificación de Permisos
-
-| Recurso | canViewAny() | Policy | Estado |
-|---------|--------------|--------|--------|
-| Users | ✅ | ✅ | **Completo (3 capas)** |
-| Roles | ✅ | ✅ | **Completo (3 capas)** |
-| Papers | ✅ | ❌ | Parcial |
-| PrintingMachines | ✅ | ❌ | Parcial |
-| Finishings | ✅ | ❌ | Parcial |
-| CollectionAccounts | ✅ | ❌ | Parcial |
-| Posts (Widget) | ✅ | ✅ | **Completo (3 capas)** |
-| Documents | ✅ | ✅ | **Completo (3 capas)** ⭐ |
-| Contacts | ✅ | ✅ | **Completo (3 capas)** ⭐ |
-| Products | ✅ | ✅ | **Completo (3 capas)** ⭐ |
-| SimpleItems | ✅ | ✅ | **Completo (3 capas)** ⭐ |
-| PurchaseOrders | ✅ | ✅ | **Completo (3 capas)** ⭐ |
-| ProductionOrders | ✅ | ✅ | **Completo (3 capas)** ⭐ |
-
-**Resultado**: 8 recursos con verificación completa de 3 capas (Sprint 16 ⭐)
-
-#### Archivos Modificados
-
-1. `app/Filament/Resources/Documents/DocumentResource.php` (+5 líneas)
-2. `app/Filament/Resources/Contacts/ContactResource.php` (+5 líneas)
-3. `app/Filament/Resources/Products/ProductResource.php` (+5 líneas)
-4. `app/Filament/Resources/SimpleItems/SimpleItemResource.php` (+5 líneas)
-5. `app/Filament/Resources/PurchaseOrders/PurchaseOrderResource.php` (+5 líneas)
-6. `app/Filament/Resources/ProductionOrders/ProductionOrderResource.php` (+5 líneas)
-7. `app/Policies/ProductionOrderPolicy.php` (nuevo, 110 líneas)
-8. `app/Providers/AuthServiceProvider.php` (+2 líneas)
-9. `LITOPRO_SITEMAP.md` (nuevo, 145 KB)
-
-**Total**: 1 archivo nuevo (Policy), 7 archivos modificados, 1 sitemap generado
-
----
-
-### ✅ Sesión Completada (06-Nov-2025 - Parte 6)
-**SPRINT 15: Documentación Sistema de Notificaciones**
-
-#### Logros de la Sesión
-
-1. **✅ Análisis Completo del Sistema de Notificaciones**
-   - **Alcance**: Exploración exhaustiva de 27 archivos (2600+ líneas de código)
-   - **4 tipos de notificaciones identificados**:
-     - Notificaciones Sociales (SocialNotification) - Red social interna
-     - Alertas de Inventario (StockAlert + StockMovement) - Stock crítico
-     - Sistema Avanzado (NotificationChannel + Rule + Log) - Canales configurables
-     - Sistema Laravel Base (Notifications) - Notificaciones estándar
-
-2. **✅ Documentación Técnica Generada (66 KB)**
-   - `NOTIFICATION_SYSTEM_ANALYSIS.md` (40 KB) - Análisis técnico completo
-   - `NOTIFICATION_SYSTEM_SUMMARY.md` (15 KB) - Resumen ejecutivo
-   - `NOTIFICATION_FILE_REFERENCES.md` (11 KB) - Índice de archivos con líneas exactas
-   - `README_NOTIFICATIONS.md` - Guía de navegación
-
-3. **✅ Arquitectura Multi-Tenant Verificada**
-   - Aislamiento automático por `company_id` en todos los modelos
-   - 7 tablas de notificaciones documentadas con DDL completo
-   - 2 servicios principales (NotificationService + StockNotificationService)
-   - 5 canales de comunicación (email, database, SMS, push, custom)
-
-#### Componentes Documentados
-
-**Modelos (7)**:
-- `SocialNotification` (11 campos) - Posts y actividad social
-- `StockAlert` (27 campos) - Alertas de inventario crítico
-- `StockMovement` (21 campos) - Movimientos de stock
-- `NotificationChannel` (34 campos) - Canales configurables
-- `NotificationRule` (49 campos) - Reglas de envío
-- `NotificationLog` (40 campos) - Auditoría completa
-- `Notification` (Laravel) - Sistema base
-
-**Servicios (2)**:
-- `NotificationService` (219 líneas, 7 métodos) - Servicio principal
-- `StockNotificationService` (290 líneas, 8 métodos) - Alertas de stock
-
-**Características Clave**:
-- ✅ Multi-tenant con aislamiento automático
-- ✅ Procesamiento asíncrono (Laravel Queue)
-- ✅ Deduplicación de notificaciones
-- ✅ Filtrado por rol y severidad
-- ✅ Auditoría completa (notification_logs)
-- ✅ Configuración flexible (canales + reglas)
-
-#### Archivos de Documentación Creados
-
-```
-/home/dasiva/Descargas/litopro825/
-├── NOTIFICATION_SYSTEM_ANALYSIS.md      # 40 KB - Análisis técnico
-├── NOTIFICATION_SYSTEM_SUMMARY.md       # 15 KB - Guía rápida
-├── NOTIFICATION_FILE_REFERENCES.md      # 11 KB - Índice de archivos
-└── README_NOTIFICATIONS.md              # Navegación
-```
-
----
-
-### ✅ Sesión Completada (06-Nov-2025 - Parte 5)
-**SPRINT 14.4: Fix de Verificación de Permisos en Acciones**
-
-#### Logros de la Sesión
-
-1. **✅ Problema Identificado: Permisos no se verificaban en acciones**
-   - **Caso**: Usuario Salesperson sin permiso `create-posts` podía crear posts
-   - **Causa raíz**: CreatePostWidget NO verificaba permisos antes de permitir la acción
-   - **Alcance**: Problema encontrado en widgets y algunos recursos
-
-2. **✅ Solución Implementada: Policy + Widget Protection**
-   - **Creada Policy**: `SocialPostPolicy` con verificación completa
-   - **Widget protegido**: `CreatePostWidget` ahora verifica permisos
-   - **Métodos agregados**:
-     - `canView()` - Solo muestra widget si puede crear posts
-     - Verificación en `createPost()` antes de ejecutar acción
-
-3. **✅ Arquitectura de Permisos Explicada**
-   - **Spatie Permission**: Base del sistema (roles, permisos, BD)
-   - **Laravel Policies**: Capa de lógica de negocio
-   - **Filament Resources**: Capa de interfaz (canViewAny, canCreate, etc.)
-   - **Combinación**: Máxima seguridad con 3 capas de verificación
-
-#### Archivos Creados/Modificados
-
-1. **Creado**: `app/Policies/SocialPostPolicy.php`
-   - `viewAny()`: Requiere `view-posts`
-   - `create()`: Requiere `create-posts`
-   - `update()`: Requiere `edit-posts` O ser autor
-   - `delete()`: Requiere `delete-posts` O ser autor
-   - Todas las acciones verifican `company_id`
-
-2. **Modificado**: `app/Filament/Widgets/CreatePostWidget.php`
-   - Agregado `canView()`: Oculta widget si no puede crear
-   - Agregada verificación en `createPost()`: Previene acción si no tiene permiso
-
-#### Estado de Verificación de Permisos por Recurso
-
-| Recurso | Estado | Protección |
-|---------|--------|------------|
-| Users | ✅ Completo | Policy + canViewAny() |
-| Roles | ✅ Completo | Policy + canViewAny() |
-| Papers | ✅ Completo | canViewAny() |
-| PrintingMachines | ✅ Completo | canViewAny() |
-| Finishings | ✅ Completo | canViewAny() |
-| CollectionAccounts | ✅ Completo | canViewAny() |
-| Posts (Widget) | ✅ Completo | Policy + canView() |
-| Documents | ⚠️ Parcial | Solo Policy |
-| Contacts | ⚠️ Parcial | Solo Policy |
-| Products | ⚠️ Parcial | Solo Policy |
-| SimpleItems | ⚠️ Parcial | Solo Policy |
-| PurchaseOrders | ⚠️ Parcial | Solo Policy |
-| ProductionOrders | ❌ Sin verificación | Ninguna |
-
-#### Métodos de Verificación de Permisos
-
-**Usando Spatie Permission (Base):**
-```php
-// Verificar permiso directo
-$user->hasPermissionTo('create-posts')
-
-// Verificar rol
-$user->hasRole('Manager')
-
-// Verificar cualquier rol
-$user->hasAnyRole(['Manager', 'Admin'])
-```
-
-**Usando Policies (Recomendado):**
-```php
-// En código
-$user->can('create', SocialPost::class)
-$user->can('update', $post)
-
-// En Filament Resources
-public static function canViewAny(): bool {
-    return auth()->user()->can('viewAny', Model::class);
-}
-```
-
-**Arquitectura (3 Capas):**
-```
-Interfaz (Resource/Widget)
-    ↓ can('create', Model)
-Policy (Lógica de Negocio)
-    ↓ hasPermissionTo('create-posts')
-Spatie (Base de Datos)
-    ↓ role_has_permissions
-✅ Acceso Permitido
-```
-
-#### Testing Realizado
-
-✅ **Caso 1: Salesperson sin create-posts**
-- Widget "Crear Post" NO aparece en dashboard
-- Si intenta acceder por URL: Error 403
-
-✅ **Caso 2: Manager con create-posts**
-- Widget visible
-- Puede crear posts exitosamente
-
----
-
-### ✅ Sesión Completada (06-Nov-2025 - Parte 4)
-**SPRINT 14.3: Fix de Interfaz de Gestión de Roles**
-
-#### Logros de la Sesión
-
-1. **✅ Problema Identificado: Formulario de roles incompleto**
-   - **Causa raíz**: Solo mostraba 43 permisos de 56 existentes en BD
-   - **Permisos faltantes**:
-     - Gestión de Empresas (view/create/edit/delete-companies)
-     - Inventario (manage-inventory, manage-paper-catalog, manage-printing-machines)
-   - **Resultado**: No se podían asignar todos los permisos disponibles
-
-2. **✅ Solución Implementada: Categorías Completas**
-   - **Nueva sección agregada**: "Gestión de Empresas" (solo Super Admin)
-   - **Nueva sección agregada**: "Inventario"
-   - **Formulario actualizado**: Ahora muestra TODOS los 56 permisos del sistema
-   - **Categorización mejorada**: Separación clara entre inventario y sistema
-
-3. **✅ Archivos Actualizados**
-   - `RoleForm.php`: Agregadas secciones de Companies e Inventory
-   - `EditRole.php`: Actualizado para cargar/guardar nuevas categorías
-   - Sincronización correcta entre formulario y BD
-
-#### Archivos Modificados
-
-1. `app/Filament/Resources/Roles/Schemas/RoleForm.php`
-   - Agregada sección "Gestión de Empresas" (línea 93-102)
-   - Agregada sección "Inventario" (línea 104-111)
-   - Actualizado `getPermissionsByCategory()` con nuevas categorías (línea 152-153)
-
-2. `app/Filament/Resources/Roles/Pages/EditRole.php`
-   - Agregado `company_permissions` e `inventory_permissions` en carga (línea 28-29)
-   - Agregado `company_permissions` e `inventory_permissions` en guardado (línea 59-60)
-
-#### Permisos por Categoría Actualizados
-
-```
-Gestión de Usuarios: 4 permisos
-Gestión de Contactos: 4 permisos
-Cotizaciones: 6 permisos
-Documentos: 5 permisos
-Órdenes de Producción: 5 permisos
-Órdenes de Papel: 4 permisos
-Productos: 4 permisos
-Equipos: 4 permisos
-Empresas: 4 permisos (solo Super Admin)
-Inventario: 3 permisos
-Sistema: 6 permisos
-Reportes: 2 permisos
-Red Social: 5 permisos
----
-TOTAL: 56 permisos ✅
-```
-
----
-
-### ✅ Sesión Completada (06-Nov-2025 - Parte 3)
-**SPRINT 14.2: Fix Crítico de Permisos por Rol**
-
-#### Logros de la Sesión
-
-1. **✅ Problema Identificado: Salesperson tenía acceso a TODO**
-   - **Causa raíz**: Recursos críticos NO tenían método `canViewAny()` configurado
-   - **Afectados**: Papers, PrintingMachines, Finishings, CollectionAccounts
-   - **Resultado**: Cualquier usuario autenticado podía acceder a estos recursos
-
-2. **✅ Solución Implementada: Restricciones por Rol**
-   - **Método agregado**: `canViewAny()` a recursos críticos
-   - **Roles permitidos**: Solo `Super Admin`, `Company Admin`, `Manager`
-   - **Salesperson bloqueado** de:
-     - Papers (gestión de papeles)
-     - PrintingMachines (máquinas de impresión)
-     - Finishings (acabados)
-     - CollectionAccounts (cuentas de cobro)
-
-3. **✅ Sistema de Roles Verificado**
-   - 8 roles en el sistema: Super Admin, Company Admin, Manager, Salesperson, Operator, Customer, Employee, Client
-   - Salesperson tiene 15 permisos específicos (contactos, cotizaciones, órdenes de producción)
-   - UserResource ya tenía restricciones correctas (solo Admin)
-   - RoleResource ya tenía restricciones correctas (solo Admin)
-
-#### Archivos Modificados
-
-1. `app/Filament/Resources/Papers/PaperResource.php`
-   - Agregado `canViewAny()` - Solo Admin/Manager (línea 42-46)
-
-2. `app/Filament/Resources/PrintingMachines/PrintingMachineResource.php`
-   - Agregado `canViewAny()` - Solo Admin/Manager (línea 45-49)
-
-3. `app/Filament/Resources/Finishings/FinishingResource.php`
-   - Agregado `canViewAny()` - Solo Admin/Manager (línea 44-48)
-
-4. `app/Filament/Resources/CollectionAccounts/CollectionAccountResource.php`
-   - Agregado `canViewAny()` - Solo Admin/Manager (línea 38-42)
-
-#### Testing Sugerido
-
-```bash
-# Crear usuario Salesperson y verificar:
-# ✅ Puede ver: Documents, Contacts, ProductionOrders
-# ❌ NO puede ver: Papers, PrintingMachines, Finishings, CollectionAccounts, Users, Roles
-```
-
----
-
-### ✅ Sesión Completada (06-Nov-2025 - Parte 2)
-**SPRINT 14.1: UI de Acabados + Fix de Billing**
-
-#### Logros de la Sesión
-
-1. **✅ Interfaz de Acabados en SimpleItem**
-   - **Archivo**: `app/Filament/Resources/SimpleItems/Schemas/SimpleItemForm.php`
-   - **Nueva sección**: "🎨 Acabados Sugeridos" (collapsed por defecto)
-   - **Características**:
-     - Repeater con relación `finishings` (tabla pivot)
-     - Auto-población de parámetros según tipo de acabado
-     - Campos dinámicos (cantidad para MILLAR/RANGO/UNIDAD, ancho/alto para TAMAÑO)
-     - Cálculo de costo en tiempo real
-     - Total de acabados al final de la sección
-     - Toggle `is_default` para marcar sugerencias automáticas
-
-2. **✅ Ocultada Opción "Tiro y Retiro en Misma Plancha"**
-   - **Cambio**: Removido Toggle `front_back_plate` de la interfaz
-   - **Grid cambiado**: De 4 columnas a 3 columnas
-   - **Backend intacto**: Campo sigue existiendo en BD pero no es visible
-
-3. **✅ Fix Crítico: Redirección a /admin/billing**
-   - **Problema**: Usuarios quedaban atrapados en página de billing
-   - **Causa raíz 1**: Método `getCurrentPlan()` retornaba `null` para plan "free"
-   - **Causa raíz 2**: Método buscaba por `name` en lugar de `slug`
-   - **Causa raíz 3**: Company tenía `status = 'incomplete'` en lugar de `'active'`
-   - **Solución**:
-     - `app/Models/Company.php:313-321` - Corregido `getCurrentPlan()` para buscar por slug
-     - Removida condición que excluía plan "free"
-     - Actualizado status de empresa a 'active'
-
-#### Testing Realizado
-
-✅ **getCurrentPlan() corregido**:
-```php
-$company->subscription_plan = 'free';
-$plan = $company->getCurrentPlan(); // Ahora retorna Plan Gratuito ✅
-```
-
-✅ **Interfaz de acabados**:
-- Repeater funcional con relación pivot
-- Auto-población de campos según tipo
-- Cálculo en tiempo real funciona
-
-#### Archivos Modificados
-
-1. `app/Filament/Resources/SimpleItems/Schemas/SimpleItemForm.php`
-   - Agregada sección de acabados (líneas 679-858)
-   - Removido toggle `front_back_plate` (línea 169-199)
-
-2. `app/Models/Company.php`
-   - `getCurrentPlan()` ahora busca por `slug` en lugar de `name`
-   - Removida exclusión de plan "free"
-
----
-
-### ✅ Sprint 13 (05-Nov-2025)
-**Nuevo Sistema de Montaje con Divisor de Cortes**
-- Método `calculateMountingWithCuts()`: Integración MountingCalculatorService + CuttingCalculatorService
-- Millares calculados sobre **impresiones** (no pliegos)
-- Fórmula: `pliegos = ceil(impresiones ÷ divisor)`
-- Ver sección "Notas Técnicas" para detalles de implementación
-
----
-
-### ✅ Sprint 14 (06-Nov-2025)
-**Sistema de Acabados para SimpleItem**
-- Sistema híbrido: SimpleItem (sugerencias) + DocumentItem (aplicados)
-- Tabla pivot `simple_item_finishing` con parámetros dinámicos
-- Métodos: `addFinishing()`, `calculateFinishingsCost()`, `getFinishingsBreakdown()`
-- Integración completa con SimpleItemCalculatorService
-- Ver sección "Notas Técnicas" para ejemplos de uso
+### 📋 Sprints Anteriores (Resumen)
+
+**SPRINT 18** (08-Nov): Sistema de Imágenes para Productos + Cliente Dual + Item Personalizado
+**SPRINT 17** (07-Nov): Nomenclatura "Papelería → Papelería y Productos"
+**SPRINT 16** (07-Nov): Sistema de Permisos 100% + Policies
+**SPRINT 15** (06-Nov): Documentación Sistema de Notificaciones (4 tipos)
+**SPRINT 14** (06-Nov): Sistema base de Acabados + UI
+**SPRINT 13** (05-Nov): Sistema de Montaje con Divisor
 
 ---
 
 ## 🎯 PRÓXIMA TAREA PRIORITARIA
 
-**✅✅ Sistema de Permisos 100% Completado (Sprint 16.2)**
+**Remover Placeholder de Debug de ProductQuickHandler**
 
-**Estado FINAL**: 🎉 **12 de 12 recursos con verificación completa de 3 capas**
-- ✅ Users, Roles, Posts (Widget)
-- ✅ Documents, Contacts, Products, SimpleItems
-- ✅ PurchaseOrders, ProductionOrders, CollectionAccounts
-- ✅ Papers, PrintingMachines, Finishings
+El placeholder de debug agregado en líneas 141-180 debe ser removido ahora que el sistema funciona correctamente.
 
-**Arquitectura de Seguridad Completa**:
-```
-Interfaz (Resource/Widget)
-    ↓ can('action', Model)
-Policy (Lógica de Negocio)
-    ↓ hasPermissionTo('permission')
-Spatie (Base de Datos)
-    ↓ role_has_permissions
-✅ Acceso Permitido/Denegado
-```
+**Tareas Pendientes**:
+1. **Limpiar ProductQuickHandler.php**
+   - Remover sección `calculation_debug` (líneas 141-180)
+   - Remover log de debug en `CalculatesProducts.php` (líneas 30-37)
 
-**Próximas tareas sugeridas**:
-1. ✅ ~~Crear todas las Policies~~ (COMPLETADO)
-2. Implementar testing automatizado de permisos
-3. Documentar matriz de permisos por rol
-4. Crear seeders para testing de permisos
+2. **Sistema de Acabados para DigitalItems**
+   - Implementar mismo patrón que Products
+   - Repeater en creación y edición
+   - Guardado en item_config
+
+3. **Dashboard de Producción**
+   - Widget con órdenes activas
+   - Métricas de eficiencia por proveedor
+   - Alertas de órdenes atrasadas
 
 ---
 
 ## COMANDO PARA EMPEZAR MAÑANA
 
 ```bash
-# Iniciar LitoPro 3.0 - SPRINT 18 COMPLETADO (Sistema de Imágenes + UX)
+# Iniciar LitoPro 3.0 - SPRINT 21 COMPLETADO (Acabados para Productos)
 cd /home/dasiva/Descargas/litopro825 && php artisan serve --port=8000
 
 # Estado del Proyecto
-echo "✅ SPRINT 18 COMPLETADO (08-Nov-2025) - Sistema de Imágenes + Múltiples Mejoras UX"
+echo "✅ SPRINT 21 COMPLETADO (19-Nov-2025) - Sistema de Acabados para Productos"
 echo ""
 echo "📍 URLs de Testing:"
 echo "   🏠 Dashboard: http://127.0.0.1:8000/admin"
-echo "   📦 Productos: http://127.0.0.1:8000/admin/products"
+echo "   🎨 Acabados: http://127.0.0.1:8000/admin/finishings"
 echo "   📋 Cotizaciones: http://127.0.0.1:8000/admin/documents"
+echo "   📦 Productos: http://127.0.0.1:8000/admin/products"
 echo "   🏭 Órdenes de Producción: http://127.0.0.1:8000/admin/production-orders"
-echo "   📄 Órdenes de Pedido: http://127.0.0.1:8000/admin/purchase-orders"
-echo "   💰 Cuentas de Cobro: http://127.0.0.1:8000/admin/collection-accounts"
 echo ""
 echo "⚠️  IMPORTANTE: Usar http://127.0.0.1:8000 (NO localhost) - CORS configurado"
 echo ""
-echo "📚 DOCUMENTACIÓN:"
-echo "   • LITOPRO_SITEMAP.md (145 KB) - Sitemap completo del SaaS"
+echo "🎉 SPRINT 21 - ACABADOS EN PRODUCTOS COMPLETO:"
+echo "   • ✅ Stock insuficiente → Modal de advertencia (Halt)"
+echo "   • ✅ Productos con acabados → Carga/edición completa"
+echo "   • ✅ Cálculo reactivo → Precio actualiza en tiempo real"
+echo "   • ✅ Guardado en item_config → Acabados por cotización"
+echo "   • ✅ Recálculo dinámico → Proporcional a cantidad"
 echo ""
-echo "🎉 SPRINT 18 - LOGROS PRINCIPALES:"
-echo "   • ✅ Sistema de Imágenes para Productos (1-3 imágenes)"
-echo "   • ✅ Item Personalizado en Órdenes de Producción"
-echo "   • ✅ Sistema Dual Cliente/Proveedor en 4 recursos"
-echo "   • ✅ Protecciones UX en RelationManagers"
-echo "   • ✅ Fix CORS (APP_URL → 127.0.0.1:8000)"
+echo "📊 FLUJO DE ACABADOS EN PRODUCTOS:"
+echo "   Producto → Seleccionar en cotización"
+echo "      ↓"
+echo "   Carga acabados predefinidos en repeater"
+echo "      ↓"
+echo "   Usuario modifica/agrega acabados"
+echo "      ↓"
+echo "   Precio = (Producto × Cant) + Acabados + Margen"
+echo "      ↓"
+echo "   Guardar → item_config + precios actualizados"
 echo ""
-echo "🎉 SISTEMA DE PERMISOS 100% COMPLETADO (Sprint 16):"
-echo "   • 12 de 12 recursos con verificación de 3 capas"
-echo "   • Arquitectura: Interfaz → Policy → Spatie"
-echo "   • Sprint 16.1: ProductionOrderPolicy + 6 recursos"
-echo "   • Sprint 16.2: 4 Policies nuevas (414 líneas)"
-echo "   • Policies: Paper, PrintingMachine, Finishing, CollectionAccount"
-echo ""
-echo "📋 RESUMEN SPRINT 16 COMPLETO:"
-echo "   • 5 Policies nuevas creadas (624 líneas)"
-echo "   • 12 recursos con canViewAny() actualizado"
-echo "   • AuthServiceProvider: 12 policies registradas"
-echo "   • Sitemap completo: 145 KB de documentación"
-echo ""
-echo "🎯 PRÓXIMAS TAREAS:"
-echo "   1. Implementar testing automatizado de permisos"
-echo "   2. Documentar matriz de permisos por rol"
-echo "   3. Crear seeders para testing completo"
+echo "🎯 PRÓXIMA TAREA:"
+echo "   1. Remover placeholder de debug (líneas 141-180)"
+echo "   2. Remover logs de debug en CalculatesProducts.php"
+echo "   3. Implementar acabados para DigitalItems"
 ```
 
 ---
 
 ## Notas Técnicas Importantes
+
+### Sistema de Acabados para Productos en Cotizaciones (Sprint 21)
+
+```php
+// AGREGAR PRODUCTO CON ACABADOS A COTIZACIÓN
+// ProductQuickHandler::handleCreate()
+
+// 1. Cargar producto con acabados
+$product = Product::with('finishings')->find($productId);
+
+// 2. Calcular costo de acabados (personalizados o del producto)
+$finishingCalculator = app(\App\Services\FinishingCalculatorService::class);
+$finishingsCostTotal = 0;
+
+foreach ($finishingsData as $finishingData) {
+    $finishing = \App\Models\Finishing::find($finishingData['finishing_id']);
+
+    // Parámetros según tipo
+    $params = match($finishing->measurement_unit->value) {
+        'millar', 'rango', 'unidad' => ['quantity' => $quantity],
+        'tamaño' => ['width' => $width, 'height' => $height],
+        default => []
+    };
+
+    $cost = $finishingCalculator->calculateCost($finishing, $params);
+    $finishingsCostTotal += $cost;
+}
+
+// 3. Calcular precio total con acabados
+$baseTotal = ($product->sale_price * $quantity) + $finishingsCostTotal;
+$totalWithMargin = $baseTotal * (1 + ($profitMargin / 100));
+
+// 4. Guardar en item_config
+$documentItem->update([
+    'item_config' => [
+        'finishings' => $finishingsData,
+        'finishings_cost' => $finishingsCostTotal,
+    ],
+]);
+
+// EDITAR PRODUCTO CON ACABADOS
+// ProductHandler::fillForm() - Carga acabados
+$finishingsData = $record->item_config['finishings'] ?? [];
+
+// ProductHandler::handleUpdate() - Guarda acabados editados
+// Mismo proceso de cálculo que handleCreate()
+```
+
+**Características**:
+- **item_config**: Almacena acabados específicos por cotización
+- **Recálculo dinámico**: Acabados se ajustan a cantidad solicitada
+- **Fallback inteligente**: Si no hay en item_config, usa acabados del producto
+- **Cálculo reactivo**: Precio se actualiza en tiempo real (frontend)
+
+---
+
+### Auto-Asignación de Proveedores en Acabados (Sprint 19)
+
+```php
+use App\Models\Finishing;
+
+// 1. CREAR ACABADO PROPIO (auto-asigna supplier_id)
+$acabadoPropio = Finishing::create([
+    'company_id' => 1,
+    'name' => 'Plastificado',
+    'unit_price' => 50,
+    'measurement_unit' => 'millar',
+    'is_own_provider' => true,  // ← AUTO-ASIGNA SUPPLIER
+    'active' => true,
+]);
+// supplier_id = 9 (LitoPro Demo (Producción Propia))
+
+// 2. CREAR ACABADO EXTERNO (manual)
+$acabadoExterno = Finishing::create([
+    'company_id' => 1,
+    'name' => 'Barniz UV',
+    'unit_price' => 80,
+    'measurement_unit' => 'tamaño',
+    'is_own_provider' => false,
+    'supplier_id' => 3,  // Distribuidora de Papel Colombia
+    'active' => true,
+]);
+
+// 3. TOGGLE EXTERNO → PROPIO
+$acabado = Finishing::find(12);
+$acabado->update(['is_own_provider' => true]);
+// supplier_id automáticamente cambia a 9
+
+// 4. TOGGLE PROPIO → EXTERNO
+$acabado->update([
+    'is_own_provider' => false,
+    'supplier_id' => 3,  // Asignar proveedor manualmente
+]);
+
+// 5. CONTACTO AUTORREFERENCIAL
+// Método getSelfContactId() crea automáticamente:
+// - Nombre: "{Nombre Empresa} (Producción Propia)"
+// - Email: "produccion@{empresa}.com"
+// - Se crea solo una vez, se reutiliza después
+```
+
+**Arquitectura**:
+```
+boot() → creating/updating events
+    ↓
+is_own_provider = true?
+    ↓ YES
+getSelfContactId(company_id)
+    ↓
+Buscar/Crear Contact autorreferencial
+    ↓
+supplier_id = {self_contact_id}
+```
+
+**Producción de Órdenes**:
+```php
+$service = new ProductionOrderGroupingService();
+$grouped = $service->groupBySupplier($documentItems);
+
+// Resultado: 2 órdenes
+// [
+//     9 => ['finishings' => [Plastificado, Numeración]],  // Propia
+//     3 => ['finishings' => [Barniz UV, Levante]]         // Externa
+// ]
+```
+
+---
 
 ### Sistema de Notificaciones Multi-Tenant (Sprint 15)
 

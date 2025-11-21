@@ -115,9 +115,28 @@ class DocumentItem extends Model
         return $this->belongsTo(Paper::class);
     }
 
-    public function finishings(): HasMany
+    /**
+     * Accessor para obtener acabados del itemable (SimpleItem, DigitalItem, etc.)
+     * Esto permite usar $documentItem->finishings como si fuera una propiedad
+     */
+    public function getFinishingsAttribute()
     {
-        return $this->hasMany(DocumentItemFinishing::class);
+        // Asegurar que itemable esté cargado
+        if (!$this->relationLoaded('itemable')) {
+            $this->load('itemable');
+        }
+
+        // Si el itemable tiene acabados, retornarlos
+        if ($this->itemable && method_exists($this->itemable, 'finishings')) {
+            // Cargar acabados si no están cargados
+            if (!$this->itemable->relationLoaded('finishings')) {
+                $this->itemable->load('finishings');
+            }
+            return $this->itemable->finishings;
+        }
+
+        // Fallback: colección vacía
+        return collect([]);
     }
 
     public function purchaseOrders(): BelongsToMany

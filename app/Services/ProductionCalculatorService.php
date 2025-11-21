@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\DocumentItem;
 use App\Models\SimpleItem;
+use App\Models\DigitalItem;
 
 class ProductionCalculatorService
 {
@@ -16,7 +17,7 @@ class ProductionCalculatorService
      */
     public function calculateProductionData(DocumentItem $documentItem, ?int $quantityToProduce = null): array
     {
-        // Get the itemable (SimpleItem, Product, etc.)
+        // Get the itemable (SimpleItem, DigitalItem, etc.)
         $itemable = $documentItem->itemable;
 
         // If no quantity specified, use the document item quantity
@@ -25,6 +26,14 @@ class ProductionCalculatorService
         // Different calculation based on item type
         if ($itemable instanceof SimpleItem) {
             return $this->calculateFromSimpleItem($itemable, $quantityToProduce, $documentItem);
+        }
+
+        if ($itemable instanceof DigitalItem) {
+            return $this->calculateFromDigitalItem($itemable, $quantityToProduce, $documentItem);
+        }
+
+        if ($itemable instanceof \App\Models\Product) {
+            return $this->calculateFromProduct($itemable, $quantityToProduce, $documentItem);
         }
 
         // Default fallback for other item types
@@ -57,6 +66,28 @@ class ProductionCalculatorService
             'paper_id' => $simpleItem->paper_id,
             'horizontal_size' => $simpleItem->horizontal_size,
             'vertical_size' => $simpleItem->vertical_size,
+            'produced_quantity' => 0,
+            'rejected_quantity' => 0,
+            'item_status' => 'pending',
+        ];
+    }
+
+    /**
+     * Calculate production data from DigitalItem
+     * Digital items don't require sheets/impressions calculation
+     */
+    protected function calculateFromDigitalItem(DigitalItem $digitalItem, int $quantityToProduce, DocumentItem $documentItem): array
+    {
+        return [
+            'quantity_to_produce' => $quantityToProduce,
+            'sheets_needed' => 0, // No aplica para items digitales
+            'total_impressions' => 0, // No aplica para items digitales
+            'ink_front_count' => 0,
+            'ink_back_count' => 0,
+            'front_back_plate' => false,
+            'paper_id' => null,
+            'horizontal_size' => $documentItem->width ?? 0,
+            'vertical_size' => $documentItem->height ?? 0,
             'produced_quantity' => 0,
             'rejected_quantity' => 0,
             'item_status' => 'pending',
@@ -176,13 +207,32 @@ class ProductionCalculatorService
             return ['valid' => false, 'errors' => $errors];
         }
 
-        // Check if it's a SimpleItem (only SimpleItems can be produced for now)
-        if (!$documentItem->itemable instanceof SimpleItem) {
-            $errors[] = 'Solo items tipo "SimpleItem" pueden enviarse a producción';
-            return ['valid' => false, 'errors' => $errors];
+        $itemable = $documentItem->itemable;
+
+        // Validate based on item type
+        if ($itemable instanceof SimpleItem) {
+            return $this->validateSimpleItem($itemable, $documentItem);
         }
 
-        $simpleItem = $documentItem->itemable;
+        if ($itemable instanceof DigitalItem) {
+            return $this->validateDigitalItem($itemable, $documentItem);
+        }
+
+        if ($itemable instanceof \App\Models\Product) {
+            return $this->validateProduct($itemable, $documentItem);
+        }
+
+        // Other item types not supported
+        $errors[] = 'Solo items tipo "SimpleItem", "DigitalItem" o "Product" pueden enviarse a producción';
+        return ['valid' => false, 'errors' => $errors];
+    }
+
+    /**
+     * Validate SimpleItem for production
+     */
+    protected function validateSimpleItem(SimpleItem $simpleItem, DocumentItem $documentItem): array
+    {
+        $errors = [];
 
         // Validate required fields
         if (!$simpleItem->paper_id) {
@@ -205,6 +255,29 @@ class ProductionCalculatorService
             $errors[] = 'El item no tiene cantidad válida';
         }
 
+        return [
+            'valid' => empty($errors),
+            'errors' => $errors,
+        ];
+    }
+
+    /**
+     * Validate DigitalItem for production
+     */
+    protected function validateDigitalItem(DigitalItem $digitalItem, DocumentItem $documentItem): array
+    {
+        $errors = [];
+
+        // Validate required fields for digital items
+        if (!$digitalItem->supplier_contact_id && !$digitalItem->is_own_product) {
+            $errors[] = 'El item digital no tiene proveedor asignado';
+        }
+
+        if ($documentItem->quantity <= 0) {
+            $errors[] = 'El item no tiene cantidad válida';
+        }
+
+        // Digital items are always valid if they have supplier and quantity
         return [
             'valid' => empty($errors),
             'errors' => $errors,
@@ -246,6 +319,52 @@ class ProductionCalculatorService
             'total_impressions' => round($totalImpressions, 2),
             'different_papers' => count($paperTypes),
             'different_machines' => count($machines),
+        ];
+    }
+
+    /**
+     * Validate Product for production
+     */
+    protected function validateProduct(\App\Models\Product $product, DocumentItem $documentItem): array
+    {
+        $errors = [];
+
+        // Products only need acabados (finishings) to be valid for production
+        // Check if has acabados in item_config
+        if (empty($documentItem->item_config['finishings'])) {
+            $errors[] = 'El producto no tiene acabados definidos para producción';
+        }
+
+        if ($documentItem->quantity <= 0) {
+            $errors[] = 'El producto no tiene cantidad válida';
+        }
+
+        return [
+            'valid' => count($errors) === 0,
+            'errors' => $errors,
+        ];
+    }
+
+    /**
+     * Calculate production data from Product
+     */
+    protected function calculateFromProduct(\App\Models\Product $product, int $quantityToProduce, DocumentItem $documentItem): array
+    {
+        // Products don't have printing process, only finishing processes
+        // Return minimal data structure
+        return [
+            'quantity_to_produce' => $quantityToProduce,
+            'sheets_needed' => 0, // No sheets needed for products
+            'total_impressions' => 0, // No impressions for products
+            'ink_front_count' => 0,
+            'ink_back_count' => 0,
+            'front_back_plate' => false,
+            'paper_id' => null, // Products don't use paper directly
+            'horizontal_size' => null,
+            'vertical_size' => null,
+            'produced_quantity' => 0,
+            'rejected_quantity' => 0,
+            'item_status' => 'pending',
         ];
     }
 }

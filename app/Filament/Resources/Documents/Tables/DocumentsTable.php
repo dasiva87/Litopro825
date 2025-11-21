@@ -555,25 +555,59 @@ class DocumentsTable
                                         ->label('Items Disponibles')
                                         ->options(function ($record) {
                                             return $record->items
-                                                ->where('itemable_type', 'App\Models\SimpleItem')
+                                                ->whereIn('itemable_type', ['App\Models\SimpleItem', 'App\Models\DigitalItem', 'App\Models\Product'])
+                                                ->filter(function ($item) {
+                                                    // Products solo si tienen acabados en item_config
+                                                    if ($item->itemable_type === 'App\Models\Product') {
+                                                        return $item->itemable && !empty($item->item_config['finishings']);
+                                                    }
+                                                    // Otros tipos siempre incluidos
+                                                    return true;
+                                                })
                                                 ->mapWithKeys(function ($item) {
                                                     if (!$item->itemable) {
                                                         return [$item->id => "⚠️ {$item->description} (Sin datos de producción)"];
                                                     }
 
-                                                    $type = '📄 Impresión';
-                                                    $quantity = number_format($item->quantity ?? 0, 0);
-                                                    $size = "{$item->itemable->horizontal_size}x{$item->itemable->vertical_size} cm";
-                                                    $paper = $item->itemable->paper?->name ?? 'Sin papel';
-                                                    $tintas = "F:{$item->itemable->ink_front_count}/V:{$item->itemable->ink_back_count}";
+                                                    // Determinar tipo y construir label según el tipo de item
+                                                    if ($item->itemable_type === 'App\Models\SimpleItem') {
+                                                        $type = '📄 Impresión';
+                                                        $quantity = number_format($item->quantity ?? 0, 0);
+                                                        $size = "{$item->itemable->horizontal_size}x{$item->itemable->vertical_size} cm";
+                                                        $paper = $item->itemable->paper?->name ?? 'Sin papel';
+                                                        $tintas = "F:{$item->itemable->ink_front_count}/V:{$item->itemable->ink_back_count}";
 
-                                                    // Contar acabados
-                                                    $finishingsCount = $item->finishings()->count();
-                                                    $finishingsText = $finishingsCount > 0 ? " | 🎯 {$finishingsCount} acabado(s)" : '';
+                                                        // Contar acabados
+                                                        $finishingsCount = $item->itemable->finishings->count();
+                                                        $finishingsText = $finishingsCount > 0 ? " | 🎯 {$finishingsCount} acabado(s)" : '';
 
-                                                    $label = "{$type} {$item->description}\n";
-                                                    $label .= "   📦 Cantidad: {$quantity} | 📏 Tamaño: {$size}\n";
-                                                    $label .= "   🎨 Papel: {$paper} | 🖨️ Tintas: {$tintas}{$finishingsText}";
+                                                        $label = "{$type} {$item->description}\n";
+                                                        $label .= "   📦 Cantidad: {$quantity} | 📏 Tamaño: {$size}\n";
+                                                        $label .= "   🎨 Papel: {$paper} | 🖨️ Tintas: {$tintas}{$finishingsText}";
+                                                    } elseif ($item->itemable_type === 'App\Models\DigitalItem') {
+                                                        $type = '📱 Digital';
+                                                        $quantity = number_format($item->quantity ?? 0, 0);
+                                                        $proveedor = $item->itemable->is_own_product ? 'Propio' : 'Externo';
+
+                                                        // Contar acabados
+                                                        $finishingsCount = $item->itemable->finishings->count();
+                                                        $finishingsText = $finishingsCount > 0 ? " | 🎯 {$finishingsCount} acabado(s)" : '';
+
+                                                        $label = "{$type} {$item->description}\n";
+                                                        $label .= "   📦 Cantidad: {$quantity} | 🏭 Proveedor: {$proveedor}{$finishingsText}";
+                                                    } elseif ($item->itemable_type === 'App\Models\Product') {
+                                                        $type = '📦 Producto';
+                                                        $quantity = number_format($item->quantity ?? 0, 0);
+
+                                                        // Contar acabados desde item_config (Products SOLO aparecen si tienen acabados)
+                                                        $finishingsCount = count($item->item_config['finishings'] ?? []);
+                                                        $finishingsText = "🎯 {$finishingsCount} acabado(s)";
+
+                                                        $label = "{$type} {$item->description}\n";
+                                                        $label .= "   📦 Cantidad: {$quantity} | {$finishingsText}";
+                                                    } else {
+                                                        return [$item->id => "⚠️ {$item->description} (Tipo no soportado)"];
+                                                    }
 
                                                     return [$item->id => $label];
                                                 });
@@ -592,7 +626,7 @@ class DocumentsTable
                                             }
 
                                             $selectedItems = \App\Models\DocumentItem::whereIn('id', $selectedIds)
-                                                ->with(['finishings.supplier', 'itemable'])
+                                                ->with(['itemable.finishings'])
                                                 ->get();
 
                                             $groupingService = new \App\Services\ProductionOrderGroupingService();
@@ -631,7 +665,7 @@ class DocumentsTable
                         ])
                         ->action(function ($record, array $data) {
                             $selectedItems = \App\Models\DocumentItem::whereIn('id', $data['selected_items'])
-                                ->with(['itemable', 'finishings.supplier'])
+                                ->with(['itemable.finishings'])
                                 ->get();
 
                             $groupingService = new \App\Services\ProductionOrderGroupingService();
@@ -690,7 +724,8 @@ class DocumentsTable
                                         $process['quantity'],
                                         'finishing',
                                         $process['finishing_name'],
-                                        $process['process_description']
+                                        $process['process_description'],
+                                        $process['finishing_parameters'] ?? [] // Pasar parámetros del acabado
                                     )) {
                                         $totalProcesses++;
                                     }

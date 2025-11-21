@@ -15,4 +15,25 @@ class CreateSimpleItem extends CreateRecord
 
         return $data;
     }
+
+    protected function afterCreate(): void
+    {
+        // Guardar acabados en tabla pivot (Arquitectura 1)
+        $finishingsData = $this->data['finishings_data'] ?? [];
+
+        if (!empty($finishingsData)) {
+            foreach ($finishingsData as $finishingData) {
+                if (isset($finishingData['finishing_id'])) {
+                    $this->record->finishings()->attach($finishingData['finishing_id'], [
+                        'quantity' => $finishingData['quantity'] ?? 1,
+                        'width' => $finishingData['width'] ?? null,
+                        'height' => $finishingData['height'] ?? null,
+                        'calculated_cost' => $finishingData['calculated_cost'] ?? 0,
+                        'is_default' => $finishingData['is_default'] ?? false,
+                        'sort_order' => 0,
+                    ]);
+                }
+            }
+        }
+    }
 }

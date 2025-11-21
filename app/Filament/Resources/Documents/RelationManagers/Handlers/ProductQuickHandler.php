@@ -9,7 +9,12 @@ use App\Models\Product;
 use App\Models\SupplierRelationship;
 use Filament\Forms\Components;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Grid;
+use Filament\Notifications\Notification;
+use Filament\Support\Exceptions\Halt;
 
 class ProductQuickHandler implements QuickActionHandlerInterface
 {
@@ -33,13 +38,45 @@ class ProductQuickHandler implements QuickActionHandlerInterface
                         ->live()
                         ->afterStateUpdated(function ($state, $set, $get) {
                             if ($state) {
-                                $product = Product::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->find($state);
+                                $product = Product::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->with('finishings')->find($state);
                                 if ($product) {
                                     $set('unit_price', $product->sale_price);
                                     $set('product_name', $product->name);
                                     $set('available_stock', $product->stock);
+
+                                    // Cargar acabados del producto si existen
+                                    if ($product->finishings->isNotEmpty()) {
+                                        $finishingsData = $product->finishings->map(function ($finishing) use ($get) {
+                                            $item = [
+                                                'finishing_id' => (int) $finishing->id,
+                                            ];
+
+                                            // Para acabados por cantidad, usar la cantidad del producto
+                                            if (in_array($finishing->measurement_unit->value, ['millar', 'rango', 'unidad'])) {
+                                                if ($finishing->pivot->quantity) {
+                                                    $item['quantity'] = (float) $finishing->pivot->quantity;
+                                                }
+                                            }
+
+                                            // Para acabados por tamaño
+                                            if ($finishing->pivot->width) {
+                                                $item['width'] = (float) $finishing->pivot->width;
+                                            }
+
+                                            if ($finishing->pivot->height) {
+                                                $item['height'] = (float) $finishing->pivot->height;
+                                            }
+
+                                            return $item;
+                                        })->toArray();
+
+                                        $set('finishings_data', $finishingsData);
+                                    } else {
+                                        $set('finishings_data', []);
+                                    }
+
                                     if ($this->calculationContext) {
-                                        $this->calculationContext->calculateProductTotal($get, $set);
+                                        $this->calculationContext->calculateProductTotalWithFinishings($get, $set);
                                     }
                                 }
                             }
@@ -57,7 +94,7 @@ class ProductQuickHandler implements QuickActionHandlerInterface
                                 ->live()
                                 ->afterStateUpdated(function ($state, $get, $set) {
                                     if ($this->calculationContext) {
-                                        $this->calculationContext->calculateProductTotal($get, $set);
+                                        $this->calculationContext->calculateProductTotalWithFinishings($get, $set);
                                     }
                                 }),
 
@@ -81,7 +118,7 @@ class ProductQuickHandler implements QuickActionHandlerInterface
                                 ->live()
                                 ->afterStateUpdated(function ($state, $get, $set) {
                                     if ($this->calculationContext) {
-                                        $this->calculationContext->calculateProductTotal($get, $set);
+                                        $this->calculationContext->calculateProductTotalWithFinishings($get, $set);
                                     }
                                 }),
 
@@ -101,9 +138,197 @@ class ProductQuickHandler implements QuickActionHandlerInterface
                         ->html()
                         ->columnSpanFull(),
 
+                    Components\Placeholder::make('calculation_debug')
+                        ->label('Debug de Cálculo')
+                        ->content(function ($get) {
+                            $finishingsData = $get('finishings_data') ?? [];
+                            $quantity = $get('quantity') ?? 0;
+                            $productId = $get('product_id');
+
+                            if (!$productId) {
+                                return '<span class="text-gray-400">Selecciona un producto</span>';
+                            }
+
+                            $product = \App\Models\Product::with('finishings')->find($productId);
+                            if (!$product) {
+                                return '<span class="text-red-500">Producto no encontrado</span>';
+                            }
+
+                            $info = '<div class="text-sm space-y-1">';
+                            $info .= '<div><strong>Producto:</strong> ' . $product->name . '</div>';
+                            $info .= '<div><strong>Acabados del producto:</strong> ' . $product->finishings->count() . '</div>';
+                            $info .= '<div><strong>Acabados en formulario:</strong> ' . count($finishingsData) . '</div>';
+                            $info .= '<div><strong>Cantidad:</strong> ' . $quantity . '</div>';
+
+                            if ($product->finishings->isNotEmpty()) {
+                                $finishingCalculator = app(\App\Services\FinishingCalculatorService::class);
+                                $total = 0;
+                                foreach ($product->finishings as $finishing) {
+                                    $params = ['quantity' => $quantity];
+                                    $cost = $finishingCalculator->calculateCost($finishing, $params);
+                                    $total += $cost;
+                                    $info .= '<div class="text-blue-600">- ' . $finishing->name . ': $' . number_format($cost, 2) . '</div>';
+                                }
+                                $info .= '<div class="text-green-600 font-bold">Total acabados: $' . number_format($total, 2) . '</div>';
+                            }
+
+                            $info .= '</div>';
+                            return $info;
+                        })
+                        ->html()
+                        ->columnSpanFull()
+                        ->visible(fn ($get) => $get('product_id') !== null),
+
                     Components\Hidden::make('product_name'),
                     Components\Hidden::make('available_stock'),
                 ]),
+
+            \Filament\Schemas\Components\Section::make('🎨 Acabados (Opcional)')
+                ->description('Acabados aplicados a este producto')
+                ->schema([
+                    Repeater::make('finishings_data')
+                        ->label('Acabados')
+                        ->defaultItems(0)
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(function ($state, $get, $set) {
+                            if ($this->calculationContext) {
+                                $this->calculationContext->calculateProductTotalWithFinishings($get, $set);
+                            }
+                        })
+                        ->reorderable(false)
+                        ->schema([
+                            Grid::make(3)
+                                ->schema([
+                                    Select::make('finishing_id')
+                                        ->label('Acabado')
+                                        ->options(function () {
+                                            $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+
+                                            return \App\Models\Finishing::where('company_id', $currentCompanyId)
+                                                ->where('active', true)
+                                                ->get()
+                                                ->mapWithKeys(function ($finishing) {
+                                                    return [$finishing->id => $finishing->name . ' - ' . $finishing->measurement_unit->label()];
+                                                })
+                                                ->toArray();
+                                        })
+                                        ->required()
+                                        ->searchable()
+                                        ->preload()
+                                        ->live()
+                                        ->columnSpan(3),
+
+                                    // Campos de cantidad (para MILLAR, RANGO, UNIDAD)
+                                    TextInput::make('quantity')
+                                        ->label('Cantidad')
+                                        ->numeric()
+                                        ->default(1)
+                                        ->minValue(0)
+                                        ->live(onBlur: true)
+                                        ->visible(function ($get) {
+                                            $finishingId = $get('finishing_id');
+                                            if (!$finishingId) return false;
+
+                                            $finishing = \App\Models\Finishing::find($finishingId);
+                                            if (!$finishing) return false;
+
+                                            return in_array($finishing->measurement_unit->value, ['millar', 'rango', 'unidad']);
+                                        })
+                                        ->columnSpan(1),
+
+                                    // Campos de tamaño (para TAMAÑO)
+                                    TextInput::make('width')
+                                        ->label('Ancho (cm)')
+                                        ->numeric()
+                                        ->step(0.1)
+                                        ->minValue(0)
+                                        ->live(onBlur: true)
+                                        ->visible(function ($get) {
+                                            $finishingId = $get('finishing_id');
+                                            if (!$finishingId) return false;
+
+                                            $finishing = \App\Models\Finishing::find($finishingId);
+                                            if (!$finishing) return false;
+
+                                            return $finishing->measurement_unit->value === 'tamaño';
+                                        })
+                                        ->columnSpan(1),
+
+                                    TextInput::make('height')
+                                        ->label('Alto (cm)')
+                                        ->numeric()
+                                        ->step(0.1)
+                                        ->minValue(0)
+                                        ->live(onBlur: true)
+                                        ->visible(function ($get) {
+                                            $finishingId = $get('finishing_id');
+                                            if (!$finishingId) return false;
+
+                                            $finishing = \App\Models\Finishing::find($finishingId);
+                                            if (!$finishing) return false;
+
+                                            return $finishing->measurement_unit->value === 'tamaño';
+                                        })
+                                        ->columnSpan(1),
+
+                                    // Placeholder para mostrar el costo calculado
+                                    Placeholder::make('cost_preview')
+                                        ->label('Costo Estimado')
+                                        ->content(function ($get) {
+                                            $finishingId = $get('finishing_id');
+                                            $quantity = $get('quantity') ?? 0;
+                                            $width = $get('width') ?? 0;
+                                            $height = $get('height') ?? 0;
+
+                                            if (!$finishingId) {
+                                                return '<span class="text-gray-400">Seleccione un acabado</span>';
+                                            }
+
+                                            try {
+                                                $finishing = \App\Models\Finishing::find($finishingId);
+                                                if (!$finishing) {
+                                                    return '<span class="text-red-500">Acabado no encontrado</span>';
+                                                }
+
+                                                $calculator = app(\App\Services\FinishingCalculatorService::class);
+
+                                                $params = [];
+                                                switch ($finishing->measurement_unit->value) {
+                                                    case 'millar':
+                                                    case 'rango':
+                                                    case 'unidad':
+                                                        $params = ['quantity' => (int) $quantity];
+                                                        break;
+                                                    case 'tamaño':
+                                                        $params = [
+                                                            'width' => (float) $width,
+                                                            'height' => (float) $height
+                                                        ];
+                                                        break;
+                                                }
+
+                                                $cost = $calculator->calculateCost($finishing, $params);
+
+                                                return '<span class="text-lg font-bold text-green-600">$' . number_format($cost, 2) . '</span>';
+
+                                            } catch (\Exception $e) {
+                                                return '<span class="text-red-500">Error: ' . $e->getMessage() . '</span>';
+                                            }
+                                        })
+                                        ->html()
+                                        ->columnSpan(3),
+                                ]),
+                        ])
+                        ->columnSpanFull()
+                        ->collapsible()
+                        ->itemLabel(fn (array $state): ?string =>
+                            isset($state['finishing_id'])
+                                ? (\App\Models\Finishing::find($state['finishing_id'])?->name ?? 'Acabado')
+                                : 'Acabado'
+                        ),
+                ])
+                ->collapsible()
+                ->collapsed(false),
         ];
     }
 
@@ -117,19 +342,100 @@ class ProductQuickHandler implements QuickActionHandlerInterface
 
         $quantity = $data['quantity'];
 
-        // Verificar stock disponible
+        // Verificar stock disponible y mostrar advertencia si es insuficiente
         if (!$product->hasStock($quantity)) {
-            throw new \Exception('Stock insuficiente. Disponible: '.$product->stock.', Solicitado: '.$quantity);
+            Notification::make()
+                ->warning()
+                ->title('⚠️ Stock Insuficiente')
+                ->body("
+                    **Producto:** {$product->name}
+
+                    **Stock Disponible:** {$product->stock} unidades
+
+                    **Cantidad Solicitada:** {$quantity} unidades
+
+                    Por favor, reduce la cantidad solicitada o solicita reabastecimiento del producto.
+                ")
+                ->persistent()
+                ->send();
+
+            throw new Halt(); // Detener la ejecución sin cerrar el modal
         }
 
-        // Calcular precio con margen de ganancia del formulario
+        // Cargar acabados del producto para calcular el precio total
+        $product->load('finishings');
+
+        // Calcular costo de acabados personalizados o usar los del producto
+        $finishingsData = $data['finishings_data'] ?? [];
+        $finishingsCostTotal = 0;
+
+        if (!empty($finishingsData)) {
+            // Usar acabados personalizados del formulario
+            $finishingCalculator = app(\App\Services\FinishingCalculatorService::class);
+
+            foreach ($finishingsData as $finishingData) {
+                if (empty($finishingData['finishing_id'])) {
+                    continue;
+                }
+
+                $finishing = \App\Models\Finishing::find($finishingData['finishing_id']);
+                if (!$finishing) {
+                    continue;
+                }
+
+                // Preparar parámetros según el tipo de medida
+                $params = [];
+                switch ($finishing->measurement_unit->value) {
+                    case 'millar':
+                    case 'rango':
+                    case 'unidad':
+                        $params = ['quantity' => $finishingData['quantity'] ?? $quantity];
+                        break;
+                    case 'tamaño':
+                        $params = [
+                            'width' => $finishingData['width'] ?? 0,
+                            'height' => $finishingData['height'] ?? 0,
+                        ];
+                        break;
+                }
+
+                $cost = $finishingCalculator->calculateCost($finishing, $params);
+                $finishingsCostTotal += $cost;
+            }
+        } elseif ($product->finishings->isNotEmpty()) {
+            // Usar acabados del producto y recalcular con la cantidad solicitada
+            $finishingCalculator = app(\App\Services\FinishingCalculatorService::class);
+
+            foreach ($product->finishings as $finishing) {
+                $params = [];
+
+                switch ($finishing->measurement_unit->value) {
+                    case 'millar':
+                    case 'rango':
+                    case 'unidad':
+                        $params = ['quantity' => $quantity];
+                        break;
+                    case 'tamaño':
+                        $params = [
+                            'width' => $finishing->pivot->width ?? 0,
+                            'height' => $finishing->pivot->height ?? 0,
+                        ];
+                        break;
+                }
+
+                $cost = $finishingCalculator->calculateCost($finishing, $params);
+                $finishingsCostTotal += $cost;
+            }
+        }
+
+        // Calcular precio total con acabados
         $profitMargin = $data['profit_margin'] ?? 0;
-        $baseTotal = $product->sale_price * $quantity;
+        $baseTotal = ($product->sale_price * $quantity) + $finishingsCostTotal;
         $totalPriceWithMargin = $baseTotal * (1 + ($profitMargin / 100));
         $unitPriceWithMargin = $totalPriceWithMargin / $quantity;
 
         // Crear el DocumentItem asociado
-        $document->items()->create([
+        $documentItem = $document->items()->create([
             'itemable_type' => 'App\\Models\\Product',
             'itemable_id' => $product->id,
             'description' => 'Producto: '.$product->name,
@@ -138,6 +444,16 @@ class ProductQuickHandler implements QuickActionHandlerInterface
             'total_price' => round($totalPriceWithMargin, 2),
             'profit_margin' => $profitMargin,
         ]);
+
+        // Guardar acabados personalizados en item_config para referencia futura
+        if (!empty($finishingsData)) {
+            $documentItem->update([
+                'item_config' => [
+                    'finishings' => $finishingsData,
+                    'finishings_cost' => $finishingsCostTotal,
+                ],
+            ]);
+        }
 
         // Recalcular totales del documento
         $document->recalculateTotals();

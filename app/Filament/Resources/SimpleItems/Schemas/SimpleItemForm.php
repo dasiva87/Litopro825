@@ -665,14 +665,15 @@ class SimpleItemForm
                     ])
                     ->columnSpanFull(),
 
-                // Sección de Acabados Sugeridos
+                // NOTA: Sección de Acabados Sugeridos comentada para evitar duplicados
+                // La sección de acabados se maneja desde SimpleItemQuickHandler
+                /*
                 Section::make('🎨 Acabados Sugeridos')
                     ->description('Acabados recomendados para este tipo de trabajo (opcionales)')
                     ->collapsed()
                     ->schema([
                         \Filament\Forms\Components\Repeater::make('finishings_data')
                             ->label('Acabados')
-                            ->relationship('finishings')
                             ->defaultItems(0)
                             ->schema([
                                 Grid::make(3)
@@ -852,6 +853,7 @@ class SimpleItemForm
                             ->html(),
                     ])
                     ->columnSpanFull(),
+                */
 
                 // Sección de resultados - solo visible en edición
                 Section::make('📊 Resultados del Cálculo')

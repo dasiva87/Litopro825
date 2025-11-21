@@ -16,6 +16,14 @@ class EditProductionOrder extends EditRecord
 {
     protected static string $resource = ProductionOrderResource::class;
 
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        // Determinar el tipo de proveedor basado en los campos de BD
+        $data['supplier_type'] = !empty($data['supplier_company_id']) ? 'company' : 'contact';
+
+        return $data;
+    }
+
     protected function getHeaderActions(): array
     {
         return [

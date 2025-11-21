@@ -101,7 +101,17 @@ class ProductionOrder extends Model
     public function documentItems(): BelongsToMany
     {
         return $this->belongsToMany(DocumentItem::class, 'document_item_production_order')
+            ->using(\App\Models\DocumentItemProductionOrder::class)
             ->withPivot([
+                'id', // ← IMPORTANTE: Incluir el ID del pivot para evitar deduplicación
+                'document_item_finishing_id',
+                'process_type',
+                'finishing_name',
+                'process_description',
+                'finishing_quantity',
+                'finishing_width',
+                'finishing_height',
+                'finishing_unit',
                 'quantity_to_produce',
                 'sheets_needed',
                 'total_impressions',
@@ -121,6 +131,15 @@ class ProductionOrder extends Model
                 'quality_notes',
             ])
             ->withTimestamps();
+    }
+
+    /**
+     * Relación HasMany a la tabla pivot (para evitar deduplicación en Filament)
+     * Usa esto en lugar de documentItems() para mostrar todos los procesos
+     */
+    public function productionProcesses(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\ProductionOrderProcess::class, 'production_order_id');
     }
 
     /**
@@ -146,25 +165,49 @@ class ProductionOrder extends Model
     }
 
     /**
-     * Generate unique production number
+     * Generate consecutive production number with gap filling
      */
     public static function generateProductionNumber(): string
     {
-        $companyId = TenantContext::id() ?? 1;
+        return DB::transaction(function () {
+            $companyId = TenantContext::id() ?? 1;
 
-        // Obtener el último número para este tipo de orden (sin filtrar por año)
-        $lastOrder = static::forTenant($companyId)
-            ->orderBy('id', 'desc')
-            ->first();
+            // Obtener todos los números existentes con bloqueo
+            $existingNumbers = DB::table('production_orders')
+                ->where('company_id', $companyId)
+                ->whereRaw('production_number REGEXP "^[0-9]{4}$"')
+                ->lockForUpdate()
+                ->pluck('production_number')
+                ->map(fn($num) => (int)$num)
+                ->sort()
+                ->values()
+                ->toArray();
 
-        $nextNumber = 1;
-        if ($lastOrder) {
-            // Extraer el número del último documento
-            preg_match('/(\d+)$/', $lastOrder->production_number, $matches);
-            $nextNumber = isset($matches[1]) ? (int)$matches[1] + 1 : 1;
-        }
+            // Si no hay números existentes, empezar en 1
+            if (empty($existingNumbers)) {
+                return '0001';
+            }
 
-        return str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+            // Buscar gaps en la secuencia
+            $minNumber = min($existingNumbers);
+            $maxNumber = max($existingNumbers);
+            $nextNumber = null;
+            
+            // Buscar gap en el rango existente
+            for ($i = $minNumber; $i <= $maxNumber; $i++) {
+                if (!in_array($i, $existingNumbers)) {
+                    $nextNumber = $i;
+                    break;
+                }
+            }
+            
+            // Si no hay gaps, usar el siguiente después del máximo
+            if ($nextNumber === null) {
+                $nextNumber = $maxNumber + 1;
+            }
+
+            return str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+        });
     }
 
     /**
@@ -252,13 +295,15 @@ class ProductionOrder extends Model
      * @param string $processType 'printing' or 'finishing'
      * @param string|null $finishingName
      * @param string|null $processDescription
+     * @param array $finishingParameters Parámetros adicionales para acabados (document_item_finishing_id, quantity, width, height, unit)
      */
     public function addItem(
         DocumentItem $documentItem,
         ?int $quantityToProduce = null,
         string $processType = 'printing',
         ?string $finishingName = null,
-        ?string $processDescription = null
+        ?string $processDescription = null,
+        array $finishingParameters = []
     ): bool {
         // Check if can be edited
         if (!$this->canBeEdited()) {
@@ -292,6 +337,15 @@ class ProductionOrder extends Model
         $productionData['process_type'] = $processType;
         $productionData['finishing_name'] = $finishingName;
         $productionData['process_description'] = $processDescription;
+
+        // Add finishing parameters if provided
+        if (!empty($finishingParameters)) {
+            $productionData['document_item_finishing_id'] = $finishingParameters['document_item_finishing_id'] ?? null;
+            $productionData['finishing_quantity'] = $finishingParameters['finishing_quantity'] ?? null;
+            $productionData['finishing_width'] = $finishingParameters['finishing_width'] ?? null;
+            $productionData['finishing_height'] = $finishingParameters['finishing_height'] ?? null;
+            $productionData['finishing_unit'] = $finishingParameters['finishing_unit'] ?? null;
+        }
 
         // Attach item with production data
         $this->documentItems()->attach($documentItem->id, $productionData);

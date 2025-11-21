@@ -25,12 +25,13 @@ class SimpleItemQuickHandler implements QuickActionHandlerInterface
             \Filament\Schemas\Components\Section::make('🎨 Acabados Opcionales')
                 ->description('Agrega acabados adicionales que se calcularán automáticamente')
                 ->schema([
-                    Components\Repeater::make('finishings')
+                    Components\Repeater::make('finishings_data')
                         ->label('Acabados')
                         ->defaultItems(0)
                         ->schema([
                             Components\Select::make('finishing_id')
                                 ->label('Acabado')
+                                ->helperText('⚠️ El proveedor se asigna desde el catálogo de Acabados')
                                 ->options(function () {
                                     return $this->getFinishingOptions();
                                 })
@@ -101,7 +102,7 @@ class SimpleItemQuickHandler implements QuickActionHandlerInterface
     {
         // Extraer datos del SimpleItem del formulario
         $simpleItemData = array_filter($data, function ($key) {
-            return !in_array($key, ['finishings']);
+            return !in_array($key, ['finishings_data']);
         }, ARRAY_FILTER_USE_KEY);
 
         // Crear el SimpleItem
@@ -118,23 +119,20 @@ class SimpleItemQuickHandler implements QuickActionHandlerInterface
             'item_type' => 'simple',
         ]);
 
-        // Procesar acabados si existen
-        $finishingsData = $data['finishings'] ?? [];
+        // Procesar acabados si existen - Guardar en simple_item_finishing (Arquitectura 1)
+        $finishingsData = $data['finishings_data'] ?? [];
         if (!empty($finishingsData)) {
             foreach ($finishingsData as $finishingData) {
-                if (isset($finishingData['finishing_id']) && isset($finishingData['calculated_cost'])) {
-                    $finishing = Finishing::find($finishingData['finishing_id']);
-
-                    if ($finishing) {
-                        // Crear el acabado relacionado
-                        $documentItem->finishings()->create([
-                            'finishing_name' => $finishing->name,
-                            'quantity' => $finishingData['quantity'] ?? 1,
-                            'is_double_sided' => false, // Para SimpleItems no aplica
-                            'unit_price' => ($finishingData['calculated_cost'] ?? 0) / ($finishingData['quantity'] ?? 1),
-                            'total_price' => $finishingData['calculated_cost'] ?? 0,
-                        ]);
-                    }
+                if (isset($finishingData['finishing_id'])) {
+                    // Attach finishing a SimpleItem usando tabla pivot
+                    $simpleItem->finishings()->attach($finishingData['finishing_id'], [
+                        'quantity' => $finishingData['quantity'] ?? 1,
+                        'width' => $finishingData['width'] ?? null,
+                        'height' => $finishingData['height'] ?? null,
+                        'calculated_cost' => $finishingData['calculated_cost'] ?? 0,
+                        'is_default' => false,
+                        'sort_order' => 0,
+                    ]);
                 }
             }
         }

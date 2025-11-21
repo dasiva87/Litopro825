@@ -1,0 +1,70 @@
+<x-filament-panels::page>
+    <div class="space-y-6">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white">Lista de Proyectos</h2>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Selecciona un proyecto para ver sus documentos</p>
+            </div>
+
+            <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                @forelse($projects as $project)
+                    <a href="{{ route('filament.admin.pages.project-detail', ['code' => $project['code']]) }}"
+                       class="block p-6 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors">
+                        <div class="flex items-center justify-between gap-4">
+                            <div class="flex items-center gap-4 flex-1">
+                                <div class="flex items-center justify-center" style="width: 3rem; height: 3rem; border-radius: 9999px; background-color: rgb(219 234 254); flex-shrink: 0;">
+                                    <svg class="text-primary-600 dark:text-primary-400" style="width: 1.5rem; height: 1.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+                                    </svg>
+                                </div>
+
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                                        {{ $project['code'] }}
+                                    </h3>
+                                    <div class="flex items-center gap-4 mt-1 text-sm text-gray-600 dark:text-gray-400">
+                                        <span class="flex items-center gap-1">
+                                            <svg style="width: 1rem; height: 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                            </svg>
+                                            Creado: {{ \Carbon\Carbon::parse($project['first_date'])->format('d/m/Y') }}
+                                        </span>
+                                        <span class="flex items-center gap-1">
+                                            <svg style="width: 1rem; height: 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                            </svg>
+                                            {{ $project['documents_count'] }} documento(s)
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="text-right">
+                                <div class="text-lg font-bold text-gray-900 dark:text-white">
+                                    ${{ number_format($project['total_amount'], 0, ',', '.') }}
+                                </div>
+                                <div class="text-sm text-gray-500 dark:text-gray-400">
+                                    Última actualización: {{ \Carbon\Carbon::parse($project['last_update'])->diffForHumans() }}
+                                </div>
+                            </div>
+
+                            <svg class="text-gray-400" style="width: 1.5rem; height: 1.5rem; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </div>
+                    </a>
+                @empty
+                    <div class="p-12 text-center">
+                        <svg class="mx-auto text-gray-400 mb-4" style="width: 4rem; height: 4rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+                        </svg>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">No hay proyectos</h3>
+                        <p class="text-gray-600 dark:text-gray-400">
+                            Los proyectos se crean automáticamente cuando agregas un código de referencia a una cotización.
+                        </p>
+                    </div>
+                @endforelse
+            </div>
+        </div>
+    </div>
+</x-filament-panels::page>

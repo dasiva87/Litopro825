@@ -1,0 +1,231 @@
+<x-filament-panels::page>
+    <div class="space-y-6">
+        {{-- Header del Proyecto --}}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center justify-center w-16 h-16 rounded-full bg-primary-100 dark:bg-primary-900">
+                        <x-heroicon-o-folder class="w-8 h-8 text-primary-600 dark:text-primary-400" />
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ $code }}</h1>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Código del Proyecto</p>
+                    </div>
+                </div>
+                <a href="{{ route('filament.admin.pages.projects') }}"
+                   class="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 flex items-center gap-2">
+                    <x-heroicon-o-arrow-left class="w-4 h-4" />
+                    Volver a Proyectos
+                </a>
+            </div>
+        </div>
+
+        {{-- Tabla 1: Cotizaciones/Documentos --}}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <x-heroicon-o-document-text class="w-6 h-6 text-primary-600" />
+                    Cotizaciones / Documentos
+                </h2>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 dark:bg-gray-900">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Número</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Tipo</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Cliente</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Fecha</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Estado</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Total</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                        @forelse($this->getDocuments() as $doc)
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-900">
+                                <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">{{ $doc->document_number }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{{ $doc->documentType->name }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{{ $doc->contact?->name ?? $doc->clientCompany?->name ?? 'N/A' }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{{ $doc->date->format('d/m/Y') }}</td>
+                                <td class="px-6 py-4 text-sm">
+                                    <span class="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                        {{ ucfirst($doc->status) }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-right font-semibold text-gray-900 dark:text-white">${{ number_format($doc->total, 0, ',', '.') }}</td>
+                                <td class="px-6 py-4 text-center">
+                                    <a href="{{ route('filament.admin.resources.documents.edit', $doc) }}" target="_blank"
+                                       class="text-primary-600 hover:text-primary-700 dark:text-primary-400">
+                                        <x-heroicon-o-arrow-top-right-on-square class="w-5 h-5 inline" />
+                                    </a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="7" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                                    No hay cotizaciones en este proyecto
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {{-- Tabla 2: Órdenes de Pedido --}}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <x-heroicon-o-shopping-cart class="w-6 h-6 text-warning-600" />
+                    Órdenes de Pedido
+                </h2>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 dark:bg-gray-900">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Número</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Proveedor</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Fecha</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Estado</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Total</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                        @forelse($this->getPurchaseOrders() as $order)
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-900">
+                                <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">{{ $order->order_number }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{{ $order->supplier?->name ?? $order->supplierCompany?->name ?? 'N/A' }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{{ $order->order_date->format('d/m/Y') }}</td>
+                                <td class="px-6 py-4 text-sm">
+                                    <span class="px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                                        {{ $order->status->value }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-right font-semibold text-gray-900 dark:text-white">${{ number_format($order->total_amount, 0, ',', '.') }}</td>
+                                <td class="px-6 py-4 text-center">
+                                    <a href="{{ route('filament.admin.resources.purchase-orders.edit', $order) }}" target="_blank"
+                                       class="text-primary-600 hover:text-primary-700 dark:text-primary-400">
+                                        <x-heroicon-o-arrow-top-right-on-square class="w-5 h-5 inline" />
+                                    </a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                                    No hay órdenes de pedido en este proyecto
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {{-- Tabla 3: Órdenes de Producción --}}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <x-heroicon-o-cog class="w-6 h-6 text-purple-600" />
+                    Órdenes de Producción
+                </h2>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 dark:bg-gray-900">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Número</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Proveedor</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Operador</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Estado</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                        @forelse($this->getProductionOrders() as $order)
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-900">
+                                <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">{{ $order->production_number }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{{ $order->supplier?->name ?? $order->supplierCompany?->name ?? 'Interno' }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{{ $order->operator?->name ?? 'No asignado' }}</td>
+                                <td class="px-6 py-4 text-sm">
+                                    <span class="px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                                        {{ $order->status->value }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    <a href="{{ route('filament.admin.resources.production-orders.view', $order) }}" target="_blank"
+                                       class="text-primary-600 hover:text-primary-700 dark:text-primary-400">
+                                        <x-heroicon-o-arrow-top-right-on-square class="w-5 h-5 inline" />
+                                    </a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                                    No hay órdenes de producción en este proyecto
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {{-- Tabla 4: Cuentas de Cobro --}}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <x-heroicon-o-banknotes class="w-6 h-6 text-success-600" />
+                    Cuentas de Cobro
+                </h2>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 dark:bg-gray-900">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Número</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Cliente</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Fecha</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Estado</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Total</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                        @forelse($this->getCollectionAccounts() as $account)
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-900">
+                                <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">{{ $account->account_number }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{{ $account->contact?->name ?? $account->clientCompany?->name ?? 'N/A' }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{{ $account->issue_date->format('d/m/Y') }}</td>
+                                <td class="px-6 py-4 text-sm">
+                                    <span class="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                        {{ $account->status->value }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-right font-semibold text-gray-900 dark:text-white">${{ number_format($account->total_amount, 0, ',', '.') }}</td>
+                                <td class="px-6 py-4 text-center">
+                                    <a href="{{ route('filament.admin.resources.collection-accounts.edit', $account) }}" target="_blank"
+                                       class="text-primary-600 hover:text-primary-700 dark:text-primary-400">
+                                        <x-heroicon-o-arrow-top-right-on-square class="w-5 h-5 inline" />
+                                    </a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                                    No hay cuentas de cobro en este proyecto
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</x-filament-panels::page>

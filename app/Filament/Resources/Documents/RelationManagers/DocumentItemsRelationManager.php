@@ -620,6 +620,79 @@ class DocumentItemsRelationManager extends RelationManager
                                 \Filament\Schemas\Components\Section::make('Editar Item Sencillo')
                                     ->description('Modificar los detalles del item y recalcular automáticamente')
                                     ->schema(SimpleItemForm::configure(new \Filament\Schemas\Schema)->getComponents()),
+
+                                // Agregar sección de acabados
+                                \Filament\Schemas\Components\Section::make('🎨 Acabados Opcionales')
+                                    ->description('Agrega acabados adicionales que se calcularán automáticamente')
+                                    ->schema([
+                                        Forms\Components\Repeater::make('finishings_data')
+                                            ->label('Acabados')
+                                            ->defaultItems(0)
+                                            ->schema([
+                                                Forms\Components\Select::make('finishing_id')
+                                                    ->label('Acabado')
+                                                    ->helperText('⚠️ El proveedor se asigna desde el catálogo de Acabados')
+                                                    ->options(function () {
+                                                        return \App\Models\Finishing::where('active', true)
+                                                            ->forCurrentTenant()
+                                                            ->get()
+                                                            ->mapWithKeys(function ($finishing) {
+                                                                return [$finishing->id => $finishing->code.' - '.$finishing->name.' ('.$finishing->measurement_unit->label().')'];
+                                                            })
+                                                            ->toArray();
+                                                    })
+                                                    ->required()
+                                                    ->searchable()
+                                                    ->live()
+                                                    ->afterStateUpdated(function ($set, $get, $state) {
+                                                        // Calcular costo automáticamente
+                                                        $this->calculateSimpleFinishingCost($set, $get);
+                                                    }),
+
+                                                \Filament\Schemas\Components\Grid::make(3)
+                                                    ->schema([
+                                                        Forms\Components\TextInput::make('quantity')
+                                                            ->label('Cantidad')
+                                                            ->numeric()
+                                                            ->default(1)
+                                                            ->required()
+                                                            ->live()
+                                                            ->afterStateUpdated(function ($set, $get, $state) {
+                                                                $this->calculateSimpleFinishingCost($set, $get);
+                                                            }),
+
+                                                        Forms\Components\TextInput::make('width')
+                                                            ->label('Ancho (cm)')
+                                                            ->numeric()
+                                                            ->step(0.01)
+                                                            ->live()
+                                                            ->visible(fn ($get) => $this->shouldShowSizeFields($get('finishing_id')))
+                                                            ->afterStateUpdated(function ($set, $get, $state) {
+                                                                $this->calculateSimpleFinishingCost($set, $get);
+                                                            }),
+
+                                                        Forms\Components\TextInput::make('height')
+                                                            ->label('Alto (cm)')
+                                                            ->numeric()
+                                                            ->step(0.01)
+                                                            ->live()
+                                                            ->visible(fn ($get) => $this->shouldShowSizeFields($get('finishing_id')))
+                                                            ->afterStateUpdated(function ($set, $get, $state) {
+                                                                $this->calculateSimpleFinishingCost($set, $get);
+                                                            }),
+                                                    ]),
+
+                                                Forms\Components\TextInput::make('calculated_cost')
+                                                    ->label('Costo Calculado')
+                                                    ->prefix('$')
+                                                    ->numeric()
+                                                    ->disabled()
+                                                    ->dehydrated()
+                                                    ->columnSpanFull(),
+                                            ])
+                                            ->collapsible()
+                                            ->addActionLabel('+ Agregar Acabado')
+                                    ]),
                             ];
                         }
 
@@ -721,6 +794,23 @@ class DocumentItemsRelationManager extends RelationManager
                             $simpleItemData['itemable_type'] = $record->itemable_type;
                             $simpleItemData['itemable_id'] = $record->itemable_id;
 
+                            // Cargar acabados existentes desde tabla pivot (Arquitectura 1)
+                            $finishingsData = [];
+                            $existingFinishings = $record->itemable->finishings()->get();
+
+                            foreach ($existingFinishings as $finishing) {
+                                $finishingsData[] = [
+                                    'finishing_id' => $finishing->id,
+                                    'quantity' => $finishing->pivot->quantity ?? 1,
+                                    'width' => $finishing->pivot->width,
+                                    'height' => $finishing->pivot->height,
+                                    'calculated_cost' => $finishing->pivot->calculated_cost,
+                                    'is_default' => $finishing->pivot->is_default ?? false,
+                                ];
+                            }
+
+                            $simpleItemData['finishings_data'] = $finishingsData;
+
                             return $simpleItemData;
                         }
 
@@ -759,7 +849,7 @@ class DocumentItemsRelationManager extends RelationManager
                         if ($record->itemable_type === 'App\\Models\\DigitalItem' && $record->itemable) {
                             $digitalItem = $record->itemable;
 
-                            // Cargar acabados existentes
+                            // Cargar acabados existentes desde tabla pivot (Arquitectura 1)
                             $finishingsData = [];
                             $existingFinishings = $digitalItem->finishings()->get();
 
@@ -779,7 +869,7 @@ class DocumentItemsRelationManager extends RelationManager
                                 'itemable_id' => $record->itemable_id,
                                 'digital_item_id' => $record->itemable_id, // Para pre-llenar el select
                                 'quantity' => $record->quantity,
-                                'finishings' => $finishingsData,
+                                'finishings_data' => $finishingsData, // Cambiado de 'finishings' a 'finishings_data'
                                 'unit_price' => $record->unit_price,
                                 'total_price' => $record->total_price,
                             ];
@@ -803,9 +893,9 @@ class DocumentItemsRelationManager extends RelationManager
                                 throw new \Exception('Error: El item relacionado no es un SimpleItem válido');
                             }
 
-                            // Filtrar solo los campos que pertenecen al SimpleItem
+                            // Filtrar solo los campos que pertenecen al SimpleItem (excluir finishings_data)
                             $simpleItemData = array_filter($data, function ($key) {
-                                return ! in_array($key, ['item_type', 'itemable_type', 'itemable_id']);
+                                return ! in_array($key, ['item_type', 'itemable_type', 'itemable_id', 'finishings_data']);
                             }, ARRAY_FILTER_USE_KEY);
 
                             // Actualizar el SimpleItem
@@ -816,6 +906,28 @@ class DocumentItemsRelationManager extends RelationManager
                                 $simpleItem->calculateAll();
                             }
                             $simpleItem->save();
+
+                            // Sincronizar acabados en tabla pivot (Arquitectura 1)
+                            $finishingsData = $data['finishings_data'] ?? [];
+
+                            // Primero, detach todos los acabados existentes
+                            $simpleItem->finishings()->detach();
+
+                            // Luego, attach los nuevos acabados
+                            if (!empty($finishingsData)) {
+                                foreach ($finishingsData as $finishingData) {
+                                    if (isset($finishingData['finishing_id'])) {
+                                        $simpleItem->finishings()->attach($finishingData['finishing_id'], [
+                                            'quantity' => $finishingData['quantity'] ?? 1,
+                                            'width' => $finishingData['width'] ?? null,
+                                            'height' => $finishingData['height'] ?? null,
+                                            'calculated_cost' => $finishingData['calculated_cost'] ?? 0,
+                                            'is_default' => $finishingData['is_default'] ?? false,
+                                            'sort_order' => 0,
+                                        ]);
+                                    }
+                                }
+                            }
 
                             // Actualizar también el DocumentItem con los nuevos valores
                             $record->update([
@@ -887,31 +999,32 @@ class DocumentItemsRelationManager extends RelationManager
                             $handler = new TalonarioItemHandler;
                             $handler->handleUpdate($record, $data);
                         } elseif ($record->itemable_type === 'App\\Models\\DigitalItem' && $record->itemable) {
-                            // Manejar edición de DigitalItems con acabados
+                            // Manejar edición de DigitalItems con acabados (Arquitectura 1)
                             $digitalItem = $record->itemable;
 
-                            // Procesar acabados
-                            $finishingsData = $data['finishings'] ?? [];
+                            // Procesar acabados desde finishings_data
+                            $finishingsData = $data['finishings_data'] ?? [];
                             $finishingsCost = 0;
 
                             // Limpiar acabados existentes
                             $digitalItem->finishings()->detach();
 
-                            // Agregar nuevos acabados
+                            // Agregar nuevos acabados usando attach directo (Arquitectura 1)
                             if (! empty($finishingsData)) {
                                 foreach ($finishingsData as $finishingData) {
-                                    if (isset($finishingData['finishing_id']) && isset($finishingData['calculated_cost'])) {
+                                    if (isset($finishingData['finishing_id'])) {
                                         $finishing = \App\Models\Finishing::find($finishingData['finishing_id']);
 
                                         if ($finishing) {
-                                            $finishingParams = [
+                                            // Attach finishing a DigitalItem usando tabla pivot
+                                            $digitalItem->finishings()->attach($finishingData['finishing_id'], [
                                                 'quantity' => $finishingData['quantity'] ?? 1,
                                                 'width' => $finishingData['width'] ?? null,
                                                 'height' => $finishingData['height'] ?? null,
-                                            ];
+                                                'calculated_cost' => $finishingData['calculated_cost'] ?? 0,
+                                            ]);
 
-                                            $digitalItem->addFinishing($finishing, $finishingParams);
-                                            $finishingsCost += (float) $finishingData['calculated_cost'];
+                                            $finishingsCost += (float) ($finishingData['calculated_cost'] ?? 0);
                                         }
                                     }
                                 }

@@ -17,15 +17,15 @@ use Filament\Tables\Table;
 
 class ProductionOrderItemsRelationManager extends RelationManager
 {
-    protected static string $relationship = 'documentItems';
+    protected static string $relationship = 'productionProcesses';
 
-    protected static ?string $title = 'Items de Producción';
+    protected static ?string $title = 'Procesos de Producción';
 
-    protected static ?string $modelLabel = 'Item';
+    protected static ?string $modelLabel = 'Proceso';
 
-    protected static ?string $pluralModelLabel = 'Items';
+    protected static ?string $pluralModelLabel = 'Procesos';
 
-    protected static ?string $recordTitleAttribute = 'description';
+    protected static ?string $recordTitleAttribute = 'process_description';
 
     /**
      * Get the class name of the current page
@@ -39,7 +39,7 @@ class ProductionOrderItemsRelationManager extends RelationManager
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('pivot.process_type')
+                Tables\Columns\TextColumn::make('process_type')
                     ->label('Proceso')
                     ->formatStateUsing(fn ($state) => match ($state) {
                         'printing' => '🖨️ Impresión',
@@ -53,90 +53,68 @@ class ProductionOrderItemsRelationManager extends RelationManager
                         default => 'gray'
                     }),
 
-                Tables\Columns\TextColumn::make('pivot.finishing_name')
+                Tables\Columns\TextColumn::make('finishing_name')
                     ->label('Acabado')
                     ->placeholder('N/A')
                     ->badge()
                     ->color('warning'),
 
-                Tables\Columns\TextColumn::make('description')
+                Tables\Columns\TextColumn::make('process_description')
                     ->label('Descripción')
                     ->searchable()
                     ->limit(50)
-                    ->tooltip(fn ($record) => $record->description),
+                    ->tooltip(fn ($record) => $record->process_description),
 
-                Tables\Columns\TextColumn::make('itemable_type')
-                    ->label('Tipo Item')
-                    ->formatStateUsing(fn ($state) => match ($state) {
-                        'App\Models\SimpleItem' => 'Item Simple',
-                        'App\Models\Product' => 'Producto',
-                        'App\Models\DigitalItem' => 'Digital',
-                        default => 'Otro'
-                    })
-                    ->badge()
-                    ->color(fn ($state) => match ($state) {
-                        'App\Models\SimpleItem' => 'info',
-                        'App\Models\Product' => 'success',
-                        'App\Models\DigitalItem' => 'warning',
-                        default => 'gray'
-                    })
-                    ->toggleable()
-                    ->toggledHiddenByDefault(),
-
-                Tables\Columns\TextColumn::make('pivot.quantity_to_produce')
+                Tables\Columns\TextColumn::make('quantity_to_produce')
                     ->label('A Producir')
                     ->numeric(decimalPlaces: 0)
                     ->suffix(' pzs'),
 
-                Tables\Columns\TextColumn::make('pivot.sheets_needed')
+                Tables\Columns\TextColumn::make('sheets_needed')
                     ->label('Pliegos')
                     ->numeric(decimalPlaces: 0)
-                    ->suffix(' pl'),
+                    ->suffix(' pl')
+                    ->placeholder('—'),
 
-                Tables\Columns\TextColumn::make('pivot.total_impressions')
+                Tables\Columns\TextColumn::make('total_impressions')
                     ->label('Millares')
                     ->numeric(decimalPlaces: 2)
                     ->suffix(' M')
                     ->badge()
-                    ->color('warning'),
+                    ->color('warning')
+                    ->placeholder('—'),
 
-                Tables\Columns\TextColumn::make('pivot.ink_front_count')
+                Tables\Columns\TextColumn::make('ink_front_count')
                     ->label('Tintas F')
                     ->numeric()
                     ->badge()
                     ->color('primary')
-                    ->toggleable(),
+                    ->toggleable()
+                    ->placeholder('—'),
 
-                Tables\Columns\TextColumn::make('pivot.ink_back_count')
+                Tables\Columns\TextColumn::make('ink_back_count')
                     ->label('Tintas R')
                     ->numeric()
                     ->badge()
                     ->color('primary')
-                    ->toggleable(),
+                    ->toggleable()
+                    ->placeholder('—'),
 
-                Tables\Columns\TextColumn::make('pivot.produced_quantity')
+                Tables\Columns\TextColumn::make('produced_quantity')
                     ->label('Producido')
                     ->numeric(decimalPlaces: 0)
                     ->suffix(' pzs')
-                    ->toggleable(),
-
-                Tables\Columns\TextColumn::make('pivot.rejected_quantity')
-                    ->label('Rechazado')
-                    ->numeric(decimalPlaces: 0)
-                    ->suffix(' pzs')
-                    ->badge()
-                    ->color('danger')
                     ->toggleable()
-                    ->toggledHiddenByDefault(),
+                    ->default(0),
 
-                Tables\Columns\TextColumn::make('pivot.item_status')
+                Tables\Columns\TextColumn::make('item_status')
                     ->label('Estado')
                     ->formatStateUsing(fn ($state) => match ($state) {
                         'pending' => 'Pendiente',
                         'in_progress' => 'En Proceso',
                         'completed' => 'Completado',
                         'paused' => 'Pausado',
-                        default => $state
+                        default => $state ?? 'Pendiente'
                     })
                     ->badge()
                     ->color(fn ($state) => match ($state) {
@@ -147,11 +125,11 @@ class ProductionOrderItemsRelationManager extends RelationManager
                         default => 'gray'
                     }),
 
-                Tables\Columns\TextColumn::make('document.document_number')
+                Tables\Columns\TextColumn::make('documentItem.document.document_number')
                     ->label('Cotización')
                     ->searchable()
-                    ->url(fn ($record) => $record->document ?
-                        route('filament.admin.resources.documents.view', $record->document) : null)
+                    ->url(fn ($record) => $record->documentItem && $record->documentItem->document ?
+                        route('filament.admin.resources.documents.view', $record->documentItem->document) : null)
                     ->openUrlInNewTab()
                     ->toggleable(),
             ])
@@ -176,12 +154,14 @@ class ProductionOrderItemsRelationManager extends RelationManager
                             ->options(function () {
                                 return Document::where('company_id', auth()->user()->company_id)
                                     ->where('status', 'approved')
+                                    ->with('contact')
                                     ->orderBy('created_at', 'desc')
                                     ->limit(50)
                                     ->get()
                                     ->mapWithKeys(function ($doc) {
+                                        $contactName = $doc->contact?->name ?? 'Sin cliente';
                                         return [
-                                            $doc->id => "{$doc->document_number} - {$doc->contact->name} ({$doc->created_at->format('d/m/Y')})"
+                                            $doc->id => "{$doc->document_number} - {$contactName} ({$doc->created_at->format('d/m/Y')})"
                                         ];
                                     });
                             })
@@ -200,23 +180,68 @@ class ProductionOrderItemsRelationManager extends RelationManager
                                 }
 
                                 return DocumentItem::where('document_id', $documentId)
-                                    ->where('itemable_type', 'App\Models\SimpleItem') // Solo SimpleItems
-                                    ->with(['itemable.paper', 'itemable.printingMachine'])
+                                    ->whereIn('itemable_type', ['App\Models\SimpleItem', 'App\Models\DigitalItem', 'App\Models\Product'])
+                                    ->with(['itemable'])
                                     ->get()
+                                    ->each(function ($item) {
+                                        // Cargar relaciones específicas según el tipo
+                                        if ($item->itemable_type === 'App\Models\SimpleItem') {
+                                            $item->itemable->load(['paper', 'printingMachine', 'finishings']);
+                                        } elseif ($item->itemable_type === 'App\Models\DigitalItem') {
+                                            $item->itemable->load(['finishings']);
+                                        }
+                                        // Products no necesitan eager loading adicional
+                                    })
+                                    ->filter(function ($item) {
+                                        // Aplicar mismo filtro que DocumentsTable.php
+                                        if ($item->itemable_type === 'App\Models\Product') {
+                                            return $item->itemable && !empty($item->item_config['finishings']);
+                                        }
+                                        return true; // SimpleItem y DigitalItem siempre incluidos
+                                    })
                                     ->mapWithKeys(function ($item) {
                                         if (!$item->itemable) {
                                             return [$item->id => "⚠️ {$item->description} (Sin datos de producción)"];
                                         }
 
-                                        $type = '📄 Impresión';
                                         $quantity = number_format($item->quantity ?? 0, 0);
-                                        $size = "{$item->itemable->horizontal_size}x{$item->itemable->vertical_size} cm";
-                                        $paper = $item->itemable->paper?->name ?? 'Sin papel';
-                                        $tintas = "F:{$item->itemable->ink_front_count}/V:{$item->itemable->ink_back_count}";
 
-                                        $label = "{$type} {$item->description}\n";
-                                        $label .= "   📦 Cantidad: {$quantity} | 📏 Tamaño: {$size}\n";
-                                        $label .= "   🎨 Papel: {$paper} | 🖨️ Tintas: {$tintas}";
+                                        // Generar etiqueta según tipo de item
+                                        if ($item->itemable_type === 'App\Models\SimpleItem') {
+                                            $type = '📄 Impresión';
+                                            $size = "{$item->itemable->horizontal_size}x{$item->itemable->vertical_size} cm";
+                                            $paper = $item->itemable->paper?->name ?? 'Sin papel';
+                                            $tintas = "F:{$item->itemable->ink_front_count}/V:{$item->itemable->ink_back_count}";
+
+                                            // Contar acabados
+                                            $finishingsCount = $item->itemable->finishings->count();
+                                            $finishingsText = $finishingsCount > 0 ? " | 🎯 {$finishingsCount} acabado(s)" : '';
+
+                                            $label = "{$type} {$item->description}\n";
+                                            $label .= "   📦 Cantidad: {$quantity} | 📏 Tamaño: {$size}\n";
+                                            $label .= "   🎨 Papel: {$paper} | 🖨️ Tintas: {$tintas}{$finishingsText}";
+                                        } elseif ($item->itemable_type === 'App\Models\DigitalItem') {
+                                            $type = '📱 Digital';
+                                            $proveedor = $item->itemable->is_own_product ? 'Propio' : 'Externo';
+
+                                            // Contar acabados
+                                            $finishingsCount = $item->itemable->finishings->count();
+                                            $finishingsText = $finishingsCount > 0 ? " | 🎯 {$finishingsCount} acabado(s)" : '';
+
+                                            $label = "{$type} {$item->description}\n";
+                                            $label .= "   📦 Cantidad: {$quantity} | 🏭 Proveedor: {$proveedor}{$finishingsText}";
+                                        } elseif ($item->itemable_type === 'App\Models\Product') {
+                                            $type = '📦 Producto';
+
+                                            // Contar acabados desde item_config
+                                            $finishingsCount = count($item->item_config['finishings'] ?? []);
+                                            $finishingsText = "🎯 {$finishingsCount} acabado(s)";
+
+                                            $label = "{$type} {$item->description}\n";
+                                            $label .= "   📦 Cantidad: {$quantity} | {$finishingsText}";
+                                        } else {
+                                            return [$item->id => "⚠️ {$item->description} (Tipo no soportado)"];
+                                        }
 
                                         return [$item->id => $label];
                                     });
@@ -230,13 +255,14 @@ class ProductionOrderItemsRelationManager extends RelationManager
                     ->action(function (array $data, $livewire) {
                         $productionOrder = $livewire->getOwnerRecord();
                         $calculator = new \App\Services\ProductionCalculatorService();
+                        $groupingService = new \App\Services\ProductionOrderGroupingService();
 
                         $added = 0;
                         $failed = 0;
                         $errors = [];
 
                         foreach ($data['item_ids'] as $itemId) {
-                            $documentItem = DocumentItem::find($itemId);
+                            $documentItem = DocumentItem::with(['itemable.finishings'])->find($itemId);
 
                             if (!$documentItem) {
                                 $failed++;
@@ -252,15 +278,48 @@ class ProductionOrderItemsRelationManager extends RelationManager
                                 continue;
                             }
 
-                            // Verificar que no esté ya agregado
-                            if ($productionOrder->documentItems()->where('document_items.id', $documentItem->id)->exists()) {
+                            // Usar ProductionOrderGroupingService para obtener todos los procesos (impresión + acabados)
+                            $grouped = $groupingService->groupBySupplier(collect([$documentItem]));
+                            $currentSupplierId = $productionOrder->supplier_id;
+
+                            // Solo procesar los procesos que corresponden a este proveedor
+                            if (!isset($grouped[$currentSupplierId])) {
                                 $failed++;
-                                $errors[] = "Item '{$documentItem->description}' ya está en esta orden";
+                                $errors[] = "Item '{$documentItem->description}' no tiene procesos para este proveedor";
                                 continue;
                             }
 
-                            // Agregar item con su cantidad original de la cotización
-                            if ($productionOrder->addItem($documentItem, $documentItem->quantity)) {
+                            $processes = $grouped[$currentSupplierId];
+                            $itemAdded = false;
+
+                            // Agregar procesos de impresión
+                            foreach ($processes['printing'] as $process) {
+                                if ($productionOrder->addItem(
+                                    $process['document_item'],
+                                    $process['quantity'],
+                                    'printing',
+                                    null,
+                                    $process['process_description']
+                                )) {
+                                    $itemAdded = true;
+                                }
+                            }
+
+                            // Agregar procesos de acabados
+                            foreach ($processes['finishings'] as $process) {
+                                if ($productionOrder->addItem(
+                                    $process['document_item'],
+                                    $process['quantity'],
+                                    'finishing',
+                                    $process['finishing_name'],
+                                    $process['process_description'],
+                                    $process['finishing_parameters'] ?? []
+                                )) {
+                                    $itemAdded = true;
+                                }
+                            }
+
+                            if ($itemAdded) {
                                 $added++;
                             } else {
                                 $failed++;

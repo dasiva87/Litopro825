@@ -1,0 +1,74 @@
+<?php
+
+namespace App\Filament\Pages;
+
+use App\Models\Document;
+use Filament\Pages\Page;
+use Illuminate\Support\Facades\DB;
+
+class Projects extends Page
+{
+    public static function getNavigationIcon(): ?string
+    {
+        return 'heroicon-o-folder';
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return 'Proyectos';
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return 'Gestión';
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return 1;
+    }
+
+    protected function getViewData(): array
+    {
+        return [
+            'projects' => $this->getProjects(),
+        ];
+    }
+
+    public function getView(): string
+    {
+        return 'filament.pages.projects';
+    }
+
+    public function getProjects(): array
+    {
+        $companyId = auth()->user()->company_id ?? config('app.current_tenant_id');
+
+        // Obtener todos los códigos de proyecto únicos
+        $projects = Document::where('company_id', $companyId)
+            ->whereNotNull('reference')
+            ->where('reference', '!=', '')
+            ->select(
+                'reference',
+                DB::raw('MIN(date) as first_date'),
+                DB::raw('MAX(updated_at) as last_update'),
+                DB::raw('COUNT(*) as documents_count'),
+                DB::raw('SUM(total) as total_amount')
+            )
+            ->groupBy('reference')
+            ->orderBy('last_update', 'desc')
+            ->get()
+            ->map(function ($project) {
+                return [
+                    'code' => $project->reference,
+                    'first_date' => $project->first_date,
+                    'last_update' => $project->last_update,
+                    'documents_count' => $project->documents_count,
+                    'total_amount' => $project->total_amount,
+                ];
+            })
+            ->toArray();
+
+        return $projects;
+    }
+}

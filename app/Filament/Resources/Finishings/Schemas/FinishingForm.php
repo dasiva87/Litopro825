@@ -23,13 +23,8 @@ class FinishingForm
                     ->description('Datos básicos del acabado')
                     ->icon('heroicon-o-information-circle')
                     ->components([
-                        Grid::make(3)
+                        Grid::make(2)
                             ->components([
-                                TextInput::make('code')
-                                    ->label('Código')
-                                    ->placeholder('Se genera automáticamente')
-                                    ->disabled()
-                                    ->dehydrated(false),
                                 TextInput::make('name')
                                     ->label('Nombre')
                                     ->required()
@@ -39,7 +34,7 @@ class FinishingForm
                                     ->options(FinishingMeasurementUnit::options())
                                     ->required()
                                     ->live()
-                                    ->helperText(fn($state) => 
+                                    ->helperText(fn($state) =>
                                         $state ? FinishingMeasurementUnit::from($state)->description() : null
                                     ),
                             ]),
@@ -63,10 +58,16 @@ class FinishingForm
                             ->step(0.01)
                             ->minValue(0),
                         Toggle::make('is_own_provider')
-                            ->label('Proveedor Propio')
-                            ->helperText('¿Es un servicio/producto propio?')
+                            ->label('Producción Propia')
+                            ->helperText('Si se activa, el proveedor será automáticamente tu empresa. Si se desactiva, debes seleccionar un proveedor externo.')
                             ->live()
-                            ->default(true),
+                            ->default(true)
+                            ->afterStateUpdated(function ($state, $set) {
+                                // Si cambia a propio, limpiar supplier_id para que el modelo lo asigne automáticamente
+                                if ($state) {
+                                    $set('supplier_id', null);
+                                }
+                            }),
                         Toggle::make('active')
                             ->label('Activo')
                             ->default(true),
