@@ -32,10 +32,13 @@ class Contact extends Model
         'payment_terms',
         'discount_percentage',
         'is_active',
+        'is_local',
+        'linked_company_id',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'is_local' => 'boolean',
         'credit_limit' => 'decimal:2',
         'discount_percentage' => 'decimal:2',
     ];
@@ -61,6 +64,12 @@ class Contact extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    // Relación con empresa vinculada (para contactos Grafired)
+    public function linkedCompany(): BelongsTo
+    {
+        return $this->belongsTo(Company::class, 'linked_company_id');
     }
 
     // Relación con documentos (cotizaciones, órdenes, etc.)
@@ -90,6 +99,17 @@ class Contact extends Model
         return $query->where('type', $type);
     }
 
+    public function scopeLocal($query)
+    {
+        return $query->where('is_local', true);
+    }
+
+    public function scopeGrafired($query)
+    {
+        return $query->where('is_local', false)
+                     ->whereNotNull('linked_company_id');
+    }
+
     // Métodos de negocio
     public function isCustomer(): bool
     {
@@ -99,6 +119,16 @@ class Contact extends Model
     public function isSupplier(): bool
     {
         return in_array($this->type, ['supplier', 'both']);
+    }
+
+    public function isLocal(): bool
+    {
+        return $this->is_local === true;
+    }
+
+    public function isGrafired(): bool
+    {
+        return $this->is_local === false && $this->linked_company_id !== null;
     }
 
     public function getFullAddressAttribute(): string
@@ -129,5 +159,31 @@ class Contact extends Model
         // Aquí se calcularía el crédito usado en facturas pendientes
         // Por ahora retornamos el límite completo
         return $this->credit_limit;
+    }
+
+    public function syncFromLinkedCompany(): bool
+    {
+        if (!$this->linkedCompany) {
+            return false;
+        }
+
+        $company = $this->linkedCompany->fresh([
+            'city', 'state', 'country'
+        ]);
+
+        // Actualizar datos del contacto desde la empresa
+        $this->update([
+            'name' => $company->name,
+            'email' => $company->email,
+            'phone' => $company->phone,
+            'address' => $company->address,
+            'city_id' => $company->city_id,
+            'state_id' => $company->state_id,
+            'country_id' => $company->country_id,
+            'tax_id' => $company->tax_id,
+            'website' => $company->website,
+        ]);
+
+        return true;
     }
 }

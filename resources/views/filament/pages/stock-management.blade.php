@@ -1,9 +1,10 @@
 <x-filament-panels::page>
-    <div class="space-y-6">
-        {{-- KPIs Stats --}}
-        @livewire(\App\Filament\Widgets\SimpleStockKpisWidget::class)
+    {{-- Header Widgets (KPIs) will be rendered automatically via getHeaderWidgets() --}}
 
-        {{-- Actions Widget --}}
+    {{-- Quick Actions Widget (keep this one manually loaded) --}}
+    <div class="mb-6">
         @livewire(\App\Filament\Widgets\QuickActionsWidget::class)
     </div>
+
+    {{-- Footer Widgets (Trends, Tables, Movements) will be rendered automatically via getFooterWidgets() --}}
 </x-filament-panels::page>

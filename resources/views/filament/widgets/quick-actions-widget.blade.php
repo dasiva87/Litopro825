@@ -4,34 +4,21 @@
             Acciones Rápidas
         </x-slot>
 
-        <div class="space-y-2">
-            @foreach($this->getViewData()['actions'] as $action)
-                <x-filament::card class="p-3">
-                    <div class="flex items-center space-x-3">
-                        <div class="flex-shrink-0">
-                            @if($action->getUrl())
-                                <x-filament::button
-                                    :href="$action->getUrl()"
-                                    :color="$action->getColor()"
-                                    size="sm"
-                                    :icon="$action->getIcon()"
-                                >
-                                    {{ $action->getLabel() }}
-                                </x-filament::button>
-                            @else
-                                <x-filament::button
-                                    :color="$action->getColor()"
-                                    size="sm"
-                                    :icon="$action->getIcon()"
-                                    wire:click="mountAction('{{ $action->getName() }}')"
-                                >
-                                    {{ $action->getLabel() }}
-                                </x-filament::button>
-                            @endif
-                        </div>
-                    </div>
-                </x-filament::card>
-            @endforeach
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="flex w-full">
+                {{ ($this->stockEntryAction)(['size' => 'lg']) }}
+            </div>
+            <div class="flex w-full">
+                {{ ($this->viewCriticalAction)(['size' => 'lg']) }}
+            </div>
+            <div class="flex w-full">
+                {{ ($this->generatePurchaseOrderAction)(['size' => 'lg']) }}
+            </div>
+            <div class="flex w-full">
+                {{ ($this->downloadReportAction)(['size' => 'lg']) }}
+            </div>
         </div>
     </x-filament::section>
+
+    <x-filament-actions::modals />
 </x-filament-widgets::widget>

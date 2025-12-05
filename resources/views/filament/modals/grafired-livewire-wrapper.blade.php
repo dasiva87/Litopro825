@@ -1,0 +1,1 @@
+@livewire('grafired-supplier-search')
