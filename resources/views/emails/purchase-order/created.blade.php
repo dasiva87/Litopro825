@@ -1,7 +1,7 @@
 @component('mail::message')
 # Nueva Orden de Pedido
 
-Estimado {{ $purchaseOrder->supplierCompany->name }},
+Estimado {{ $purchaseOrder->supplierCompany->name ?? $purchaseOrder->supplier->name ?? 'Proveedor' }},
 
 Han recibido una nueva orden de pedido de **{{ $purchaseOrder->company->name }}**.
 

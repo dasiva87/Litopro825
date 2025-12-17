@@ -19,7 +19,7 @@ class PurchaseOrderCreated extends Notification
 
     protected function getPurchaseOrder(): PurchaseOrder
     {
-        return PurchaseOrder::with(['supplierCompany', 'company', 'documentItems'])->findOrFail($this->purchaseOrderId);
+        return PurchaseOrder::with(['supplierCompany', 'supplier', 'company', 'documentItems'])->findOrFail($this->purchaseOrderId);
     }
 
     public function via(object $notifiable): array
@@ -47,13 +47,18 @@ class PurchaseOrderCreated extends Notification
     {
         $purchaseOrder = $this->getPurchaseOrder();
 
+        // Obtener nombre del proveedor (Company o Contact)
+        $supplierName = $purchaseOrder->supplierCompany->name
+            ?? $purchaseOrder->supplier->name
+            ?? 'Sin proveedor';
+
         return [
             'format' => 'filament', // Requerido por Filament para mostrar notificaciones
             'purchase_order_id' => $purchaseOrder->id,
             'order_number' => $purchaseOrder->order_number,
-            'supplier_company' => $purchaseOrder->supplierCompany->name ?? 'Sin proveedor',
+            'supplier_company' => $supplierName,
             'total_amount' => $purchaseOrder->total_amount,
-            'message' => "Nueva orden de pedido #{$purchaseOrder->order_number} enviada a {$purchaseOrder->supplierCompany->name}",
+            'message' => "Nueva orden de pedido #{$purchaseOrder->order_number} enviada a {$supplierName}",
         ];
     }
 }

@@ -36,6 +36,192 @@ app/Filament/Resources/[Entity]/
 
 ## PROGRESO RECIENTE
 
+### ✅ Sesión Completada (05-Dic-2025)
+**SPRINT 25: Sistema de Búsqueda Grafired para Clientes + Buscador Reactivo + Documentación Completa**
+
+#### Logros de la Sesión
+
+1. **✅ Buscador Reactivo con Livewire en Modal de Proveedores**
+   - **Problema inicial**: Alpine.js con JSON no funcionaba en modales Filament
+   - **Solución**: Componente Livewire `GrafiredSupplierSearch` completo
+   - **Búsqueda en tiempo real**: Debounce 300ms, filtra por nombre o NIT
+   - **Grid de 3 columnas**: Inline styles (no depende de Tailwind compilado)
+   - **Avatares con gradiente**: Azul para proveedores
+   - **Badges dinámicos**: Colores según tipo de empresa
+
+2. **✅ Sistema Completo de Búsqueda para Clientes**
+   - **Componente Livewire**: `GrafiredClientSearch` (clon de proveedores)
+   - **relationshipType**: Usa `'client'` (no `'customer'`)
+   - **Grid de 3 columnas**: Inline styles con avatares verdes
+   - **Botón**: "Solicitar como Cliente" (verde esmeralda)
+   - **Modal habilitado**: En `/admin/clients` → Botón "Buscar en Grafired"
+
+3. **✅ Fix ENUM Mismatch - Mapeo de Tipos**
+   - **Problema**: `commercial_requests.relationship_type` = `['client', 'supplier']`
+   - **Problema**: `contacts.type` = `['customer', 'supplier', 'both']`
+   - **Solución**: CommercialRequestService mapea automáticamente:
+     - `'client'` en request → `'customer'` en contact
+     - `'supplier'` en request → `'supplier'` en contact
+   - **Bidireccional**: Ambas empresas reciben contacts con tipos correctos
+
+4. **✅ Diseño UI Mejorado con Inline Styles**
+   - **Problema**: Tailwind no compila clases para vistas cargadas dinámicamente
+   - **Solución**: Todos los estilos críticos usando `style="..."` inline
+   - **Componentes nativos**: `<x-filament::icon>`, `<x-filament::badge>`, `<x-filament::button>`
+   - **Responsive**: Flexbox con `calc(33.333% - 0.5rem)` para 3 columnas
+   - **Hover effects**: JavaScript inline para cambio de color
+
+5. **✅ Documentación Completa del Sistema**
+   - **Archivo creado**: `CLIENTESPROVEEDORES.md` (10 secciones, 500+ líneas)
+   - **Contenido**: Arquitectura completa de modelos y relaciones
+   - **5 Modelos explicados**: Company, Contact, CommercialRequest, ClientRelationship, SupplierRelationship
+   - **Diagramas**: Entidad-relación, flujos de negocio, casos de uso
+   - **Relación con documentos**: Cotizaciones, Órdenes de Producción, Cuentas de Cobro
+
+#### Archivos Creados (Sprint 25)
+
+**Componentes Livewire (2)**:
+1. `app/Livewire/GrafiredSupplierSearch.php`
+   - Búsqueda reactiva de proveedores
+   - Método `requestSupplier()`
+2. `app/Livewire/GrafiredClientSearch.php`
+   - Búsqueda reactiva de clientes
+   - Método `requestClient()`
+
+**Vistas Livewire (2)**:
+3. `resources/views/livewire/grafired-supplier-search.blade.php`
+   - Grid 3 columnas con inline styles
+   - Avatar azul, botón azul cielo
+4. `resources/views/livewire/grafired-client-search.blade.php`
+   - Grid 3 columnas con inline styles
+   - Avatar verde, botón verde esmeralda
+
+**Wrappers (2)**:
+5. `resources/views/filament/modals/grafired-livewire-wrapper.blade.php`
+6. `resources/views/filament/modals/grafired-client-wrapper.blade.php`
+
+**Documentación (1)**:
+7. `CLIENTESPROVEEDORES.md`
+   - 10 secciones completas
+   - Diagramas ASCII
+   - 3 casos de uso detallados
+
+**Total Sprint 25**: 7 archivos nuevos
+
+#### Archivos Modificados (Sprint 25)
+
+**Servicios (1)**:
+1. `app/Services/CommercialRequestService.php`
+   - Fix línea 79-89: Mapeo correcto `'client'` → `'customer'`
+   - Comentarios explicativos del mapeo
+
+**Páginas (2)**:
+2. `app/Filament/Pages/Suppliers/ListSuppliers.php`
+   - Cambiado a wrapper Livewire
+   - Método `getGrafiredCompanies()` serializa Enums correctamente
+3. `app/Filament/Pages/Clients/ListClients.php`
+   - Habilitado botón "Buscar en Grafired"
+   - Agregado `getSearchGrafiredAction()`
+
+**Total Sprint 25**: 3 archivos modificados
+
+#### Arquitectura Final: Clientes y Proveedores
+
+```
+┌─────────────────────────────────────────────────────────┐
+│               SISTEMA DE CONTACTOS                      │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  Company (Empresa Registrada en Grafired)              │
+│     │                                                   │
+│     ├── has many → Contact (Clientes/Proveedores)      │
+│     │              │                                    │
+│     │              ├── type: 'customer' (Cliente)       │
+│     │              ├── type: 'supplier' (Proveedor)     │
+│     │              ├── type: 'both' (Ambos)             │
+│     │              │                                    │
+│     │              ├── is_local: true (Local)           │
+│     │              │   └── linked_company_id: NULL      │
+│     │              │                                    │
+│     │              └── is_local: false (Grafired)       │
+│     │                  └── linked_company_id: Company   │
+│     │                                                   │
+│     └── Relaciones:                                     │
+│         ├── documents (Cotizaciones)                    │
+│         ├── productionOrders (Órdenes de Producción)   │
+│         ├── purchaseOrders (Órdenes de Pedido)         │
+│         └── collectionAccounts (Cuentas de Cobro)      │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│            WORKFLOW DE SOLICITUDES                      │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  1. Usuario busca en Grafired                           │
+│     ↓                                                   │
+│  2. Click "Solicitar como Proveedor/Cliente"            │
+│     ↓                                                   │
+│  3. CommercialRequest creado (status: pending)          │
+│     - relationship_type: 'supplier' o 'client'          │
+│     ↓                                                   │
+│  4. Empresa destino recibe notificación                 │
+│     ↓                                                   │
+│  5. APRUEBA → Crea 2 Contacts bidireccionales           │
+│     - Contact en Solicitante (tipo según solicitud)     │
+│     - Contact en Destino (tipo inverso)                 │
+│     ↓                                                   │
+│  6. Relación activa (ClientRelationship o               │
+│     SupplierRelationship)                               │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+#### Mapeo de Tipos (CRÍTICO)
+
+| CommercialRequest | Contact Solicitante | Contact Destino |
+|------------------|---------------------|-----------------|
+| `relationship_type='supplier'` | `type='supplier'` | `type='customer'` |
+| `relationship_type='client'` | `type='customer'` | `type='supplier'` |
+
+#### Testing Realizado
+
+```bash
+✅ Modal de proveedores con buscador reactivo funciona
+✅ Búsqueda en tiempo real (300ms debounce)
+✅ Grid de 3 columnas con inline styles
+✅ Avatares y badges con colores correctos
+✅ Modal de clientes habilitado y funcional
+✅ Solicitudes de cliente se crean correctamente
+✅ Fix ENUM: 'client' → 'customer' en contacts
+✅ Creación bidireccional de contacts funciona
+✅ Documentación completa generada
+```
+
+#### Problemas Resueltos Durante la Sesión
+
+**Error 1: Alpine.js no renderiza en modal**
+- **Problema**: `x-data` y `x-for` no se procesaban en modalContent de Filament
+- **Causa**: Modal escapa HTML y Alpine.js no se inicializa
+- **Solución**: Usar componente Livewire completo con `@livewire()` wrapper
+
+**Error 2: Tailwind CSS no compila clases dinámicas**
+- **Problema**: `grid grid-cols-3` mostraba `display: block`
+- **Causa**: Tailwind no compila clases en vistas cargadas dinámicamente
+- **Solución**: Usar `style="display: flex; flex-wrap: wrap; ..."` inline
+
+**Error 3: ENUM type mismatch en contacts**
+- **Problema**: `SQLSTATE[01000]: Data truncated for column 'type'`
+- **Causa**: Intentando insertar `'client'` en ENUM que solo acepta `'customer', 'supplier', 'both'`
+- **Solución**: Mapear en CommercialRequestService línea 79-89
+
+**Error 4: ENUM relationship_type mismatch**
+- **Problema**: `SQLSTATE[01000]: Data truncated for column 'relationship_type'`
+- **Causa**: GrafiredClientSearch enviaba `'customer'` pero ENUM espera `'client', 'supplier'`
+- **Solución**: Cambiar a `relationshipType: 'client'` en línea 48
+
+---
+
 ### ✅ Sesión Completada (04-Dic-2025)
 **SPRINT 24: Sistema Completo de Red Grafired - Búsqueda y Solicitudes Comerciales**
 

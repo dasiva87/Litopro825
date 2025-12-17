@@ -75,47 +75,90 @@ class ViewPurchaseOrder extends ViewRecord
                 ->openUrlInNewTab(),
 
             Actions\Action::make('send_email')
-                ->label('Enviar por Email')
+                ->label(fn () => $this->record->email_sent_at ? 'Reenviar Email' : 'Enviar Email al Proveedor')
                 ->icon('heroicon-o-envelope')
-                ->color('warning')
-                ->form([
-                    \Filament\Forms\Components\TextInput::make('email')
-                        ->label('Email del Proveedor')
-                        ->email()
-                        ->required()
-                        ->default(fn () => $this->record->supplierCompany?->email)
-                        ->helperText(fn () => $this->record->supplierCompany?->email
-                            ? 'Email configurado en el proveedor'
-                            : 'El proveedor no tiene email configurado. Ingresa uno manualmente.'),
+                ->color(fn () => $this->record->email_sent_at ? 'success' : 'warning')
+                ->badge(fn () => $this->record->email_sent_at ? 'Enviado' : null)
+                ->badgeColor('success')
+                ->requiresConfirmation()
+                ->modalHeading(fn () => $this->record->email_sent_at
+                    ? 'Reenviar Orden por Email'
+                    : 'Enviar Orden por Email')
+                ->modalDescription(function () {
+                    $supplierName = $this->record->supplierCompany->name
+                        ?? $this->record->supplier->name
+                        ?? 'Sin proveedor';
 
-                    \Filament\Forms\Components\Checkbox::make('change_status_to_sent')
-                        ->label('Cambiar estado a "Enviada"')
-                        ->default(fn () => $this->record->status === OrderStatus::DRAFT)
-                        ->visible(fn () => $this->record->status === OrderStatus::DRAFT)
-                        ->helperText('Esto actualizará el estado de la orden y enviará notificación al proveedor'),
-                ])
-                ->modalHeading('Enviar Orden por Email')
-                ->modalDescription(fn () => "Enviar orden #{$this->record->order_number} a {$this->record->supplierCompany?->name}")
-                ->action(function (array $data) {
-                    $pdfService = new \App\Services\PurchaseOrderPdfService;
-                    $sent = $pdfService->emailPdf($this->record, [$data['email']]);
+                    $description = "Orden #{$this->record->order_number} para {$supplierName}\n\n";
 
-                    if ($sent) {
-                        // Cambiar estado si está marcado
-                        if (($data['change_status_to_sent'] ?? false) && $this->record->status === OrderStatus::DRAFT) {
-                            $this->record->changeStatus(OrderStatus::SENT);
-                        }
-
-                        \Filament\Notifications\Notification::make()
-                            ->title('Email enviado')
-                            ->body("Orden enviada exitosamente a {$data['email']}")
-                            ->success()
-                            ->send();
+                    if ($this->record->email_sent_at) {
+                        $description .= "⚠️ Esta orden ya fue enviada el {$this->record->email_sent_at->format('d/m/Y H:i')}\n";
+                        $description .= "¿Deseas reenviar el email?";
                     } else {
+                        $description .= "Se enviará el email con el PDF de la orden al proveedor.";
+                    }
+
+                    return $description;
+                })
+                ->modalIcon('heroicon-o-envelope')
+                ->action(function () {
+                    // Validar que tenga items
+                    if ($this->record->purchaseOrderItems->isEmpty()) {
                         \Filament\Notifications\Notification::make()
-                            ->title('Error al enviar')
-                            ->body('No se pudo enviar el email. Revisa la configuración SMTP.')
                             ->danger()
+                            ->title('No se puede enviar')
+                            ->body('La orden no tiene items. Agrega items antes de enviar.')
+                            ->send();
+                        return;
+                    }
+
+                    // Validar que tenga total
+                    if ($this->record->total_amount <= 0) {
+                        \Filament\Notifications\Notification::make()
+                            ->danger()
+                            ->title('No se puede enviar')
+                            ->body('La orden tiene un total de $0. Verifica los items.')
+                            ->send();
+                        return;
+                    }
+
+                    // Obtener email del proveedor
+                    $supplierEmail = $this->record->supplierCompany->email
+                        ?? $this->record->supplier->email;
+
+                    if (!$supplierEmail) {
+                        \Filament\Notifications\Notification::make()
+                            ->danger()
+                            ->title('No se puede enviar')
+                            ->body('El proveedor no tiene email configurado.')
+                            ->send();
+                        return;
+                    }
+
+                    try {
+                        // Enviar notificación con PDF
+                        \Illuminate\Support\Facades\Notification::route('mail', $supplierEmail)
+                            ->notify(new \App\Notifications\PurchaseOrderCreated($this->record->id));
+
+                        // Actualizar registro de envío
+                        $this->record->update([
+                            'email_sent_at' => now(),
+                            'email_sent_by' => auth()->id(),
+                        ]);
+
+                        $action = $this->record->wasChanged('email_sent_at') ? 'reenviado' : 'enviado';
+
+                        \Filament\Notifications\Notification::make()
+                            ->success()
+                            ->title('Email ' . $action)
+                            ->body("Orden {$action} exitosamente a {$supplierEmail}")
+                            ->send();
+
+                    } catch (\Exception $e) {
+                        \Filament\Notifications\Notification::make()
+                            ->danger()
+                            ->title('Error al enviar email')
+                            ->body($e->getMessage())
                             ->send();
                     }
                 }),

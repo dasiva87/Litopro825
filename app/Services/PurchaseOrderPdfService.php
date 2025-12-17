@@ -12,6 +12,7 @@ class PurchaseOrderPdfService
     {
         $order->load([
             'supplierCompany',
+            'supplier', // Contact (proveedor local)
             'company',
             'purchaseOrderItems.documentItem',
             'purchaseOrderItems.paper',
@@ -22,10 +23,13 @@ class PurchaseOrderPdfService
         // Obtener documentos únicos relacionados
         $documents = $order->documents();
 
+        // Determinar proveedor: Company (Grafired) o Contact (Local)
+        $supplier = $order->supplierCompany ?? $order->supplier;
+
         $data = [
             'order' => $order,
             'company' => $order->company,
-            'supplier' => $order->supplierCompany,
+            'supplier' => $supplier, // Puede ser Company o Contact
             'documents' => $documents, // Múltiples cotizaciones
         ];
 
