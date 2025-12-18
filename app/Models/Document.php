@@ -35,6 +35,8 @@ class Document extends Model
         'valid_until',
         'version',
         'parent_document_id',
+        'email_sent_at',
+        'email_sent_by',
     ];
 
     protected $casts = [
@@ -48,6 +50,7 @@ class Document extends Model
         'tax_percentage' => 'decimal:2',
         'total' => 'decimal:2',
         'version' => 'integer',
+        'email_sent_at' => 'datetime',
     ];
 
     protected static function boot()
@@ -86,6 +89,11 @@ class Document extends Model
     public function documentType(): BelongsTo
     {
         return $this->belongsTo(DocumentType::class);
+    }
+
+    public function emailSentBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'email_sent_by');
     }
 
     // Relación con items del documento

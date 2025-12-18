@@ -4,6 +4,7 @@ use App\Http\Controllers\CollectionAccountPdfController;
 use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\CompleteProfileController;
 use App\Http\Controllers\DocumentPdfController;
+use App\Http\Controllers\ProductionOrderPdfController;
 use App\Http\Controllers\StripeSubscriptionController;
 use App\Http\Controllers\SuperAdmin\ImpersonateController;
 use Illuminate\Support\Facades\Route;
@@ -101,6 +102,12 @@ Route::middleware('auth')->group(function () {
         ->name('collection-accounts.pdf');
     Route::get('/collection-accounts/{collectionAccount}/download', [CollectionAccountPdfController::class, 'download'])
         ->name('collection-accounts.pdf.download');
+
+    // Rutas para PDFs de órdenes de producción
+    Route::get('/production-orders/{productionOrder}/pdf', [ProductionOrderPdfController::class, 'show'])
+        ->name('production-orders.pdf');
+    Route::get('/production-orders/{productionOrder}/download', [ProductionOrderPdfController::class, 'download'])
+        ->name('production-orders.pdf.download');
 
     // Rutas de impersonación
     Route::prefix('super-admin')->middleware(['role:Super Admin'])->group(function () {

@@ -33,6 +33,8 @@ class CollectionAccount extends Model
         'created_by',
         'approved_by',
         'approved_at',
+        'email_sent_at',
+        'email_sent_by',
     ];
 
     protected $casts = [
@@ -42,6 +44,7 @@ class CollectionAccount extends Model
         'total_amount' => 'decimal:2',
         'approved_at' => 'datetime',
         'status' => CollectionAccountStatus::class,
+        'email_sent_at' => 'datetime',
     ];
 
     protected static function booted(): void
@@ -68,13 +71,11 @@ class CollectionAccount extends Model
                 'user_id' => auth()->id(),
             ]);
 
-            // Enviar notificación al cliente cuando se crea con estado 'sent'
-            if ($account->status === CollectionAccountStatus::SENT && $account->clientCompany && $account->clientCompany->email) {
-                Notification::route('mail', $account->clientCompany->email)
-                    ->notify(new CollectionAccountSent($account->id));
-            }
+            // ❌ DESACTIVADO: Envío automático de email al cliente
+            // Ahora se envía manualmente con el botón "Enviar Email al Cliente"
+            // Ver: ViewCollectionAccount::send_email action y CollectionAccountsTable
 
-            // Notificar a los usuarios de la empresa creadora
+            // Notificar a los usuarios de la empresa creadora (solo notificación en app)
             $companyUsers = User::forTenant($account->company_id)->get();
             if ($companyUsers->isNotEmpty()) {
                 Notification::send($companyUsers, new CollectionAccountSent($account->id));
@@ -105,18 +106,15 @@ class CollectionAccount extends Model
                         ));
                     }
 
-                    // Si el estado cambia a 'sent', notificar a usuarios del cliente
+                    // ❌ DESACTIVADO: Envío automático de email cuando cambia a SENT
+                    // Ahora se envía manualmente con el botón "Enviar Email al Cliente"
+                    // Ver: ViewCollectionAccount::send_email action y CollectionAccountsTable
+
+                    // Notificar a usuarios del cliente (solo notificación en app, sin email)
                     if ($newStatus === CollectionAccountStatus::SENT && $updatedAccount->clientCompany) {
-                        // Notificar a usuarios del cliente (notificación en app + email)
                         $clientUsers = User::where('company_id', $updatedAccount->client_company_id)->get();
                         if ($clientUsers->isNotEmpty()) {
                             Notification::send($clientUsers, new CollectionAccountSent($updatedAccount->id));
-                        }
-
-                        // Email adicional al email general del cliente si existe
-                        if ($updatedAccount->clientCompany->email) {
-                            Notification::route('mail', $updatedAccount->clientCompany->email)
-                                ->notify(new CollectionAccountSent($updatedAccount->id));
                         }
                     }
 
@@ -161,6 +159,11 @@ class CollectionAccount extends Model
     public function approvedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function emailSentBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'email_sent_by');
     }
 
     public function documentItems(): BelongsToMany

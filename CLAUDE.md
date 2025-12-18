@@ -36,6 +36,86 @@ app/Filament/Resources/[Entity]/
 
 ## PROGRESO RECIENTE
 
+### ✅ Sesión Completada (17-Dic-2025)
+**SPRINT 26: Envío Manual de Emails para Cotizaciones (Documents/Quotes)**
+
+#### Logros de la Sesión
+
+1. **✅ Sistema Completo de Envío Manual de Emails**
+   - **Migración**: Campos `email_sent_at` y `email_sent_by` en tabla `documents`
+   - **Tracking completo**: Registra cuándo y quién envió el email
+   - **Validaciones**: Items, total > 0, email del cliente
+   - **UI dinámica**: Label, color y badge según estado de envío
+
+2. **✅ Notificación QuoteSent con PDF**
+   - **Email con PDF adjunto**: Usa DomPDF (mismo que DocumentPdfController)
+   - **Template Markdown**: Vista personalizada para cotizaciones
+   - **Notificación database**: Para usuarios internos
+   - **Información completa**: Número, fecha, total, cliente
+
+3. **✅ Acción Manual en ViewDocument y DocumentsTable**
+   - **Botón dinámico**: "Enviar Email" vs "Reenviar Email"
+   - **Badge visual**: Muestra "Enviado" cuando corresponde
+   - **Modal de confirmación**: Advertencia al reenviar
+   - **Tooltip informativo**: Muestra fecha de envío
+
+#### Archivos Creados (Sprint 26)
+
+**Migración (1)**:
+1. `database/migrations/2025_12_17_234302_add_email_sent_at_to_documents_table.php`
+
+**Notificación (1)**:
+2. `app/Notifications/QuoteSent.php`
+
+**Vista Email (1)**:
+3. `resources/views/emails/quote/sent.blade.php`
+
+**Total Sprint 26**: 3 archivos nuevos
+
+#### Archivos Modificados (Sprint 26)
+
+**Modelo (1)**:
+1. `app/Models/Document.php`
+   - Agregado `email_sent_at`, `email_sent_by` a fillable
+   - Agregado cast datetime para `email_sent_at`
+   - Relación `emailSentBy()` a User
+
+**Páginas (1)**:
+2. `app/Filament/Resources/Documents/Pages/ViewDocument.php`
+   - Acción `send_email` completa con validaciones
+
+**Tablas (1)**:
+3. `app/Filament/Resources/Documents/Tables/DocumentsTable.php`
+   - Columna `email_sent_at` con badge
+   - Acción `send_email` en tabla
+
+**Total Sprint 26**: 3 archivos modificados
+
+#### Testing Realizado
+
+```bash
+✅ Migración ejecutada sin errores
+✅ Sin errores de sintaxis en archivos PHP
+✅ Caché limpiada (views + config)
+✅ Campos agregados a BD correctamente
+✅ Relación emailSentBy() funcional
+```
+
+#### Diferencias vs Purchase Orders
+
+**Similitudes:**
+- Mismo patrón de validaciones
+- Mismo tracking (email_sent_at, email_sent_by)
+- Misma UI dinámica (label, color, badge)
+
+**Diferencias:**
+- **Documents**: Usa `clientCompany` o `contact` para el email
+- **Documents**: Usa `QuoteSent` notification (vs PurchaseOrderCreated)
+- **Documents**: PDF generado con `documents.pdf` view
+- **Documents**: Campo `total` (vs `total_amount`)
+
+---
+
 ### ✅ Sesión Completada (05-Dic-2025)
 **SPRINT 25: Sistema de Búsqueda Grafired para Clientes + Buscador Reactivo + Documentación Completa**
 
@@ -393,70 +473,75 @@ RECHAZAR SOLICITUD:
 
 ## 🎯 PRÓXIMA TAREA PRIORITARIA
 
-**Sistema de Solicitudes Comerciales - Mejoras Opcionales**
+**Sistema de Envío Manual de Emails - Módulos Restantes**
 
-El sistema está 100% funcional, pero se pueden agregar mejoras:
+Continuar implementando el sistema de envío manual en los módulos pendientes:
 
-**Opción A - Búsqueda Avanzada en Modal**:
-1. Filtros por tipo de empresa (litografía, distribuidora, etc.)
-2. Filtro por país/ciudad
-3. Búsqueda por nombre/NIT
-4. Paginación (actualmente muestra 20 fijas)
+**Opción A - Cuentas de Cobro (Collection Accounts)** (RECOMENDADO):
+1. Migración: `email_sent_at`, `email_sent_by` en tabla `collection_accounts`
+2. Modelo: `CollectionAccount.php`
+3. Notificación: `CollectionAccountSent` (YA EXISTE - verificar si necesita PDF)
+4. Página: `ViewCollectionAccount.php` o equivalente
+5. Tabla: Agregar acción de envío manual
 
-**Opción B - Duplicar en ListClients.php**:
-1. Implementar mismo modal de búsqueda
-2. Botón "Buscar Clientes en Grafired"
-3. Relación inversa (supplier → client)
+**Opción B - Órdenes de Producción (Production Orders)**:
+1. Migración: `email_sent_at`, `email_sent_by` en tabla `production_orders`
+2. Modelo: `ProductionOrder.php`
+3. Notificación: Crear `ProductionOrderSent` con PDF
+4. Página: `ViewProductionOrder.php` o equivalente
+5. Tabla: Agregar acción de envío manual
 
 **Opción C - Otras Áreas**:
-1. **Remover Placeholder de Debug de ProductQuickHandler**
-   - Limpiar código temporal de debug
-2. **Sistema de Acabados para DigitalItems**
-   - Implementar mismo patrón que Products
-3. **Dashboard de Producción**
-   - Widget con órdenes activas
-   - Métricas de eficiencia por proveedor
+1. **Sistema Grafired - Mejoras**:
+   - Búsqueda avanzada con filtros
+   - Paginación en modales
+2. **Remover Placeholder de Debug de ProductQuickHandler**
+3. **Dashboard de Producción** con widgets
 
 ---
 
 ## COMANDO PARA EMPEZAR MAÑANA
 
 ```bash
-# Iniciar LitoPro 3.0 - SPRINT 24 COMPLETADO (Sistema Grafired)
+# Iniciar LitoPro 3.0 - SPRINT 26 COMPLETADO (Emails Cotizaciones)
 cd /home/dasiva/Descargas/litopro825 && php artisan serve --port=8000
 
 # Estado del Proyecto
-echo "✅ SPRINT 24 COMPLETADO (04-Dic-2025) - Sistema Grafired 100%"
+echo "✅ SPRINT 26 COMPLETADO (17-Dic-2025) - Envío Manual Cotizaciones 100%"
 echo ""
 echo "📍 URLs de Testing:"
 echo "   🏠 Dashboard: http://127.0.0.1:8000/admin"
-echo "   🤝 Proveedores: http://127.0.0.1:8000/admin/suppliers"
-echo "   📨 Solicitudes: http://127.0.0.1:8000/admin/commercial-requests"
-echo "   🏢 Empresas: http://127.0.0.1:8000/admin/companies"
-echo "   📞 Contactos: http://127.0.0.1:8000/admin/contacts"
+echo "   📄 Cotizaciones: http://127.0.0.1:8000/admin/documents"
+echo "   🛒 Órdenes Pedido: http://127.0.0.1:8000/admin/purchase-orders"
+echo "   💰 Cuentas Cobro: http://127.0.0.1:8000/admin/collection-accounts"
+echo "   🏭 Órdenes Producción: http://127.0.0.1:8000/admin/production-orders"
 echo ""
 echo "⚠️  IMPORTANTE: Usar http://127.0.0.1:8000 (NO localhost) - CORS configurado"
 echo ""
-echo "🎉 SPRINT 24 - SISTEMA GRAFIRED COMPLETO:"
-echo "   • ✅ CommercialRequestService con workflow completo"
-echo "   • ✅ Modal de búsqueda con componentes nativos Filament"
-echo "   • ✅ Notificaciones email + database (3 tipos)"
-echo "   • ✅ Creación bidireccional de contactos"
-echo "   • ✅ Contact model con soporte Grafired (scopes + sync)"
-echo "   • ✅ Fix CSS: iconos h-4 w-4 (antes desproporcionados)"
-echo "   • ✅ Fix Filament v4: Action imports corregidos"
+echo "🎉 SPRINT 26 - ENVÍO MANUAL DE EMAILS COTIZACIONES:"
+echo "   • ✅ Migración: email_sent_at, email_sent_by en documents"
+echo "   • ✅ Notificación QuoteSent con PDF adjunto (DomPDF)"
+echo "   • ✅ Template email personalizado para cotizaciones"
+echo "   • ✅ Acción manual en ViewDocument (3 validaciones)"
+echo "   • ✅ Acción manual en DocumentsTable con badge"
+echo "   • ✅ Tracking completo: quién y cuándo envió"
+echo "   • ✅ UI dinámica: label, color y badge según estado"
 echo ""
-echo "🌐 FUNCIONALIDADES IMPLEMENTADAS:"
-echo "   1. Buscar empresas públicas en red Grafired"
-echo "   2. Enviar solicitud comercial (con validación de duplicados)"
-echo "   3. Aprobar solicitud → Crea contactos en ambas empresas"
-echo "   4. Rechazar solicitud → Notifica al solicitante"
-echo "   5. Sincronizar datos desde empresa conectada"
+echo "📧 MÓDULOS CON ENVÍO MANUAL IMPLEMENTADO:"
+echo "   1. ✅ Purchase Orders (Órdenes de Pedido)"
+echo "   2. ✅ Documents/Quotes (Cotizaciones)"
+echo "   3. ⏳ Collection Accounts (Pendiente)"
+echo "   4. ⏳ Production Orders (Pendiente)"
 echo ""
-echo "🎯 PRÓXIMA TAREA (Opcional):"
-echo "   Opción A: Búsqueda avanzada (filtros + paginación)"
-echo "   Opción B: Duplicar en ListClients.php"
-echo "   Opción C: Otras áreas (debug, acabados, dashboard)"
+echo "🎯 PRÓXIMA TAREA (RECOMENDADO):"
+echo "   Opción A: Implementar en Collection Accounts (Cuentas de Cobro)"
+echo "   Opción B: Implementar en Production Orders (Órdenes de Producción)"
+echo "   Opción C: Otras áreas (Grafired, debug, dashboard)"
+echo ""
+echo "📝 COMANDOS ÚTILES:"
+echo "   - Ver EMAIL.md: cat EMAIL.md"
+echo "   - Ver templates: ls resources/views/emails/"
+echo "   - Ver notificaciones: ls app/Notifications/"
 ```
 
 ---

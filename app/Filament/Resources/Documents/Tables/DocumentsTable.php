@@ -80,6 +80,18 @@ class DocumentsTable
                     ->sortable()
                     ->color(fn ($record) => $record->isExpired() ? 'danger' : null),
 
+                TextColumn::make('email_sent_at')
+                    ->label('Email')
+                    ->badge()
+                    ->formatStateUsing(fn ($state) => $state ? 'Enviado' : 'Pendiente')
+                    ->color(fn ($state) => $state ? 'success' : 'gray')
+                    ->icon(fn ($state) => $state ? 'heroicon-o-check-circle' : 'heroicon-o-clock')
+                    ->tooltip(fn ($record) => $record->email_sent_at
+                        ? "Enviado: {$record->email_sent_at->format('d/m/Y H:i')}"
+                        : 'Email no enviado')
+                    ->sortable()
+                    ->toggleable(),
+
                 TextColumn::make('version')
                     ->label('Versión')
                     ->badge()
@@ -126,6 +138,93 @@ class DocumentsTable
                     ViewAction::make(),
                     EditAction::make()
                         ->visible(fn ($record) => $record->canEdit()),
+
+                    Action::make('send_email')
+                        ->label('')
+                        ->icon('heroicon-o-envelope')
+                        ->color(fn ($record) => $record->email_sent_at ? 'success' : 'warning')
+                        ->tooltip(fn ($record) => $record->email_sent_at
+                            ? 'Reenviar Email (enviado ' . $record->email_sent_at->diffForHumans() . ')'
+                            : 'Enviar Email al Cliente')
+                        ->requiresConfirmation()
+                        ->modalHeading(fn ($record) => $record->email_sent_at
+                            ? 'Reenviar Documento por Email'
+                            : 'Enviar Documento por Email')
+                        ->modalDescription(function ($record) {
+                            $clientName = $record->clientCompany->name
+                                ?? $record->contact->name
+                                ?? 'Sin cliente';
+
+                            $documentTypeName = $record->documentType->name ?? 'Documento';
+
+                            $description = "{$documentTypeName} #{$record->document_number} para {$clientName}";
+
+                            if ($record->email_sent_at) {
+                                $description .= "\n\n⚠️ Este documento ya fue enviado el {$record->email_sent_at->format('d/m/Y H:i')}";
+                            }
+
+                            return $description;
+                        })
+                        ->modalIcon('heroicon-o-envelope')
+                        ->action(function ($record) {
+                            // VALIDACIÓN 1: Verificar items
+                            if ($record->items->isEmpty()) {
+                                \Filament\Notifications\Notification::make()
+                                    ->danger()
+                                    ->title('No se puede enviar')
+                                    ->body('El documento no tiene items. Agrega items antes de enviar.')
+                                    ->send();
+                                return;
+                            }
+
+                            // VALIDACIÓN 2: Verificar total
+                            if ($record->total <= 0) {
+                                \Filament\Notifications\Notification::make()
+                                    ->danger()
+                                    ->title('No se puede enviar')
+                                    ->body('El documento tiene un total de $0. Verifica los items.')
+                                    ->send();
+                                return;
+                            }
+
+                            // VALIDACIÓN 3: Verificar email del cliente
+                            $clientEmail = $record->clientCompany->email
+                                ?? $record->contact->email;
+
+                            if (!$clientEmail) {
+                                \Filament\Notifications\Notification::make()
+                                    ->danger()
+                                    ->title('No se puede enviar')
+                                    ->body('El cliente no tiene email configurado.')
+                                    ->send();
+                                return;
+                            }
+
+                            try {
+                                // Enviar notificación con PDF
+                                \Illuminate\Support\Facades\Notification::route('mail', $clientEmail)
+                                    ->notify(new \App\Notifications\QuoteSent($record->id));
+
+                                // Actualizar registro de envío
+                                $record->update([
+                                    'email_sent_at' => now(),
+                                    'email_sent_by' => auth()->id(),
+                                ]);
+
+                                \Filament\Notifications\Notification::make()
+                                    ->success()
+                                    ->title('Email enviado')
+                                    ->body("Documento enviado exitosamente a {$clientEmail}")
+                                    ->send();
+
+                            } catch (\Exception $e) {
+                                \Filament\Notifications\Notification::make()
+                                    ->danger()
+                                    ->title('Error al enviar email')
+                                    ->body($e->getMessage())
+                                    ->send();
+                            }
+                        }),
 
                     Action::make('send')
                         ->label('Enviar')

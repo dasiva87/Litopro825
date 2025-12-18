@@ -34,6 +34,8 @@ class ProductionOrder extends Model
         'quality_checked',
         'quality_checked_by',
         'quality_checked_at',
+        'email_sent_at',
+        'email_sent_by',
     ];
 
     protected $casts = [
@@ -45,6 +47,7 @@ class ProductionOrder extends Model
         'estimated_hours' => 'decimal:2',
         'quality_checked' => 'boolean',
         'status' => ProductionStatus::class,
+        'email_sent_at' => 'datetime',
     ];
 
     protected static function booted(): void
@@ -96,6 +99,11 @@ class ProductionOrder extends Model
     public function qualityCheckedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'quality_checked_by');
+    }
+
+    public function emailSentBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'email_sent_by');
     }
 
     public function documentItems(): BelongsToMany

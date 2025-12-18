@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\CollectionAccount;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -30,6 +31,19 @@ class CollectionAccountSent extends Notification
     {
         $collectionAccount = $this->getCollectionAccount();
 
+        // Generar PDF usando DomPDF
+        $pdf = Pdf::loadView('collection-accounts.pdf', [
+            'collectionAccount' => $collectionAccount
+        ])
+        ->setPaper('letter', 'portrait')
+        ->setOptions([
+            'defaultFont' => 'Arial',
+            'isRemoteEnabled' => true,
+            'isHtml5ParserEnabled' => true,
+            'dpi' => 150,
+            'defaultPaperSize' => 'letter',
+        ]);
+
         // Obtener nombre del destinatario (usuario o empresa)
         $recipientName = $notifiable->name ?? $collectionAccount->clientCompany->name ?? 'Estimado cliente';
 
@@ -42,7 +56,10 @@ class CollectionAccountSent extends Notification
             ->line("**Fecha de Emisión:** {$collectionAccount->issue_date->format('d/m/Y')}")
             ->line("**Fecha de Vencimiento:** ".($collectionAccount->due_date ? $collectionAccount->due_date->format('d/m/Y') : 'No definida'))
             ->action('Ver Cuenta de Cobro', url("/admin/collection-accounts/{$collectionAccount->id}"))
-            ->line('Gracias por su preferencia.');
+            ->line('Gracias por su preferencia.')
+            ->attachData($pdf->output(), "cuenta-cobro-{$collectionAccount->account_number}.pdf", [
+                'mime' => 'application/pdf',
+            ]);
     }
 
     public function toArray(object $notifiable): array

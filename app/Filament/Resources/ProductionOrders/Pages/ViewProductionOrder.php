@@ -27,6 +27,102 @@ class ViewProductionOrder extends ViewRecord
         return [
             EditAction::make(),
 
+            Action::make('view_pdf')
+                ->label('Ver PDF')
+                ->icon('heroicon-o-document-text')
+                ->color('info')
+                ->url(fn () => route('production-orders.pdf', $this->record))
+                ->openUrlInNewTab(),
+
+            Action::make('send_email')
+                ->label(fn () => $this->record->email_sent_at ? 'Reenviar Email' : 'Enviar Email al Operador')
+                ->icon('heroicon-o-envelope')
+                ->color(fn () => $this->record->email_sent_at ? 'success' : 'warning')
+                ->badge(fn () => $this->record->email_sent_at ? 'Enviado' : null)
+                ->badgeColor('success')
+                ->requiresConfirmation()
+                ->modalHeading(fn () => $this->record->email_sent_at
+                    ? 'Reenviar Orden por Email'
+                    : 'Enviar Orden por Email')
+                ->modalDescription(function () {
+                    $operatorName = $this->record->operator->name
+                        ?? $this->record->supplierCompany->name
+                        ?? $this->record->supplier->name
+                        ?? 'Sin operador asignado';
+
+                    $description = "Orden #{$this->record->production_number} para {$operatorName}\n\n";
+
+                    if ($this->record->email_sent_at) {
+                        $description .= "⚠️ Esta orden ya fue enviada el {$this->record->email_sent_at->format('d/m/Y H:i')}\n";
+                        $description .= "¿Deseas reenviar el email?";
+                    } else {
+                        $description .= "Se enviará el email con el PDF de la orden al operador.";
+                    }
+
+                    return $description;
+                })
+                ->modalIcon('heroicon-o-envelope')
+                ->action(function () {
+                    // VALIDACIÓN 1: Verificar items
+                    if ($this->record->documentItems->isEmpty()) {
+                        Notification::make()
+                            ->danger()
+                            ->title('No se puede enviar')
+                            ->body('La orden no tiene items. Agrega items antes de enviar.')
+                            ->send();
+                        return;
+                    }
+
+                    // VALIDACIÓN 2: Verificar total items
+                    if ($this->record->total_items <= 0) {
+                        Notification::make()
+                            ->danger()
+                            ->title('No se puede enviar')
+                            ->body('La orden no tiene items válidos.')
+                            ->send();
+                        return;
+                    }
+
+                    // VALIDACIÓN 3: Verificar email del operador
+                    $operatorEmail = $this->record->operator->email
+                        ?? $this->record->supplierCompany->email
+                        ?? $this->record->supplier->email;
+
+                    if (!$operatorEmail) {
+                        Notification::make()
+                            ->danger()
+                            ->title('No se puede enviar')
+                            ->body('El operador/proveedor no tiene email configurado.')
+                            ->send();
+                        return;
+                    }
+
+                    try {
+                        // Enviar notificación con PDF
+                        \Illuminate\Support\Facades\Notification::route('mail', $operatorEmail)
+                            ->notify(new \App\Notifications\ProductionOrderSent($this->record->id));
+
+                        // Actualizar registro de envío
+                        $this->record->update([
+                            'email_sent_at' => now(),
+                            'email_sent_by' => auth()->id(),
+                        ]);
+
+                        Notification::make()
+                            ->success()
+                            ->title('Email enviado')
+                            ->body("Orden enviada exitosamente a {$operatorEmail}")
+                            ->send();
+
+                    } catch (\Exception $e) {
+                        Notification::make()
+                            ->danger()
+                            ->title('Error al enviar email')
+                            ->body($e->getMessage())
+                            ->send();
+                    }
+                }),
+
             Action::make('queue')
                 ->label('Poner en Cola')
                 ->icon('heroicon-o-queue-list')

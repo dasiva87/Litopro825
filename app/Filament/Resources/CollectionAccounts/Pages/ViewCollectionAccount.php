@@ -28,63 +28,87 @@ class ViewCollectionAccount extends ViewRecord
                 ->openUrlInNewTab(),
 
             Action::make('send_email')
-                ->label('Enviar por Email')
+                ->label(fn () => $this->record->email_sent_at ? 'Reenviar Email' : 'Enviar Email al Cliente')
                 ->icon('heroicon-o-envelope')
-                ->color('primary')
-                ->form([
-                    TextInput::make('email')
-                        ->label('Email del Cliente')
-                        ->email()
-                        ->default(fn () => $this->record->clientCompany->email)
-                        ->required(),
+                ->color(fn () => $this->record->email_sent_at ? 'success' : 'warning')
+                ->badge(fn () => $this->record->email_sent_at ? 'Enviado' : null)
+                ->badgeColor('success')
+                ->requiresConfirmation()
+                ->modalHeading(fn () => $this->record->email_sent_at
+                    ? 'Reenviar Cuenta por Email'
+                    : 'Enviar Cuenta por Email')
+                ->modalDescription(function () {
+                    $clientName = $this->record->clientCompany->name
+                        ?? $this->record->contact->name
+                        ?? 'Sin cliente';
 
-                    Textarea::make('message')
-                        ->label('Mensaje Adicional')
-                        ->placeholder('Mensaje personalizado para incluir en el email...')
-                        ->rows(3),
-                ])
-                ->action(function (array $data) {
+                    $description = "Cuenta #{$this->record->account_number} para {$clientName}\n\n";
+
+                    if ($this->record->email_sent_at) {
+                        $description .= "⚠️ Esta cuenta ya fue enviada el {$this->record->email_sent_at->format('d/m/Y H:i')}\n";
+                        $description .= "¿Deseas reenviar el email?";
+                    } else {
+                        $description .= "Se enviará el email con el PDF de la cuenta al cliente.";
+                    }
+
+                    return $description;
+                })
+                ->modalIcon('heroicon-o-envelope')
+                ->action(function () {
+                    // VALIDACIÓN 1: Verificar items
+                    if ($this->record->documentItems->isEmpty()) {
+                        \Filament\Notifications\Notification::make()
+                            ->danger()
+                            ->title('No se puede enviar')
+                            ->body('La cuenta no tiene items. Agrega items antes de enviar.')
+                            ->send();
+                        return;
+                    }
+
+                    // VALIDACIÓN 2: Verificar total
+                    if ($this->record->total_amount <= 0) {
+                        \Filament\Notifications\Notification::make()
+                            ->danger()
+                            ->title('No se puede enviar')
+                            ->body('La cuenta tiene un total de $0. Verifica los items.')
+                            ->send();
+                        return;
+                    }
+
+                    // VALIDACIÓN 3: Verificar email del cliente
+                    $clientEmail = $this->record->clientCompany->email
+                        ?? $this->record->contact->email;
+
+                    if (!$clientEmail) {
+                        \Filament\Notifications\Notification::make()
+                            ->danger()
+                            ->title('No se puede enviar')
+                            ->body('El cliente no tiene email configurado.')
+                            ->send();
+                        return;
+                    }
+
                     try {
-                        // Generar PDF
-                        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('collection-accounts.pdf', [
-                            'collectionAccount' => $this->record->load([
-                                'company',
-                                'clientCompany',
-                                'documentItems.itemable',
-                                'documentItems.document',
-                                'createdBy'
-                            ])
-                        ])
-                        ->setPaper('letter', 'portrait')
-                        ->setOptions([
-                            'defaultFont' => 'Arial',
-                            'isRemoteEnabled' => true,
-                            'isHtml5ParserEnabled' => true,
-                            'dpi' => 150,
-                            'defaultPaperSize' => 'letter',
+                        // Enviar notificación con PDF
+                        \Illuminate\Support\Facades\Notification::route('mail', $clientEmail)
+                            ->notify(new \App\Notifications\CollectionAccountSent($this->record->id));
+
+                        // Actualizar registro de envío
+                        $this->record->update([
+                            'email_sent_at' => now(),
+                            'email_sent_by' => auth()->id(),
                         ]);
 
-                        // Enviar email
-                        \Illuminate\Support\Facades\Mail::send('emails.collection-account-sent', [
-                            'collectionAccount' => $this->record,
-                            'customMessage' => $data['message'] ?? null,
-                        ], function ($message) use ($data, $pdf) {
-                            $message->to($data['email'])
-                                ->subject("Cuenta de Cobro #{$this->record->account_number} - {$this->record->company->name}")
-                                ->attachData($pdf->output(), $this->record->account_number . '.pdf', [
-                                    'mime' => 'application/pdf',
-                                ]);
-                        });
-
                         \Filament\Notifications\Notification::make()
-                            ->title('Email enviado')
                             ->success()
-                            ->body("Cuenta de cobro enviada a {$data['email']}")
+                            ->title('Email enviado')
+                            ->body("Cuenta enviada exitosamente a {$clientEmail}")
                             ->send();
+
                     } catch (\Exception $e) {
                         \Filament\Notifications\Notification::make()
-                            ->title('Error al enviar email')
                             ->danger()
+                            ->title('Error al enviar email')
                             ->body($e->getMessage())
                             ->send();
                     }

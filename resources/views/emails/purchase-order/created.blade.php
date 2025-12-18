@@ -23,11 +23,7 @@ La orden contiene **{{ $purchaseOrder->documentItems->count() }}** items por un 
 {{ $purchaseOrder->notes }}
 @endif
 
-@component('mail::button', ['url' => route('purchase-orders.pdf', $purchaseOrder->id)])
-Ver Orden Completa
-@endcomponent
-
-Por favor confirmen la recepción de esta orden y procedan según sus procesos internos.
+**Adjunto encontrará la orden completa en formato PDF.** Por favor confirmen la recepción de esta orden y procedan según sus procesos internos.
 
 Saludos cordiales,
 **{{ $purchaseOrder->company->name }}**
