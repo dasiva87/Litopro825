@@ -36,7 +36,7 @@ class PurchaseOrderStatusChanged extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        return ['mail'];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -60,14 +60,26 @@ class PurchaseOrderStatusChanged extends Notification
     {
         $purchaseOrder = $this->getPurchaseOrder();
 
+        $oldStatus = $this->getOldStatus();
+        $newStatus = $this->getNewStatus();
+
         return [
-            'format' => 'filament', // Requerido por Filament para mostrar notificaciones
+            'format' => 'filament',
+            'title' => 'Cambio de Estado',
+            'body' => "Orden #{$purchaseOrder->order_number}: {$oldStatus->getLabel()} → {$newStatus->getLabel()}",
+            'actions' => [
+                [
+                    'name' => 'view',
+                    'label' => 'Ver Orden',
+                    'url' => url("/admin/purchase-orders/{$purchaseOrder->id}"),
+                ],
+            ],
+            // Campos adicionales para uso interno
             'purchase_order_id' => $purchaseOrder->id,
             'order_number' => $purchaseOrder->order_number,
             'old_status' => $this->oldStatusValue,
             'new_status' => $this->newStatusValue,
             'supplier_company' => $purchaseOrder->supplierCompany->name ?? 'Sin proveedor',
-            'message' => "Orden #{$purchaseOrder->order_number} cambió de estado",
         ];
     }
 }

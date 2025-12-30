@@ -24,7 +24,7 @@ class PurchaseOrderCreated extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['database']; // Solo notificación interna, NO email al proveedor
+        return ['mail']; // Solo notificación interna, NO email al proveedor
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -53,12 +53,21 @@ class PurchaseOrderCreated extends Notification
             ?? 'Sin proveedor';
 
         return [
-            'format' => 'filament', // Requerido por Filament para mostrar notificaciones
+            'format' => 'filament',
+            'title' => 'Orden de Pedido Creada',
+            'body' => "Nueva orden #{$purchaseOrder->order_number} enviada a {$supplierName}",
+            'actions' => [
+                [
+                    'name' => 'view',
+                    'label' => 'Ver Orden',
+                    'url' => url("/admin/purchase-orders/{$purchaseOrder->id}"),
+                ],
+            ],
+            // Campos adicionales para uso interno
             'purchase_order_id' => $purchaseOrder->id,
             'order_number' => $purchaseOrder->order_number,
             'supplier_company' => $supplierName,
             'total_amount' => $purchaseOrder->total_amount,
-            'message' => "Nueva orden de pedido #{$purchaseOrder->order_number} enviada a {$supplierName}",
         ];
     }
 }

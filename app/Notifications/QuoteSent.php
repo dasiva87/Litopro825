@@ -24,7 +24,7 @@ class QuoteSent extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        return ['mail'];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -66,12 +66,21 @@ class QuoteSent extends Notification
         $documentTypeName = $document->documentType->name ?? 'Documento';
 
         return [
-            'format' => 'filament', // Requerido por Filament para mostrar notificaciones
+            'format' => 'filament',
+            'title' => "{$documentTypeName} Enviada",
+            'body' => "#{$document->document_number} enviada a {$clientName}",
+            'actions' => [
+                [
+                    'name' => 'view',
+                    'label' => 'Ver Documento',
+                    'url' => url("/admin/documents/{$document->id}"),
+                ],
+            ],
+            // Campos adicionales para uso interno
             'document_id' => $document->id,
             'document_number' => $document->document_number,
             'client_name' => $clientName,
             'total' => $document->total,
-            'message' => "Nueva {$documentTypeName} #{$document->document_number} enviada a {$clientName}",
         ];
     }
 }

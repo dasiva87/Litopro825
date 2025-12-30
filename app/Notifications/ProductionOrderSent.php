@@ -31,7 +31,7 @@ class ProductionOrderSent extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        return ['mail'];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -76,12 +76,21 @@ class ProductionOrderSent extends Notification
             ?? 'Sin asignar';
 
         return [
-            'format' => 'filament', // Requerido por Filament para mostrar notificaciones
+            'format' => 'filament',
+            'title' => 'Orden de Producción Enviada',
+            'body' => "#{$productionOrder->production_number} enviada a {$operatorName}",
+            'actions' => [
+                [
+                    'name' => 'view',
+                    'label' => 'Ver Orden',
+                    'url' => url("/admin/production-orders/{$productionOrder->id}"),
+                ],
+            ],
+            // Campos adicionales para uso interno
             'production_order_id' => $productionOrder->id,
             'production_number' => $productionOrder->production_number,
             'operator_name' => $operatorName,
             'total_items' => $productionOrder->total_items,
-            'message' => "Nueva orden de producción #{$productionOrder->production_number} enviada a {$operatorName}",
         ];
     }
 }

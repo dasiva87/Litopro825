@@ -19,6 +19,7 @@ class Companies extends Page
     protected static bool $shouldRegisterNavigation = false;
 
     public $companies = [];
+
     public $userCompanyId = null;
 
     public function mount(): void
@@ -56,42 +57,46 @@ class Companies extends Page
     {
         $words = explode(' ', $name);
         if (count($words) >= 2) {
-            return strtoupper(substr($words[0], 0, 1) . substr($words[1], 0, 1));
+            return strtoupper(substr($words[0], 0, 1).substr($words[1], 0, 1));
         }
+
         return strtoupper(substr($name, 0, 2));
     }
 
     private function isFollowing(int $companyId): bool
     {
-        if (!$this->userCompanyId) {
+        if (! $this->userCompanyId) {
             return false;
         }
 
         $userCompany = Company::find($this->userCompanyId);
+
         return $userCompany ? $userCompany->isFollowing(Company::find($companyId)) : false;
     }
 
     public function followCompany(int $companyId)
     {
-        if (!$this->userCompanyId) {
+        if (! $this->userCompanyId) {
             session()->flash('error', 'Debes tener una empresa asociada.');
+
             return;
         }
 
         $userCompany = Company::find($this->userCompanyId);
         $targetCompany = Company::find($companyId);
 
-        if (!$userCompany || !$targetCompany) {
+        if (! $userCompany || ! $targetCompany) {
             session()->flash('error', 'Empresa no encontrada.');
+
             return;
         }
 
         if ($userCompany->isFollowing($targetCompany)) {
             $userCompany->unfollow($targetCompany);
-            session()->flash('success', 'Has dejado de seguir a ' . $targetCompany->name);
+            session()->flash('success', 'Has dejado de seguir a '.$targetCompany->name);
         } else {
-            $userCompany->follow($targetCompany);
-            session()->flash('success', 'Ahora sigues a ' . $targetCompany->name);
+            $userCompany->follow($targetCompany, auth()->user());
+            session()->flash('success', 'Ahora sigues a '.$targetCompany->name);
         }
 
         // Recargar empresas

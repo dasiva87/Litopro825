@@ -14,6 +14,7 @@ class StockAlertNotification extends Notification implements ShouldQueue
     use Queueable;
 
     protected StockAlert|Collection $alerts;
+
     protected string $type;
 
     /**
@@ -47,7 +48,7 @@ class StockAlertNotification extends Notification implements ShouldQueue
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $mailMessage = new MailMessage();
+        $mailMessage = new MailMessage;
 
         if ($this->type === 'single') {
             return $this->buildSingleAlertEmail($mailMessage);
@@ -128,28 +129,46 @@ class StockAlertNotification extends Notification implements ShouldQueue
     {
         if ($this->type === 'single') {
             $alert = $this->alerts;
+
             return [
+                'format' => 'filament',
+                'title' => $alert->title ?: "Alerta de Stock: {$alert->type_label}",
+                'body' => $alert->message,
+                'actions' => [
+                    [
+                        'name' => 'view',
+                        'label' => 'Ver Detalles',
+                        'url' => url('/admin/products'),
+                    ],
+                ],
+                // Campos adicionales para uso interno
                 'alert_id' => $alert->id,
                 'type' => 'stock_alert',
                 'severity' => $alert->severity,
-                'title' => $alert->title,
-                'message' => $alert->message,
                 'item_name' => $alert->stockable->name,
                 'item_type' => class_basename($alert->stockable_type),
                 'current_stock' => $alert->current_stock,
                 'min_stock' => $alert->min_stock,
-                'action_url' => url('/admin'),
             ];
         } else {
             $alerts = $this->alerts;
+
             return [
+                'format' => 'filament',
+                'title' => 'Múltiples Alertas de Stock',
+                'body' => "Se han generado {$alerts->count()} nuevas alertas de stock",
+                'actions' => [
+                    [
+                        'name' => 'view',
+                        'label' => 'Ver Alertas',
+                        'url' => url('/admin/stock-management'),
+                    ],
+                ],
+                // Campos adicionales para uso interno
                 'type' => 'stock_alerts_batch',
                 'total_alerts' => $alerts->count(),
                 'critical_count' => $alerts->where('severity', 'critical')->count(),
                 'high_count' => $alerts->where('severity', 'high')->count(),
-                'title' => 'Múltiples Alertas de Stock',
-                'message' => "Se han generado {$alerts->count()} nuevas alertas de stock",
-                'action_url' => url('/admin'),
             ];
         }
     }
@@ -188,7 +207,7 @@ class StockAlertNotification extends Notification implements ShouldQueue
     public function getPriority(): string
     {
         if ($this->type === 'single') {
-            return match($this->alerts->severity) {
+            return match ($this->alerts->severity) {
                 'critical' => 'high',
                 'high' => 'medium',
                 default => 'low'
@@ -197,7 +216,8 @@ class StockAlertNotification extends Notification implements ShouldQueue
 
         // Para batch, basarse en la alerta más crítica
         $maxSeverity = $this->alerts->max('severity');
-        return match($maxSeverity) {
+
+        return match ($maxSeverity) {
             'critical' => 'high',
             'high' => 'medium',
             default => 'low'
@@ -211,7 +231,7 @@ class StockAlertNotification extends Notification implements ShouldQueue
     {
         $priority = $this->getPriority();
 
-        return match($priority) {
+        return match ($priority) {
             'high' => null, // Inmediato
             'medium' => now()->addMinutes(2),
             'low' => now()->addMinutes(5),

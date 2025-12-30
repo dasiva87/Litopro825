@@ -90,8 +90,6 @@ class AdminPanelProvider extends PanelProvider
                 CheckActiveCompany::class,
             ])
             ->globalSearch()
-            ->databaseNotifications()
-            ->databaseNotificationsPolling('30s')
             ->sidebarCollapsibleOnDesktop()
             ->spa()
             ->unsavedChangesAlerts()
@@ -126,7 +124,7 @@ class AdminPanelProvider extends PanelProvider
                     ->label('Facturación')
                     ->url('/admin/billing')
                     ->icon('heroicon-o-credit-card'),
-                
+
             ]);
     }
 }

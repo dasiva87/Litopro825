@@ -33,6 +33,11 @@ class StockAlertResource extends Resource
 
     protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Inventario;
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     public static function canViewAny(): bool
     {
         return true;

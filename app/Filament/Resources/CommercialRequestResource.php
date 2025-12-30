@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Enums\NavigationGroup;
+use App\Filament\Resources\CommercialRequests\Schemas\CommercialRequestViewSchema;
 use App\Models\CommercialRequest;
 use App\Services\CommercialRequestService;
 use BackedEnum;
@@ -10,6 +11,7 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
@@ -33,6 +35,31 @@ class CommercialRequestResource extends Resource
 
     protected static ?int $navigationSort = 4;
 
+    public static function getNavigationBadge(): ?string
+    {
+        if (!auth()->check() || !auth()->user()->company_id) {
+            return null;
+        }
+
+        $companyId = auth()->user()->company_id;
+
+        // Contar todas las solicitudes pendientes de la empresa (enviadas y recibidas)
+        $count = static::getModel()::query()
+            ->where('status', 'pending')
+            ->where(function ($query) use ($companyId) {
+                $query->where('requester_company_id', $companyId)
+                    ->orWhere('target_company_id', $companyId);
+            })
+            ->count();
+
+        return $count > 0 ? (string) $count : null;
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'warning';
+    }
+
     public static function canViewAny(): bool
     {
         return true; // Temporalmente permitir acceso para debug
@@ -47,6 +74,11 @@ class CommercialRequestResource extends Resource
     {
         // La creación se manejará desde otros módulos
         return false;
+    }
+
+    public static function form(Schema $schema): Schema
+    {
+        return CommercialRequestViewSchema::configure($schema);
     }
 
     public static function table(Table $table): Table
@@ -221,7 +253,8 @@ class CommercialRequestResource extends Resource
                     ->modalContent(fn ($record) => view('filament.modals.commercial-request-response', compact('record')))
                     ->visible(fn ($record) => $record->response_message && ! $record->isPending()),
             ])
-            ->defaultSort('created_at', 'desc');
+            ->defaultSort('created_at', 'desc')
+            ->recordUrl(fn ($record) => route('filament.admin.resources.commercial-requests.view', ['record' => $record]));
     }
 
     public static function getEloquentQuery(): Builder
@@ -240,6 +273,7 @@ class CommercialRequestResource extends Resource
     {
         return [
             'index' => \App\Filament\Pages\CommercialRequests\ListCommercialRequests::route('/'),
+            'view' => \App\Filament\Pages\CommercialRequests\ViewCommercialRequest::route('/{record}'),
         ];
     }
 }

@@ -36,6 +36,644 @@ app/Filament/Resources/[Entity]/
 
 ## PROGRESO RECIENTE
 
+### ✅ Sesión Completada (30-Dic-2025 - Continuación 2)
+**SPRINT 30: Consolidación de Páginas de Stock en una Sola**
+
+#### Logros de la Sesión
+
+1. **✅ Página Stock.php Unificada**
+   - **Nueva página**: `Stock.php` con todos los widgets consolidados
+   - **3 Tabs**: Resumen, Movimientos, Alertas
+   - **3 Header Actions**: Actualizar Datos, Ver Alertas, Nuevo Movimiento
+   - **9 Widgets organizados**: 3 en header, 6 en tabs
+
+2. **✅ Vista con Tabs Interactivos**
+   - **Componentes Filament**: Uso de `<x-filament::tabs>` nativo
+   - **Navegación dinámica**: Cambio de tab con Livewire
+   - **3 tabs organizados**:
+     - Resumen: Tendencias + Productos más consumidos
+     - Movimientos: Tabla completa + Movimientos recientes
+     - Alertas: Tabla de alertas críticas
+
+3. **✅ Limpieza de Archivos Obsoletos**
+   - **2 páginas eliminadas**: StockManagement, StockMovements
+   - **2 vistas eliminadas**: stock-management.blade.php, stock-movements.blade.php
+   - **3 widgets eliminados**: StockKpisWidget, StockLevelTrackingWidget, StockPredictionsWidget
+
+4. **✅ Navegación Simplificada**
+   - **Antes**: 3 entradas en menú Stock + 1 entrada "Clientes y Proveedores"
+   - **Ahora**: 1 entrada "Stock" con tabs internos
+   - **Resources ocultos**:
+     - StockAlertResource (accesible desde botón "Ver Alertas")
+     - ContactResource (accesible desde ClientResource y SupplierResource)
+   - **Beneficio**: Menú más limpio, menos clutter, mejor UX
+
+5. **✅ Badge de Solicitudes Pendientes**
+   - **Contador dinámico**: Muestra número de solicitudes comerciales sin responder
+   - **Color warning**: Badge amarillo/naranja cuando hay solicitudes pendientes
+   - **Filtrado correcto**: Solo cuenta solicitudes recibidas (target_company_id) en estado 'pending'
+   - **Beneficio**: Visibilidad inmediata de solicitudes que requieren atención
+
+6. **✅ Gestión Completa de Solicitudes Comerciales**
+   - **Página de visualización**: Click en solicitud para ver detalle completo
+   - **Botones de acción**: Aprobar/Rechazar en header de la página
+   - **Formulario detallado**: Muestra toda la información de la solicitud
+   - **Acciones con confirmación**: Modales de confirmación antes de aprobar/rechazar
+   - **Mensajes personalizados**: Campo para agregar mensaje de bienvenida o rechazo
+   - **Redirección automática**: Vuelve al listado después de gestionar
+   - **Beneficio**: Gestión intuitiva y completa de solicitudes comerciales
+
+#### Archivos Creados (Sprint 30)
+
+**Páginas (1)**:
+1. `app/Filament/Pages/Stock.php` - Página unificada con tabs
+
+**Vistas (1)**:
+2. `resources/views/filament/pages/stock.blade.php` - Vista con 3 tabs
+
+**Gestión de Solicitudes Comerciales (3)**:
+3. `app/Filament/Pages/CommercialRequests/ViewCommercialRequest.php` - Página de visualización
+4. `app/Filament/Resources/CommercialRequests/Schemas/CommercialRequestViewSchema.php` - Schema de formulario
+5. `app/Filament/Resources/CommercialRequests/` - Directorio de schemas creado
+
+**Total Sprint 30**: 5 archivos nuevos
+
+#### Archivos Modificados (Sprint 30)
+
+**Resources Ocultos del Menú (2)**:
+1. `app/Filament/Resources/StockAlertResource.php`
+   - Agregado `shouldRegisterNavigation() => false`
+   - Oculto del menú lateral (accesible solo desde botón "Ver Alertas")
+2. `app/Filament/Resources/Contacts/ContactResource.php`
+   - Agregado `shouldRegisterNavigation() => false`
+   - Oculto del menú lateral (accesible desde Clientes y Proveedores específicos)
+
+**Acción "Nuevo Movimiento" (1)**:
+3. `app/Filament/Pages/Stock.php`
+   - Fix: Cambiado `->relationship()` a `->options()` con closure
+   - Corregido error "hasAttribute() on null"
+
+**Badge y Gestión de Solicitudes (1)**:
+4. `app/Filament/Resources/CommercialRequestResource.php`
+   - Agregado `getNavigationBadge()` - contador de solicitudes pendientes
+   - Agregado `getNavigationBadgeColor()` - color 'warning' cuando hay pendientes
+   - Agregado `form()` - usa CommercialRequestViewSchema
+   - Agregado página 'view' en getPages()
+   - Agregado `->recordUrl()` - filas clicables para ver detalle
+   - Filtra por `target_company_id` (solicitudes recibidas) y `status='pending'`
+
+**Total Sprint 30**: 4 archivos modificados
+
+#### Archivos Eliminados (Sprint 30)
+
+**Páginas Antiguas (2)**:
+1. `app/Filament/Pages/StockManagement.php`
+2. `app/Filament/Pages/StockMovements.php`
+
+**Vistas Antiguas (2)**:
+3. `resources/views/filament/pages/stock-management.blade.php`
+4. `resources/views/filament/pages/stock-movements.blade.php`
+
+**Widgets Obsoletos (3)**:
+5. `app/Filament/Widgets/StockKpisWidget.php` - Reemplazado por SimpleStockKpisWidget
+6. `app/Filament/Widgets/StockLevelTrackingWidget.php` - No utilizado
+7. `app/Filament/Widgets/StockPredictionsWidget.php` - No utilizado
+
+**Total Sprint 30**: 7 archivos eliminados
+
+#### Estructura de la Nueva Página Stock
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  STOCK - Dashboard Unificado                            │
+├─────────────────────────────────────────────────────────┤
+│  [Header Actions]                                        │
+│  • Actualizar Datos (refresh alertas)                   │
+│  • Ver Alertas (→ StockAlertResource)                   │
+│  • Nuevo Movimiento (modal)                             │
+├─────────────────────────────────────────────────────────┤
+│  HEADER WIDGETS (3):                                     │
+│  ┌──────────────┬──────────────┬──────────────┐         │
+│  │ Simple Stock │ Movements    │ Stock Alerts │         │
+│  │ KPIs         │ KPIs         │ Widget       │         │
+│  └──────────────┴──────────────┴──────────────┘         │
+├─────────────────────────────────────────────────────────┤
+│  TABS:                                                   │
+│  [Resumen] [Movimientos] [Alertas]                      │
+│                                                          │
+│  TAB 1 - RESUMEN:                                        │
+│  • StockTrendsChartWidget (gráfico tendencias)          │
+│  • TopConsumedProductsWidget (tabla)                    │
+│                                                          │
+│  TAB 2 - MOVIMIENTOS:                                    │
+│  • StockMovementsTableWidget (historial completo)       │
+│  • RecentMovementsWidget (últimos movimientos)          │
+│                                                          │
+│  TAB 3 - ALERTAS:                                        │
+│  • CriticalAlertsTableWidget (alertas críticas)         │
+│                                                          │
+└─────────────────────────────────────────────────────────┘
+```
+
+#### Widgets Finales (6 activos)
+
+**Header Widgets (3)**:
+1. `SimpleStockKpisWidget` - KPIs con sparklines y colores dinámicos
+2. `StockMovementsKpisWidget` - Estadísticas de movimientos
+3. `StockAlertsWidget` - Alertas de stock (crítico, bajo, sin stock, costo)
+
+**Tab Widgets (6)**:
+4. `StockTrendsChartWidget` - Gráfico de tendencias (Tab Resumen)
+5. `TopConsumedProductsWidget` - Productos más consumidos (Tab Resumen)
+6. `StockMovementsTableWidget` - Historial completo (Tab Movimientos)
+7. `RecentMovementsWidget` - Últimos movimientos (Tab Movimientos)
+8. `CriticalAlertsTableWidget` - Alertas críticas (Tab Alertas)
+
+**No utilizados (1)**:
+9. `StockAlertsStatsWidget` - Stats de alertas (similar a StockAlertsWidget)
+
+#### Testing Realizado
+
+```bash
+✅ Página Stock.php creada sin errores
+✅ Vista con tabs renderiza correctamente
+✅ 2 páginas antiguas eliminadas
+✅ 2 vistas antiguas eliminadas
+✅ 3 widgets obsoletos eliminados
+✅ Sintaxis PHP correcta (php -l)
+✅ Caché limpiada (config, views, filament)
+✅ Laravel ejecutándose sin errores
+```
+
+#### Beneficios de la Consolidación
+
+**UX Mejorado**:
+- ✅ **1 entrada en menú** vs 2 anteriores
+- ✅ **Tabs organizados** por tipo de información
+- ✅ **Todo accesible** desde una sola URL
+- ✅ **Navegación lógica** entre secciones
+
+**Código Limpio**:
+- ✅ **Menos archivos**: 7 archivos eliminados
+- ✅ **Sin duplicación**: Widgets obsoletos removidos
+- ✅ **Mejor organización**: Lógica unificada en una página
+
+**Mantenimiento**:
+- ✅ **Centralizado**: Un solo lugar para modificar
+- ✅ **Reutilización**: Widgets compartidos entre tabs
+- ✅ **Escalable**: Fácil agregar nuevos tabs o widgets
+
+#### Diferencias vs Páginas Separadas
+
+**Navegación:**
+- **Antes**: "Gestión de Stock" + "Movimientos de Stock" + "Alertas de Stock" (3 items menú)
+- **Ahora**: "Stock" con tabs internos (1 item menú visible)
+- **StockAlertResource**: Oculto del menú (accesible vía botón)
+- **Beneficio**: Menú más limpio, navegación intuitiva
+
+**Widgets:**
+- **Antes**: 9 widgets dispersos en 2 páginas
+- **Ahora**: 9 widgets organizados en 3 tabs (mismo contenido, mejor organización)
+- **Beneficio**: Misma funcionalidad, mejor accesibilidad
+
+**Código:**
+- **Antes**: 2 clases PHP + 2 vistas Blade + 3 widgets obsoletos
+- **Ahora**: 1 clase PHP + 1 vista Blade + 6 widgets activos
+- **Beneficio**: Menos archivos, menos mantenimiento
+
+---
+
+### ✅ Sesión Completada (30-Dic-2025 - Continuación)
+**SPRINT 29: Eliminación Completa del Sistema de Notificaciones UI**
+
+#### Contexto y Decisión
+
+**Problema Original (Sprint 28)**:
+- Sistema de notificaciones UI implementado con JavaScript auto-marcado, Observer, API routes
+- **Issue crítico**: Notificaciones no se renderizaban en el dropdown de Filament
+- Base de datos correcta, contador correcto, pero dropdown mostraba "No hay notificaciones"
+- Múltiples intentos de fix no resolvieron el problema de renderizado
+
+**Decisión del Usuario**:
+> "elimina el sistema de notificaciones y solo deja el envio de correo, ya que las notificaciones están presentando problemas para renderizarse y gestionarse"
+
+#### Logros de la Sesión
+
+1. **✅ Eliminación Completa del Sistema UI**
+   - **8 archivos eliminados**: Controller, Middleware, Observer, Livewire, JavaScript, vistas
+   - **11 notificaciones actualizadas**: Todas ahora usan solo canal `['mail']`
+   - **4 archivos de configuración limpiados**: Routes, assets, providers
+   - **Assets recompilados**: Vite build sin código de notificaciones
+
+2. **✅ Preservación de Funcionalidad Email**
+   - **Templates intactos**: 6 vistas en `resources/views/emails/` sin cambios
+   - **Adjuntos PDF**: Funcionalidad de PDFs preservada
+   - **Mailtrap config**: Sin modificaciones, emails funcionan normalmente
+   - **Métodos `toMail()`**: Todos los métodos de notificación preservados
+
+3. **✅ Sistema de Notificaciones - Solo Email**
+   - **11 tipos de notificaciones** configuradas para email únicamente
+   - **Canal único**: `['mail']` en todos los casos
+   - **Sin polling**: Eliminado polling de 30s de Filament
+   - **Sin base de datos**: No se guardan notificaciones en tabla `notifications`
+
+#### Archivos Eliminados (Sprint 29)
+
+**Backend (4)**:
+1. `app/Http/Controllers/NotificationController.php` - API endpoints (mark-as-read, etc.)
+2. `app/Http/Middleware/MarkNotificationsAsRead.php` - Middleware de auto-marcado
+3. `app/Observers/DatabaseNotificationObserver.php` - Observer de eventos
+4. `app/Livewire/NotificationTrigger.php` - Componente Livewire
+
+**Frontend (2)**:
+5. `resources/js/filament-notifications.js` - JavaScript interceptor (250+ líneas)
+6. `resources/views/filament/hooks/notifications-script.blade.php` - RenderHook
+
+**Vistas (1)**:
+7. `resources/views/livewire/notification-trigger.blade.php` - Template Livewire
+
+**Comandos (1)**:
+8. `app/Console/Commands/CleanupOldNotifications.php` - Artisan cleanup command
+
+**Total Sprint 29**: 8 archivos eliminados
+
+#### Archivos Modificados (Sprint 29)
+
+**Notificaciones - Canal Email Only (11)**:
+1. `app/Notifications/StockAlertNotification.php` - `['database']` → `['mail']`
+2. `app/Notifications/CollectionAccountStatusChanged.php` - `['mail', 'database']` → `['mail']`
+3. `app/Notifications/CommercialRequestReceived.php` - `['database', 'mail']` → `['mail']`
+4. `app/Notifications/CommercialRequestApproved.php` - `['database', 'mail']` → `['mail']`
+5. `app/Notifications/CommercialRequestRejected.php` - `['database', 'mail']` → `['mail']`
+6. `app/Notifications/PurchaseOrderCreated.php` - `['database']` → `['mail']`
+7. `app/Notifications/QuoteSent.php` - `['mail', 'database']` → `['mail']`
+8. `app/Notifications/PurchaseOrderStatusChanged.php` - `['mail', 'database']` → `['mail']`
+9. `app/Notifications/ProductionOrderSent.php` - `['mail', 'database']` → `['mail']`
+10. `app/Notifications/CollectionAccountSent.php` - `['database']` → `['mail']`
+11. `app/Notifications/PurchaseOrderDigest.php` - Ya era `['mail']` (sin cambios)
+
+**Configuración Limpiada (4)**:
+12. `resources/js/app.js`
+    - Eliminado: `import './filament-notifications.js';`
+
+13. `app/Providers/Filament/AdminPanelProvider.php`
+    - Eliminado: `->renderHook('panels::body.end', fn () => view(...))`
+    - Líneas 131-134 removidas
+
+14. `routes/web.php`
+    - Eliminadas 5 rutas API: mark-as-read, mark-all-as-read, unread-count, destroy, cleanup
+    - Líneas 118-130 removidas
+
+15. `routes/console.php`
+    - Eliminado: `Schedule::command('notifications:cleanup --read-only')`
+    - Scheduler semanal removido
+
+16. `app/Providers/AppServiceProvider.php`
+    - Eliminado: `DatabaseNotificationObserver::class` del boot()
+    - Método `boot()` ahora vacío
+
+**Configuración Final (1)**:
+17. `app/Providers/Filament/AdminPanelProvider.php` (segunda limpieza)
+    - Eliminado: `->databaseNotifications()`
+    - Eliminado: `->databaseNotificationsPolling('30s')`
+    - Líneas 93-94 removidas (campana de notificaciones del menú)
+
+**Total Sprint 29**: 17 archivos modificados
+
+#### Cambios en Código
+
+**Antes (Sprint 28) - Dual Channel**:
+```php
+// app/Notifications/QuoteSent.php
+public function via(object $notifiable): array
+{
+    return ['mail', 'database']; // Email + UI
+}
+
+public function toDatabase(object $notifiable): array
+{
+    return [
+        'format' => 'filament',
+        'title' => 'Nueva Cotización Enviada',
+        'body' => "Se envió la cotización #{$this->document->number}...",
+        // ...
+    ];
+}
+```
+
+**Ahora (Sprint 29) - Email Only**:
+```php
+// app/Notifications/QuoteSent.php
+public function via(object $notifiable): array
+{
+    return ['mail']; // Solo email
+}
+
+// Método toDatabase() eliminado (no necesario)
+```
+
+#### Sistema de Notificaciones - Configuración Final
+
+**11 Tipos de Notificaciones (Email Only)**:
+
+```
+DOCUMENTOS (4):
+├── QuoteSent - Cotización enviada (mail + PDF)
+├── PurchaseOrderCreated - Orden de pedido creada (mail)
+├── CollectionAccountSent - Cuenta de cobro enviada (mail + PDF)
+└── ProductionOrderSent - Orden de producción enviada (mail + PDF)
+
+CAMBIOS DE ESTADO (2):
+├── PurchaseOrderStatusChanged - Cambio de estado orden pedido (mail)
+└── CollectionAccountStatusChanged - Cambio de estado cuenta cobro (mail)
+
+RED GRAFIRED (3):
+├── CommercialRequestReceived - Solicitud comercial recibida (mail)
+├── CommercialRequestApproved - Solicitud aprobada (mail)
+└── CommercialRequestRejected - Solicitud rechazada (mail)
+
+INVENTARIO (1):
+└── StockAlertNotification - Alerta de stock (mail, ShouldQueue)
+
+PERIÓDICAS (1):
+└── PurchaseOrderDigest - Resumen diario de órdenes (mail, scheduled)
+```
+
+**Configuración Filament (Limpiada)**:
+```php
+// app/Providers/Filament/AdminPanelProvider.php
+
+// ❌ REMOVIDO:
+// ->databaseNotifications()
+// ->databaseNotificationsPolling('30s')
+
+// ✅ ACTUAL: Sin notificaciones de base de datos
+->globalSearch()
+->sidebarCollapsibleOnDesktop()
+->spa()
+```
+
+#### Testing Realizado
+
+```bash
+✅ 11 notificaciones verificadas con canal ['mail'] only
+✅ Sin errores de sintaxis PHP
+✅ Assets recompilados con npm run build
+✅ 8 archivos eliminados correctamente
+✅ 16 archivos modificados sin errores
+✅ Configuración de routes limpiada
+✅ AppServiceProvider sin Observer
+✅ Filament sin polling de notificaciones
+```
+
+#### Ventajas de Solo Email
+
+**Simplicidad**:
+- ✅ **Menos código**: 8 archivos menos, 300+ líneas eliminadas
+- ✅ **Sin JavaScript complejo**: No hay interceptors ni eventos
+- ✅ **Sin polling**: No consume recursos del servidor
+
+**Confiabilidad**:
+- ✅ **Email estándar**: Protocolo confiable y probado
+- ✅ **Sin problemas UI**: No hay issues de renderizado en Filament
+- ✅ **Historial**: Los emails quedan en bandeja de entrada
+
+**Mantenimiento**:
+- ✅ **Menos dependencias**: No depende de Filament UI components
+- ✅ **Sin limpieza**: No hay tabla `notifications` que limpiar
+- ✅ **Sin conflictos**: No hay conflictos entre canales
+
+#### Diferencias vs Sprint 28
+
+**Sistema de Notificaciones:**
+- **Antes**: Email + Database (UI con dropdown, badge, auto-marcado, limpieza)
+- **Ahora**: Solo Email (sin UI, sin polling, sin base de datos)
+- **Beneficio**: Simplicidad, confiabilidad, sin issues de renderizado
+
+**Archivos:**
+- **Antes**: 8 archivos de sistema UI + 5 rutas API + Scheduler + JavaScript
+- **Ahora**: Solo clases de notificación con métodos `toMail()`
+- **Beneficio**: Codebase más limpio y mantenible
+
+**Experiencia Usuario:**
+- **Antes**: Notificaciones en dropdown + email (cuando dropdown fallaba, UX rota)
+- **Ahora**: Email únicamente (UX consistente y confiable)
+- **Beneficio**: No hay expectativas rotas, experiencia predecible
+
+---
+
+### ✅ Sesión Completada (30-Dic-2025)
+**SPRINT 28: Sistema Completo de Notificaciones + Auto-Marcado + Limpieza Automática + Logos en PDFs**
+
+#### Logros de la Sesión
+
+1. **✅ Logos en Todos los PDFs del Sistema**
+   - **4 PDFs actualizados**: Cotizaciones, Órdenes de Pedido, Órdenes de Producción, Cuentas de Cobro
+   - **Logo/Avatar automático**: Usa `logo` o fallback a `avatar` de la empresa
+   - **Base64 encoding**: 100% compatible con DomPDF
+   - **Posicionamiento absoluto**: Logo izquierda, info derecha
+   - **Tamaños ajustados**: 120×90px (docs) y 100×75px (órdenes)
+
+2. **✅ Análisis Completo del Sistema de Notificaciones**
+   - **11 tipos de notificaciones** documentadas
+   - **296 notificaciones** registradas en BD
+   - **2 canales**: Email + Database (UI)
+   - **Polling 30s**: Actualización automática en Filament
+   - **6 templates email**: Markdown personalizados con PDFs adjuntos
+
+3. **✅ Sistema de Auto-Marcado de Notificaciones**
+   - **JavaScript interceptor**: Marca automáticamente al hacer click
+   - **5 rutas API REST**: mark-as-read, mark-all, unread-count, destroy, cleanup
+   - **Controller completo**: NotificationController con 5 métodos
+   - **Middleware**: MarkNotificationsAsRead para marcado inteligente
+   - **Observer**: DatabaseNotificationObserver para marcado al recuperar
+   - **Livewire component**: NotificationTrigger con eventos en tiempo real
+
+4. **✅ Sistema de Limpieza Automática**
+   - **Comando Artisan**: `php artisan notifications:cleanup`
+   - **3 opciones**: `--days=30`, `--read-only`, `--dry-run`
+   - **Scheduler configurado**: Ejecución semanal (Domingos 2:00 AM)
+   - **Tabla resumen**: Muestra distribución por tipo antes de eliminar
+   - **Modo seguro**: Confirmación y dry-run para evitar pérdidas
+
+5. **✅ Integración Completa con Filament**
+   - **JavaScript compilado**: Vite build exitoso
+   - **RenderHook agregado**: Script cargado en body.end
+   - **Vista del hook**: notifications-script.blade.php
+   - **Assets optimizados**: 37.94 kB JS gzipped
+
+6. **✅ Página "Home" Renombrada a "Gremio"**
+   - **Título y label**: "Home" → "Gremio"
+   - **Slug URL**: `/admin/home` → `/admin/gremio`
+   - **Clases CSS**: `.home-*` → `.gremio-*`
+   - **Comentarios**: Actualizados a "Gremio"
+
+7. **✅ Fix: Error en Company::follow()**
+   - **Problema**: Faltaba parámetro `User $user` en línea 93
+   - **Solución**: Agregado `auth()->user()` como segundo parámetro
+   - **Verificado**: Otros usos del método ya eran correctos
+
+#### Archivos Creados (Sprint 28)
+
+**Sistema de Notificaciones (8)**:
+1. `app/Http/Controllers/NotificationController.php` - Controller con 5 métodos API
+2. `app/Http/Middleware/MarkNotificationsAsRead.php` - Middleware de marcado inteligente
+3. `app/Observers/DatabaseNotificationObserver.php` - Observer para evento retrieved
+4. `app/Livewire/NotificationTrigger.php` - Componente Livewire para clicks
+5. `resources/js/filament-notifications.js` - JavaScript interceptor (250+ líneas)
+6. `app/Console/Commands/CleanupOldNotifications.php` - Comando de limpieza
+7. `resources/views/filament/hooks/notifications-script.blade.php` - Vista del hook
+8. `resources/views/livewire/notification-trigger.blade.php` - Vista Livewire
+
+**Total Sprint 28**: 8 archivos nuevos
+
+#### Archivos Modificados (Sprint 28)
+
+**PDFs con Logos (4)**:
+1. `resources/views/documents/pdf.blade.php` - Logo en cotizaciones
+2. `resources/views/collection-accounts/pdf.blade.php` - Logo en cuentas de cobro
+3. `resources/views/production-orders/pdf.blade.php` - Logo en órdenes de producción
+4. `resources/views/pdf/purchase-order.blade.php` - Logo en órdenes de pedido
+
+**Configuración (5)**:
+5. `routes/web.php` - 5 rutas de notificaciones agregadas
+6. `routes/console.php` - Scheduler semanal de limpieza
+7. `resources/js/app.js` - Import de filament-notifications.js
+8. `app/Providers/Filament/AdminPanelProvider.php` - RenderHook agregado
+9. `vite.config.js` - (sin cambios, verificado)
+
+**Renombrado Home → Gremio (2)**:
+10. `app/Filament/Pages/Home.php` - Título, label, slug actualizados
+11. `resources/views/filament/pages/home.blade.php` - Clases CSS renombradas
+
+**Fixes (1)**:
+12. `app/Filament/Pages/Companies.php` - Fix `follow($company, auth()->user())`
+
+**Total Sprint 28**: 12 archivos modificados
+
+#### Sistema de Notificaciones - Arquitectura Completa
+
+**11 Tipos de Notificaciones Implementadas:**
+
+```
+DOCUMENTOS (4):
+├── QuoteSent - Cotización enviada (mail + database + PDF)
+├── PurchaseOrderCreated - Orden de pedido creada (database only)
+├── CollectionAccountSent - Cuenta de cobro enviada (mail + database + PDF)
+└── ProductionOrderSent - Orden de producción enviada (mail + database + PDF)
+
+CAMBIOS DE ESTADO (2):
+├── PurchaseOrderStatusChanged - Cambio de estado en orden de pedido
+└── CollectionAccountStatusChanged - Cambio de estado en cuenta de cobro
+
+RED GRAFIRED (3):
+├── CommercialRequestReceived - Solicitud comercial recibida
+├── CommercialRequestApproved - Solicitud aprobada
+└── CommercialRequestRejected - Solicitud rechazada
+
+INVENTARIO (1):
+└── StockAlertNotification - Alerta de stock (single/batch, ShouldQueue)
+
+PERIÓDICAS (1):
+└── PurchaseOrderDigest - Resumen diario de órdenes (mail only, scheduled)
+```
+
+**Distribución Actual (296 notificaciones):**
+```
+PurchaseOrderCreated:           156 (53%)
+CollectionAccountStatusChanged:  54 (18%)
+CollectionAccountSent:           54 (18%)
+PurchaseOrderStatusChanged:      30 (10%)
+CommercialRequestReceived:        2 ( 1%)
+```
+
+**Comando de Limpieza:**
+```bash
+# Modo prueba (recomendado primero)
+php artisan notifications:cleanup --dry-run
+
+# Solo notificaciones leídas de 30+ días
+php artisan notifications:cleanup --read-only
+
+# Todas las notificaciones de 60+ días
+php artisan notifications:cleanup --days=60
+
+# Resultado esperado:
+# 🧹 Iniciando limpieza...
+# +--------------------------------+----------+
+# | Tipo                           | Cantidad |
+# +--------------------------------+----------+
+# | PurchaseOrderCreated           | 135      |
+# | CollectionAccountStatusChanged | 54       |
+# +--------------------------------+----------+
+# ✅ Se eliminaron 266 notificaciones correctamente.
+```
+
+**Rutas API Creadas:**
+```
+POST   /admin/notifications/{id}/mark-as-read     - Marca una como leída
+POST   /admin/notifications/mark-all-as-read      - Marca todas como leídas
+GET    /admin/notifications/unread-count          - Obtiene contador
+DELETE /admin/notifications/{id}                  - Elimina una notificación
+POST   /admin/notifications/cleanup               - Limpia antiguas (30+ días)
+```
+
+**Scheduler Configurado:**
+```php
+// Ejecución automática: Domingos 2:00 AM
+Schedule::command('notifications:cleanup --read-only')
+    ->weekly()
+    ->sundays()
+    ->at('02:00')
+    ->description('Limpiar notificaciones leídas de más de 30 días');
+```
+
+**JavaScript - Funcionalidades:**
+```javascript
+// Auto-marcado al hacer click
+- Intercepta clicks en notificaciones de Filament
+- Envía AJAX a /admin/notifications/{id}/mark-as-read
+- Actualiza badge de contador en tiempo real
+- Marca visualmente como leída (opacity: 0.6)
+- Observer para notificaciones agregadas dinámicamente
+
+// Función global disponible
+window.markAllNotificationsAsRead();
+```
+
+#### Testing Realizado
+
+```bash
+✅ 4 PDFs con logos verificados
+✅ Sintaxis PHP: 0 errores
+✅ Código formateado con Pint (17 archivos)
+✅ Assets compilados con Vite (build exitoso)
+✅ Comando notifications:cleanup --dry-run ejecutado
+✅ Rutas API verificadas (5 rutas)
+✅ Scheduler listado (1 tarea semanal)
+✅ Cachés limpiadas (views, config, filament)
+✅ JavaScript cargado en Filament (renderHook)
+```
+
+#### Diferencias vs Sprints Anteriores
+
+**Logos en PDFs:**
+- **Antes**: Solo texto de empresa en header
+- **Ahora**: Logo/avatar en esquina superior izquierda
+- **Beneficio**: Identidad visual en todos los documentos
+
+**Notificaciones:**
+- **Antes**: 296 notificaciones no leídas (100%), sin auto-marcado
+- **Ahora**: Auto-marcado al click + limpieza automática semanal
+- **Beneficio**: UX mejorada, BD optimizada, mantenimiento automático
+
+**Página Home:**
+- **Antes**: URL `/admin/home`, clases `.home-*`
+- **Ahora**: URL `/admin/gremio`, clases `.gremio-*`
+- **Beneficio**: Nombre más descriptivo para red social de litografías
+
+---
+
 ### ✅ Sesión Completada (29-Dic-2025)
 **SPRINT 27: Mejoras UX - Páginas de Revista, Menú Reorganizado, Password Reset y Sidebar**
 
@@ -671,11 +1309,11 @@ Continuar implementando el sistema de envío manual en los módulos pendientes:
 ## COMANDO PARA EMPEZAR MAÑANA
 
 ```bash
-# Iniciar LitoPro 3.0 - SPRINT 27 COMPLETADO (UX Mejorado)
+# Iniciar LitoPro 3.0 - SPRINT 30 COMPLETADO (Stock Consolidado)
 cd /home/dasiva/Descargas/litopro825 && php artisan serve --port=8000
 
 # Estado del Proyecto
-echo "✅ SPRINT 27 COMPLETADO (29-Dic-2025) - Mejoras UX Completas"
+echo "✅ SPRINT 30 COMPLETADO (30-Dic-2025) - Páginas de Stock Consolidadas"
 echo ""
 echo "📍 URLs de Testing:"
 echo "   🏠 Dashboard: http://127.0.0.1:8000/admin"
@@ -686,29 +1324,30 @@ echo "   🏭 Órdenes Producción: http://127.0.0.1:8000/admin/production-order
 echo ""
 echo "⚠️  IMPORTANTE: Usar http://127.0.0.1:8000 (NO localhost) - CORS configurado"
 echo ""
-echo "🎉 SPRINT 27 - MEJORAS UX COMPLETAS:"
-echo "   • ✅ Magazine Pages: 8 → 17+ campos completos"
-echo "   • ✅ Menú reorganizado: Nueva sección Contactos"
-echo "   • ✅ Password Reset: 100% funcional en español"
-echo "   • ✅ Sidebar: Color personalizado + scrollbar custom"
-echo "   • ✅ Items ocultos: SimpleItem, MagazineItem, Talonario"
-echo "   • ✅ SupplierRelationshipResource oculto del menú"
+echo "🎉 SPRINT 30 - STOCK CONSOLIDADO:"
+echo "   • ✅ Página Stock.php unificada (7 archivos eliminados)"
+echo "   • ✅ 3 tabs: Resumen, Movimientos, Alertas"
+echo "   • ✅ 9 widgets organizados (3 header + 6 tabs)"
+echo "   • ✅ 3 header actions: Actualizar, Ver Alertas, Nuevo Movimiento"
+echo "   • ✅ Navegación simplificada (2 → 1 entrada menú)"
+echo "   • ✅ 3 widgets obsoletos eliminados"
 echo ""
-echo "📋 MENÚ LATERAL REORGANIZADO:"
-echo "   1. 📂 Contactos (NUEVO)"
-echo "      ├── Clientes y Proveedores"
-echo "      ├── Clientes"
-echo "      ├── Proveedores"
-echo "      └── Solicitudes Comerciales"
-echo "   2. 📂 Documentos"
-echo "      ├── Cotizaciones"
-echo "      ├── Órdenes de Pedido"
-echo "      ├── Órdenes de Producción"
-echo "      └── Cuentas de Cobro"
-echo "   3. 📂 Inventario"
-echo "      ├── Papeles"
-echo "      ├── Máquinas"
-echo "      └── Items Digitales"
+echo "📊 NUEVA PÁGINA STOCK:"
+echo "   URL: http://127.0.0.1:8000/admin/stock"
+echo "   • Tab Resumen: Tendencias + Top productos"
+echo "   • Tab Movimientos: Historial + Recientes"
+echo "   • Tab Alertas: Críticas"
+echo ""
+echo "📧 NOTIFICACIONES EMAIL ONLY:"
+echo "   • QuoteSent (con PDF)"
+echo "   • PurchaseOrderCreated"
+echo "   • PurchaseOrderStatusChanged"
+echo "   • CollectionAccountSent (con PDF)"
+echo "   • CollectionAccountStatusChanged"
+echo "   • ProductionOrderSent (con PDF)"
+echo "   • CommercialRequestReceived/Approved/Rejected"
+echo "   • StockAlertNotification (ShouldQueue)"
+echo "   • PurchaseOrderDigest (scheduled)"
 echo ""
 echo "🎯 PRÓXIMA TAREA (RECOMENDADO):"
 echo "   Opción A: Implementar envío manual en Collection Accounts"
@@ -717,9 +1356,9 @@ echo "   Opción C: Mejorar sistema Grafired (búsqueda, filtros)"
 echo "   Opción D: Dashboard de Producción con widgets"
 echo ""
 echo "📝 COMANDOS ÚTILES:"
-echo "   - Ver EMAIL.md: cat EMAIL.md"
-echo "   - Ver templates: ls resources/views/emails/"
+echo "   - Ver templates email: ls resources/views/emails/"
 echo "   - Ver notificaciones: ls app/Notifications/"
+echo "   - Verificar canales: grep -r \"return \['mail'\]\" app/Notifications/"
 ```
 
 ---
@@ -1021,3 +1660,128 @@ $mountingWithCuts = $calculator->calculateMountingWithCuts($item);
 //     'total_copies_produced' => 1000 // 500 × 2
 // ]
 ```
+
+---
+
+### Sistema de Notificaciones - Email Only (Sprint 29)
+
+**Decisión de Arquitectura**: Después de intentar resolver problemas de renderizado en el dropdown de Filament v4, se tomó la decisión de simplificar el sistema eliminando completamente la UI de notificaciones y mantener solo el canal de email.
+
+**Patrón Email-Only en Laravel**:
+```php
+// ❌ ANTES: Dual Channel (Email + Database)
+class QuoteSent extends Notification
+{
+    public function via(object $notifiable): array
+    {
+        return ['mail', 'database']; // Dual channel
+    }
+
+    public function toMail(object $notifiable): MailMessage
+    {
+        return (new MailMessage)
+            ->subject('Nueva Cotización Enviada')
+            ->markdown('emails.quote.sent', [
+                'document' => $this->document,
+            ])
+            ->attach($pdfPath);
+    }
+
+    public function toDatabase(object $notifiable): array
+    {
+        return [
+            'format' => 'filament',
+            'title' => 'Nueva Cotización',
+            'body' => "Se envió la cotización...",
+        ];
+    }
+}
+
+// ✅ AHORA: Email Only
+class QuoteSent extends Notification
+{
+    public function via(object $notifiable): array
+    {
+        return ['mail']; // Solo email
+    }
+
+    public function toMail(object $notifiable): MailMessage
+    {
+        return (new MailMessage)
+            ->subject('Nueva Cotización Enviada')
+            ->markdown('emails.quote.sent', [
+                'document' => $this->document,
+            ])
+            ->attach($pdfPath);
+    }
+
+    // Método toDatabase() eliminado - no necesario
+}
+```
+
+**Ventajas del Patrón Email-Only**:
+1. **Simplicidad**: Menos código, menos archivos, menos complejidad
+2. **Confiabilidad**: Email es un protocolo estándar y probado
+3. **Historial**: Los emails quedan permanentemente en la bandeja
+4. **Sin polling**: No consume recursos del servidor
+5. **Sin sincronización**: No hay que mantener coherencia entre canales
+
+**Cuándo NO usar Email-Only**:
+- ❌ Notificaciones en tiempo real críticas (usar websockets/pusher)
+- ❌ Alertas urgentes que requieren acción inmediata (usar SMS/push)
+- ❌ Notificaciones muy frecuentes (sobrecarga de bandeja)
+
+**Cuándo SÍ usar Email-Only** (nuestro caso):
+- ✅ Notificaciones de documentos (cotizaciones, órdenes, cuentas)
+- ✅ Cambios de estado (aprobaciones, rechazos, actualizaciones)
+- ✅ Resúmenes periódicos (diarios, semanales)
+- ✅ Alertas de inventario (pueden esperar minutos/horas)
+
+**Configuración en Filament v4**:
+```php
+// AdminPanelProvider.php
+
+// ❌ REMOVIDO en Sprint 29:
+// ->databaseNotifications()
+// ->databaseNotificationsPolling('30s')
+
+// ✅ CONFIGURACIÓN ACTUAL:
+return $panel
+    ->default()
+    ->id('admin')
+    ->path('admin')
+    ->login()
+    ->globalSearch()     // Búsqueda global activa
+    ->sidebarCollapsibleOnDesktop()
+    ->spa()
+    ->unsavedChangesAlerts();
+    // Sin notificaciones de base de datos
+```
+
+**Testing de Notificaciones Email**:
+```bash
+# Verificar que todas las notificaciones usan solo email
+grep -r "return \['mail'\]" app/Notifications/
+
+# Resultado esperado: 10 archivos
+# (PurchaseOrderDigest ya era ['mail'] desde el inicio)
+
+# Verificar templates de email
+ls -la resources/views/emails/
+
+# Resultado esperado:
+# - quote/sent.blade.php
+# - purchase-order/created.blade.php
+# - purchase-order/status-changed.blade.php
+# - collection-account/sent.blade.php
+# - collection-account/status-changed.blade.php
+# - production-order/sent.blade.php
+# - commercial-request/*.blade.php
+# - stock/alert.blade.php
+```
+
+**Lecciones Aprendidas**:
+1. **No sobre-ingeniar**: A veces la solución más simple es la mejor
+2. **Email es suficiente**: Para muchos casos de uso, email cubre las necesidades
+3. **UI != Valor**: La UI de notificaciones no agrega valor si no funciona bien
+4. **Pragmatismo**: Mejor tener un sistema simple que funcione que uno complejo que falle

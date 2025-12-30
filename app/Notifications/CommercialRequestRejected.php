@@ -4,8 +4,8 @@ namespace App\Notifications;
 
 use App\Models\CommercialRequest;
 use Illuminate\Bus\Queueable;
-use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
 
 class CommercialRequestRejected extends Notification
 {
@@ -17,7 +17,7 @@ class CommercialRequestRejected extends Notification
 
     public function via($notifiable): array
     {
-        return ['database', 'mail'];
+        return ['mail'];
     }
 
     public function toMail($notifiable): MailMessage
@@ -30,7 +30,7 @@ class CommercialRequestRejected extends Notification
             ->line("**{$target->name}** ha rechazado tu solicitud de relación comercial.")
             ->when($this->request->response_message, function ($mail) {
                 return $mail->line('**Motivo:**')
-                    ->line('"' . $this->request->response_message . '"');
+                    ->line('"'.$this->request->response_message.'"');
             })
             ->line('Puedes intentar contactarlos directamente o buscar otras empresas en Grafired.')
             ->action('Buscar Otras Empresas',
@@ -42,12 +42,23 @@ class CommercialRequestRejected extends Notification
 
     public function toDatabase($notifiable): array
     {
+        $target = $this->request->targetCompany;
+
         return [
+            'format' => 'filament',
+            'title' => 'Solicitud Rechazada',
+            'body' => "{$target->name} rechazó tu solicitud comercial",
+            // Campos adicionales para uso interno
             'request_id' => $this->request->id,
             'target_company_id' => $this->request->target_company_id,
-            'target_company_name' => $this->request->targetCompany->name,
+            'target_company_name' => $target->name,
             'relationship_type' => $this->request->relationship_type,
             'response_message' => $this->request->response_message,
         ];
+    }
+
+    public function toArray($notifiable): array
+    {
+        return $this->toDatabase($notifiable);
     }
 }

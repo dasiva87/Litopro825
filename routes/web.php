@@ -20,7 +20,6 @@ Route::middleware(['guest', 'throttle:10,1'])->group(function () {
     })->name('register');
 });
 
-
 // Rutas para completar perfil de empresa (requiere autenticación)
 Route::middleware('auth')->group(function () {
     Route::get('/complete-profile', [CompleteProfileController::class, 'show'])->name('complete-profile');
@@ -58,7 +57,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/complete-profile/cities', [CompleteProfileController::class, 'getCities'])->name('complete-profile.cities');
 
     // Debug route for tenant context (non-production only)
-    if (!app()->environment('production')) {
+    if (! app()->environment('production')) {
         Route::get('/debug/tenant-context', function () {
             return response()->json([
                 'authenticated' => auth()->check(),
@@ -88,7 +87,6 @@ Route::middleware('auth')->group(function () {
 //     Route::get('/empresa/{slug}/siguiendo', [CompanyProfileController::class, 'following'])
 //         ->name('company.following');
 // });
-
 
 // Rutas protegidas por autenticación
 Route::middleware('auth')->group(function () {
@@ -135,7 +133,8 @@ Route::middleware('auth')->group(function () {
 Route::get('/pricing', [StripeSubscriptionController::class, 'pricing'])->name('pricing');
 
 // Ruta de logout simple para páginas públicas
-Route::get('/logout', function() {
+Route::get('/logout', function () {
     Auth::logout();
+
     return redirect('/');
 })->name('simple.logout');

@@ -24,7 +24,7 @@ class CollectionAccountSent extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['database']; // Solo notificación interna, NO email al cliente
+        return ['mail']; // Solo notificación interna, NO email al cliente
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -66,13 +66,24 @@ class CollectionAccountSent extends Notification
     {
         $collectionAccount = $this->getCollectionAccount();
 
+        $clientName = $collectionAccount->clientCompany->name ?? 'Sin cliente';
+
         return [
-            'format' => 'filament', // Requerido por Filament para mostrar notificaciones
+            'format' => 'filament',
+            'title' => 'Cuenta de Cobro Enviada',
+            'body' => "#{$collectionAccount->account_number} enviada a {$clientName}",
+            'actions' => [
+                [
+                    'name' => 'view',
+                    'label' => 'Ver Cuenta',
+                    'url' => url("/admin/collection-accounts/{$collectionAccount->id}"),
+                ],
+            ],
+            // Campos adicionales para uso interno
             'collection_account_id' => $collectionAccount->id,
             'account_number' => $collectionAccount->account_number,
-            'client_company' => $collectionAccount->clientCompany->name ?? 'Sin cliente',
+            'client_company' => $clientName,
             'total_amount' => $collectionAccount->total_amount,
-            'message' => "Nueva cuenta de cobro #{$collectionAccount->account_number} enviada a {$collectionAccount->clientCompany->name}",
         ];
     }
 }

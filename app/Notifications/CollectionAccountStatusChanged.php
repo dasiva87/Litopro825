@@ -5,7 +5,6 @@ namespace App\Notifications;
 use App\Enums\CollectionAccountStatus;
 use App\Models\CollectionAccount;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -36,7 +35,7 @@ class CollectionAccountStatusChanged extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        return ['mail'];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -54,7 +53,7 @@ class CollectionAccountStatusChanged extends Notification
             ->line("La cuenta de cobro #{$collectionAccount->account_number} ha cambiado de estado.")
             ->line("**Estado Anterior:** {$oldStatus->label()}")
             ->line("**Nuevo Estado:** {$newStatus->label()}")
-            ->line("**Total:** $".number_format($collectionAccount->total_amount, 2))
+            ->line('**Total:** $'.number_format($collectionAccount->total_amount, 2))
             ->action('Ver Cuenta de Cobro', url("/admin/collection-accounts/{$collectionAccount->id}"))
             ->line('Gracias por su atención.');
     }
@@ -62,14 +61,26 @@ class CollectionAccountStatusChanged extends Notification
     public function toArray(object $notifiable): array
     {
         $collectionAccount = $this->getCollectionAccount();
+        $oldStatus = $this->getOldStatus();
+        $newStatus = $this->getNewStatus();
 
         return [
+            'format' => 'filament',
+            'title' => 'Cambio de Estado',
+            'body' => "Cuenta #{$collectionAccount->account_number}: {$oldStatus->label()} → {$newStatus->label()}",
+            'actions' => [
+                [
+                    'name' => 'view',
+                    'label' => 'Ver Cuenta',
+                    'url' => url("/admin/collection-accounts/{$collectionAccount->id}"),
+                ],
+            ],
+            // Campos adicionales para uso interno
             'collection_account_id' => $collectionAccount->id,
             'account_number' => $collectionAccount->account_number,
             'old_status' => $this->oldStatusValue,
             'new_status' => $this->newStatusValue,
             'client_company' => $collectionAccount->clientCompany->name ?? 'Sin cliente',
-            'message' => "Cuenta de cobro #{$collectionAccount->account_number} cambió de estado",
         ];
     }
 }
