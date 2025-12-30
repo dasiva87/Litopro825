@@ -9,18 +9,18 @@ class Home extends Page
 {
     protected string $view = 'filament.pages.home';
 
-    protected static ?string $title = 'Home';
+    protected static ?string $title = 'Gremio';
 
-    protected static ?string $navigationLabel = 'Home';
+    protected static ?string $navigationLabel = 'Gremio';
 
-    protected static ?string $slug = 'home';
+    protected static ?string $slug = 'gremio';
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-home';
 
     protected static ?int $navigationSort = 0;
 
     /**
-     * Obtener widgets para la página Home
+     * Obtener widgets para la página Gremio
      */
     public function getWidgets(): array
     {
@@ -36,17 +36,17 @@ class Home extends Page
             \App\Filament\Widgets\SuggestedCompaniesWidget::class,
 
             // Widgets de negocio
-           // \App\Filament\Widgets\MrrWidget::class,
+            // \App\Filament\Widgets\MrrWidget::class,
 
             // Widget de onboarding (si es necesario)
-          //  \App\Filament\Widgets\OnboardingWidget::class,
+            //  \App\Filament\Widgets\OnboardingWidget::class,
         ];
     }
 
     /**
      * Obtener columnas del layout
      */
-    public function getColumns(): int | string | array
+    public function getColumns(): int|string|array
     {
         return [
             'sm' => 1,

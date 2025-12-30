@@ -6,6 +6,8 @@ use App\Models\CommercialRequest;
 use App\Models\Company;
 use App\Models\User;
 use App\Models\Contact;
+use App\Models\SupplierRelationship;
+use App\Models\ClientRelationship;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 
@@ -88,6 +90,25 @@ class CommercialRequestService
                 type: $request->relationship_type === 'supplier' ? 'supplier' : 'customer'
             );
 
+            // Crear relación formal (SupplierRelationship o ClientRelationship)
+            if ($request->relationship_type === 'supplier') {
+                // Requester solicita que Target sea su proveedor
+                // → SupplierRelationship: client=Requester, supplier=Target
+                $this->createSupplierRelationship(
+                    clientCompanyId: $request->requester_company_id,
+                    supplierCompanyId: $request->target_company_id,
+                    approver: $approver
+                );
+            } else {
+                // Requester solicita que Target sea su cliente
+                // → ClientRelationship: supplier=Requester, client=Target
+                $this->createClientRelationship(
+                    supplierCompanyId: $request->requester_company_id,
+                    clientCompanyId: $request->target_company_id,
+                    approver: $approver
+                );
+            }
+
             return $contactForRequester;
         });
     }
@@ -125,6 +146,60 @@ class CommercialRequestService
             'country_id' => $linkedCompany->country_id,
             'tax_id' => $linkedCompany->tax_id,
             'website' => $linkedCompany->website,
+            'is_active' => true,
+        ]);
+    }
+
+    /**
+     * Crear relación de proveedor
+     */
+    protected function createSupplierRelationship(
+        int $clientCompanyId,
+        int $supplierCompanyId,
+        User $approver
+    ): SupplierRelationship {
+        // Verificar si ya existe
+        $existing = SupplierRelationship::where([
+            'client_company_id' => $clientCompanyId,
+            'supplier_company_id' => $supplierCompanyId,
+        ])->first();
+
+        if ($existing) {
+            return $existing;
+        }
+
+        return SupplierRelationship::create([
+            'client_company_id' => $clientCompanyId,
+            'supplier_company_id' => $supplierCompanyId,
+            'approved_by_user_id' => $approver->id,
+            'approved_at' => now(),
+            'is_active' => true,
+        ]);
+    }
+
+    /**
+     * Crear relación de cliente
+     */
+    protected function createClientRelationship(
+        int $supplierCompanyId,
+        int $clientCompanyId,
+        User $approver
+    ): ClientRelationship {
+        // Verificar si ya existe
+        $existing = ClientRelationship::where([
+            'supplier_company_id' => $supplierCompanyId,
+            'client_company_id' => $clientCompanyId,
+        ])->first();
+
+        if ($existing) {
+            return $existing;
+        }
+
+        return ClientRelationship::create([
+            'supplier_company_id' => $supplierCompanyId,
+            'client_company_id' => $clientCompanyId,
+            'approved_by_user_id' => $approver->id,
+            'approved_at' => now(),
             'is_active' => true,
         ]);
     }

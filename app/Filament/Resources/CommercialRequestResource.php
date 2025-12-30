@@ -4,21 +4,18 @@ namespace App\Filament\Resources;
 
 use App\Enums\NavigationGroup;
 use App\Models\CommercialRequest;
+use App\Services\CommercialRequestService;
 use BackedEnum;
-use Filament\Resources\Resource;
-use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Table;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\BadgeColumn;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Actions\Action;
-use Filament\Tables\Filters\Filter;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
+use Filament\Resources\Resource;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
-use App\Services\CommercialRequestService;
 
 class CommercialRequestResource extends Resource
 {
@@ -32,7 +29,7 @@ class CommercialRequestResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Solicitudes';
 
-    protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Documentos;
+    protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Contactos;
 
     protected static ?int $navigationSort = 4;
 
@@ -58,13 +55,13 @@ class CommercialRequestResource extends Resource
             ->columns([
                 TextColumn::make('relationship_type')
                     ->label('Tipo')
-                    ->formatStateUsing(fn ($state) => match($state) {
+                    ->formatStateUsing(fn ($state) => match ($state) {
                         'client' => 'Cliente',
                         'supplier' => 'Proveedor',
                         default => 'Desconocido'
                     })
                     ->badge()
-                    ->color(fn ($state) => match($state) {
+                    ->color(fn ($state) => match ($state) {
                         'client' => 'primary',
                         'supplier' => 'warning',
                         default => 'gray'
@@ -84,14 +81,14 @@ class CommercialRequestResource extends Resource
 
                 TextColumn::make('status')
                     ->label('Estado')
-                    ->formatStateUsing(fn ($state) => match($state) {
+                    ->formatStateUsing(fn ($state) => match ($state) {
                         'pending' => 'Pendiente',
                         'approved' => 'Aprobada',
                         'rejected' => 'Rechazada',
                         default => 'Desconocido'
                     })
                     ->badge()
-                    ->color(fn ($state) => match($state) {
+                    ->color(fn ($state) => match ($state) {
                         'pending' => 'warning',
                         'approved' => 'success',
                         'rejected' => 'danger',
@@ -173,8 +170,7 @@ class CommercialRequestResource extends Resource
                                 ->send();
                         }
                     })
-                    ->visible(fn ($record) => 
-                        $record->isPending() && 
+                    ->visible(fn ($record) => $record->isPending() &&
                         $record->target_company_id === auth()->user()->company_id
                     ),
 
@@ -213,8 +209,7 @@ class CommercialRequestResource extends Resource
                                 ->send();
                         }
                     })
-                    ->visible(fn ($record) => 
-                        $record->isPending() && 
+                    ->visible(fn ($record) => $record->isPending() &&
                         $record->target_company_id === auth()->user()->company_id
                     ),
 
@@ -224,7 +219,7 @@ class CommercialRequestResource extends Resource
                     ->color('info')
                     ->modalHeading('Respuesta a la Solicitud')
                     ->modalContent(fn ($record) => view('filament.modals.commercial-request-response', compact('record')))
-                    ->visible(fn ($record) => $record->response_message && !$record->isPending()),
+                    ->visible(fn ($record) => $record->response_message && ! $record->isPending()),
             ])
             ->defaultSort('created_at', 'desc');
     }
@@ -232,12 +227,12 @@ class CommercialRequestResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $companyId = auth()->user()->company_id;
-        
+
         return parent::getEloquentQuery()
             ->with(['requesterCompany', 'targetCompany', 'requestedByUser', 'respondedByUser'])
             ->where(function ($query) use ($companyId) {
                 $query->where('requester_company_id', $companyId)
-                      ->orWhere('target_company_id', $companyId);
+                    ->orWhere('target_company_id', $companyId);
             });
     }
 

@@ -4,17 +4,13 @@ namespace App\Filament\Resources;
 
 use App\Enums\NavigationGroup;
 use App\Models\Contact;
-use App\Models\Company;
 use BackedEnum;
-use Filament\Resources\Resource;
-use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Table;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\BadgeColumn;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Actions\Action;
+use Filament\Resources\Resource;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
-use Filament\Forms\Components\Tabs;
+use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
@@ -30,7 +26,7 @@ class ClientResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Clientes';
 
-    protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Documentos;
+    protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Contactos;
 
     protected static ?int $navigationSort = 2;
 
@@ -52,8 +48,8 @@ class ClientResource extends Resource
                     ->label('Nombre')
                     ->searchable()
                     ->sortable()
-                    ->description(fn ($record) => $record->isGrafired() ? 
-                        '🏢 ' . $record->linkedCompany?->name : 
+                    ->description(fn ($record) => $record->isGrafired() ?
+                        '🏢 '.$record->linkedCompany?->name :
                         '📍 Local'
                     ),
 

@@ -1,22 +1,22 @@
 <div>
-    <!-- Estilos específicos para la página home -->
+    <!-- Estilos específicos para la página Gremio -->
     <style>
         /* Contenedor principal personalizado */
-        .home-layout {
+        .gremio-layout {
             display: flex !important;
             position: relative !important;
             min-height: calc(100vh - 64px) !important;
             background-color: #f9fafb !important;
         }
 
-        .home-content {
+        .gremio-content {
             flex: 1 !important;
             padding: 24px !important;
             margin-right: 400px !important;
             overflow-y: auto !important;
         }
 
-        .home-sidebar {
+        .gremio-sidebar {
             width: 400px !important;
             padding: 20px !important;
             position: absolute !important;
@@ -27,18 +27,18 @@
         }
 
         /* Dark theme styles */
-        .dark .home-layout {
+        .dark .gremio-layout {
             background-color: #111827 !important;
         }
 
-        .dark .home-content {
+        .dark .gremio-content {
             background-color: #111827 !important;
         }
     </style>
 
-    <div class="home-layout">
+    <div class="gremio-layout">
         <!-- Contenido Principal -->
-        <div class="home-content">
+        <div class="gremio-content">
             <div style="max-width: 100%; padding: 0 40px;">
 
                 <!-- Widget para Crear Post -->
@@ -50,7 +50,7 @@
         </div>
 
         <!-- Sidebar Derecho -->
-        <aside class="home-sidebar">
+        <aside class="gremio-sidebar">
             <div style="space-y: 24px;">
                 @livewire(\App\Filament\Widgets\CalculadoraCorteWidget::class)
                 @livewire(\App\Filament\Widgets\SuggestedCompaniesWidget::class)

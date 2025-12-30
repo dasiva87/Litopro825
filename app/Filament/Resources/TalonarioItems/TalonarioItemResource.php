@@ -6,7 +6,6 @@ use App\Enums\NavigationGroup;
 use App\Filament\Resources\TalonarioItems\Pages\CreateTalonarioItem;
 use App\Filament\Resources\TalonarioItems\Pages\EditTalonarioItem;
 use App\Filament\Resources\TalonarioItems\Pages\ListTalonarioItems;
-use App\Filament\Resources\TalonarioItems\RelationManagers;
 use App\Filament\Resources\TalonarioItems\Schemas\TalonarioItemForm;
 use App\Filament\Resources\TalonarioItems\Tables\TalonarioItemsTable;
 use App\Models\TalonarioItem;
@@ -31,6 +30,11 @@ class TalonarioItemResource extends Resource
     protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Items;
 
     protected static ?int $navigationSort = 3;
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false; // Ocultar del menú lateral
+    }
 
     public static function form(Schema $schema): Schema
     {

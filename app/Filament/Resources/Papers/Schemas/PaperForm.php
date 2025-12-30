@@ -26,7 +26,9 @@ class PaperForm
                                     ->required()
                                     ->maxLength(50)
                                     ->placeholder('Ej: BOND75, OPA150, COU300...')
-                                    ->unique(ignoreRecord: true)
+                                    ->unique(ignoreRecord: true, modifyRuleUsing: function ($rule) {
+                                        return $rule->where('company_id', auth()->user()->company_id);
+                                    })
                                     ->alphaDash(),
                                     
                                 TextInput::make('name')

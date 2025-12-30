@@ -5,6 +5,7 @@ namespace App\Enums;
 enum NavigationGroup: string
 {
     case Documentos = 'documentos';
+    case Contactos = 'contactos';
     case Items = 'items';
     case Inventario = 'inventario';
     case Configuracion = 'configuracion';
@@ -14,6 +15,7 @@ enum NavigationGroup: string
     {
         return match ($this) {
             self::Documentos => 'Documentos',
+            self::Contactos => 'Contactos',
             self::Items => 'Items',
             self::Inventario => 'Inventario',
             self::Configuracion => 'Configuración',
@@ -25,10 +27,11 @@ enum NavigationGroup: string
     {
         return match ($this) {
             self::Documentos => 1,
-            self::Items => 2,
-            self::Inventario => 3,
-            self::Configuracion => 4,
-            self::Sistema => 5,
+            self::Contactos => 2,
+            self::Items => 3,
+            self::Inventario => 4,
+            self::Configuracion => 5,
+            self::Sistema => 6,
         };
     }
 }

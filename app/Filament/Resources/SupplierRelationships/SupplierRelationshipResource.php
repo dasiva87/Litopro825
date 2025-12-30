@@ -12,7 +12,6 @@ use App\Traits\CompanyTypeResource;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
@@ -37,15 +36,14 @@ class SupplierRelationshipResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
-        // Mostrar en menú para litografías Y papelerías
-        $company = auth()->user()->company ?? null;
-        return $company && ($company->isLitografia() || $company->isPapeleria());
+        return false; // Ocultar del menú lateral - funcionalidad gestionada desde SupplierResource
     }
 
     public static function canViewAny(): bool
     {
         // Litografías y papelerías pueden ver sus proveedores
         $company = auth()->user()->company ?? null;
+
         return $company && ($company->isLitografia() || $company->isPapeleria());
     }
 
@@ -59,6 +57,7 @@ class SupplierRelationshipResource extends Resource
     {
         // Solo litografías pueden editar sus relaciones de proveedor
         $company = auth()->user()->company ?? null;
+
         return $company && $company->isLitografia();
     }
 
@@ -66,6 +65,7 @@ class SupplierRelationshipResource extends Resource
     {
         // Solo litografías pueden eliminar sus relaciones de proveedor
         $company = auth()->user()->company ?? null;
+
         return $company && $company->isLitografia();
     }
 

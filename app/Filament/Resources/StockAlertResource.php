@@ -29,7 +29,7 @@ class StockAlertResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Alertas de Stock';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 4;
 
     protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Inventario;
 
@@ -298,6 +298,7 @@ class StockAlertResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
+            ->where('company_id', auth()->user()->company_id)
             ->with(['stockable', 'acknowledgedBy', 'resolvedBy']);
     }
 }

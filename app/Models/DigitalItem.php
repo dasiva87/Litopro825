@@ -2,18 +2,18 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
+use App\Services\FinishingCalculatorService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Models\Concerns\BelongsToTenant;
-use App\Services\FinishingCalculatorService;
 
 class DigitalItem extends Model
 {
-    use HasFactory, SoftDeletes, BelongsToTenant;
+    use BelongsToTenant, HasFactory, SoftDeletes;
 
     protected $fillable = [
         'company_id',
@@ -49,16 +49,16 @@ class DigitalItem extends Model
             if (empty($item->code)) {
                 $item->code = $item->generateCode();
             }
-            
+
             // Establecer valores por defecto para campos requeridos
             if (empty($item->description)) {
-                $item->description = 'Item digital - ' . $item->code;
+                $item->description = 'Item digital - '.$item->code;
             }
-            
+
             if (empty($item->sale_price)) {
                 $item->sale_price = $item->unit_value ?? 0;
             }
-            
+
             if (empty($item->unit_value)) {
                 $item->unit_value = $item->sale_price ?? 0;
             }
@@ -67,6 +67,9 @@ class DigitalItem extends Model
         static::saving(function ($item) {
             // Calcular margen automáticamente
             $item->profit_margin = $item->calculateProfitMargin();
+
+            // Agregar acabados a la descripción si están cargados
+            $item->appendFinishingsToDescription();
         });
     }
 
@@ -102,20 +105,20 @@ class DigitalItem extends Model
     {
         $prefix = 'DIG-';
         $companyId = $this->company_id ?? auth()->user()->company_id ?? 1;
-        
+
         // Buscar el último código con este prefijo para esta empresa
         $lastItem = static::where('company_id', $companyId)
-            ->where('code', 'LIKE', $prefix . '%')
+            ->where('code', 'LIKE', $prefix.'%')
             ->latest('id')
             ->first();
-        
+
         $number = 1;
         if ($lastItem) {
             $lastCode = str_replace($prefix, '', $lastItem->code);
             $number = (int) $lastCode + 1;
         }
-        
-        return $prefix . str_pad($number, 3, '0', STR_PAD_LEFT);
+
+        return $prefix.str_pad($number, 3, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -150,7 +153,7 @@ class DigitalItem extends Model
         $widthM = $width / 100;
         $heightM = $height / 100;
         $areaM2 = $widthM * $heightM;
-        
+
         return $areaM2 * $this->unit_value * $quantity;
     }
 
@@ -160,13 +163,13 @@ class DigitalItem extends Model
     public function calculateTotalPrice(array $params): float
     {
         $quantity = (int) ($params['quantity'] ?? 1);
-        
+
         if ($this->pricing_type === 'unit') {
             return $this->calculateByUnit($quantity);
         } else { // 'size'
             $width = (float) ($params['width'] ?? 0);
             $height = (float) ($params['height'] ?? 0);
-            
+
             return $this->calculateBySize($width, $height, $quantity);
         }
     }
@@ -187,17 +190,17 @@ class DigitalItem extends Model
         $errors = [];
 
         if ($this->pricing_type === 'unit') {
-            if (!isset($params['quantity']) || $params['quantity'] <= 0) {
+            if (! isset($params['quantity']) || $params['quantity'] <= 0) {
                 $errors[] = 'La cantidad debe ser mayor a 0 para items por unidad';
             }
         } else { // 'size'
-            if (!isset($params['width']) || $params['width'] <= 0) {
+            if (! isset($params['width']) || $params['width'] <= 0) {
                 $errors[] = 'El ancho debe ser mayor a 0 para items por tamaño';
             }
-            if (!isset($params['height']) || $params['height'] <= 0) {
+            if (! isset($params['height']) || $params['height'] <= 0) {
                 $errors[] = 'El alto debe ser mayor a 0 para items por tamaño';
             }
-            if (!isset($params['quantity']) || $params['quantity'] <= 0) {
+            if (! isset($params['quantity']) || $params['quantity'] <= 0) {
                 $errors[] = 'La cantidad debe ser mayor a 0';
             }
         }
@@ -220,15 +223,15 @@ class DigitalItem extends Model
     public function getFormattedUnitValueAttribute(): string
     {
         if ($this->pricing_type === 'unit') {
-            return '$' . number_format($this->unit_value, 2) . ' por unidad';
+            return '$'.number_format($this->unit_value, 2).' por unidad';
         } else {
-            return '$' . number_format($this->unit_value, 2) . ' por m²';
+            return '$'.number_format($this->unit_value, 2).' por m²';
         }
     }
 
     public function getFormattedProfitMarginAttribute(): string
     {
-        return number_format($this->profit_margin, 2) . '%';
+        return number_format($this->profit_margin, 2).'%';
     }
 
     // Scopes
@@ -284,7 +287,7 @@ class DigitalItem extends Model
     {
         $basePrice = $this->calculateTotalPrice($params);
         $finishingsCost = $this->calculateFinishingsCost();
-        
+
         return $basePrice + $finishingsCost;
     }
 
@@ -400,5 +403,43 @@ class DigitalItem extends Model
         }
 
         return $summary;
+    }
+
+    /**
+     * Agregar nombres de acabados a la descripción si existen
+     */
+    protected function appendFinishingsToDescription(): void
+    {
+        // Solo agregar acabados si la relación está cargada y tiene items
+        if (! $this->relationLoaded('finishings') || $this->finishings->isEmpty()) {
+            return;
+        }
+
+        // Extraer descripción base (antes de "acabados:")
+        $baseDescription = $this->extractBaseDescription($this->description);
+
+        // Obtener nombres de acabados
+        $finishingNames = $this->finishings->pluck('name')->toArray();
+
+        // Reconstruir descripción con acabados
+        $this->description = trim($baseDescription.' acabados: '.implode(', ', $finishingNames));
+    }
+
+    /**
+     * Extraer descripción base (antes de "acabados:")
+     */
+    protected function extractBaseDescription(?string $fullDescription): string
+    {
+        if (! $fullDescription) {
+            return $this->description ?? '';
+        }
+
+        // Buscar "acabados:" y extraer todo lo anterior
+        $pos = strpos($fullDescription, ' acabados:');
+        if ($pos !== false) {
+            return trim(substr($fullDescription, 0, $pos));
+        }
+
+        return $fullDescription;
     }
 }

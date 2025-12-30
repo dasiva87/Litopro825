@@ -22,10 +22,28 @@
             padding-bottom: 15px;
             margin-bottom: 20px;
             page-break-inside: avoid;
+            overflow: hidden;
+        }
+        .header-content {
+            position: relative;
+            min-height: 100px;
+            margin-bottom: 15px;
+        }
+        .company-logo {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 120px;
+        }
+        .company-logo img {
+            width: 120px;
+            height: auto;
+            max-height: 90px;
+            display: block;
         }
         .company-info {
             text-align: right;
-            margin-bottom: 15px;
+            margin-left: 140px;
         }
         .company-info h1 {
             font-size: 20pt;
@@ -130,20 +148,38 @@
 </head>
 <body>
     <div class="header">
-        <div class="company-info">
-            <h1>{{ $document->company->name ?? 'Empresa' }}</h1>
-            @if($document->company->address)
-                <p>{{ $document->company->address }}</p>
+        <div class="header-content">
+            @php
+                $logoPath = $document->company->logo ?: $document->company->avatar;
+                $logoFullPath = $logoPath ? storage_path('app/public/' . $logoPath) : null;
+                $logoBase64 = null;
+                if ($logoFullPath && file_exists($logoFullPath)) {
+                    $imageData = base64_encode(file_get_contents($logoFullPath));
+                    $imageInfo = getimagesize($logoFullPath);
+                    $mimeType = $imageInfo['mime'] ?? 'image/jpeg';
+                    $logoBase64 = 'data:' . $mimeType . ';base64,' . $imageData;
+                }
+            @endphp
+            @if($logoBase64)
+            <div class="company-logo">
+                <img src="{{ $logoBase64 }}" alt="{{ $document->company->name }}">
+            </div>
             @endif
-            @if($document->company->phone || $document->company->email)
-                <p>
-                    @if($document->company->phone){{ $document->company->phone }}@endif
-                    @if($document->company->phone && $document->company->email) | @endif
-                    @if($document->company->email){{ $document->company->email }}@endif
-                </p>
-            @endif
+            <div class="company-info">
+                <h1>{{ $document->company->name ?? 'Empresa' }}</h1>
+                @if($document->company->address)
+                    <p>{{ $document->company->address }}</p>
+                @endif
+                @if($document->company->phone || $document->company->email)
+                    <p>
+                        @if($document->company->phone){{ $document->company->phone }}@endif
+                        @if($document->company->phone && $document->company->email) | @endif
+                        @if($document->company->email){{ $document->company->email }}@endif
+                    </p>
+                @endif
+            </div>
         </div>
-        
+
         <div class="document-info">
             <h2>{{ $document->documentType->name ?? 'Documento' }}</h2>
             <div class="info-grid">

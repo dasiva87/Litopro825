@@ -2,19 +2,19 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\StockManagement;
+use App\Services\FinishingCalculatorService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Models\Concerns\BelongsToTenant;
-use App\Models\Concerns\StockManagement;
-use App\Services\FinishingCalculatorService;
 
 class Product extends Model
 {
-    use HasFactory, SoftDeletes, BelongsToTenant, StockManagement;
+    use BelongsToTenant, HasFactory, SoftDeletes, StockManagement;
 
     protected $fillable = [
         'company_id',
@@ -43,6 +43,16 @@ class Product extends Model
         'active' => 'boolean',
         'metadata' => 'array',
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saving(function ($product) {
+            // Agregar acabados a la descripción si están cargados
+            $product->appendFinishingsToDescription();
+        });
+    }
 
     // Relaciones
     public function company(): BelongsTo
@@ -205,5 +215,48 @@ class Product extends Model
     public function hasFinishings(): bool
     {
         return $this->finishings()->exists();
+    }
+
+    /**
+     * Agregar nombres de acabados a la descripción si existen
+     */
+    protected function appendFinishingsToDescription(): void
+    {
+        // Solo agregar acabados si la relación está cargada y tiene items
+        if (! $this->relationLoaded('finishings') || $this->finishings->isEmpty()) {
+            return;
+        }
+
+        // Si no hay descripción, no hacer nada
+        if (empty($this->description)) {
+            return;
+        }
+
+        // Extraer descripción base (antes de "acabados:")
+        $baseDescription = $this->extractBaseDescription($this->description);
+
+        // Obtener nombres de acabados
+        $finishingNames = $this->finishings->pluck('name')->toArray();
+
+        // Reconstruir descripción con acabados
+        $this->description = trim($baseDescription.' acabados: '.implode(', ', $finishingNames));
+    }
+
+    /**
+     * Extraer descripción base (antes de "acabados:")
+     */
+    protected function extractBaseDescription(?string $fullDescription): string
+    {
+        if (! $fullDescription) {
+            return '';
+        }
+
+        // Buscar "acabados:" y extraer todo lo anterior
+        $pos = strpos($fullDescription, ' acabados:');
+        if ($pos !== false) {
+            return trim(substr($fullDescription, 0, $pos));
+        }
+
+        return $fullDescription;
     }
 }

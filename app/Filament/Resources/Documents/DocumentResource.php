@@ -35,7 +35,7 @@ class DocumentResource extends Resource
 
     protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Documentos;
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 1;
 
     public static function canViewAny(): bool
     {

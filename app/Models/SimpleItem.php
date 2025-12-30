@@ -101,7 +101,7 @@ class SimpleItem extends Model
         }
 
         // Si no hay descripción base, usar la actual o vacío
-        if (!$baseDescription) {
+        if (! $baseDescription) {
             $baseDescription = $this->description ?? '';
         }
 
@@ -124,6 +124,12 @@ class SimpleItem extends Model
             $parts[] = "en papel {$paperName}";
         }
 
+        // Agregar acabados si existen
+        if ($this->relationLoaded('finishings') && $this->finishings->isNotEmpty()) {
+            $finishingNames = $this->finishings->pluck('name')->toArray();
+            $parts[] = 'acabados: '.implode(', ', $finishingNames);
+        }
+
         // Unir todas las partes con espacios
         $this->description = trim(implode(' ', array_filter($parts)));
     }
@@ -134,7 +140,7 @@ class SimpleItem extends Model
      */
     protected function extractBaseDescription(?string $fullDescription): ?string
     {
-        if (!$fullDescription) {
+        if (! $fullDescription) {
             return null;
         }
 
@@ -165,7 +171,7 @@ class SimpleItem extends Model
     {
         // Si es una nueva instancia o no tiene descripción previa,
         // guardar como descripción base temporal
-        if (!$this->exists || !$this->getOriginal('description')) {
+        if (! $this->exists || ! $this->getOriginal('description')) {
             $this->baseDescriptionTemp = $value;
         } else {
             // Si ya existe, extraer la base de la descripción anterior
@@ -336,8 +342,9 @@ class SimpleItem extends Model
             $pricingResult = $calculator->calculateFinalPricingNew($this);
 
             // Si el nuevo sistema retorna null, usar el sistema legacy
-            if (!$pricingResult) {
+            if (! $pricingResult) {
                 $this->calculateAllLegacy();
+
                 return;
             }
 
@@ -370,7 +377,7 @@ class SimpleItem extends Model
      */
     private function saveCustomMountingData(): void
     {
-        if ($this->mounting_type !== 'custom' || !$this->custom_paper_width || !$this->custom_paper_height) {
+        if ($this->mounting_type !== 'custom' || ! $this->custom_paper_width || ! $this->custom_paper_height) {
             return;
         }
 
@@ -425,17 +432,17 @@ class SimpleItem extends Model
      * Obtiene el cálculo completo del NUEVO sistema de montaje con cortes
      *
      * @return array|null [
-     *   'mounting' => [...],
-     *   'copies_per_mounting' => int,
-     *   'divisor' => int,
-     *   'divisor_layout' => [...],
-     *   'impressions_needed' => int,
-     *   'sheets_needed' => int,
-     *   'total_impressions' => int,
-     *   'total_copies_produced' => int,
-     *   'waste_copies' => int,
-     *   'paper_cost' => float
-     * ]
+     *                    'mounting' => [...],
+     *                    'copies_per_mounting' => int,
+     *                    'divisor' => int,
+     *                    'divisor_layout' => [...],
+     *                    'impressions_needed' => int,
+     *                    'sheets_needed' => int,
+     *                    'total_impressions' => int,
+     *                    'total_copies_produced' => int,
+     *                    'waste_copies' => int,
+     *                    'paper_cost' => float
+     *                    ]
      */
     public function getMountingWithCuts(): ?array
     {
@@ -453,12 +460,12 @@ class SimpleItem extends Model
      * Usa el nuevo MountingCalculatorService
      *
      * @return array|null [
-     *   'horizontal' => [...],
-     *   'vertical' => [...],
-     *   'maximum' => [...],
-     *   'sheets_info' => [...],  (si hay papel y cantidad)
-     *   'efficiency' => float     (si hay papel y cantidad)
-     * ]
+     *                    'horizontal' => [...],
+     *                    'vertical' => [...],
+     *                    'maximum' => [...],
+     *                    'sheets_info' => [...],  (si hay papel y cantidad)
+     *                    'efficiency' => float     (si hay papel y cantidad)
+     *                    ]
      */
     public function getPureMounting(): ?array
     {
@@ -473,8 +480,6 @@ class SimpleItem extends Model
 
     /**
      * Obtiene solo la información del mejor montaje (máximo)
-     *
-     * @return array|null
      */
     public function getBestMounting(): ?array
     {
@@ -542,14 +547,12 @@ class SimpleItem extends Model
     /**
      * Agregar un acabado al SimpleItem
      *
-     * @param Finishing $finishing
-     * @param array $params Parámetros según el tipo de medición
-     * @param bool $isDefault Si es un acabado sugerido por defecto
-     * @return void
+     * @param  array  $params  Parámetros según el tipo de medición
+     * @param  bool  $isDefault  Si es un acabado sugerido por defecto
      */
     public function addFinishing(Finishing $finishing, array $params = [], bool $isDefault = true): void
     {
-        $calculator = new \App\Services\FinishingCalculatorService();
+        $calculator = new \App\Services\FinishingCalculatorService;
 
         // Construir parámetros automáticamente si no se proporcionan
         if (empty($params)) {
@@ -586,9 +589,6 @@ class SimpleItem extends Model
 
     /**
      * Remover un acabado del SimpleItem
-     *
-     * @param Finishing $finishing
-     * @return void
      */
     public function removeFinishing(Finishing $finishing): void
     {
@@ -597,17 +597,15 @@ class SimpleItem extends Model
 
     /**
      * Calcular el costo total de todos los acabados
-     *
-     * @return float
      */
     public function calculateFinishingsCost(): float
     {
-        if (!$this->relationLoaded('finishings') || $this->finishings->isEmpty()) {
+        if (! $this->relationLoaded('finishings') || $this->finishings->isEmpty()) {
             return 0;
         }
 
         $total = 0;
-        $calculator = new \App\Services\FinishingCalculatorService();
+        $calculator = new \App\Services\FinishingCalculatorService;
 
         foreach ($this->finishings as $finishing) {
             $params = $this->buildFinishingParams($finishing);
@@ -619,21 +617,18 @@ class SimpleItem extends Model
 
     /**
      * Construir parámetros para el cálculo de acabado según su tipo
-     *
-     * @param Finishing $finishing
-     * @return array
      */
     private function buildFinishingParams(Finishing $finishing): array
     {
-        return match($finishing->measurement_unit) {
+        return match ($finishing->measurement_unit) {
             \App\Enums\FinishingMeasurementUnit::MILLAR,
             \App\Enums\FinishingMeasurementUnit::RANGO,
             \App\Enums\FinishingMeasurementUnit::UNIDAD => [
-                'quantity' => (int) $this->quantity
+                'quantity' => (int) $this->quantity,
             ],
             \App\Enums\FinishingMeasurementUnit::TAMAÑO => [
                 'width' => (float) $this->horizontal_size,
-                'height' => (float) $this->vertical_size
+                'height' => (float) $this->vertical_size,
             ],
             default => []
         };
@@ -641,17 +636,15 @@ class SimpleItem extends Model
 
     /**
      * Obtener desglose detallado de acabados
-     *
-     * @return array
      */
     public function getFinishingsBreakdown(): array
     {
-        if (!$this->relationLoaded('finishings') || $this->finishings->isEmpty()) {
+        if (! $this->relationLoaded('finishings') || $this->finishings->isEmpty()) {
             return [];
         }
 
         $breakdown = [];
-        $calculator = new \App\Services\FinishingCalculatorService();
+        $calculator = new \App\Services\FinishingCalculatorService;
 
         foreach ($this->finishings as $finishing) {
             $params = $this->buildFinishingParams($finishing);
@@ -672,8 +665,6 @@ class SimpleItem extends Model
 
     /**
      * Verificar si tiene acabados
-     *
-     * @return bool
      */
     public function hasFinishings(): bool
     {

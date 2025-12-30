@@ -18,7 +18,7 @@ class StockMovements extends Page
 
     protected static ?string $title = 'Historial de Movimientos de Stock';
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 6;
 
     protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Inventario;
 

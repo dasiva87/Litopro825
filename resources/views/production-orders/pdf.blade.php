@@ -22,10 +22,28 @@
             padding-bottom: 15px;
             margin-bottom: 20px;
             page-break-inside: avoid;
+            overflow: hidden;
+        }
+        .header-content {
+            position: relative;
+            min-height: 100px;
+            margin-bottom: 15px;
+        }
+        .company-logo {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 120px;
+        }
+        .company-logo img {
+            width: 120px;
+            height: auto;
+            max-height: 90px;
+            display: block;
         }
         .company-info {
             text-align: right;
-            margin-bottom: 15px;
+            margin-left: 140px;
         }
         .company-info h1 {
             font-size: 20pt;
@@ -171,23 +189,41 @@
 <body>
     <!-- Header con información de la empresa -->
     <div class="header">
-        <div class="company-info">
-            <h1>{{ $productionOrder->company->name }}</h1>
-            @if($productionOrder->company->tax_id)
-                <p><strong>NIT:</strong> {{ $productionOrder->company->tax_id }}</p>
+        <div class="header-content">
+            @php
+                $logoPath = $productionOrder->company->logo ?: $productionOrder->company->avatar;
+                $logoFullPath = $logoPath ? storage_path('app/public/' . $logoPath) : null;
+                $logoBase64 = null;
+                if ($logoFullPath && file_exists($logoFullPath)) {
+                    $imageData = base64_encode(file_get_contents($logoFullPath));
+                    $imageInfo = getimagesize($logoFullPath);
+                    $mimeType = $imageInfo['mime'] ?? 'image/jpeg';
+                    $logoBase64 = 'data:' . $mimeType . ';base64,' . $imageData;
+                }
+            @endphp
+            @if($logoBase64)
+            <div class="company-logo">
+                <img src="{{ $logoBase64 }}" alt="{{ $productionOrder->company->name }}">
+            </div>
             @endif
-            @if($productionOrder->company->address)
-                <p>{{ $productionOrder->company->address }}</p>
-            @endif
-            @if($productionOrder->company->city || $productionOrder->company->state)
-                <p>{{ $productionOrder->company->city }}@if($productionOrder->company->city && $productionOrder->company->state), @endif{{ $productionOrder->company->state }}</p>
-            @endif
-            @if($productionOrder->company->phone)
-                <p><strong>Tel:</strong> {{ $productionOrder->company->phone }}</p>
-            @endif
-            @if($productionOrder->company->email)
-                <p><strong>Email:</strong> {{ $productionOrder->company->email }}</p>
-            @endif
+            <div class="company-info">
+                <h1>{{ $productionOrder->company->name }}</h1>
+                @if($productionOrder->company->tax_id)
+                    <p><strong>NIT:</strong> {{ $productionOrder->company->tax_id }}</p>
+                @endif
+                @if($productionOrder->company->address)
+                    <p>{{ $productionOrder->company->address }}</p>
+                @endif
+                @if($productionOrder->company->city || $productionOrder->company->state)
+                    <p>{{ $productionOrder->company->city }}@if($productionOrder->company->city && $productionOrder->company->state), @endif{{ $productionOrder->company->state }}</p>
+                @endif
+                @if($productionOrder->company->phone)
+                    <p><strong>Tel:</strong> {{ $productionOrder->company->phone }}</p>
+                @endif
+                @if($productionOrder->company->email)
+                    <p><strong>Email:</strong> {{ $productionOrder->company->email }}</p>
+                @endif
+            </div>
         </div>
     </div>
 

@@ -29,7 +29,7 @@ class PurchaseOrderResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Órdenes de Pedido';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 2;
 
     public static function canViewAny(): bool
     {

@@ -36,6 +36,174 @@ app/Filament/Resources/[Entity]/
 
 ## PROGRESO RECIENTE
 
+### ✅ Sesión Completada (29-Dic-2025)
+**SPRINT 27: Mejoras UX - Páginas de Revista, Menú Reorganizado, Password Reset y Sidebar**
+
+#### Logros de la Sesión
+
+1. **✅ Magazine Pages - Campos Completos como SimpleItem**
+   - **Expandido schema de páginas**: 8 campos → 17+ campos completos
+   - **7 Secciones colapsables**: Información, Dimensiones, Papel, Tintas, Montaje, Costos, Ganancia
+   - **Dos métodos actualizados**: `getEditForm()` y `getWizardSteps()`
+   - **Mapeo completo**: `fillForm()` y `updatePages()` con todos los campos
+
+2. **✅ Reorganización Completa del Menú Lateral**
+   - **Nueva sección "Contactos"**: Primer grupo en el menú
+   - **Items ocultos del menú**: SimpleItem, MagazineItem, TalonarioItem (aún funcionales en cotizaciones)
+   - **DigitalItem movido**: De "Items" a "Inventario" (orden 3)
+   - **SupplierRelationshipResource oculto**: Evita duplicación con SupplierResource
+
+3. **✅ Sistema de Password Reset 100% Funcional**
+   - **Traducciones completas en español**: request-password-reset.php, reset-password.php
+   - **Fix completo**: Eliminadas personalizaciones que interferían
+   - **Solución final**: Usar implementación por defecto de Filament
+   - **Resultado**: Reset de contraseña funcionando perfectamente
+
+4. **✅ Personalización del Sidebar**
+   - **Color de fondo**: `#e9f3ff` (azul claro, personalizable)
+   - **Scrollbar custom**: 5px ancho, bordes redondeados
+   - **Estilos de items**: Hover, activo, colores de texto
+   - **Compilado con Vite**: Assets optimizados
+
+#### Archivos Creados (Sprint 27)
+
+**Traducciones (2)**:
+1. `lang/vendor/filament-panels/es/pages/auth/password-reset/request-password-reset.php`
+2. `lang/vendor/filament-panels/es/pages/auth/password-reset/reset-password.php`
+
+**Total Sprint 27**: 2 archivos nuevos
+
+#### Archivos Modificados (Sprint 27)
+
+**Handlers (1)**:
+1. `app/Filament/Resources/Documents/RelationManagers/Handlers/MagazineItemHandler.php`
+   - Expandido Repeater schema en `getEditForm()` (líneas 159-419)
+   - Expandido Repeater schema en `getWizardSteps()` (líneas 735-995)
+   - Actualizado `fillForm()` para mapear todos los campos (líneas 423-487)
+   - Actualizado `updatePages()` para guardar todos los campos (líneas 517-629)
+
+**Enums (1)**:
+2. `app/Enums/NavigationGroup.php`
+   - Agregado case `Contactos`
+   - Actualizado método `getSort()` con nuevo orden
+
+**Resources - Movidos/Ocultos (7)**:
+3. `app/Filament/Resources/DigitalItems/DigitalItemResource.php` - Movido a Inventario, sort 3
+4. `app/Filament/Resources/SimpleItems/SimpleItemResource.php` - Agregado `shouldRegisterNavigation() => false`
+5. `app/Filament/Resources/MagazineItems/MagazineItemResource.php` - Agregado `shouldRegisterNavigation() => false`
+6. `app/Filament/Resources/TalonarioItems/TalonarioItemResource.php` - Agregado `shouldRegisterNavigation() => false`
+7. `app/Filament/Resources/SupplierRelationships/SupplierRelationshipResource.php` - Oculto del menú
+
+**Resources - Reorganizados (5)**:
+8. `app/Filament/Resources/Contacts/ContactResource.php` - Movido a Contactos, sort 1
+9. `app/Filament/Resources/ClientResource.php` - Movido a Contactos, sort 2
+10. `app/Filament/Resources/SupplierResource.php` - Movido a Contactos, sort 3
+11. `app/Filament/Resources/CommercialRequestResource.php` - Movido a Contactos, sort 4
+12. `app/Filament/Resources/Documents/DocumentResource.php` - Cambiado sort de 4 a 1
+13. `app/Filament/Resources/PurchaseOrders/PurchaseOrderResource.php` - Cambiado sort de 5 a 2
+14. `app/Filament/Resources/ProductionOrders/ProductionOrderResource.php` - Cambiado sort de 6 a 3
+15. `app/Filament/Resources/CollectionAccounts/CollectionAccountResource.php` - Cambiado sort de 6 a 4
+
+**CSS (1)**:
+16. `resources/css/filament/admin/theme.css`
+   - Agregado color de fondo sidebar: `#e9f3ff`
+   - Personalización scrollbar (8px → 5px ancho)
+   - Estilos de items del menú
+
+**Auth Pages (1)**:
+17. `app/Filament/Pages/Auth/PasswordReset/ResetPassword.php`
+   - Simplificado a implementación por defecto de Filament (solo hereda de BaseResetPassword)
+
+**Total Sprint 27**: 17 archivos modificados
+
+#### Estructura Final del Menú
+
+```
+📂 Contactos (NUEVO - sort 1)
+   ├── 1. Clientes y Proveedores
+   ├── 2. Clientes
+   ├── 3. Proveedores
+   └── 4. Solicitudes Comerciales
+
+📂 Documentos (sort 2)
+   ├── 1. Cotizaciones (era 4)
+   ├── 2. Órdenes de Pedido (era 5)
+   ├── 3. Órdenes de Producción (era 6)
+   └── 4. Cuentas de Cobro (era 6)
+
+📂 Items (sort 3 - OCULTO automáticamente al quedar vacío)
+
+📂 Inventario (sort 4)
+   ├── 1. Papeles
+   ├── 2. Máquinas de Impresión
+   └── 3. Items Digitales (MOVIDO desde Items)
+
+📂 Configuración (sort 5)
+📂 Sistema (sort 6)
+```
+
+**Items Ocultos** (aún funcionales en cotizaciones):
+- SimpleItemResource
+- MagazineItemResource
+- TalonarioItemResource
+- SupplierRelationshipResource
+
+#### Testing Realizado
+
+```bash
+✅ Migración de páginas revista sin errores
+✅ Caché limpiada múltiples veces (views, config, filament)
+✅ Código formateado con Pint (9 archivos, 5 issues corregidos)
+✅ Sin errores de sintaxis PHP
+✅ Assets compilados con Vite (npm run build)
+✅ Password reset 100% funcional
+✅ Traducciones en español completas
+✅ Menú reorganizado correctamente
+✅ Sidebar con estilos personalizados
+```
+
+#### Problemas Resueltos Durante la Sesión
+
+**Error 1: Cambios de Magazine Pages no visibles**
+- **Problema**: Solo se actualizó `getEditForm()`, faltaba `getWizardSteps()`
+- **Solución**: Duplicar schema en ambos métodos
+- **Resultado**: Cambios visibles tras limpiar caché
+
+**Error 2: Password Reset - Validación "confirmed" no funciona**
+- **Problema**: Múltiples conflictos con validaciones personalizadas
+- **Intentos fallidos**:
+  - `->confirmed()` en password field
+  - `->same('password')` en password_confirmation
+  - `getValidationRules()` personalizado
+  - `->statePath('data')`
+- **Solución final**: Eliminar TODAS las personalizaciones, usar implementación por defecto
+- **Resultado**: Funciona perfectamente sin código personalizado
+
+**Error 3: Email no aparece en formulario de reset**
+- **Problema**: Campo email vacío al cargar página de reset
+- **Causa**: Sobrescritura de métodos interfería con mount() de Filament
+- **Solución**: Eliminar personalizaciones, dejar que Filament maneje todo
+- **Resultado**: Email se carga automáticamente desde URL
+
+#### Diferencias vs Sprints Anteriores
+
+**Magazine Pages:**
+- **Antes**: 8 campos básicos (tipo, cantidad, orden, etc.)
+- **Ahora**: 17+ campos completos (igual que SimpleItem)
+- **Beneficio**: Control total sobre cada página de revista
+
+**Menú:**
+- **Antes**: Items y Documentos mezclados, sin sección de Contactos
+- **Ahora**: Organización lógica por tipo de entidad
+- **Beneficio**: Navegación más intuitiva
+
+**Password Reset:**
+- **Antes**: No funcionaba, sin traducciones
+- **Ahora**: 100% funcional, completamente en español
+- **Lección**: Confiar en implementaciones por defecto de frameworks
+
+---
+
 ### ✅ Sesión Completada (17-Dic-2025)
 **SPRINT 26: Envío Manual de Emails para Cotizaciones (Documents/Quotes)**
 
@@ -503,11 +671,11 @@ Continuar implementando el sistema de envío manual en los módulos pendientes:
 ## COMANDO PARA EMPEZAR MAÑANA
 
 ```bash
-# Iniciar LitoPro 3.0 - SPRINT 26 COMPLETADO (Emails Cotizaciones)
+# Iniciar LitoPro 3.0 - SPRINT 27 COMPLETADO (UX Mejorado)
 cd /home/dasiva/Descargas/litopro825 && php artisan serve --port=8000
 
 # Estado del Proyecto
-echo "✅ SPRINT 26 COMPLETADO (17-Dic-2025) - Envío Manual Cotizaciones 100%"
+echo "✅ SPRINT 27 COMPLETADO (29-Dic-2025) - Mejoras UX Completas"
 echo ""
 echo "📍 URLs de Testing:"
 echo "   🏠 Dashboard: http://127.0.0.1:8000/admin"
@@ -518,25 +686,35 @@ echo "   🏭 Órdenes Producción: http://127.0.0.1:8000/admin/production-order
 echo ""
 echo "⚠️  IMPORTANTE: Usar http://127.0.0.1:8000 (NO localhost) - CORS configurado"
 echo ""
-echo "🎉 SPRINT 26 - ENVÍO MANUAL DE EMAILS COTIZACIONES:"
-echo "   • ✅ Migración: email_sent_at, email_sent_by en documents"
-echo "   • ✅ Notificación QuoteSent con PDF adjunto (DomPDF)"
-echo "   • ✅ Template email personalizado para cotizaciones"
-echo "   • ✅ Acción manual en ViewDocument (3 validaciones)"
-echo "   • ✅ Acción manual en DocumentsTable con badge"
-echo "   • ✅ Tracking completo: quién y cuándo envió"
-echo "   • ✅ UI dinámica: label, color y badge según estado"
+echo "🎉 SPRINT 27 - MEJORAS UX COMPLETAS:"
+echo "   • ✅ Magazine Pages: 8 → 17+ campos completos"
+echo "   • ✅ Menú reorganizado: Nueva sección Contactos"
+echo "   • ✅ Password Reset: 100% funcional en español"
+echo "   • ✅ Sidebar: Color personalizado + scrollbar custom"
+echo "   • ✅ Items ocultos: SimpleItem, MagazineItem, Talonario"
+echo "   • ✅ SupplierRelationshipResource oculto del menú"
 echo ""
-echo "📧 MÓDULOS CON ENVÍO MANUAL IMPLEMENTADO:"
-echo "   1. ✅ Purchase Orders (Órdenes de Pedido)"
-echo "   2. ✅ Documents/Quotes (Cotizaciones)"
-echo "   3. ⏳ Collection Accounts (Pendiente)"
-echo "   4. ⏳ Production Orders (Pendiente)"
+echo "📋 MENÚ LATERAL REORGANIZADO:"
+echo "   1. 📂 Contactos (NUEVO)"
+echo "      ├── Clientes y Proveedores"
+echo "      ├── Clientes"
+echo "      ├── Proveedores"
+echo "      └── Solicitudes Comerciales"
+echo "   2. 📂 Documentos"
+echo "      ├── Cotizaciones"
+echo "      ├── Órdenes de Pedido"
+echo "      ├── Órdenes de Producción"
+echo "      └── Cuentas de Cobro"
+echo "   3. 📂 Inventario"
+echo "      ├── Papeles"
+echo "      ├── Máquinas"
+echo "      └── Items Digitales"
 echo ""
 echo "🎯 PRÓXIMA TAREA (RECOMENDADO):"
-echo "   Opción A: Implementar en Collection Accounts (Cuentas de Cobro)"
-echo "   Opción B: Implementar en Production Orders (Órdenes de Producción)"
-echo "   Opción C: Otras áreas (Grafired, debug, dashboard)"
+echo "   Opción A: Implementar envío manual en Collection Accounts"
+echo "   Opción B: Implementar envío manual en Production Orders"
+echo "   Opción C: Mejorar sistema Grafired (búsqueda, filtros)"
+echo "   Opción D: Dashboard de Producción con widgets"
 echo ""
 echo "📝 COMANDOS ÚTILES:"
 echo "   - Ver EMAIL.md: cat EMAIL.md"

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\MagazineItems;
 
+use App\Enums\NavigationGroup;
 use App\Filament\Resources\MagazineItems\Pages\CreateMagazineItem;
 use App\Filament\Resources\MagazineItems\Pages\EditMagazineItem;
 use App\Filament\Resources\MagazineItems\Pages\ListMagazineItems;
@@ -10,14 +11,13 @@ use App\Filament\Resources\MagazineItems\Tables\MagazineItemsTable;
 use App\Models\MagazineItem;
 use App\Traits\CompanyTypeResource;
 use BackedEnum;
-use UnitEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
-use App\Enums\NavigationGroup;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use UnitEnum;
 
 class MagazineItemResource extends Resource
 {
@@ -36,6 +36,11 @@ class MagazineItemResource extends Resource
     protected static ?string $pluralModelLabel = 'Revistas';
 
     protected static ?int $navigationSort = 2;
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false; // Ocultar del menú lateral
+    }
 
     public static function form(Schema $schema): Schema
     {

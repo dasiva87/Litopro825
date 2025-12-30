@@ -27,17 +27,31 @@
             border-bottom: 2px solid #007bff;
             margin-bottom: 10px;
             padding-bottom: 8px;
+            position: relative;
+            min-height: 80px;
         }
 
         .header-content {
-            display: table;
-            width: 100%;
+            position: relative;
+        }
+
+        .company-logo {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100px;
+        }
+
+        .company-logo img {
+            width: 100px;
+            height: auto;
+            max-height: 75px;
+            display: block;
         }
 
         .company-info {
-            display: table-cell;
-            width: 60%;
-            vertical-align: top;
+            margin-left: 110px;
+            margin-right: 180px;
         }
 
         .company-info h1 {
@@ -54,10 +68,11 @@
         }
 
         .order-info {
-            display: table-cell;
-            width: 40%;
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 170px;
             text-align: right;
-            vertical-align: top;
         }
 
         .order-number {
@@ -245,6 +260,22 @@
     <!-- Header -->
     <div class="header">
         <div class="header-content">
+            @php
+                $logoPath = $company->logo ?: $company->avatar;
+                $logoFullPath = $logoPath ? storage_path('app/public/' . $logoPath) : null;
+                $logoBase64 = null;
+                if ($logoFullPath && file_exists($logoFullPath)) {
+                    $imageData = base64_encode(file_get_contents($logoFullPath));
+                    $imageInfo = getimagesize($logoFullPath);
+                    $mimeType = $imageInfo['mime'] ?? 'image/jpeg';
+                    $logoBase64 = 'data:' . $mimeType . ';base64,' . $imageData;
+                }
+            @endphp
+            @if($logoBase64)
+            <div class="company-logo">
+                <img src="{{ $logoBase64 }}" alt="{{ $company->name }}">
+            </div>
+            @endif
             <div class="company-info">
                 <h1>{{ $company->name }}</h1>
                 <p><strong>{{ $company->company_type->label() ?? 'N/A' }}</strong></p>

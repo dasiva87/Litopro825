@@ -401,7 +401,7 @@ class DocumentItemsRelationManager extends RelationManager
             ])
             ->headerActions([
 
-                Action::make('quick_magazine_item')
+               /* Action::make('quick_magazine_item')
                     ->label('Revista')
                     ->icon('heroicon-o-rectangle-stack')
                     ->color('primary')
@@ -543,7 +543,7 @@ class DocumentItemsRelationManager extends RelationManager
                     })
                     ->modalWidth('7xl')
                     ->successNotificationTitle('Talonario con hojas creado correctamente'),
-
+*/
                 // ✨ NUEVA ARQUITECTURA - Handlers refactorizados
                 ...$this->createQuickActions([
                     'quick_simple_refactored' => new SimpleItemQuickHandler,

@@ -24,7 +24,7 @@ class PurchaseOrderCreated extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        return ['database']; // Solo notificación interna, NO email al proveedor
     }
 
     public function toMail(object $notifiable): MailMessage

@@ -29,7 +29,7 @@ class CollectionAccountResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Cuentas de Cobro';
 
-    protected static ?int $navigationSort = 6;
+    protected static ?int $navigationSort = 4;
 
     public static function canViewAny(): bool
     {

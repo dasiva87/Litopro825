@@ -2,18 +2,18 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
+use App\Services\MagazineCalculatorService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Models\Concerns\BelongsToTenant;
-use App\Services\MagazineCalculatorService;
 
 class MagazineItem extends Model
 {
-    use HasFactory, SoftDeletes, BelongsToTenant;
+    use BelongsToTenant, HasFactory, SoftDeletes;
 
     protected $fillable = [
         'company_id',
@@ -57,6 +57,10 @@ class MagazineItem extends Model
         parent::boot();
 
         static::saving(function ($item) {
+            // Agregar acabados a la descripción si están cargados
+            $item->appendFinishingsToDescription();
+
+            // Calcular todos los costos
             $item->calculateAll();
         });
     }
@@ -92,7 +96,7 @@ class MagazineItem extends Model
                 'unit_cost',
                 'total_cost',
                 'finishing_options',
-                'notes'
+                'notes',
             ])
             ->withTimestamps();
     }
@@ -107,7 +111,7 @@ class MagazineItem extends Model
 
     public function calculateBindingCost(): float
     {
-        if (!$this->binding_type || !$this->quantity) {
+        if (! $this->binding_type || ! $this->quantity) {
             return 0;
         }
 
@@ -125,7 +129,7 @@ class MagazineItem extends Model
         ];
 
         $baseCost = $baseCosts[$this->binding_type] ?? 500;
-        
+
         // Factor de complejidad basado en el número de páginas
         $totalPages = $this->pages->sum('page_quantity');
         $complexityFactor = 1 + ($totalPages > 50 ? 0.5 : ($totalPages > 20 ? 0.25 : 0));
@@ -135,17 +139,17 @@ class MagazineItem extends Model
 
     public function calculateAssemblyCost(): float
     {
-        if (!$this->quantity) {
+        if (! $this->quantity) {
             return 0;
         }
 
         // Costo base de armado
         $baseAssemblyCost = 300; // Por revista
         $totalPages = $this->pages->sum('page_quantity');
-        
+
         // Incremento por complejidad
         $pagesFactor = 1 + ($totalPages * 0.02); // 2% por página adicional
-        
+
         return $baseAssemblyCost * $this->quantity * $pagesFactor;
     }
 
@@ -167,7 +171,7 @@ class MagazineItem extends Model
     public function calculateFinalPrice(): float
     {
         $totalCost = $this->total_cost ?? 0;
-        
+
         if (($this->profit_percentage ?? 0) > 0) {
             $totalCost = $totalCost * (1 + ($this->profit_percentage / 100));
         }
@@ -178,16 +182,16 @@ class MagazineItem extends Model
     public function calculateAll(): void
     {
         try {
-            $calculator = new MagazineCalculatorService();
+            $calculator = new MagazineCalculatorService;
             $pricingResult = $calculator->calculateFinalPricing($this);
-            
+
             $this->pages_total_cost = $pricingResult->pagesCost;
             $this->binding_cost = $pricingResult->bindingCost;
             $this->assembly_cost = $pricingResult->assemblyCost;
             $this->finishing_cost = $pricingResult->finishingCost;
             $this->total_cost = $pricingResult->totalCost;
             $this->final_price = $pricingResult->finalPrice;
-            
+
         } catch (\Exception $e) {
             // Fallback al sistema de cálculo local
             $this->calculateAllLegacy();
@@ -227,7 +231,7 @@ class MagazineItem extends Model
 
         // Validar tipos de página críticos
         $hasPortada = $this->pages->where('page_type', 'portada')->count() > 0;
-        if (!$hasPortada) {
+        if (! $hasPortada) {
             $warnings[] = 'Se recomienda agregar una portada';
         }
 
@@ -240,7 +244,7 @@ class MagazineItem extends Model
         return [
             'errors' => $errors,
             'warnings' => $warnings,
-            'isValid' => empty($errors)
+            'isValid' => empty($errors),
         ];
     }
 
@@ -288,7 +292,8 @@ class MagazineItem extends Model
     public function getDetailedCostBreakdown(): array
     {
         try {
-            $calculator = new MagazineCalculatorService();
+            $calculator = new MagazineCalculatorService;
+
             return $calculator->getDetailedBreakdown($this);
         } catch (\Exception $e) {
             return [
@@ -345,11 +350,11 @@ class MagazineItem extends Model
             if ($page->simpleItem && $page->simpleItem->paper) {
                 $paperId = $page->simpleItem->paper_id;
 
-                if (!isset($papers[$paperId])) {
+                if (! isset($papers[$paperId])) {
                     $papers[$paperId] = [
                         'paper' => $page->simpleItem->paper,
                         'total_sheets' => 0,
-                        'pages_using' => []
+                        'pages_using' => [],
                     ];
                 }
 
@@ -374,12 +379,13 @@ class MagazineItem extends Model
         }
 
         // Ordenar por cantidad de pliegos (descendente)
-        uasort($papers, function($a, $b) {
+        uasort($papers, function ($a, $b) {
             return $b['total_sheets'] <=> $a['total_sheets'];
         });
 
         // Retornar el supplier del papel más usado
         $mainPaper = reset($papers);
+
         return $mainPaper['paper']->company_id ?? null;
     }
 
@@ -406,5 +412,48 @@ class MagazineItem extends Model
     public function getMountingQuantityAttribute(): int
     {
         return $this->getTotalSheetsAttribute();
+    }
+
+    /**
+     * Agregar nombres de acabados a la descripción si existen
+     */
+    protected function appendFinishingsToDescription(): void
+    {
+        // Solo agregar acabados si la relación está cargada y tiene items
+        if (! $this->relationLoaded('finishings') || $this->finishings->isEmpty()) {
+            return;
+        }
+
+        // Si no hay descripción, no hacer nada
+        if (empty($this->description)) {
+            return;
+        }
+
+        // Extraer descripción base (antes de "acabados:")
+        $baseDescription = $this->extractBaseDescription($this->description);
+
+        // Obtener nombres de acabados
+        $finishingNames = $this->finishings->pluck('name')->toArray();
+
+        // Reconstruir descripción con acabados
+        $this->description = trim($baseDescription.' acabados: '.implode(', ', $finishingNames));
+    }
+
+    /**
+     * Extraer descripción base (antes de "acabados:")
+     */
+    protected function extractBaseDescription(?string $fullDescription): string
+    {
+        if (! $fullDescription) {
+            return '';
+        }
+
+        // Buscar "acabados:" y extraer todo lo anterior
+        $pos = strpos($fullDescription, ' acabados:');
+        if ($pos !== false) {
+            return trim(substr($fullDescription, 0, $pos));
+        }
+
+        return $fullDescription;
     }
 }

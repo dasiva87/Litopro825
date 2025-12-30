@@ -18,7 +18,7 @@ class StockManagement extends Page
 
     protected static ?string $title = 'Dashboard de Gestión de Stock';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 5;
 
     protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Inventario;
 

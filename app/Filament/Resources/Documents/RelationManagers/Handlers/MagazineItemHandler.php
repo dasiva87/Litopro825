@@ -2,15 +2,15 @@
 
 namespace App\Filament\Resources\Documents\RelationManagers\Handlers;
 
-use Filament\Forms\Components;
-use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Grid;
-use Filament\Schemas\Components\Wizard\Step;
 use App\Models\MagazineItem;
 use App\Models\MagazinePage;
-use App\Models\SimpleItem;
 use App\Models\Paper;
 use App\Models\PrintingMachine;
+use App\Models\SimpleItem;
+use Filament\Forms\Components;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Wizard\Step;
 
 class MagazineItemHandler extends AbstractItemHandler
 {
@@ -19,11 +19,29 @@ class MagazineItemHandler extends AbstractItemHandler
     public function setRecord($record): self
     {
         $this->record = $record;
+
         return $this;
     }
+
     public function getEditForm($record): array
     {
         return [
+            // Resumen de precios - AL INICIO para que siempre esté visible
+            Section::make('💰 Resumen de Precios')
+                ->description('Vista previa del cálculo total de la revista')
+                ->schema([
+                    Components\Placeholder::make('price_summary')
+                        ->label('')
+                        ->content(function () use ($record) {
+                            return $this->getMagazinePriceSummary($record);
+                        })
+                        ->html()
+                        ->columnSpanFull(),
+                ])
+                ->collapsed(false)
+                ->collapsible()
+                ->visible(fn () => $record !== null && $record->itemable !== null),
+
             Section::make('Información Básica')
                 ->schema([
                     Components\Textarea::make('description')
@@ -145,121 +163,259 @@ class MagazineItemHandler extends AbstractItemHandler
                     Components\Repeater::make('pages')
                         ->label('Páginas')
                         ->schema([
-                            Grid::make(3)->schema([
-                                Components\Select::make('page_type')
-                                    ->label('Tipo de Página')
-                                    ->required()
-                                    ->options([
-                                        'portada' => '📖 Portada',
-                                        'contraportada' => '📗 Contraportada',
-                                        'interior' => '📄 Interior',
-                                        'inserto' => '📋 Inserto',
-                                        'separador' => '📑 Separador',
-                                        'anexo' => '📎 Anexo',
-                                    ])
-                                    ->default('interior'),
+                            // Información de la Página
+                            Section::make('📄 Información de la Página')
+                                ->schema([
+                                    Grid::make(3)->schema([
+                                        Components\Select::make('page_type')
+                                            ->label('Tipo de Página')
+                                            ->required()
+                                            ->options([
+                                                'portada' => '📖 Portada',
+                                                'contraportada' => '📗 Contraportada',
+                                                'interior' => '📄 Interior',
+                                                'inserto' => '📋 Inserto',
+                                                'separador' => '📑 Separador',
+                                                'anexo' => '📎 Anexo',
+                                            ])
+                                            ->default('interior'),
 
-                                Components\TextInput::make('page_quantity')
-                                    ->label('Cantidad')
-                                    ->numeric()
-                                    ->required()
-                                    ->default(1)
-                                    ->minValue(1)
-                                    ->suffix('pág.'),
+                                        Components\TextInput::make('page_quantity')
+                                            ->label('Cantidad de Páginas')
+                                            ->numeric()
+                                            ->required()
+                                            ->default(1)
+                                            ->minValue(1)
+                                            ->suffix('pág.')
+                                            ->helperText('Número de páginas iguales'),
 
-                                Components\TextInput::make('page_order')
-                                    ->label('Orden')
-                                    ->numeric()
-                                    ->required()
-                                    ->default(1)
-                                    ->minValue(1),
-                            ]),
+                                        Components\TextInput::make('page_order')
+                                            ->label('Orden')
+                                            ->numeric()
+                                            ->required()
+                                            ->default(1)
+                                            ->minValue(1),
+                                    ]),
 
-                            Components\Textarea::make('description')
-                                ->label('Descripción del Contenido')
-                                ->required()
-                                ->rows(2)
-                                ->columnSpanFull()
-                                ->placeholder('Describe el contenido de esta página...'),
+                                    Components\Textarea::make('description')
+                                        ->label('Descripción del Contenido')
+                                        ->required()
+                                        ->rows(2)
+                                        ->columnSpanFull()
+                                        ->placeholder('Describe el contenido de esta página...'),
+                                ])->collapsible()->collapsed(false),
 
-                            Grid::make(2)->schema([
-                                Components\Select::make('paper_id')
-                                    ->label('Papel')
-                                    ->options(function () {
-                                        $companyId = auth()->user()->company_id ?? 1;
-                                        return Paper::query()
-                                            ->forTenant($companyId)
-                                            ->where('is_active', true)
-                                            ->get()
-                                            ->mapWithKeys(function ($paper) {
-                                                $label = $paper->full_name ?: ($paper->code . ' - ' . $paper->name);
-                                                return [$paper->id => $label];
+                            // Dimensiones y Formato
+                            Section::make('📐 Dimensiones y Formato')
+                                ->schema([
+                                    Grid::make(4)->schema([
+                                        Components\TextInput::make('horizontal_size')
+                                            ->label('Ancho del Trabajo')
+                                            ->numeric()
+                                            ->required()
+                                            ->suffix('cm')
+                                            ->step(0.1)
+                                            ->default(21),
+
+                                        Components\TextInput::make('vertical_size')
+                                            ->label('Alto del Trabajo')
+                                            ->numeric()
+                                            ->required()
+                                            ->suffix('cm')
+                                            ->step(0.1)
+                                            ->default(29.7),
+
+                                        Components\TextInput::make('sobrante_papel')
+                                            ->label('Sobrante')
+                                            ->numeric()
+                                            ->default(0)
+                                            ->minValue(0)
+                                            ->suffix('unidades')
+                                            ->helperText('Desperdicios (si >100 se cobra)'),
+
+                                        Components\Placeholder::make('area_calc')
+                                            ->label('Área')
+                                            ->content(fn ($get) => $get('horizontal_size') && $get('vertical_size')
+                                                ? number_format($get('horizontal_size') * $get('vertical_size'), 2).' cm²'
+                                                : '-'
+                                            ),
+                                    ]),
+                                ])->collapsible(),
+
+                            // Papel y Máquina
+                            Section::make('📄 Papel y Máquina')
+                                ->schema([
+                                    Grid::make(2)->schema([
+                                        Components\Select::make('paper_id')
+                                            ->label('Papel')
+                                            ->options(function () {
+                                                $companyId = auth()->user()->company_id ?? 1;
+
+                                                return Paper::query()
+                                                    ->forTenant($companyId)
+                                                    ->where('is_active', true)
+                                                    ->get()
+                                                    ->mapWithKeys(function ($paper) {
+                                                        $label = $paper->full_name ?: ($paper->code.' - '.$paper->name);
+
+                                                        return [$paper->id => $label];
+                                                    })
+                                                    ->toArray();
                                             })
-                                            ->toArray();
-                                    })
-                                    ->required()
-                                    ->searchable(),
+                                            ->required()
+                                            ->searchable(),
 
-                                Components\Select::make('printing_machine_id')
-                                    ->label('Máquina de Impresión')
-                                    ->options(function () {
-                                        $companyId = auth()->user()->company_id ?? 1;
-                                        return PrintingMachine::query()
-                                            ->forTenant($companyId)
-                                            ->where('is_active', true)
-                                            ->get()
-                                            ->mapWithKeys(function ($machine) {
-                                                $label = $machine->name . ' - ' . ucfirst($machine->type);
-                                                return [$machine->id => $label];
+                                        Components\Select::make('printing_machine_id')
+                                            ->label('Máquina de Impresión')
+                                            ->options(function () {
+                                                $companyId = auth()->user()->company_id ?? 1;
+
+                                                return PrintingMachine::query()
+                                                    ->forTenant($companyId)
+                                                    ->where('is_active', true)
+                                                    ->get()
+                                                    ->mapWithKeys(function ($machine) {
+                                                        $label = $machine->name.' - '.ucfirst($machine->type);
+
+                                                        return [$machine->id => $label];
+                                                    })
+                                                    ->toArray();
                                             })
-                                            ->toArray();
-                                    })
-                                    ->required()
-                                    ->searchable(),
-                            ]),
+                                            ->required()
+                                            ->searchable(),
+                                    ]),
+                                ])->collapsible(),
 
-                            Grid::make(4)->schema([
-                                Components\TextInput::make('horizontal_size')
-                                    ->label('Ancho')
-                                    ->numeric()
-                                    ->required()
-                                    ->suffix('cm')
-                                    ->default(21),
+                            // Tintas
+                            Section::make('🎨 Tintas')
+                                ->schema([
+                                    Grid::make(3)->schema([
+                                        Components\TextInput::make('ink_front_count')
+                                            ->label('Tintas Frente')
+                                            ->numeric()
+                                            ->required()
+                                            ->default(1)
+                                            ->minValue(0)
+                                            ->maxValue(6),
 
-                                Components\TextInput::make('vertical_size')
-                                    ->label('Alto')
-                                    ->numeric()
-                                    ->required()
-                                    ->suffix('cm')
-                                    ->default(29.7),
+                                        Components\TextInput::make('ink_back_count')
+                                            ->label('Tintas Dorso')
+                                            ->numeric()
+                                            ->required()
+                                            ->default(0)
+                                            ->minValue(0)
+                                            ->maxValue(6),
 
-                                Components\TextInput::make('ink_front_count')
-                                    ->label('Tintas Frente')
-                                    ->numeric()
-                                    ->required()
-                                    ->default(1)
-                                    ->minValue(0)
-                                    ->maxValue(6),
+                                        Components\Toggle::make('front_back_plate')
+                                            ->label('Placa Frente/Dorso')
+                                            ->default(false)
+                                            ->helperText('Usar la misma placa para ambas caras'),
+                                    ]),
+                                ])->collapsible(),
 
-                                Components\TextInput::make('ink_back_count')
-                                    ->label('Tintas Dorso')
-                                    ->numeric()
-                                    ->required()
-                                    ->default(0)
-                                    ->minValue(0)
-                                    ->maxValue(6),
-                            ]),
+                            // Montaje
+                            Section::make('📦 Montaje')
+                                ->schema([
+                                    Components\Select::make('mounting_type')
+                                        ->label('Tipo de Montaje')
+                                        ->options([
+                                            'automatic' => '🤖 Automático (calculado por el sistema)',
+                                            'manual' => '✋ Manual (dimensiones personalizadas)',
+                                        ])
+                                        ->default('automatic')
+                                        ->live()
+                                        ->helperText('Automático: sistema calcula el mejor montaje. Manual: defines dimensiones del pliego'),
+
+                                    Grid::make(2)->schema([
+                                        Components\TextInput::make('custom_paper_width')
+                                            ->label('Ancho del Pliego Personalizado')
+                                            ->numeric()
+                                            ->suffix('cm')
+                                            ->step(0.1)
+                                            ->visible(fn ($get) => $get('mounting_type') === 'manual')
+                                            ->helperText('Ancho del pliego para montaje manual'),
+
+                                        Components\TextInput::make('custom_paper_height')
+                                            ->label('Alto del Pliego Personalizado')
+                                            ->numeric()
+                                            ->suffix('cm')
+                                            ->step(0.1)
+                                            ->visible(fn ($get) => $get('mounting_type') === 'manual')
+                                            ->helperText('Alto del pliego para montaje manual'),
+                                    ]),
+                                ])->collapsible(),
+
+                            // Costos Adicionales
+                            Section::make('💰 Costos Adicionales')
+                                ->schema([
+                                    Grid::make(5)->schema([
+                                        Components\TextInput::make('cutting_cost')
+                                            ->label('Costo Corte')
+                                            ->numeric()
+                                            ->default(0)
+                                            ->prefix('$')
+                                            ->minValue(0)
+                                            ->placeholder('0'),
+
+                                        Components\TextInput::make('mounting_cost')
+                                            ->label('Costo Montaje')
+                                            ->numeric()
+                                            ->default(0)
+                                            ->prefix('$')
+                                            ->minValue(0)
+                                            ->placeholder('0'),
+
+                                        Components\TextInput::make('rifle_value')
+                                            ->label('Valor Rifle')
+                                            ->numeric()
+                                            ->default(0)
+                                            ->prefix('$')
+                                            ->minValue(0)
+                                            ->placeholder('0'),
+
+                                        Components\TextInput::make('design_value')
+                                            ->label('Valor Diseño')
+                                            ->numeric()
+                                            ->default(0)
+                                            ->prefix('$')
+                                            ->minValue(0)
+                                            ->placeholder('0'),
+
+                                        Components\TextInput::make('transport_value')
+                                            ->label('Valor Transporte')
+                                            ->numeric()
+                                            ->default(0)
+                                            ->prefix('$')
+                                            ->minValue(0)
+                                            ->placeholder('0'),
+                                    ]),
+                                ])->collapsible(),
+
+                            // Ganancia
+                            Section::make('📊 Ganancia')
+                                ->schema([
+                                    Components\TextInput::make('profit_percentage')
+                                        ->label('Porcentaje de Ganancia')
+                                        ->numeric()
+                                        ->default(25)
+                                        ->suffix('%')
+                                        ->minValue(0)
+                                        ->maxValue(100)
+                                        ->placeholder('25')
+                                        ->helperText('Porcentaje de ganancia sobre el costo de esta página'),
+                                ])->collapsible(),
                         ])
                         ->minItems(1)
                         ->maxItems(20)
                         ->collapsible()
                         ->itemLabel(fn (array $state): ?string => isset($state['page_type']) ?
-                            '📄 ' . ucfirst($state['page_type']) . ' - ' . ($state['page_quantity'] ?? 1) . ' pág.' :
+                            '📄 '.ucfirst($state['page_type']).' - '.($state['page_quantity'] ?? 1).' pág.' :
                             'Nueva Página'
                         )
                         ->columnSpanFull()
                         ->reorderable()
-                        ->cloneable(),
+                        ->cloneable()
+                        ->defaultItems(1),
                 ]),
         ];
     }
@@ -280,12 +436,36 @@ class MagazineItemHandler extends AbstractItemHandler
                     'page_quantity' => $page->page_quantity,
                     'page_order' => $page->page_order,
                     'description' => $simpleItem?->description ?? '',
-                    'paper_id' => $simpleItem?->paper_id,
-                    'printing_machine_id' => $simpleItem?->printing_machine_id,
+
+                    // Dimensiones
                     'horizontal_size' => $simpleItem?->horizontal_size,
                     'vertical_size' => $simpleItem?->vertical_size,
-                    'ink_front_count' => $simpleItem?->ink_front_count,
-                    'ink_back_count' => $simpleItem?->ink_back_count,
+                    'sobrante_papel' => $simpleItem?->sobrante_papel ?? 0,
+
+                    // Papel y Máquina
+                    'paper_id' => $simpleItem?->paper_id,
+                    'printing_machine_id' => $simpleItem?->printing_machine_id,
+
+                    // Tintas
+                    'ink_front_count' => $simpleItem?->ink_front_count ?? 1,
+                    'ink_back_count' => $simpleItem?->ink_back_count ?? 0,
+                    'front_back_plate' => $simpleItem?->front_back_plate ?? false,
+
+                    // Montaje
+                    'mounting_type' => $simpleItem?->mounting_type ?? 'automatic',
+                    'custom_paper_width' => $simpleItem?->custom_paper_width,
+                    'custom_paper_height' => $simpleItem?->custom_paper_height,
+
+                    // Costos Adicionales
+                    'cutting_cost' => $simpleItem?->cutting_cost ?? 0,
+                    'mounting_cost' => $simpleItem?->mounting_cost ?? 0,
+                    'rifle_value' => $simpleItem?->rifle_value ?? 0,
+                    'design_value' => $simpleItem?->design_value ?? 0,
+                    'transport_value' => $simpleItem?->transport_value ?? 0,
+
+                    // Ganancia
+                    'profit_percentage' => $simpleItem?->profit_percentage ?? 25,
+
                     'simple_item_id' => $page->simple_item_id,
                 ];
             })
@@ -316,7 +496,7 @@ class MagazineItemHandler extends AbstractItemHandler
         $record->itemable->update($data);
 
         // Procesar páginas si se proporcionaron
-        if (!empty($pagesData)) {
+        if (! empty($pagesData)) {
             $this->updatePages($record->itemable, $pagesData);
         }
 
@@ -344,16 +524,39 @@ class MagazineItemHandler extends AbstractItemHandler
                 $page = $magazine->pages()->find($pageData['id']);
 
                 if ($page && $page->simpleItem) {
-                    // Actualizar SimpleItem
+                    // Actualizar SimpleItem con TODOS los campos
                     $page->simpleItem->update([
                         'description' => $pageData['description'],
                         'quantity' => $magazine->quantity * ($pageData['page_quantity'] ?? 1),
+
+                        // Dimensiones
                         'horizontal_size' => $pageData['horizontal_size'],
                         'vertical_size' => $pageData['vertical_size'],
+                        'sobrante_papel' => $pageData['sobrante_papel'] ?? 0,
+
+                        // Papel y Máquina
                         'paper_id' => $pageData['paper_id'],
                         'printing_machine_id' => $pageData['printing_machine_id'],
+
+                        // Tintas
                         'ink_front_count' => $pageData['ink_front_count'] ?? 1,
                         'ink_back_count' => $pageData['ink_back_count'] ?? 0,
+                        'front_back_plate' => $pageData['front_back_plate'] ?? false,
+
+                        // Montaje
+                        'mounting_type' => $pageData['mounting_type'] ?? 'automatic',
+                        'custom_paper_width' => $pageData['custom_paper_width'] ?? null,
+                        'custom_paper_height' => $pageData['custom_paper_height'] ?? null,
+
+                        // Costos Adicionales
+                        'cutting_cost' => $pageData['cutting_cost'] ?? 0,
+                        'mounting_cost' => $pageData['mounting_cost'] ?? 0,
+                        'rifle_value' => $pageData['rifle_value'] ?? 0,
+                        'design_value' => $pageData['design_value'] ?? 0,
+                        'transport_value' => $pageData['transport_value'] ?? 0,
+
+                        // Ganancia
+                        'profit_percentage' => $pageData['profit_percentage'] ?? 25,
                     ]);
 
                     // Actualizar MagazinePage
@@ -366,20 +569,40 @@ class MagazineItemHandler extends AbstractItemHandler
                     $existingPageIds[] = $page->id;
                 }
             } else {
-                // Es una página nueva - crear
+                // Es una página nueva - crear con TODOS los campos
                 $simpleItem = SimpleItem::create([
                     'company_id' => $magazine->company_id,
                     'description' => $pageData['description'],
                     'quantity' => $magazine->quantity * ($pageData['page_quantity'] ?? 1),
+
+                    // Dimensiones
                     'horizontal_size' => $pageData['horizontal_size'],
                     'vertical_size' => $pageData['vertical_size'],
+                    'sobrante_papel' => $pageData['sobrante_papel'] ?? 0,
+
+                    // Papel y Máquina
                     'paper_id' => $pageData['paper_id'],
                     'printing_machine_id' => $pageData['printing_machine_id'],
+
+                    // Tintas
                     'ink_front_count' => $pageData['ink_front_count'] ?? 1,
                     'ink_back_count' => $pageData['ink_back_count'] ?? 0,
-                    'design_value' => 0,
-                    'transport_value' => 0,
-                    'profit_percentage' => 25,
+                    'front_back_plate' => $pageData['front_back_plate'] ?? false,
+
+                    // Montaje
+                    'mounting_type' => $pageData['mounting_type'] ?? 'automatic',
+                    'custom_paper_width' => $pageData['custom_paper_width'] ?? null,
+                    'custom_paper_height' => $pageData['custom_paper_height'] ?? null,
+
+                    // Costos Adicionales
+                    'cutting_cost' => $pageData['cutting_cost'] ?? 0,
+                    'mounting_cost' => $pageData['mounting_cost'] ?? 0,
+                    'rifle_value' => $pageData['rifle_value'] ?? 0,
+                    'design_value' => $pageData['design_value'] ?? 0,
+                    'transport_value' => $pageData['transport_value'] ?? 0,
+
+                    // Ganancia
+                    'profit_percentage' => $pageData['profit_percentage'] ?? 25,
                 ]);
 
                 $newPage = $magazine->pages()->create([
@@ -516,117 +739,254 @@ class MagazineItemHandler extends AbstractItemHandler
                     Components\Repeater::make('pages')
                         ->label('Páginas de la Revista')
                         ->schema([
-                            Grid::make(3)->schema([
-                                Components\Select::make('page_type')
-                                    ->label('Tipo de Página')
-                                    ->required()
-                                    ->options([
-                                        'portada' => '📖 Portada',
-                                        'contraportada' => '📗 Contraportada',
-                                        'interior' => '📄 Interior',
-                                        'inserto' => '📋 Inserto',
-                                        'separador' => '📑 Separador',
-                                        'anexo' => '📎 Anexo',
-                                    ])
-                                    ->default('interior'),
+                            // Información de la Página
+                            Section::make('📄 Información de la Página')
+                                ->schema([
+                                    Grid::make(3)->schema([
+                                        Components\Select::make('page_type')
+                                            ->label('Tipo de Página')
+                                            ->required()
+                                            ->options([
+                                                'portada' => '📖 Portada',
+                                                'contraportada' => '📗 Contraportada',
+                                                'interior' => '📄 Interior',
+                                                'inserto' => '📋 Inserto',
+                                                'separador' => '📑 Separador',
+                                                'anexo' => '📎 Anexo',
+                                            ])
+                                            ->default('interior'),
 
-                                Components\TextInput::make('page_quantity')
-                                    ->label('Cantidad')
-                                    ->numeric()
-                                    ->required()
-                                    ->default(1)
-                                    ->minValue(1)
-                                    ->suffix('pág.'),
+                                        Components\TextInput::make('page_quantity')
+                                            ->label('Cantidad de Páginas')
+                                            ->numeric()
+                                            ->required()
+                                            ->default(1)
+                                            ->minValue(1)
+                                            ->suffix('pág.')
+                                            ->helperText('Número de páginas iguales'),
 
-                                Components\TextInput::make('page_order')
-                                    ->label('Orden')
-                                    ->numeric()
-                                    ->required()
-                                    ->default(1)
-                                    ->minValue(1),
-                            ]),
+                                        Components\TextInput::make('page_order')
+                                            ->label('Orden')
+                                            ->numeric()
+                                            ->required()
+                                            ->default(1)
+                                            ->minValue(1),
+                                    ]),
 
-                            Components\Textarea::make('description')
-                                ->label('Descripción del Contenido')
-                                ->required()
-                                ->rows(2)
-                                ->columnSpanFull()
-                                ->placeholder('Describe el contenido de esta página...'),
+                                    Components\Textarea::make('description')
+                                        ->label('Descripción del Contenido')
+                                        ->required()
+                                        ->rows(2)
+                                        ->columnSpanFull()
+                                        ->placeholder('Describe el contenido de esta página...'),
+                                ])->collapsible()->collapsed(false),
 
-                            Grid::make(2)->schema([
-                                Components\Select::make('paper_id')
-                                    ->label('Papel')
-                                    ->options(function () {
-                                        $companyId = auth()->user()->company_id ?? 1;
-                                        return Paper::query()
-                                            ->forTenant($companyId)
-                                            ->where('is_active', true)
-                                            ->get()
-                                            ->mapWithKeys(function ($paper) {
-                                                $label = $paper->full_name ?: ($paper->code . ' - ' . $paper->name);
-                                                return [$paper->id => $label];
+                            // Dimensiones y Formato
+                            Section::make('📐 Dimensiones y Formato')
+                                ->schema([
+                                    Grid::make(4)->schema([
+                                        Components\TextInput::make('horizontal_size')
+                                            ->label('Ancho del Trabajo')
+                                            ->numeric()
+                                            ->required()
+                                            ->suffix('cm')
+                                            ->step(0.1)
+                                            ->default(21),
+
+                                        Components\TextInput::make('vertical_size')
+                                            ->label('Alto del Trabajo')
+                                            ->numeric()
+                                            ->required()
+                                            ->suffix('cm')
+                                            ->step(0.1)
+                                            ->default(29.7),
+
+                                        Components\TextInput::make('sobrante_papel')
+                                            ->label('Sobrante')
+                                            ->numeric()
+                                            ->default(0)
+                                            ->minValue(0)
+                                            ->suffix('unidades')
+                                            ->helperText('Desperdicios (si >100 se cobra)'),
+
+                                        Components\Placeholder::make('area_calc')
+                                            ->label('Área')
+                                            ->content(fn ($get) => $get('horizontal_size') && $get('vertical_size')
+                                                ? number_format($get('horizontal_size') * $get('vertical_size'), 2).' cm²'
+                                                : '-'
+                                            ),
+                                    ]),
+                                ])->collapsible(),
+
+                            // Papel y Máquina
+                            Section::make('📄 Papel y Máquina')
+                                ->schema([
+                                    Grid::make(2)->schema([
+                                        Components\Select::make('paper_id')
+                                            ->label('Papel')
+                                            ->options(function () {
+                                                $companyId = auth()->user()->company_id ?? 1;
+
+                                                return Paper::query()
+                                                    ->forTenant($companyId)
+                                                    ->where('is_active', true)
+                                                    ->get()
+                                                    ->mapWithKeys(function ($paper) {
+                                                        $label = $paper->full_name ?: ($paper->code.' - '.$paper->name);
+
+                                                        return [$paper->id => $label];
+                                                    })
+                                                    ->toArray();
                                             })
-                                            ->toArray();
-                                    })
-                                    ->required()
-                                    ->searchable(),
+                                            ->required()
+                                            ->searchable(),
 
-                                Components\Select::make('printing_machine_id')
-                                    ->label('Máquina de Impresión')
-                                    ->options(function () {
-                                        $companyId = auth()->user()->company_id ?? 1;
-                                        return PrintingMachine::query()
-                                            ->forTenant($companyId)
-                                            ->where('is_active', true)
-                                            ->get()
-                                            ->mapWithKeys(function ($machine) {
-                                                $label = $machine->name . ' - ' . ucfirst($machine->type);
-                                                return [$machine->id => $label];
+                                        Components\Select::make('printing_machine_id')
+                                            ->label('Máquina de Impresión')
+                                            ->options(function () {
+                                                $companyId = auth()->user()->company_id ?? 1;
+
+                                                return PrintingMachine::query()
+                                                    ->forTenant($companyId)
+                                                    ->where('is_active', true)
+                                                    ->get()
+                                                    ->mapWithKeys(function ($machine) {
+                                                        $label = $machine->name.' - '.ucfirst($machine->type);
+
+                                                        return [$machine->id => $label];
+                                                    })
+                                                    ->toArray();
                                             })
-                                            ->toArray();
-                                    })
-                                    ->required()
-                                    ->searchable(),
-                            ]),
+                                            ->required()
+                                            ->searchable(),
+                                    ]),
+                                ])->collapsible(),
 
-                            Grid::make(4)->schema([
-                                Components\TextInput::make('horizontal_size')
-                                    ->label('Ancho')
-                                    ->numeric()
-                                    ->required()
-                                    ->suffix('cm')
-                                    ->default(21),
+                            // Tintas
+                            Section::make('🎨 Tintas')
+                                ->schema([
+                                    Grid::make(3)->schema([
+                                        Components\TextInput::make('ink_front_count')
+                                            ->label('Tintas Frente')
+                                            ->numeric()
+                                            ->required()
+                                            ->default(1)
+                                            ->minValue(0)
+                                            ->maxValue(6),
 
-                                Components\TextInput::make('vertical_size')
-                                    ->label('Alto')
-                                    ->numeric()
-                                    ->required()
-                                    ->suffix('cm')
-                                    ->default(29.7),
+                                        Components\TextInput::make('ink_back_count')
+                                            ->label('Tintas Dorso')
+                                            ->numeric()
+                                            ->required()
+                                            ->default(0)
+                                            ->minValue(0)
+                                            ->maxValue(6),
 
-                                Components\TextInput::make('ink_front_count')
-                                    ->label('Tintas Frente')
-                                    ->numeric()
-                                    ->required()
-                                    ->default(1)
-                                    ->minValue(0)
-                                    ->maxValue(6),
+                                        Components\Toggle::make('front_back_plate')
+                                            ->label('Placa Frente/Dorso')
+                                            ->default(false)
+                                            ->helperText('Usar la misma placa para ambas caras'),
+                                    ]),
+                                ])->collapsible(),
 
-                                Components\TextInput::make('ink_back_count')
-                                    ->label('Tintas Dorso')
-                                    ->numeric()
-                                    ->required()
-                                    ->default(0)
-                                    ->minValue(0)
-                                    ->maxValue(6),
-                            ]),
+                            // Montaje
+                            Section::make('📦 Montaje')
+                                ->schema([
+                                    Components\Select::make('mounting_type')
+                                        ->label('Tipo de Montaje')
+                                        ->options([
+                                            'automatic' => '🤖 Automático (calculado por el sistema)',
+                                            'manual' => '✋ Manual (dimensiones personalizadas)',
+                                        ])
+                                        ->default('automatic')
+                                        ->live()
+                                        ->helperText('Automático: sistema calcula el mejor montaje. Manual: defines dimensiones del pliego'),
+
+                                    Grid::make(2)->schema([
+                                        Components\TextInput::make('custom_paper_width')
+                                            ->label('Ancho del Pliego Personalizado')
+                                            ->numeric()
+                                            ->suffix('cm')
+                                            ->step(0.1)
+                                            ->visible(fn ($get) => $get('mounting_type') === 'manual')
+                                            ->helperText('Ancho del pliego para montaje manual'),
+
+                                        Components\TextInput::make('custom_paper_height')
+                                            ->label('Alto del Pliego Personalizado')
+                                            ->numeric()
+                                            ->suffix('cm')
+                                            ->step(0.1)
+                                            ->visible(fn ($get) => $get('mounting_type') === 'manual')
+                                            ->helperText('Alto del pliego para montaje manual'),
+                                    ]),
+                                ])->collapsible(),
+
+                            // Costos Adicionales
+                            Section::make('💰 Costos Adicionales')
+                                ->schema([
+                                    Grid::make(5)->schema([
+                                        Components\TextInput::make('cutting_cost')
+                                            ->label('Costo Corte')
+                                            ->numeric()
+                                            ->default(0)
+                                            ->prefix('$')
+                                            ->minValue(0)
+                                            ->placeholder('0'),
+
+                                        Components\TextInput::make('mounting_cost')
+                                            ->label('Costo Montaje')
+                                            ->numeric()
+                                            ->default(0)
+                                            ->prefix('$')
+                                            ->minValue(0)
+                                            ->placeholder('0'),
+
+                                        Components\TextInput::make('rifle_value')
+                                            ->label('Valor Rifle')
+                                            ->numeric()
+                                            ->default(0)
+                                            ->prefix('$')
+                                            ->minValue(0)
+                                            ->placeholder('0'),
+
+                                        Components\TextInput::make('design_value')
+                                            ->label('Valor Diseño')
+                                            ->numeric()
+                                            ->default(0)
+                                            ->prefix('$')
+                                            ->minValue(0)
+                                            ->placeholder('0'),
+
+                                        Components\TextInput::make('transport_value')
+                                            ->label('Valor Transporte')
+                                            ->numeric()
+                                            ->default(0)
+                                            ->prefix('$')
+                                            ->minValue(0)
+                                            ->placeholder('0'),
+                                    ]),
+                                ])->collapsible(),
+
+                            // Ganancia
+                            Section::make('📊 Ganancia')
+                                ->schema([
+                                    Components\TextInput::make('profit_percentage')
+                                        ->label('Porcentaje de Ganancia')
+                                        ->numeric()
+                                        ->default(25)
+                                        ->suffix('%')
+                                        ->minValue(0)
+                                        ->maxValue(100)
+                                        ->placeholder('25')
+                                        ->helperText('Porcentaje de ganancia sobre el costo de esta página'),
+                                ])->collapsible(),
                         ])
                         ->defaultItems(1)
                         ->minItems(1)
                         ->maxItems(20)
                         ->collapsible()
-                        ->itemLabel(fn (array $state): ?string => $state['page_type'] ?
-                            '📄 ' . ucfirst($state['page_type']) . ' - ' . ($state['page_quantity'] ?? 1) . ' pág.' :
+                        ->itemLabel(fn (array $state): ?string => isset($state['page_type']) ?
+                            '📄 '.ucfirst($state['page_type']).' - '.($state['page_quantity'] ?? 1).' pág.' :
                             'Nueva Página'
                         )
                         ->columnSpanFull(),
@@ -650,7 +1010,7 @@ class MagazineItemHandler extends AbstractItemHandler
         ]));
 
         // Crear páginas si se proporcionaron
-        if (!empty($pagesData)) {
+        if (! empty($pagesData)) {
             $this->createPagesFromWizardData($magazine, $pagesData);
         } else {
             // Crear página por defecto si no se especificaron
@@ -705,7 +1065,7 @@ class MagazineItemHandler extends AbstractItemHandler
         // Crear SimpleItem por defecto
         $simpleItem = SimpleItem::create([
             'company_id' => $magazine->company_id,
-            'description' => 'Página interior de ' . $magazine->description,
+            'description' => 'Página interior de '.$magazine->description,
             'quantity' => $magazine->quantity,
             'horizontal_size' => $magazine->closed_width,
             'vertical_size' => $magazine->closed_height,
@@ -726,5 +1086,126 @@ class MagazineItemHandler extends AbstractItemHandler
             'page_order' => 1,
             'page_quantity' => 1,
         ]);
+    }
+
+    /**
+     * Generar resumen de precios de la revista
+     */
+    private function getMagazinePriceSummary($record): string
+    {
+        try {
+            if (! $record || ! $record->itemable) {
+                return '<div class="p-4 bg-gray-50 rounded text-center">
+                    <div class="text-sm text-gray-500">No hay datos de la revista</div>
+                </div>';
+            }
+
+            $magazine = $record->itemable;
+
+            // Cargar relaciones necesarias
+            $magazine->load(['pages.simpleItem', 'finishings']);
+
+            // Validar datos mínimos
+            if (! $magazine->quantity || $magazine->pages->count() === 0) {
+                return '<div class="p-4 bg-yellow-50 rounded text-center">
+                    <div class="text-sm text-yellow-700">⚠️ Datos incompletos</div>
+                    <div class="text-xs text-yellow-600 mt-1">Se requiere cantidad y al menos una página</div>
+                </div>';
+            }
+
+            // Obtener desglose detallado usando el servicio
+            $calculator = new \App\Services\MagazineCalculatorService;
+            $breakdown = $calculator->getDetailedBreakdown($magazine);
+
+            $content = '<div class="space-y-3">';
+
+            // Métricas principales
+            $content .= '<div class="p-3 bg-blue-50 rounded border border-blue-200">';
+            $content .= '<div class="text-xs font-medium text-blue-700 mb-1">REVISTA</div>';
+            $content .= '<div class="grid grid-cols-4 gap-2 text-xs">';
+            $content .= '<div><span class="text-gray-600">Cantidad:</span> <strong>'.$magazine->quantity.'</strong></div>';
+            $content .= '<div><span class="text-gray-600">Páginas:</span> <strong>'.$breakdown['metrics']['total_pages'].'</strong></div>';
+            $content .= '<div><span class="text-gray-600">Encuadernación:</span> <strong>'.ucfirst($breakdown['metrics']['binding_type']).'</strong></div>';
+            $content .= '<div><span class="text-gray-600">Lado:</span> <strong>'.ucfirst($breakdown['metrics']['binding_side']).'</strong></div>';
+            $content .= '</div>';
+            $content .= '</div>';
+
+            // Desglose de costos por página
+            if (! empty($breakdown['pages']['items'])) {
+                $content .= '<div class="p-2 bg-gray-50 rounded">';
+                $content .= '<div class="text-xs font-medium text-gray-700 mb-1">PÁGINAS</div>';
+                $content .= '<div class="space-y-1">';
+                foreach ($breakdown['pages']['items'] as $pageBreakdown) {
+                    $content .= '<div class="flex justify-between text-xs">';
+                    $content .= '<span class="text-gray-600">'.$pageBreakdown['page_type'].' (×'.$pageBreakdown['quantity'].')</span>';
+                    $content .= '<span>$'.number_format($pageBreakdown['total_cost'], 0).'</span>';
+                    $content .= '</div>';
+                }
+                $content .= '</div>';
+                $content .= '</div>';
+            }
+
+            // Desglose de costos
+            $content .= '<div class="space-y-1">';
+            $content .= '<div class="flex justify-between text-sm">';
+            $content .= '<span class="text-gray-600">Páginas</span>';
+            $content .= '<span>$'.number_format($breakdown['pages']['total'], 0).'</span>';
+            $content .= '</div>';
+            $content .= '<div class="flex justify-between text-sm">';
+            $content .= '<span class="text-gray-600">Encuadernación</span>';
+            $content .= '<span>$'.number_format($breakdown['binding']['total'], 0).'</span>';
+            $content .= '</div>';
+            $content .= '<div class="flex justify-between text-sm">';
+            $content .= '<span class="text-gray-600">Armado</span>';
+            $content .= '<span>$'.number_format($breakdown['assembly']['total'], 0).'</span>';
+            $content .= '</div>';
+
+            if ($breakdown['finishings']['total'] > 0) {
+                $content .= '<div class="flex justify-between text-sm text-purple-600">';
+                $content .= '<span>Acabados</span>';
+                $content .= '<span>+$'.number_format($breakdown['finishings']['total'], 0).'</span>';
+                $content .= '</div>';
+            }
+
+            if ($breakdown['additional_costs']['design'] > 0) {
+                $content .= '<div class="flex justify-between text-sm text-gray-600">';
+                $content .= '<span>Diseño</span>';
+                $content .= '<span>+$'.number_format($breakdown['additional_costs']['design'], 0).'</span>';
+                $content .= '</div>';
+            }
+
+            if ($breakdown['additional_costs']['transport'] > 0) {
+                $content .= '<div class="flex justify-between text-sm text-gray-600">';
+                $content .= '<span>Transporte</span>';
+                $content .= '<span>+$'.number_format($breakdown['additional_costs']['transport'], 0).'</span>';
+                $content .= '</div>';
+            }
+
+            $content .= '<div class="flex justify-between text-sm text-green-600 border-t pt-1">';
+            $content .= '<span>Ganancia ('.$breakdown['summary']['profit_percentage'].'%)</span>';
+            $content .= '<span>+$'.number_format($breakdown['summary']['profit_amount'], 0).'</span>';
+            $content .= '</div>';
+            $content .= '</div>';
+
+            // Total
+            $content .= '<div class="flex justify-between items-center font-bold text-lg border-t-2 pt-2 mt-2">';
+            $content .= '<span>PRECIO TOTAL</span>';
+            $content .= '<span class="text-blue-600">$'.number_format($breakdown['summary']['final_price'], 0).'</span>';
+            $content .= '</div>';
+
+            $content .= '<div class="text-center text-xs text-gray-500 mt-1">';
+            $content .= 'Precio unitario: <strong>$'.number_format($breakdown['summary']['unit_price'], 2).'</strong>';
+            $content .= '</div>';
+
+            $content .= '</div>';
+
+            return $content;
+
+        } catch (\Exception $e) {
+            return '<div class="p-4 bg-red-50 rounded">
+                <div class="text-sm text-red-700">Error al calcular</div>
+                <div class="text-xs text-red-600 mt-1">'.$e->getMessage().'</div>
+            </div>';
+        }
     }
 }

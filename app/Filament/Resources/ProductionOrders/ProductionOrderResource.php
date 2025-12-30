@@ -30,7 +30,7 @@ class ProductionOrderResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Órdenes de Producción';
 
-    protected static ?int $navigationSort = 6;
+    protected static ?int $navigationSort = 3;
 
     public static function canViewAny(): bool
     {
@@ -58,7 +58,7 @@ class ProductionOrderResource extends Resource
     {
         $companyId = auth()->user()->company_id ?? config('app.current_tenant_id');
 
-        if (!$companyId) {
+        if (! $companyId) {
             throw new \Exception('No company context found - security violation prevented');
         }
 

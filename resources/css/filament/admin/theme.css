@@ -36,3 +36,62 @@
 .fi-body:has(.fi-simple-main) {
     background-color: #1A2752 !important;
 }
+
+/* ========================================
+   PERSONALIZACIÓN DEL SIDEBAR
+   ======================================== */
+
+/* Color de fondo del sidebar */
+.fi-sidebar {
+    background-color: #e9f3ff !important; /* Slate-800 - Cambia este color */
+}
+
+/* Color de fondo del sidebar en modo oscuro (opcional) */
+.dark .fi-sidebar {
+    background-color: #0f172a !important; /* Slate-900 */
+}
+
+/* Personalización del Scrollbar del Sidebar */
+.fi-sidebar-nav::-webkit-scrollbar {
+    width: 5px; /* Ancho del scrollbar */
+}
+
+.fi-sidebar-nav::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1); /* Fondo de la pista */
+    border-radius: 10px;
+}
+
+.fi-sidebar-nav::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2); /* Color del "pulgar" */
+    border-radius: 10px;
+    transition: background 0.3s ease;
+}
+
+.fi-sidebar-nav::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.4); /* Color al hacer hover */
+}
+
+/* Scrollbar para Firefox */
+.fi-sidebar-nav {
+    scrollbar-width: thin; /* "thin" o "auto" */
+    scrollbar-color: rgba(255, 255, 255, 0.2) rgba(0, 0, 0, 0.1); /* pulgar pista */
+}
+
+/* ========================================
+   OPCIONAL: Personalizar items del menú
+   ======================================== */
+
+/* Color de texto de los items del menú */
+.fi-sidebar-nav-item {
+    color: #e2e8f0 !important; /* Slate-200 */
+}
+
+/* Color del item activo */
+.fi-sidebar-nav-item.fi-active {
+    background-color: rgba(59, 130, 246, 0.2) !important; /* Azul con transparencia */
+}
+
+/* Color del item al hacer hover */
+.fi-sidebar-nav-item:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}

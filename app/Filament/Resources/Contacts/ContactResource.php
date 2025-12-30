@@ -6,7 +6,6 @@ use App\Enums\NavigationGroup;
 use App\Filament\Resources\Contacts\Pages\CreateContact;
 use App\Filament\Resources\Contacts\Pages\EditContact;
 use App\Filament\Resources\Contacts\Pages\ListContacts;
-use App\Filament\Resources\Contacts\RelationManagers;
 use App\Filament\Resources\Contacts\Schemas\ContactForm;
 use App\Filament\Resources\Contacts\Tables\ContactsTable;
 use App\Models\Contact;
@@ -31,7 +30,7 @@ class ContactResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Contactos';
 
-    protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Documentos;
+    protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Contactos;
 
     protected static ?int $navigationSort = 1;
 

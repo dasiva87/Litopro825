@@ -29,9 +29,9 @@ class DigitalItemResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Items Digitales';
 
-    protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Items;
+    protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Inventario;
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 3;
 
     public static function form(Schema $schema): Schema
     {
@@ -80,7 +80,6 @@ class DigitalItemResource extends Resource
 
         return $query;
     }
-
 
     public static function getGloballySearchableAttributes(): array
     {
