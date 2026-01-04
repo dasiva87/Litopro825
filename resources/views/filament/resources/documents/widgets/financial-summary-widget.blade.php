@@ -125,7 +125,7 @@
             </div>
 
             {{-- Total --}}
-            <div class="overflow-hidden rounded-lg bg-gradient-to-br from-success-500 to-success-600 shadow-lg">
+            <div class="overflow-hidden rounded-lg bg-gradient-to-br from-success-500 to-success-600 shadow-lg ring-2 ring-success-400 dark:ring-success-600">
                 <div class="p-5">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
@@ -138,11 +138,11 @@
                         </div>
                         <div class="ml-5 w-0 flex-1">
                             <dl>
-                                <dt class="truncate text-sm font-medium text-success-100">
+                                <dt class="truncate text-sm font-bold uppercase tracking-wide text-success-50">
                                     Total a Pagar
                                 </dt>
-                                <dd class="mt-1">
-                                    <div class="text-3xl font-bold text-white">
+                                <dd class="mt-2">
+                                    <div class="text-3xl font-extrabold text-white drop-shadow-sm">
                                         {{ Number::currency($record->total ?? 0, 'COP', 'es') }}
                                     </div>
                                 </dd>

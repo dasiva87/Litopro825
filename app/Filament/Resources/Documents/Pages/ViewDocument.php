@@ -14,8 +14,10 @@ class ViewDocument extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            // Grupo Primario: Editar y PDF
             Actions\EditAction::make()
-                ->visible(fn () => $this->record->canEdit()),
+                ->visible(fn () => $this->record->canEdit())
+                ->color('gray'),
 
             Actions\Action::make('print_pdf')
                 ->label('Imprimir PDF')
@@ -24,6 +26,7 @@ class ViewDocument extends ViewRecord
                 ->url(fn () => route('documents.pdf', $this->record))
                 ->openUrlInNewTab(),
 
+            // Separador visual (grupo de emails)
             Actions\Action::make('send_email')
                 ->label(fn () => $this->record->email_sent_at ? 'Reenviar Email' : 'Enviar Email al Cliente')
                 ->icon('heroicon-o-envelope')
@@ -92,10 +95,11 @@ class ViewDocument extends ViewRecord
                         \Illuminate\Support\Facades\Notification::route('mail', $clientEmail)
                             ->notify(new \App\Notifications\QuoteSent($this->record->id));
 
-                        // Actualizar registro de envío
+                        // Actualizar registro de envío Y cambiar estado a "sent"
                         $this->record->update([
                             'email_sent_at' => now(),
                             'email_sent_by' => auth()->id(),
+                            'status' => 'sent',
                         ]);
 
                         \Filament\Notifications\Notification::make()
@@ -112,14 +116,6 @@ class ViewDocument extends ViewRecord
                             ->send();
                     }
                 }),
-
-            Actions\Action::make('send')
-                ->label('Enviar')
-                ->icon('heroicon-o-paper-airplane')
-                ->color('primary')
-                ->visible(fn () => $this->record->canSend())
-                ->requiresConfirmation()
-                ->action(fn () => $this->record->markAsSent()),
 
             Actions\Action::make('approve')
                 ->label('Aprobar')

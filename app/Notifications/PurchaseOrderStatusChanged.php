@@ -36,7 +36,7 @@ class PurchaseOrderStatusChanged extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['database'];
     }
 
     public function toMail(object $notifiable): MailMessage

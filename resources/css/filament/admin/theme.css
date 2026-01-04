@@ -95,3 +95,83 @@
 .fi-sidebar-nav-item:hover {
     background-color: rgba(255, 255, 255, 0.1) !important;
 }
+
+/* ========================================
+   LAYOUT DE 2 COLUMNAS PARA PÁGINA GREMIO
+   ======================================== */
+
+/* Crear 2 columnas reales para la página Gremio - Target el contenedor correcto */
+.fi-sc.fi-grid.sm\:fi-grid-cols {
+    display: grid !important;
+    grid-template-columns: 2fr 1fr; /* 66% - 33% - Sin !important para permitir override en mobile */
+    gap: 1.5rem !important;
+}
+
+/* Columna izquierda: CreatePost y SocialPost - primera columna, filas 1-2 */
+.fi-sc.fi-grid.sm\:fi-grid-cols > div:nth-child(1) {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.fi-sc.fi-grid.sm\:fi-grid-cols > div:nth-child(2) {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+/* Columna derecha: Calculadora y Empresas - segunda columna, filas 1-2 */
+.fi-sc.fi-grid.sm\:fi-grid-cols > div:nth-child(3) {
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.fi-sc.fi-grid.sm\:fi-grid-cols > div:nth-child(4) {
+    grid-column: 2;
+    grid-row: 2;
+}
+
+/* Responsive: Tablet y Mobile - 1 columna */
+@media (max-width: 1024px) {
+    .fi-sc.fi-grid.sm\:fi-grid-cols {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    /* Reordenar en mobile: Calculadora y Empresas primero */
+    .fi-sc.fi-grid.sm\:fi-grid-cols > div:nth-child(1) {
+        order: 3 !important; /* CreatePost tercero */
+    }
+
+    .fi-sc.fi-grid.sm\:fi-grid-cols > div:nth-child(2) {
+        order: 4 !important; /* Feed cuarto */
+    }
+
+    .fi-sc.fi-grid.sm\:fi-grid-cols > div:nth-child(3) {
+        order: 1 !important; /* Calculadora primero */
+    }
+
+    .fi-sc.fi-grid.sm\:fi-grid-cols > div:nth-child(4) {
+        order: 2 !important; /* Empresas Sugeridas segundo */
+    }
+}
+
+/* ========================================
+   FONDO DE TABLA DE ITEMS EN VISTA COTIZACIÓN
+   ======================================== */
+
+/* Fondo del RelationManager (Items) */
+.fi-resource-relation-manager {
+    background-color: #e9f3ff !important;
+    border-radius: 0.75rem !important;
+}
+
+/* Asegurar que todos los elementos hijos mantengan el fondo */
+.fi-resource-relation-manager > * {
+    background-color: #e9f3ff !important;
+}
+
+/* Específicamente el header y la tabla */
+.fi-resource-relation-manager .fi-ta,
+.fi-resource-relation-manager header,
+.fi-resource-relation-manager table {
+    background-color: #e9f3ff !important;
+}

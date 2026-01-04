@@ -15,6 +15,14 @@ class EditCollectionAccount extends EditRecord
 {
     protected static string $resource = CollectionAccountResource::class;
 
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        // Limpiar campos que no existen en la BD
+        unset($data['client_type']);
+
+        return $data;
+    }
+
     public function mount(int | string $record): void
     {
         parent::mount($record);
@@ -92,10 +100,17 @@ class EditCollectionAccount extends EditRecord
                                 ]);
                         });
 
+                        // Actualizar registro de envío y cambiar estado a "Enviada"
+                        $this->record->update([
+                            'email_sent_at' => now(),
+                            'email_sent_by' => auth()->id(),
+                            'status' => \App\Enums\CollectionAccountStatus::SENT,
+                        ]);
+
                         \Filament\Notifications\Notification::make()
                             ->title('Email enviado')
                             ->success()
-                            ->body("Cuenta de cobro enviada a {$data['email']}")
+                            ->body("Cuenta de cobro enviada a {$data['email']}. Estado cambiado a 'Enviada'.")
                             ->send();
                     } catch (\Exception $e) {
                         \Filament\Notifications\Notification::make()
@@ -115,7 +130,7 @@ class EditCollectionAccount extends EditRecord
                         ->label('Nuevo Estado')
                         ->options(fn () => collect(CollectionAccountStatus::cases())
                             ->filter(fn ($status) => $status !== $this->record->status) // Mostrar todos excepto el actual
-                            ->mapWithKeys(fn ($status) => [$status->value => $status->label()])
+                            ->mapWithKeys(fn ($status) => [$status->value => $status->getLabel()])
                         )
                         ->required()
                         ->native(false),
@@ -132,7 +147,7 @@ class EditCollectionAccount extends EditRecord
                         \Filament\Notifications\Notification::make()
                             ->title('Estado actualizado')
                             ->success()
-                            ->body("La cuenta cambió a: {$newStatus->label()}")
+                            ->body("La cuenta cambió a: {$newStatus->getLabel()}")
                             ->send();
 
                         $this->refreshFormData([

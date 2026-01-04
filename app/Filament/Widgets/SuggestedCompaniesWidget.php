@@ -10,12 +10,9 @@ class SuggestedCompaniesWidget extends Widget
 {
     protected string $view = 'filament.widgets.suggested-companies';
 
-    protected static ?int $sort = 9;
+    protected static ?int $sort = 11;
 
-    protected int | string | array $columnSpan = [
-        'md' => 1,
-        'xl' => 1,
-    ];
+    protected int | string | array $columnSpan = 'full';
 
     public function getSuggestedCompanies()
     {

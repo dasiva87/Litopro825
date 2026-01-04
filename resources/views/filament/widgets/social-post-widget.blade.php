@@ -1,13 +1,28 @@
 <div style="space-y: 24px;">
-    @if($showFilters)
-        <!-- Panel de Filtros -->
-        <div style="background: white; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px;">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+    <!-- Panel de Filtros -->
+    <div style="background: white; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: {{ $showFilters ? '16px' : '0' }};">
+            <div style="display: flex; align-items: center; gap: 12px;">
                 <svg style="width: 20px; height: 20px; color: #3b82f6;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z"/>
                 </svg>
                 <h3 style="font-size: 16px; font-weight: 600; color: #111827; margin: 0;">Filtros del Feed</h3>
             </div>
+            <button
+                wire:click="$toggle('showFilters')"
+                style="background: #f3f4f6; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; color: #6b7280; font-size: 14px; transition: background-color 0.2s;"
+                onmouseover="this.style.backgroundColor='#e5e7eb'"
+                onmouseout="this.style.backgroundColor='#f3f4f6'"
+                title="{{ $showFilters ? 'Ocultar filtros' : 'Mostrar filtros' }}"
+            >
+                <span>{{ $showFilters ? 'Ocultar' : 'Mostrar' }}</span>
+                <svg style="width: 16px; height: 16px; transform: rotate({{ $showFilters ? '180deg' : '0deg' }}); transition: transform 0.2s;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </button>
+        </div>
+
+        @if($showFilters)
 
             <!-- Campo de Búsqueda Principal -->
             <div style="margin-bottom: 20px;">
@@ -89,8 +104,8 @@
             <div style="margin-top: 12px; text-align: center; font-size: 13px; color: #6b7280;">
                 Mostrando {{ $this->getSocialPosts()->count() }} publicaciones
             </div>
-        </div>
-    @endif
+        @endif
+    </div>
 
     @foreach($this->getSocialPosts() as $post)
         <div style="background: white; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px;">
@@ -182,9 +197,9 @@
             <!-- Imagen del post (si existe) -->
             @if($post->hasImage())
                 <div style="margin-bottom: 16px;">
-                    <div style="border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb;">
+                    <div style="border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb; aspect-ratio: 1 / 1;">
                         <img src="{{ $post->getImageUrl() }}"
-                             style="width: 100%; height: auto; max-height: 400px; object-fit: cover; display: block;"
+                             style="width: 100%; height: 100%; object-fit: cover; display: block;"
                              alt="Imagen del post">
                     </div>
                 </div>
@@ -240,7 +255,7 @@
             @endif
 
             <!-- Botones de acción -->
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+            <div style="display: grid; grid-template-columns: repeat({{ in_array($post->post_type, ['offer', 'request']) ? '4' : '3' }}, 1fr); gap: 8px;">
                 <!-- Me gusta -->
                 <button wire:click="toggleReaction({{ $post->id }}, 'like')"
                     style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 16px; background: {{ $this->hasUserReacted($post, 'like') ? '#eff6ff' : 'transparent' }}; border: none; border-radius: 8px; cursor: pointer; color: {{ $this->hasUserReacted($post, 'like') ? '#3b82f6' : '#6b7280' }}; font-size: 14px; font-weight: 500; transition: background-color 0.2s;">
@@ -266,21 +281,13 @@
                     <span>Comentar</span>
                 </button>
 
-                <!-- Contactar (para ofertas/solicitudes) -->
+                <!-- Contactar (solo para ofertas/solicitudes) -->
                 @if(in_array($post->post_type, ['offer', 'request']))
                     <button style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 16px; background: #dcfce7; border: none; border-radius: 8px; cursor: pointer; color: #166534; font-size: 14px; font-weight: 500;">
                         <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
                         </svg>
                         <span>Contactar</span>
-                    </button>
-                @else
-                    <!-- Compartir para otros tipos -->
-                    <button style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 16px; background: transparent; border: none; border-radius: 8px; cursor: pointer; color: #6b7280; font-size: 14px; font-weight: 500;">
-                        <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"/>
-                        </svg>
-                        <span>Compartir</span>
                     </button>
                 @endif
             </div>

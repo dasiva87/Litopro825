@@ -38,16 +38,16 @@ class ListPurchaseOrders extends ListRecords
                 ->badge(fn () => static::getResource()::getEloquentQuery()->where('status', OrderStatus::SENT)->count())
                 ->badgeColor('info'),
 
-            'confirmed' => Tab::make('Confirmadas')
-                ->icon('heroicon-o-check-circle')
-                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', OrderStatus::CONFIRMED))
-                ->badge(fn () => static::getResource()::getEloquentQuery()->where('status', OrderStatus::CONFIRMED)->count())
+            'in_progress' => Tab::make('En Proceso')
+                ->icon('heroicon-o-clock')
+                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', OrderStatus::IN_PROGRESS))
+                ->badge(fn () => static::getResource()::getEloquentQuery()->where('status', OrderStatus::IN_PROGRESS)->count())
                 ->badgeColor('warning'),
 
-            'received' => Tab::make('Recibidas')
-                ->icon('heroicon-o-archive-box')
-                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', OrderStatus::RECEIVED))
-                ->badge(fn () => static::getResource()::getEloquentQuery()->where('status', OrderStatus::RECEIVED)->count())
+            'completed' => Tab::make('Finalizadas')
+                ->icon('heroicon-o-check-circle')
+                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', OrderStatus::COMPLETED))
+                ->badge(fn () => static::getResource()::getEloquentQuery()->where('status', OrderStatus::COMPLETED)->count())
                 ->badgeColor('success'),
 
             'cancelled' => Tab::make('Canceladas')

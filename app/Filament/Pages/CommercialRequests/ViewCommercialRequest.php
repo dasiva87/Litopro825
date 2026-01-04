@@ -2,7 +2,6 @@
 
 namespace App\Filament\Pages\CommercialRequests;
 
-use App\Models\CommercialRequest;
 use App\Services\CommercialRequestService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
@@ -55,6 +54,27 @@ class ViewCommercialRequest extends EditRecord
                         ->rows(3),
                 ])
                 ->action(function (array $data) {
+                    // Validación de seguridad: solo la empresa destino puede aprobar
+                    if ($this->record->target_company_id !== auth()->user()->company_id) {
+                        Notification::make()
+                            ->danger()
+                            ->title('Acción no permitida')
+                            ->body('Solo la empresa que recibe la solicitud puede aprobarla')
+                            ->send();
+
+                        return;
+                    }
+
+                    if (! $this->record->isPending()) {
+                        Notification::make()
+                            ->warning()
+                            ->title('Solicitud ya procesada')
+                            ->body('Esta solicitud ya fue aprobada o rechazada')
+                            ->send();
+
+                        return;
+                    }
+
                     $service = app(CommercialRequestService::class);
 
                     try {
@@ -81,7 +101,15 @@ class ViewCommercialRequest extends EditRecord
                     }
                 })
                 ->requiresConfirmation()
-                ->modalSubmitActionLabel('Aprobar'),
+                ->modalSubmitActionLabel('Aprobar')
+                ->visible(function () {
+                    if (! auth()->check() || ! auth()->user()->company_id) {
+                        return false;
+                    }
+
+                    return $this->record->isPending() &&
+                           $this->record->target_company_id === auth()->user()->company_id;
+                }),
 
             Action::make('reject')
                 ->label('Rechazar Solicitud')
@@ -97,6 +125,27 @@ class ViewCommercialRequest extends EditRecord
                         ->rows(4),
                 ])
                 ->action(function (array $data) {
+                    // Validación de seguridad: solo la empresa destino puede rechazar
+                    if ($this->record->target_company_id !== auth()->user()->company_id) {
+                        Notification::make()
+                            ->danger()
+                            ->title('Acción no permitida')
+                            ->body('Solo la empresa que recibe la solicitud puede rechazarla')
+                            ->send();
+
+                        return;
+                    }
+
+                    if (! $this->record->isPending()) {
+                        Notification::make()
+                            ->warning()
+                            ->title('Solicitud ya procesada')
+                            ->body('Esta solicitud ya fue aprobada o rechazada')
+                            ->send();
+
+                        return;
+                    }
+
                     $service = app(CommercialRequestService::class);
 
                     try {
@@ -123,7 +172,15 @@ class ViewCommercialRequest extends EditRecord
                     }
                 })
                 ->requiresConfirmation()
-                ->modalSubmitActionLabel('Rechazar'),
+                ->modalSubmitActionLabel('Rechazar')
+                ->visible(function () {
+                    if (! auth()->check() || ! auth()->user()->company_id) {
+                        return false;
+                    }
+
+                    return $this->record->isPending() &&
+                           $this->record->target_company_id === auth()->user()->company_id;
+                }),
         ];
     }
 }

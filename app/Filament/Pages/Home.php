@@ -3,56 +3,48 @@
 namespace App\Filament\Pages;
 
 use BackedEnum;
-use Filament\Pages\Page;
+use Filament\Pages\Dashboard;
 
-class Home extends Page
+class Home extends Dashboard
 {
-    protected string $view = 'filament.pages.home';
-
     protected static ?string $title = 'Gremio';
 
     protected static ?string $navigationLabel = 'Gremio';
 
-    protected static ?string $slug = 'gremio';
+    protected static ?string $slug = '';
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-home';
 
     protected static ?int $navigationSort = 0;
 
     /**
-     * Obtener widgets para la página Gremio
+     * Widgets de la página Gremio
      */
     public function getWidgets(): array
     {
         return [
+            // Onboarding Widget (se oculta automáticamente cuando se completa)
+            \App\Filament\Widgets\OnboardingWidget::class,
 
-            // Widgets de acciones y calculadoras
-            \App\Filament\Widgets\QuickActionsWidget::class,
-            \App\Filament\Widgets\CalculadoraCorteWidget::class,
-
-            // Widgets sociales
+            // Widgets principales del feed (2 columnas)
             \App\Filament\Widgets\CreatePostWidget::class,
-            \App\Filament\Widgets\SocialFeedWidget::class,
+            \App\Filament\Widgets\SocialPostWidget::class,
+
+            // Widgets del sidebar (1 columna)
+            \App\Filament\Widgets\CalculadoraButtonWidget::class,
             \App\Filament\Widgets\SuggestedCompaniesWidget::class,
-
-            // Widgets de negocio
-            // \App\Filament\Widgets\MrrWidget::class,
-
-            // Widget de onboarding (si es necesario)
-            //  \App\Filament\Widgets\OnboardingWidget::class,
         ];
     }
 
     /**
-     * Obtener columnas del layout
+     * Columnas del layout responsive
      */
-    public function getColumns(): int|string|array
+    public function getColumns(): int|array
     {
         return [
             'sm' => 1,
-            'md' => 2,
+            'md' => 3,
             'lg' => 3,
-            'xl' => 4,
         ];
     }
 }

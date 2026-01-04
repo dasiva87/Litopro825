@@ -51,50 +51,10 @@ class DocumentForm
                                     ->required(),
                             ]),
                             
-                        Grid::make(3)
+                        Grid::make(1)
                             ->schema([
-                                Select::make('client_type')
-                                    ->label('Tipo de Cliente')
-                                    ->options([
-                                        'company' => 'Empresa Conectada',
-                                        'contact' => 'Cliente/Contacto',
-                                    ])
-                                    ->default('contact')
-                                    ->required()
-                                    ->live()
-                                    ->helperText('Selecciona si el cliente es una empresa del sistema o un contacto externo'),
-
-                                Select::make('client_company_id')
-                                    ->label('Empresa Cliente')
-                                    ->relationship(
-                                        name: 'clientCompany',
-                                        titleAttribute: 'name',
-                                        modifyQueryUsing: function ($query) {
-                                            $currentCompanyId = auth()->user()->company_id ?? config('app.current_tenant_id');
-
-                                            if (!$currentCompanyId) {
-                                                return $query->whereRaw('1 = 0');
-                                            }
-
-                                            // Obtener IDs de empresas conectadas como clientes aprobados
-                                            $clientCompanyIds = \App\Models\CompanyConnection::where('company_id', $currentCompanyId)
-                                                ->where('connection_type', \App\Models\CompanyConnection::TYPE_CLIENT)
-                                                ->where('status', \App\Models\CompanyConnection::STATUS_APPROVED)
-                                                ->pluck('connected_company_id');
-
-                                            return $query->whereIn('id', $clientCompanyIds);
-                                        }
-                                    )
-                                    ->searchable()
-                                    ->preload()
-                                    ->visible(fn ($get) => $get('client_type') === 'company')
-                                    ->required(fn ($get) => $get('client_type') === 'company')
-                                    ->helperText('Empresas conectadas como clientes aprobados')
-                                    ->reactive()
-                                    ->afterStateUpdated(fn ($state, callable $set) => $state ? $set('contact_id', null) : null),
-
                                 Select::make('contact_id')
-                                    ->label('Cliente/Contacto')
+                                    ->label('Cliente')
                                     ->relationship(
                                         name: 'contact',
                                         titleAttribute: 'name',
@@ -112,11 +72,8 @@ class DocumentForm
                                     )
                                     ->searchable()
                                     ->preload()
-                                    ->visible(fn ($get) => $get('client_type') === 'contact')
-                                    ->required(fn ($get) => $get('client_type') === 'contact')
-                                    ->helperText('Clientes y contactos registrados en el sistema')
-                                    ->reactive()
-                                    ->afterStateUpdated(fn ($state, callable $set) => $state ? $set('client_company_id', null) : null)
+                                    ->required()
+                                    ->helperText('Selecciona un cliente o crea uno nuevo')
                                     ->createOptionForm([
                                         TextInput::make('name')
                                             ->label('Nombre')

@@ -32,50 +32,10 @@ class PurchaseOrderForm
                                     ->native(false),
                             ]),
 
-                        Grid::make(3)
+                        Grid::make(1)
                             ->schema([
-                                Components\Select::make('supplier_type')
-                                    ->label('Tipo de Proveedor')
-                                    ->options([
-                                        'company' => 'Empresa Conectada',
-                                        'contact' => 'Proveedor/Contacto',
-                                    ])
-                                    ->default('contact')
-                                    ->required()
-                                    ->live()
-                                    ->helperText('Selecciona si el proveedor es una empresa del sistema o un contacto externo'),
-
-                                Components\Select::make('supplier_company_id')
-                                    ->label('Empresa Proveedora')
-                                    ->relationship(
-                                        name: 'supplierCompany',
-                                        titleAttribute: 'name',
-                                        modifyQueryUsing: function ($query) {
-                                            $currentCompanyId = auth()->user()->company_id ?? config('app.current_tenant_id');
-
-                                            if (!$currentCompanyId) {
-                                                return $query->whereRaw('1 = 0');
-                                            }
-
-                                            // Obtener IDs de empresas conectadas como proveedores aprobados
-                                            $supplierCompanyIds = \App\Models\CompanyConnection::where('company_id', $currentCompanyId)
-                                                ->where('connection_type', \App\Models\CompanyConnection::TYPE_SUPPLIER)
-                                                ->where('status', \App\Models\CompanyConnection::STATUS_APPROVED)
-                                                ->pluck('connected_company_id');
-
-                                            return $query->whereIn('id', $supplierCompanyIds);
-                                        }
-                                    )
-                                    ->searchable()
-                                    ->preload()
-                                    ->visible(fn ($get) => $get('supplier_type') === 'company')
-                                    ->required(fn ($get) => $get('supplier_type') === 'company')
-                                    ->helperText('Empresas conectadas como proveedores aprobados')
-                                    ->reactive()
-                                    ->afterStateUpdated(fn ($state, callable $set) => $state ? $set('supplier_id', null) : null),
-
                                 Components\Select::make('supplier_id')
-                                    ->label('Proveedor/Contacto')
+                                    ->label('Proveedor')
                                     ->relationship(
                                         name: 'supplier',
                                         titleAttribute: 'name',
@@ -93,14 +53,20 @@ class PurchaseOrderForm
                                     )
                                     ->searchable()
                                     ->preload()
-                                    ->visible(fn ($get) => $get('supplier_type') === 'contact')
-                                    ->required(fn ($get) => $get('supplier_type') === 'contact')
-                                    ->helperText('Proveedores y contactos registrados en el sistema')
-                                    ->reactive()
-                                    ->afterStateUpdated(fn ($state, callable $set) => $state ? $set('supplier_company_id', null) : null)
+                                    ->required()
+                                    ->helperText('Selecciona un proveedor o crea uno nuevo')
                                     ->createOptionForm([
                                         Components\TextInput::make('name')
                                             ->label('Nombre')
+                                            ->required(),
+                                        Components\Select::make('type')
+                                            ->label('Tipo')
+                                            ->options([
+                                                'supplier' => 'Proveedor',
+                                                'customer' => 'Cliente',
+                                                'both' => 'Cliente y Proveedor',
+                                            ])
+                                            ->default('supplier')
                                             ->required(),
                                         Components\TextInput::make('contact_person')
                                             ->label('Persona de Contacto'),
@@ -114,8 +80,6 @@ class PurchaseOrderForm
                                         Components\Textarea::make('address')
                                             ->label('Dirección')
                                             ->rows(2),
-                                        Components\Hidden::make('type')
-                                            ->default('supplier'),
                                         Components\Hidden::make('company_id')
                                             ->default(fn () => auth()->user()->company_id),
                                     ]),

@@ -11,6 +11,14 @@ class EditDocument extends EditRecord
 {
     protected static string $resource = DocumentResource::class;
 
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        // Limpiar campos que no existen en la BD
+        unset($data['client_type']);
+
+        return $data;
+    }
+
     protected function getHeaderActions(): array
     {
         return [

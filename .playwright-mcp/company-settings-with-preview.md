@@ -1,0 +1,202 @@
+### Page state
+- Page URL: http://127.0.0.1:8000/admin/company-settings
+- Page Title: Configuración de Empresa - Grafired
+- Page Snapshot:
+```yaml
+- generic [active] [ref=e1]:
+  - navigation [ref=e3]:
+    - generic [ref=e4]:
+      - button "Contraer barra lateral" [ref=e5] [cursor=pointer]:
+        - img [ref=e6]
+      - link "GrafiRed" [ref=e8] [cursor=pointer]:
+        - /url: /admin
+        - img "GrafiRed" [ref=e11]
+    - generic [ref=e12]:
+      - generic [ref=e15]:
+        - generic [ref=e16]: Búsqueda global
+        - generic [ref=e17]:
+          - img [ref=e19]
+          - searchbox "Búsqueda global" [ref=e22]
+      - button "Menú del Usuario" [ref=e25] [cursor=pointer]:
+        - img "Avatar of Administrador Sistema" [ref=e26]
+  - generic [ref=e27]:
+    - complementary [ref=e29]:
+      - navigation [ref=e30]:
+        - list [ref=e31]:
+          - listitem [ref=e32]:
+            - list [ref=e33]:
+              - listitem [ref=e34]:
+                - link "Gremio" [ref=e35] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/admin
+                  - img [ref=e36]
+                  - generic [ref=e38]: Gremio
+          - listitem [ref=e39]:
+            - button "Documentos Documentos" [ref=e40] [cursor=pointer]:
+              - generic [ref=e41]: Documentos
+              - button "Documentos" [expanded] [ref=e42]:
+                - img [ref=e43]
+            - list [ref=e45]:
+              - listitem [ref=e46]:
+                - link "Cotizaciones" [ref=e47] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/admin/documents
+                  - img [ref=e48]
+                  - generic [ref=e50]: Cotizaciones
+              - listitem [ref=e51]:
+                - link "Órdenes De Pedido" [ref=e52] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/admin/purchase-orders
+                  - img [ref=e53]
+                  - generic [ref=e55]: Órdenes De Pedido
+              - listitem [ref=e56]:
+                - link "Órdenes De Producción" [ref=e57] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/admin/production-orders
+                  - img [ref=e58]
+                  - generic [ref=e61]: Órdenes De Producción
+              - listitem [ref=e62]:
+                - link "Cuentas De Cobro" [ref=e63] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/admin/collection-accounts
+                  - img [ref=e64]
+                  - generic [ref=e66]: Cuentas De Cobro
+          - listitem [ref=e67]:
+            - button "Contactos Contactos" [ref=e68] [cursor=pointer]:
+              - generic [ref=e69]: Contactos
+              - button "Contactos" [expanded] [ref=e70]:
+                - img [ref=e71]
+            - list [ref=e73]:
+              - listitem [ref=e74]:
+                - link "Clientes" [ref=e75] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/admin/clients
+                  - img [ref=e76]
+                  - generic [ref=e78]: Clientes
+              - listitem [ref=e79]:
+                - link "Proveedores" [ref=e80] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/admin/suppliers
+                  - img [ref=e81]
+                  - generic [ref=e83]: Proveedores
+              - listitem [ref=e84]:
+                - link "Solicitudes Comerciales" [ref=e85] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/admin/commercial-requests
+                  - img [ref=e86]
+                  - generic [ref=e88]: Solicitudes Comerciales
+          - listitem [ref=e89]:
+            - button "Inventario Inventario" [ref=e90] [cursor=pointer]:
+              - generic [ref=e91]: Inventario
+              - button "Inventario" [expanded] [ref=e92]:
+                - img [ref=e93]
+            - list [ref=e95]:
+              - listitem [ref=e96]:
+                - link "Productos" [ref=e97] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/admin/products
+                  - img [ref=e98]
+                  - generic [ref=e100]: Productos
+              - listitem [ref=e101]:
+                - link "Papeles" [ref=e102] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/admin/papers
+                  - img [ref=e103]
+                  - generic [ref=e105]: Papeles
+              - listitem [ref=e106]:
+                - link "Items Digitales" [ref=e107] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/admin/digital-items
+                  - img [ref=e108]
+                  - generic [ref=e110]: Items Digitales
+              - listitem [ref=e111]:
+                - link "Stock" [ref=e112] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/admin/stock
+                  - img [ref=e113]
+                  - generic [ref=e115]: Stock
+          - listitem [ref=e116]:
+            - button "Configuracion Configuracion" [ref=e117] [cursor=pointer]:
+              - generic [ref=e118]: Configuracion
+              - button "Configuracion" [expanded] [ref=e119]:
+                - img [ref=e120]
+            - list [ref=e122]:
+              - listitem [ref=e123]:
+                - link "Acabados" [ref=e124] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/admin/finishings
+                  - img [ref=e125]
+                  - generic [ref=e127]: Acabados
+              - listitem [ref=e128]:
+                - link "Máquinas de Impresión" [ref=e129] [cursor=pointer]:
+                  - /url: http://127.0.0.1:8000/admin/printing-machines
+                  - img [ref=e130]
+                  - generic [ref=e132]: Máquinas de Impresión
+    - main [ref=e134]:
+      - generic [ref=e136]:
+        - heading "Configuración de Empresa" [level=1] [ref=e139]
+        - generic [ref=e142]:
+          - generic [ref=e144]:
+            - generic [ref=e148]:
+              - tablist "Configuración" [ref=e149]:
+                - tab "Información" [ref=e150] [cursor=pointer]:
+                  - img [ref=e151]
+                  - generic [ref=e153]: Información
+                - tab "Perfil Social" [ref=e154] [cursor=pointer]:
+                  - img [ref=e155]
+                  - generic [ref=e157]: Perfil Social
+                - tab "Redes" [ref=e158] [cursor=pointer]:
+                  - img [ref=e159]
+                  - generic [ref=e161]: Redes
+                - tab "Privacidad" [ref=e162] [cursor=pointer]:
+                  - img [ref=e163]
+                  - generic [ref=e165]: Privacidad
+              - 'tabpanel "Nombre de la Empresa* LitoPro Demo Identificador URL* litopro-demo Se usará en la URL del perfil: /empresa/tu-slug Email* info@litopro-demo.com Teléfono +57 300 123 4568 Dirección Carrera 15 #93-47, Oficina 501, Bogotá D.C. Sitio Web https:// http://www.litopro.com" [ref=e260]':
+                - generic [ref=e167]:
+                  - generic [ref=e170]:
+                    - generic [ref=e174]:
+                      - text: Nombre de la Empresa
+                      - superscript [ref=e175]: "*"
+                    - textbox "Nombre de la Empresa*" [ref=e263]: LitoPro Demo
+                  - generic [ref=e179]:
+                    - generic [ref=e183]:
+                      - text: Identificador URL
+                      - superscript [ref=e184]: "*"
+                    - generic [ref=e185]:
+                      - textbox "Identificador URL*" [ref=e266]: litopro-demo
+                      - generic [ref=e189]: "Se usará en la URL del perfil: /empresa/tu-slug"
+                  - generic [ref=e192]:
+                    - generic [ref=e196]:
+                      - text: Email
+                      - superscript [ref=e197]: "*"
+                    - textbox "Email*" [ref=e269]: info@litopro-demo.com
+                  - generic [ref=e201]:
+                    - generic [ref=e205]: Teléfono
+                    - textbox "Teléfono" [ref=e272]: +57 300 123 4568
+                  - generic [ref=e209]:
+                    - generic [ref=e213]: Dirección
+                    - textbox "Dirección" [ref=e276]: "Carrera 15 #93-47, Oficina 501, Bogotá D.C."
+                  - generic [ref=e217]:
+                    - generic [ref=e221]: Sitio Web
+                    - generic [ref=e277]:
+                      - generic [ref=e279]: https://
+                      - textbox "Sitio Web" [ref=e281]: http://www.litopro.com
+            - generic [ref=e224]:
+              - generic [ref=e225]:
+                - img [ref=e226]
+                - generic [ref=e228]: Los cambios se guardarán en tu perfil de empresa
+              - button "Guardar Configuración" [ref=e282] [cursor=pointer]:
+                - generic [ref=e283]: Guardar Configuración
+          - generic [ref=e231]:
+            - generic [ref=e232]:
+              - img [ref=e233]
+              - heading "Vista Previa del Perfil" [level=3] [ref=e236]
+            - generic [ref=e237]:
+              - img [ref=e239]
+              - generic [ref=e240]:
+                - heading "LitoPro Demo" [level=2] [ref=e241]
+                - paragraph [ref=e242]: esta es una litografia en cARTAGENA DE INDIAS
+                - generic [ref=e243]:
+                  - generic [ref=e244]:
+                    - img [ref=e245]
+                    - text: info@litopro-demo.com
+                  - generic [ref=e247]:
+                    - img [ref=e248]
+                    - text: +57 300 123 4568
+                  - generic [ref=e250]:
+                    - img [ref=e251]
+                    - text: http://www.litopro.com
+                  - generic [ref=e253]:
+                    - img [ref=e254]
+                    - text: "Carrera 15 #93-47, Oficina 501, Bogotá D.C."
+                - generic [ref=e259]: Vista previa en vivo
+  - generic:
+    - status
+```

@@ -13,6 +13,7 @@ use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\FileUpload;
@@ -37,6 +38,16 @@ class CompanySettings extends Page implements HasForms, HasActions
     public ?array $data = [];
     public Company $company;
 
+    public function getHeading(): string
+    {
+        return 'Configuración de Empresa';
+    }
+
+    public function getSubheading(): ?string
+    {
+        return 'Personaliza la información y apariencia de tu empresa en la red Grafired';
+    }
+
     public function mount(): void
     {
         $this->company = auth()->user()->company;
@@ -56,158 +67,158 @@ class CompanySettings extends Page implements HasForms, HasActions
     {
         return $form
             ->components([
-                Section::make('Información Básica')
-                    ->description('Información principal de tu empresa')
-                    ->schema([
-                        TextInput::make('name')
-                            ->label('Nombre de la Empresa')
-                            ->required()
-                            ->maxLength(255)
-                            ->columnSpanFull(),
+                Tabs::make('Configuración')
+                    ->tabs([
+                        Tabs\Tab::make('Información')
+                            ->icon('heroicon-m-building-office')
+                            ->schema([
+                                TextInput::make('name')
+                                    ->label('Nombre de la Empresa')
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->columnSpanFull(),
 
-                        TextInput::make('slug')
-                            ->label('Identificador URL')
-                            ->helperText('Se usará en la URL del perfil: /empresa/tu-slug')
-                            ->required()
-                            ->maxLength(255)
-                            ->alphaDash(),
+                                TextInput::make('slug')
+                                    ->label('Identificador URL')
+                                    ->helperText('Se usará en la URL del perfil: /empresa/tu-slug')
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->alphaDash(),
 
-                        TextInput::make('email')
-                            ->label('Email')
-                            ->email()
-                            ->required(),
+                                TextInput::make('email')
+                                    ->label('Email')
+                                    ->email()
+                                    ->required(),
 
-                        TextInput::make('phone')
-                            ->label('Teléfono')
-                            ->tel(),
+                                TextInput::make('phone')
+                                    ->label('Teléfono')
+                                    ->tel(),
 
-                        Textarea::make('address')
-                            ->label('Dirección')
-                            ->rows(2)
-                            ->columnSpanFull(),
+                                Textarea::make('address')
+                                    ->label('Dirección')
+                                    ->rows(2)
+                                    ->columnSpanFull(),
 
-                        TextInput::make('website')
-                            ->label('Sitio Web')
-                            ->url()
-                            ->prefix('https://')
-                            ->columnSpanFull(),
+                                TextInput::make('website')
+                                    ->label('Sitio Web')
+                                    ->url()
+                                    ->prefix('https://')
+                                    ->columnSpanFull(),
+                            ])
+                            ->columns(2),
+
+                        Tabs\Tab::make('Perfil Social')
+                            ->icon('heroicon-m-user-circle')
+                            ->schema([
+                                Textarea::make('bio')
+                                    ->label('Descripción de la Empresa')
+                                    ->helperText('Describe qué hace tu empresa (máximo 500 caracteres)')
+                                    ->maxLength(500)
+                                    ->rows(3)
+                                    ->columnSpanFull(),
+
+                                Placeholder::make('current_avatar')
+                                    ->label('Logo/Avatar Actual')
+                                    ->content(function () {
+                                        if ($this->company->avatar && Storage::disk('public')->exists($this->company->avatar)) {
+                                            $url = Storage::disk('public')->url($this->company->avatar);
+                                            return new HtmlString('<img src="' . $url . '" style="max-width: 200px; border-radius: 8px;" />');
+                                        }
+                                        return 'Sin logo/avatar';
+                                    })
+                                    ->columnSpanFull(),
+
+                                FileUpload::make('avatar')
+                                    ->label('Nuevo Logo/Avatar (opcional)')
+                                    ->helperText('Selecciona una imagen solo si deseas cambiar el logo actual')
+                                    ->image()
+                                    ->disk('public')
+                                    ->directory('companies/avatars')
+                                    ->visibility('public')
+                                    ->imageResizeMode('cover')
+                                    ->imageCropAspectRatio('1:1')
+                                    ->imageResizeTargetWidth('200')
+                                    ->imageResizeTargetHeight('200')
+                                    ->maxSize(2048)
+                                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                                    ->imageEditor()
+                                    ->columnSpanFull(),
+
+                                Placeholder::make('current_banner')
+                                    ->label('Banner/Portada Actual')
+                                    ->content(function () {
+                                        if ($this->company->banner && Storage::disk('public')->exists($this->company->banner)) {
+                                            $url = Storage::disk('public')->url($this->company->banner);
+                                            return new HtmlString('<img src="' . $url . '" style="max-width: 100%; border-radius: 8px;" />');
+                                        }
+                                        return 'Sin banner/portada';
+                                    })
+                                    ->columnSpanFull(),
+
+                                FileUpload::make('banner')
+                                    ->label('Nuevo Banner/Portada (opcional)')
+                                    ->helperText('Selecciona una imagen solo si deseas cambiar el banner actual')
+                                    ->image()
+                                    ->disk('public')
+                                    ->directory('companies/banners')
+                                    ->visibility('public')
+                                    ->imageResizeMode('cover')
+                                    ->imageCropAspectRatio('16:9')
+                                    ->imageResizeTargetWidth('800')
+                                    ->imageResizeTargetHeight('450')
+                                    ->maxSize(2048)
+                                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                                    ->imageEditor()
+                                    ->columnSpanFull(),
+                            ])
+                            ->columns(1),
+
+                        Tabs\Tab::make('Redes')
+                            ->icon('heroicon-m-share')
+                            ->schema([
+                                TextInput::make('facebook')
+                                    ->label('Facebook')
+                                    ->url()
+                                    ->prefix('https://facebook.com/'),
+
+                                TextInput::make('instagram')
+                                    ->label('Instagram')
+                                    ->url()
+                                    ->prefix('https://instagram.com/'),
+
+                                TextInput::make('twitter')
+                                    ->label('Twitter/X')
+                                    ->url()
+                                    ->prefix('https://twitter.com/'),
+
+                                TextInput::make('linkedin')
+                                    ->label('LinkedIn')
+                                    ->url()
+                                    ->prefix('https://linkedin.com/company/'),
+                            ])
+                            ->columns(2),
+
+                        Tabs\Tab::make('Privacidad')
+                            ->icon('heroicon-m-lock-closed')
+                            ->schema([
+                                Toggle::make('is_public')
+                                    ->label('Perfil Público')
+                                    ->helperText('Si está desactivado, solo usuarios autenticados podrán ver tu perfil')
+                                    ->default(true),
+
+                                Toggle::make('allow_followers')
+                                    ->label('Permitir Seguidores')
+                                    ->helperText('Permite que otras empresas te sigan')
+                                    ->default(true),
+
+                                Toggle::make('show_contact_info')
+                                    ->label('Mostrar Información de Contacto')
+                                    ->helperText('Muestra email y teléfono en el perfil público')
+                                    ->default(true),
+                            ])
+                            ->columns(1),
                     ])
-                    ->columns(2)
-                    ->collapsible(),
-
-                Section::make('Perfil Social')
-                    ->description('Personaliza como aparece tu empresa en la red social')
-                    ->schema([
-                        Textarea::make('bio')
-                            ->label('Descripción de la Empresa')
-                            ->helperText('Describe qué hace tu empresa (máximo 500 caracteres)')
-                            ->maxLength(500)
-                            ->rows(3)
-                            ->columnSpanFull(),
-
-                        Placeholder::make('current_avatar')
-                            ->label('Logo/Avatar Actual')
-                            ->content(function () {
-                                if ($this->company->avatar && Storage::disk('public')->exists($this->company->avatar)) {
-                                    $url = Storage::disk('public')->url($this->company->avatar);
-                                    return new HtmlString('<img src="' . $url . '" style="max-width: 200px; border-radius: 8px;" />');
-                                }
-                                return 'Sin logo/avatar';
-                            })
-                            ->columnSpanFull(),
-
-                        FileUpload::make('avatar')
-                            ->label('Nuevo Logo/Avatar (opcional)')
-                            ->helperText('Selecciona una imagen solo si deseas cambiar el logo actual')
-                            ->image()
-                            ->disk('public')
-                            ->directory('companies/avatars')
-                            ->visibility('public')
-                            ->imageResizeMode('cover')
-                            ->imageCropAspectRatio('1:1')
-                            ->imageResizeTargetWidth('200')
-                            ->imageResizeTargetHeight('200')
-                            ->maxSize(2048)
-                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
-                            ->imageEditor()
-                            ->columnSpanFull(),
-
-                        Placeholder::make('current_banner')
-                            ->label('Banner/Portada Actual')
-                            ->content(function () {
-                                if ($this->company->banner && Storage::disk('public')->exists($this->company->banner)) {
-                                    $url = Storage::disk('public')->url($this->company->banner);
-                                    return new HtmlString('<img src="' . $url . '" style="max-width: 100%; border-radius: 8px;" />');
-                                }
-                                return 'Sin banner/portada';
-                            })
-                            ->columnSpanFull(),
-
-                        FileUpload::make('banner')
-                            ->label('Nuevo Banner/Portada (opcional)')
-                            ->helperText('Selecciona una imagen solo si deseas cambiar el banner actual')
-                            ->image()
-                            ->disk('public')
-                            ->directory('companies/banners')
-                            ->visibility('public')
-                            ->imageResizeMode('cover')
-                            ->imageCropAspectRatio('16:9')
-                            ->imageResizeTargetWidth('800')
-                            ->imageResizeTargetHeight('450')
-                            ->maxSize(2048)
-                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
-                            ->imageEditor()
-                            ->columnSpanFull(),
-                    ])
-                    ->columns(1)
-                    ->collapsible(),
-
-                Section::make('Redes Sociales')
-                    ->description('Enlaces a tus redes sociales')
-                    ->schema([
-                        TextInput::make('facebook')
-                            ->label('Facebook')
-                            ->url()
-                            ->prefix('https://facebook.com/'),
-
-                        TextInput::make('instagram')
-                            ->label('Instagram')
-                            ->url()
-                            ->prefix('https://instagram.com/'),
-
-                        TextInput::make('twitter')
-                            ->label('Twitter/X')
-                            ->url()
-                            ->prefix('https://twitter.com/'),
-
-                        TextInput::make('linkedin')
-                            ->label('LinkedIn')
-                            ->url()
-                            ->prefix('https://linkedin.com/company/'),
-                    ])
-                    ->columns(2)
-                    ->collapsible(),
-
-                Section::make('Configuración de Privacidad')
-                    ->description('Controla la visibilidad y configuraciones de tu perfil')
-                    ->schema([
-                        Toggle::make('is_public')
-                            ->label('Perfil Público')
-                            ->helperText('Si está desactivado, solo usuarios autenticados podrán ver tu perfil')
-                            ->default(true),
-
-                        Toggle::make('allow_followers')
-                            ->label('Permitir Seguidores')
-                            ->helperText('Permite que otras empresas te sigan')
-                            ->default(true),
-
-                        Toggle::make('show_contact_info')
-                            ->label('Mostrar Información de Contacto')
-                            ->helperText('Muestra email y teléfono en el perfil público')
-                            ->default(true),
-                    ])
-                    ->columns(1)
-                    ->collapsible(),
+                    ->columnSpanFull(),
             ])
             ->statePath('data')
             ->model($this->company);

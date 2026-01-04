@@ -31,10 +31,6 @@ class DocumentsTable
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('documentType.name')
-                    ->label('Tipo')
-                    ->sortable(),
-
                 TextColumn::make('contact.name')
                     ->label('Cliente')
                     ->searchable()
@@ -140,7 +136,7 @@ class DocumentsTable
                         ->visible(fn ($record) => $record->canEdit()),
 
                     Action::make('send_email')
-                        ->label('')
+                        ->label('Enviar email')
                         ->icon('heroicon-o-envelope')
                         ->color(fn ($record) => $record->email_sent_at ? 'success' : 'warning')
                         ->tooltip(fn ($record) => $record->email_sent_at
@@ -205,10 +201,11 @@ class DocumentsTable
                                 \Illuminate\Support\Facades\Notification::route('mail', $clientEmail)
                                     ->notify(new \App\Notifications\QuoteSent($record->id));
 
-                                // Actualizar registro de envío
+                                // Actualizar registro de envío Y cambiar estado a "sent"
                                 $record->update([
                                     'email_sent_at' => now(),
                                     'email_sent_by' => auth()->id(),
+                                    'status' => 'sent',
                                 ]);
 
                                 \Filament\Notifications\Notification::make()
@@ -225,14 +222,6 @@ class DocumentsTable
                                     ->send();
                             }
                         }),
-
-                    Action::make('send')
-                        ->label('Enviar')
-                        ->icon('heroicon-o-paper-airplane')
-                        ->color('primary')
-                        ->visible(fn ($record) => $record->canSend())
-                        ->requiresConfirmation()
-                        ->action(fn ($record) => $record->markAsSent()),
 
                     Action::make('approve')
                         ->label('Aprobar')

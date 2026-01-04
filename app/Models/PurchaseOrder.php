@@ -72,13 +72,8 @@ class PurchaseOrder extends Model
                 'user_id' => auth()->id(),
             ]);
 
-            // ❌ DESACTIVADO: Envío automático de email al proveedor
-            // Ahora se envía manualmente con el botón "Enviar Email al Proveedor"
-            // Ver: ViewPurchaseOrder::sendEmailAction() y ListPurchaseOrders::getTableActions()
-
-            // Notificar a los usuarios de la empresa creadora (solo notificación interna)
-            $companyUsers = User::forTenant($order->company_id)->get();
-            Notification::send($companyUsers, new PurchaseOrderCreated($order->id));
+            // ❌ DESACTIVADO: Notificaciones automáticas
+            // No se envían notificaciones ni emails al crear órdenes de pedido
         });
 
         static::updating(function (PurchaseOrder $order) {
@@ -87,7 +82,7 @@ class PurchaseOrder extends Model
                 $oldStatus = $order->getOriginal('status');
                 $newStatus = $order->status;
 
-                // Programar notificación después de actualizar
+                // Programar creación de historial después de actualizar
                 static::updated(function (PurchaseOrder $updatedOrder) use ($oldStatus, $newStatus) {
                     // Crear registro de historial
                     $updatedOrder->statusHistories()->create([
@@ -96,31 +91,8 @@ class PurchaseOrder extends Model
                         'user_id' => auth()->id(),
                     ]);
 
-                    // Notificar a usuarios de la empresa que envía
-                    $companyUsers = User::where('company_id', $updatedOrder->company_id)->get();
-                    Notification::send($companyUsers, new PurchaseOrderStatusChanged(
-                        $updatedOrder->id,
-                        $oldStatus instanceof OrderStatus ? $oldStatus->value : $oldStatus,
-                        $newStatus instanceof OrderStatus ? $newStatus->value : $newStatus
-                    ));
-
-                    // ❌ DESACTIVADO: Envío automático de email cuando cambia a SENT
-                    // Ahora se envía manualmente con el botón "Enviar Email al Proveedor"
-                    // if ($newStatus === OrderStatus::SENT) { ... }
-
-                    // Si el estado cambia a 'confirmed' o 'received', notificar a la empresa que envió
-                    if (in_array($newStatus, [OrderStatus::CONFIRMED, OrderStatus::RECEIVED])) {
-                        // Notificar por email a la empresa cliente
-                        $clientCompany = $updatedOrder->company;
-                        if ($clientCompany && $clientCompany->email) {
-                            Notification::route('mail', $clientCompany->email)
-                                ->notify(new PurchaseOrderStatusChanged(
-                                    $updatedOrder->id,
-                                    $oldStatus instanceof OrderStatus ? $oldStatus->value : $oldStatus,
-                                    $newStatus instanceof OrderStatus ? $newStatus->value : $newStatus
-                                ));
-                        }
-                    }
+                    // ❌ DESACTIVADO: Notificaciones y emails automáticos
+                    // No se envían notificaciones al cambiar de estado
                 });
             }
         });
@@ -240,7 +212,7 @@ class PurchaseOrder extends Model
 
     public function isPending(): bool
     {
-        return in_array($this->status, [OrderStatus::DRAFT, OrderStatus::SENT, OrderStatus::CONFIRMED]);
+        return in_array($this->status, [OrderStatus::DRAFT, OrderStatus::SENT, OrderStatus::IN_PROGRESS]);
     }
 
     public function canBeApproved(): bool

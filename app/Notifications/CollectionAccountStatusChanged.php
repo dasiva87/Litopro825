@@ -35,7 +35,7 @@ class CollectionAccountStatusChanged extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['database']; // Base de datos por defecto, mail solo cuando se usa Notification::route('mail', ...)
     }
 
     public function toMail(object $notifiable): MailMessage

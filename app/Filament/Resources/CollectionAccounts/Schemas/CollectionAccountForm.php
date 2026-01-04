@@ -27,57 +27,17 @@ class CollectionAccountForm
                                 Components\Select::make('status')
                                     ->label('Estado')
                                     ->options(fn () => collect(CollectionAccountStatus::cases())
-                                        ->mapWithKeys(fn ($status) => [$status->value => $status->label()])
+                                        ->mapWithKeys(fn ($status) => [$status->value => $status->getLabel()])
                                     )
                                     ->required()
                                     ->default(CollectionAccountStatus::DRAFT)
                                     ->native(false),
                             ]),
 
-                        Grid::make(3)
+                        Grid::make(2)
                             ->schema([
-                                Components\Select::make('client_type')
-                                    ->label('Tipo de Cliente')
-                                    ->options([
-                                        'company' => 'Empresa Conectada',
-                                        'contact' => 'Cliente/Proveedor',
-                                    ])
-                                    ->default('contact')
-                                    ->required()
-                                    ->live()
-                                    ->helperText('Selecciona si el cliente es una empresa del sistema o un contacto externo'),
-
-                                Components\Select::make('client_company_id')
-                                    ->label('Empresa Cliente')
-                                    ->relationship(
-                                        name: 'clientCompany',
-                                        titleAttribute: 'name',
-                                        modifyQueryUsing: function ($query) {
-                                            $currentCompanyId = auth()->user()->company_id ?? config('app.current_tenant_id');
-
-                                            if (!$currentCompanyId) {
-                                                return $query->whereRaw('1 = 0');
-                                            }
-
-                                            // Obtener IDs de empresas conectadas como clientes aprobados
-                                            $clientCompanyIds = \App\Models\CompanyConnection::where('company_id', $currentCompanyId)
-                                                ->where('connection_type', \App\Models\CompanyConnection::TYPE_CLIENT)
-                                                ->where('status', \App\Models\CompanyConnection::STATUS_APPROVED)
-                                                ->pluck('connected_company_id');
-
-                                            return $query->whereIn('id', $clientCompanyIds);
-                                        }
-                                    )
-                                    ->searchable()
-                                    ->preload()
-                                    ->visible(fn ($get) => $get('client_type') === 'company')
-                                    ->required(fn ($get) => $get('client_type') === 'company')
-                                    ->helperText('Empresas conectadas como clientes aprobados')
-                                    ->reactive()
-                                    ->afterStateUpdated(fn ($state, callable $set) => $state ? $set('contact_id', null) : null),
-
                                 Components\Select::make('contact_id')
-                                    ->label('Cliente/Contacto')
+                                    ->label('Cliente')
                                     ->relationship(
                                         name: 'contact',
                                         titleAttribute: 'name',
@@ -95,11 +55,27 @@ class CollectionAccountForm
                                     )
                                     ->searchable()
                                     ->preload()
-                                    ->visible(fn ($get) => $get('client_type') === 'contact')
-                                    ->required(fn ($get) => $get('client_type') === 'contact')
-                                    ->helperText('Clientes y contactos registrados en el sistema')
-                                    ->reactive()
-                                    ->afterStateUpdated(fn ($state, callable $set) => $state ? $set('client_company_id', null) : null),
+                                    ->required()
+                                    ->helperText('Selecciona un cliente o crea uno nuevo')
+                                    ->createOptionForm([
+                                        Components\TextInput::make('name')
+                                            ->label('Nombre')
+                                            ->required(),
+                                        Components\Select::make('type')
+                                            ->label('Tipo')
+                                            ->options([
+                                                'customer' => 'Cliente',
+                                                'supplier' => 'Proveedor',
+                                                'both' => 'Cliente y Proveedor',
+                                            ])
+                                            ->default('customer')
+                                            ->required(),
+                                        Components\TextInput::make('email')
+                                            ->label('Email')
+                                            ->email(),
+                                        Components\TextInput::make('phone')
+                                            ->label('Teléfono'),
+                                    ]),
 
                                 Components\TextInput::make('total_amount')
                                     ->label('Total')

@@ -217,7 +217,7 @@
                 <span class="info-label">Estado:</span>
                 <span class="info-value">
                     <span class="status-badge status-{{ $collectionAccount->status->value }}">
-                        {{ $collectionAccount->status->label() }}
+                        {{ $collectionAccount->status->getLabel() }}
                     </span>
                 </span>
             </div>

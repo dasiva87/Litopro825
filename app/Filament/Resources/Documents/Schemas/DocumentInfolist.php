@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Documents\Schemas;
 
 use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\ViewEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -13,11 +14,12 @@ class DocumentInfolist
     public static function configure(Schema $schema): Schema
     {
         return $schema
+            ->columns(2) // DOS COLUMNAS
             ->components([
-                // Sección Principal
-                Section::make('Información General')
-                    ->icon('heroicon-o-document-text')
-                    ->columns(2)
+                // 1. Información General
+                Section::make()
+                    ->columnSpan(2)
+                    ->columns(4)
                     ->schema([
                         TextEntry::make('document_number')
                             ->label('Número de Cotización')
@@ -57,35 +59,10 @@ class DocumentInfolist
                             ->default('1'),
                     ]),
 
-                // Información de Cliente y Empresa
-                Grid::make(2)
-                    ->schema([
-                        Section::make('Empresa')
-                            ->icon('heroicon-o-building-office-2')
-                            ->schema([
-                                TextEntry::make('company.name')
-                                    ->label('Nombre de la Empresa')
-                                    ->icon('heroicon-o-building-storefront'),
-                            ]),
-
-                        Section::make('Cliente')
-                            ->icon('heroicon-o-user-group')
-                            ->schema([
-                                TextEntry::make('contact.name')
-                                    ->label('Nombre del Cliente')
-                                    ->icon('heroicon-o-user'),
-
-                                TextEntry::make('contact.email')
-                                    ->label('Email del Cliente')
-                                    ->icon('heroicon-o-envelope')
-                                    ->placeholder('Sin email'),
-                            ]),
-                    ]),
-
-                // Fechas
-                Section::make('Fechas Importantes')
-                    ->icon('heroicon-o-calendar')
-                    ->columns(3)
+                // 2. Fechas Importantes
+                Section::make()
+                    ->columnSpan(1)
+                    ->columns(2)
                     ->schema([
                         TextEntry::make('date')
                             ->label('Fecha de Cotización')
@@ -95,7 +72,33 @@ class DocumentInfolist
                         TextEntry::make('valid_until')
                             ->label('Válida Hasta')
                             ->date('d M, Y')
-                            ->icon('heroicon-o-clock')
+                            ->icon(function ($record) {
+                                if (!$record->valid_until) return 'heroicon-o-clock';
+
+                                $now = now();
+                                $validUntil = \Carbon\Carbon::parse($record->valid_until);
+
+                                if ($validUntil->isPast()) {
+                                    return 'heroicon-o-x-circle';
+                                } elseif ($validUntil->diffInDays($now) <= 5) {
+                                    return 'heroicon-o-exclamation-triangle';
+                                }
+                                return 'heroicon-o-check-circle';
+                            })
+                            ->color(function ($record) {
+                                if (!$record->valid_until) return 'gray';
+
+                                $now = now();
+                                $validUntil = \Carbon\Carbon::parse($record->valid_until);
+
+                                if ($validUntil->isPast()) {
+                                    return 'danger';
+                                } elseif ($validUntil->diffInDays($now) <= 5) {
+                                    return 'warning';
+                                }
+                                return 'success';
+                            })
+                            ->badge()
                             ->placeholder('Sin fecha de vencimiento'),
 
                         TextEntry::make('due_date')
@@ -105,50 +108,37 @@ class DocumentInfolist
                             ->placeholder('Sin fecha de vencimiento'),
                     ]),
 
-                // Notas
-                Section::make('Notas')
-                    ->icon('heroicon-o-document-text')
-                    ->collapsed()
-                    ->schema([
-                        TextEntry::make('notes')
-                            ->label('Notas para el Cliente')
-                            ->icon('heroicon-o-chat-bubble-left-right')
-                            ->placeholder('Sin notas')
-                            ->columnSpanFull(),
-
-                        TextEntry::make('internal_notes')
-                            ->label('Notas Internas')
-                            ->icon('heroicon-o-lock-closed')
-                            ->placeholder('Sin notas internas')
-                            ->columnSpanFull(),
-                    ]),
-
-                // Información de Auditoría
-                Section::make('Información del Sistema')
-                    ->icon('heroicon-o-information-circle')
+                // 3. Cliente
+                Section::make()
+                    ->columnSpan(1)
                     ->columns(2)
-                    ->collapsed()
                     ->schema([
-                        TextEntry::make('user.name')
-                            ->label('Creado por')
+                        TextEntry::make('contact.name')
+                            ->label('Nombre del Cliente')
                             ->icon('heroicon-o-user')
-                            ->default('N/A'),
+                            ->weight(FontWeight::SemiBold),
 
-                        TextEntry::make('documentType.name')
-                            ->label('Tipo de Documento')
-                            ->icon('heroicon-o-document')
-                            ->placeholder('Sin tipo'),
+                        TextEntry::make('contact.email')
+                            ->label('Email del Cliente')
+                            ->icon('heroicon-o-envelope')
+                            ->copyable()
+                            ->copyMessage('Email copiado')
+                            ->placeholder('Sin email'),
 
-                        TextEntry::make('created_at')
-                            ->label('Fecha de Creación')
-                            ->dateTime('d M, Y H:i')
-                            ->icon('heroicon-o-clock'),
+                        TextEntry::make('contact.phone')
+                            ->label('Teléfono')
+                            ->icon('heroicon-o-phone')
+                            ->url(fn ($state) => $state ? 'tel:' . $state : null)
+                            ->placeholder('Sin teléfono'),
 
-                        TextEntry::make('updated_at')
-                            ->label('Última Actualización')
-                            ->dateTime('d M, Y H:i')
-                            ->icon('heroicon-o-arrow-path'),
+                        TextEntry::make('contact.city')
+                            ->label('Ciudad')
+                            ->icon('heroicon-o-map-pin')
+                            ->placeholder('Sin ciudad'),
                     ]),
+
+                // 4. Items (RelationManager - se renderiza automáticamente después)
+                // 5. Resumen Financiero (Widget - se renderiza automáticamente después de Items)
             ]);
     }
 }

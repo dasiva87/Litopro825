@@ -4,7 +4,6 @@ namespace App\Filament\Resources\PurchaseOrders\Schemas;
 
 use App\Enums\OrderStatus;
 use Filament\Infolists\Components\TextEntry;
-use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
@@ -14,11 +13,12 @@ class PurchaseOrderInfolist
     public static function configure(Schema $schema): Schema
     {
         return $schema
+            ->columns(2) // UNA SOLA COLUMNA
             ->components([
-                // Sección Principal
-                Section::make('Información General')
-                    ->icon('heroicon-o-shopping-cart')
-                    ->columns(2)
+                // 1. Información General
+                Section::make()
+                    ->columnSpan(2)
+                    ->columns(4)
                     ->schema([
                         TextEntry::make('order_number')
                             ->label('Número de Orden')
@@ -35,8 +35,8 @@ class PurchaseOrderInfolist
                             ->color(fn (OrderStatus $state): string => match ($state) {
                                 OrderStatus::DRAFT => 'gray',
                                 OrderStatus::SENT => 'info',
-                                OrderStatus::CONFIRMED => 'warning',
-                                OrderStatus::RECEIVED => 'success',
+                                OrderStatus::IN_PROGRESS => 'warning',
+                                OrderStatus::COMPLETED => 'success',
                                 OrderStatus::CANCELLED => 'danger',
                             })
                             ->formatStateUsing(fn (OrderStatus $state): string => $state->getLabel()),
@@ -56,29 +56,8 @@ class PurchaseOrderInfolist
                             ->columnSpanFull(),
                     ]),
 
-                // Información de Empresa y Proveedor
-                Grid::make(2)
-                    ->schema([
-                        Section::make('Empresa Solicitante')
-                            ->icon('heroicon-o-building-office-2')
-                            ->schema([
-                                TextEntry::make('company.name')
-                                    ->label('Nombre de la Empresa')
-                                    ->icon('heroicon-o-building-storefront'),
-                            ]),
-
-                        Section::make('Proveedor')
-                            ->icon('heroicon-o-truck')
-                            ->schema([
-                                TextEntry::make('supplierCompany.name')
-                                    ->label('Nombre del Proveedor')
-                                    ->icon('heroicon-o-building-library'),
-                            ]),
-                    ]),
-
-                // Fechas
-                Section::make('Fechas Importantes')
-                    ->icon('heroicon-o-calendar')
+                // 2. Fechas Importantes
+                Section::make()
                     ->columns(3)
                     ->schema([
                         TextEntry::make('order_date')
@@ -100,33 +79,24 @@ class PurchaseOrderInfolist
                             ->color('success'),
                     ]),
 
-                // Información de Auditoría
-                Section::make('Información del Sistema')
-                    ->icon('heroicon-o-information-circle')
+                // 3. Empresa Solicitante
+                Section::make()
                     ->columns(2)
-                    ->collapsed()
                     ->schema([
-                        TextEntry::make('createdBy.name')
-                            ->label('Creado por')
-                            ->icon('heroicon-o-user')
-                            ->default('N/A'),
+                        TextEntry::make('company.name')
+                            ->label('Nombre de la Empresa')
+                            ->icon('heroicon-o-building-storefront')
+                            ->weight(FontWeight::SemiBold),
 
-                        TextEntry::make('approvedBy.name')
-                            ->label('Aprobado por')
-                            ->icon('heroicon-o-shield-check')
-                            ->placeholder('Pendiente de aprobación'),
-
-                        TextEntry::make('created_at')
-                            ->label('Fecha de Creación')
-                            ->dateTime('d M, Y H:i')
-                            ->icon('heroicon-o-clock'),
-
-                        TextEntry::make('approved_at')
-                            ->label('Fecha de Aprobación')
-                            ->dateTime('d M, Y H:i')
-                            ->icon('heroicon-o-check-badge')
-                            ->placeholder('No aprobada'),
+                        TextEntry::make('supplierCompany.name')
+                            ->label('Nombre del Proveedor')
+                            ->icon('heroicon-o-building-library')
+                            ->weight(FontWeight::SemiBold),
                     ]),
+
+              
+
+                // 5. Items (RelationManager - se renderiza automáticamente después)
             ]);
     }
 }

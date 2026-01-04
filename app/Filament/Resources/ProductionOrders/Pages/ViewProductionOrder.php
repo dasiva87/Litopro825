@@ -14,14 +14,6 @@ class ViewProductionOrder extends ViewRecord
 {
     protected static string $resource = ProductionOrderResource::class;
 
-    protected function mutateFormDataBeforeFill(array $data): array
-    {
-        // Determinar el tipo de proveedor basado en los campos de BD
-        $data['supplier_type'] = !empty($data['supplier_company_id']) ? 'company' : 'contact';
-
-        return $data;
-    }
-
     protected function getHeaderActions(): array
     {
         return [
@@ -102,16 +94,17 @@ class ViewProductionOrder extends ViewRecord
                         \Illuminate\Support\Facades\Notification::route('mail', $operatorEmail)
                             ->notify(new \App\Notifications\ProductionOrderSent($this->record->id));
 
-                        // Actualizar registro de envío
+                        // Actualizar registro de envío y cambiar estado a "Enviada"
                         $this->record->update([
                             'email_sent_at' => now(),
                             'email_sent_by' => auth()->id(),
+                            'status' => ProductionStatus::SENT,
                         ]);
 
                         Notification::make()
                             ->success()
                             ->title('Email enviado')
-                            ->body("Orden enviada exitosamente a {$operatorEmail}")
+                            ->body("Orden enviada exitosamente a {$operatorEmail}. Estado cambiado a 'Enviada'.")
                             ->send();
 
                     } catch (\Exception $e) {
@@ -120,18 +113,6 @@ class ViewProductionOrder extends ViewRecord
                             ->title('Error al enviar email')
                             ->body($e->getMessage())
                             ->send();
-                    }
-                }),
-
-            Action::make('queue')
-                ->label('Poner en Cola')
-                ->icon('heroicon-o-queue-list')
-                ->color('warning')
-                ->requiresConfirmation()
-                ->visible(fn ($record) => $record->status === ProductionStatus::DRAFT && $record->total_items > 0)
-                ->action(function ($record) {
-                    if ($record->changeStatus(ProductionStatus::QUEUED)) {
-                        Notification::make()->success()->title('Orden en Cola')->send();
                     }
                 }),
 
@@ -159,7 +140,7 @@ class ViewProductionOrder extends ViewRecord
                         )
                         ->required(),
                 ])
-                ->visible(fn ($record) => $record->status === ProductionStatus::QUEUED)
+                ->visible(fn ($record) => $record->status === ProductionStatus::SENT)
                 ->action(function ($record, array $data) {
                     $record->update($data);
                     if ($record->changeStatus(ProductionStatus::IN_PROGRESS)) {

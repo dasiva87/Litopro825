@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ProductionOrders\Tables;
 
 use App\Enums\ProductionStatus;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -23,13 +24,7 @@ class ProductionOrdersTable
                     ->label('Número')
                     ->searchable()
                     ->sortable()
-                    ->copyable()
-                    ->icon('heroicon-o-hashtag'),
-
-                TextColumn::make('status')
-                    ->label('Estado')
-                    ->badge()
-                    ->sortable(),
+                    ->copyable(),
 
                 TextColumn::make('supplier.name')
                     ->label('Proveedor')
@@ -38,17 +33,12 @@ class ProductionOrdersTable
                     ->badge()
                     ->color('info')
                     ->icon('heroicon-o-building-office')
-                    ->description(fn ($record) => $record->supplier?->tax_id ?? '')
                     ->placeholder('Sin asignar'),
 
-                TextColumn::make('operator.name')
-                    ->label('Operador')
-                    ->searchable()
-                    ->sortable()
+                TextColumn::make('status')
+                    ->label('Estado')
                     ->badge()
-                    ->color('success')
-                    ->icon('heroicon-o-user')
-                    ->placeholder('Sin asignar'),
+                    ->sortable(),
 
                 TextColumn::make('scheduled_date')
                     ->label('Fecha Programada')
@@ -65,14 +55,6 @@ class ProductionOrdersTable
                     ->color('primary')
                     ->suffix(' items'),
 
-                TextColumn::make('total_impressions')
-                    ->label('Millares')
-                    ->numeric(decimalPlaces: 2)
-                    ->sortable()
-                    ->badge()
-                    ->color('warning')
-                    ->suffix(' M'),
-
                 TextColumn::make('email_sent_at')
                     ->label('Email')
                     ->badge()
@@ -83,26 +65,6 @@ class ProductionOrdersTable
                         ? "Enviado: {$record->email_sent_at->format('d/m/Y H:i')}"
                         : 'Email no enviado')
                     ->sortable()
-                    ->toggleable(),
-
-                TextColumn::make('estimated_hours')
-                    ->label('Horas Est.')
-                    ->numeric(decimalPlaces: 1)
-                    ->sortable()
-                    ->suffix(' h')
-                    ->toggleable(),
-
-                TextColumn::make('progress')
-                    ->label('Progreso')
-                    ->state(fn ($record) => $record->getProgressPercentage())
-                    ->badge()
-                    ->color(fn ($state) => match (true) {
-                        $state == 0 => 'gray',
-                        $state < 50 => 'warning',
-                        $state < 100 => 'info',
-                        default => 'success',
-                    })
-                    ->suffix('%')
                     ->toggleable(),
 
                 TextColumn::make('started_at')
@@ -147,100 +109,98 @@ class ProductionOrdersTable
                     ->native(false),
             ])
             ->actions([
-                ViewAction::make()
-                    ->label('Ver'),
-                EditAction::make()
-                    ->label('Editar'),
+                ActionGroup::make([
+                    ViewAction::make(),
 
-                Action::make('send_email')
-                    ->label('')
-                    ->icon('heroicon-o-envelope')
-                    ->color(fn ($record) => $record->email_sent_at ? 'success' : 'warning')
-                    ->tooltip(fn ($record) => $record->email_sent_at
-                        ? 'Reenviar Email (enviado ' . $record->email_sent_at->diffForHumans() . ')'
-                        : 'Enviar Email al Operador')
-                    ->requiresConfirmation()
-                    ->modalHeading(fn ($record) => $record->email_sent_at
-                        ? 'Reenviar Orden por Email'
-                        : 'Enviar Orden por Email')
-                    ->modalDescription(function ($record) {
-                        $operatorName = $record->operator->name
-                            ?? $record->supplierCompany->name
-                            ?? $record->supplier->name
-                            ?? 'Sin operador asignado';
+                    EditAction::make(),
 
-                        $description = "Orden #{$record->production_number} para {$operatorName}";
+                    Action::make('send_email')
+                        ->label(fn ($record) => $record->email_sent_at ? 'Reenviar Email' : 'Enviar Email')
+                        ->icon('heroicon-o-envelope')
+                        ->color(fn ($record) => $record->email_sent_at ? 'success' : 'warning')
+                        ->requiresConfirmation()
+                        ->modalHeading(fn ($record) => $record->email_sent_at
+                            ? 'Reenviar Orden por Email'
+                            : 'Enviar Orden por Email')
+                        ->modalDescription(function ($record) {
+                            $operatorName = $record->operator->name
+                                ?? $record->supplierCompany->name
+                                ?? $record->supplier->name
+                                ?? 'Sin operador asignado';
 
-                        if ($record->email_sent_at) {
-                            $description .= "\n\n⚠️ Esta orden ya fue enviada el {$record->email_sent_at->format('d/m/Y H:i')}";
-                        }
+                            $description = "Orden #{$record->production_number} para {$operatorName}";
 
-                        return $description;
-                    })
-                    ->modalIcon('heroicon-o-envelope')
-                    ->action(function ($record) {
-                        // VALIDACIÓN 1: Verificar items
-                        if ($record->documentItems->isEmpty()) {
-                            \Filament\Notifications\Notification::make()
-                                ->danger()
-                                ->title('No se puede enviar')
-                                ->body('La orden no tiene items. Agrega items antes de enviar.')
-                                ->send();
-                            return;
-                        }
+                            if ($record->email_sent_at) {
+                                $description .= "\n\n⚠️ Esta orden ya fue enviada el {$record->email_sent_at->format('d/m/Y H:i')}";
+                            }
 
-                        // VALIDACIÓN 2: Verificar total items
-                        if ($record->total_items <= 0) {
-                            \Filament\Notifications\Notification::make()
-                                ->danger()
-                                ->title('No se puede enviar')
-                                ->body('La orden no tiene items válidos.')
-                                ->send();
-                            return;
-                        }
+                            return $description;
+                        })
+                        ->modalIcon('heroicon-o-envelope')
+                        ->action(function ($record) {
+                            // VALIDACIÓN 1: Verificar items
+                            if ($record->documentItems->isEmpty()) {
+                                \Filament\Notifications\Notification::make()
+                                    ->danger()
+                                    ->title('No se puede enviar')
+                                    ->body('La orden no tiene items. Agrega items antes de enviar.')
+                                    ->send();
+                                return;
+                            }
 
-                        // VALIDACIÓN 3: Verificar email del operador
-                        $operatorEmail = $record->operator->email
-                            ?? $record->supplierCompany->email
-                            ?? $record->supplier->email;
+                            // VALIDACIÓN 2: Verificar total items
+                            if ($record->total_items <= 0) {
+                                \Filament\Notifications\Notification::make()
+                                    ->danger()
+                                    ->title('No se puede enviar')
+                                    ->body('La orden no tiene items válidos.')
+                                    ->send();
+                                return;
+                            }
 
-                        if (!$operatorEmail) {
-                            \Filament\Notifications\Notification::make()
-                                ->danger()
-                                ->title('No se puede enviar')
-                                ->body('El operador/proveedor no tiene email configurado.')
-                                ->send();
-                            return;
-                        }
+                            // VALIDACIÓN 3: Verificar email del operador
+                            $operatorEmail = $record->operator->email
+                                ?? $record->supplierCompany->email
+                                ?? $record->supplier->email;
 
-                        try {
-                            // Enviar notificación con PDF
-                            \Illuminate\Support\Facades\Notification::route('mail', $operatorEmail)
-                                ->notify(new \App\Notifications\ProductionOrderSent($record->id));
+                            if (!$operatorEmail) {
+                                \Filament\Notifications\Notification::make()
+                                    ->danger()
+                                    ->title('No se puede enviar')
+                                    ->body('El operador/proveedor no tiene email configurado.')
+                                    ->send();
+                                return;
+                            }
 
-                            // Actualizar registro de envío
-                            $record->update([
-                                'email_sent_at' => now(),
-                                'email_sent_by' => auth()->id(),
-                            ]);
+                            try {
+                                // Enviar notificación con PDF
+                                \Illuminate\Support\Facades\Notification::route('mail', $operatorEmail)
+                                    ->notify(new \App\Notifications\ProductionOrderSent($record->id));
 
-                            \Filament\Notifications\Notification::make()
-                                ->success()
-                                ->title('Email enviado')
-                                ->body("Orden enviada exitosamente a {$operatorEmail}")
-                                ->send();
+                                // Actualizar registro de envío y cambiar estado a "Enviada"
+                                $record->update([
+                                    'email_sent_at' => now(),
+                                    'email_sent_by' => auth()->id(),
+                                    'status' => \App\Enums\ProductionStatus::SENT,
+                                ]);
 
-                        } catch (\Exception $e) {
-                            \Filament\Notifications\Notification::make()
-                                ->danger()
-                                ->title('Error al enviar email')
-                                ->body($e->getMessage())
-                                ->send();
-                        }
-                    }),
+                                \Filament\Notifications\Notification::make()
+                                    ->success()
+                                    ->title('Email enviado')
+                                    ->body("Orden enviada exitosamente a {$operatorEmail}. Estado cambiado a 'Enviada'.")
+                                    ->send();
 
-                DeleteAction::make()
-                    ->label('Eliminar'),
+                            } catch (\Exception $e) {
+                                \Filament\Notifications\Notification::make()
+                                    ->danger()
+                                    ->title('Error al enviar email')
+                                    ->body($e->getMessage())
+                                    ->send();
+                            }
+                        }),
+
+                    DeleteAction::make(),
+                ]),
             ])
             ->bulkActions([
                 BulkActionGroup::make([

@@ -4,7 +4,6 @@ namespace App\Filament\Resources\CollectionAccounts\Schemas;
 
 use App\Enums\CollectionAccountStatus;
 use Filament\Infolists\Components\TextEntry;
-use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
@@ -14,11 +13,12 @@ class CollectionAccountInfolist
     public static function configure(Schema $schema): Schema
     {
         return $schema
+            ->columns(2) // UNA SOLA COLUMNA
             ->components([
-                // Sección Principal
-                Section::make('Información General')
-                    ->icon('heroicon-o-document-text')
-                    ->columns(2)
+                // 1. Información General
+                Section::make()
+                    ->columnSpan(2)
+                    ->columns(3)
                     ->schema([
                         TextEntry::make('account_number')
                             ->label('Número de Cuenta')
@@ -39,7 +39,7 @@ class CollectionAccountInfolist
                                 CollectionAccountStatus::PAID => 'success',
                                 CollectionAccountStatus::CANCELLED => 'danger',
                             })
-                            ->formatStateUsing(fn (CollectionAccountStatus $state): string => $state->label()),
+                            ->formatStateUsing(fn (CollectionAccountStatus $state): string => $state->getLabel()),
 
                         TextEntry::make('total_amount')
                             ->label('Monto Total')
@@ -48,31 +48,16 @@ class CollectionAccountInfolist
                             ->weight(FontWeight::Bold)
                             ->size('lg')
                             ->color('success'),
+
+                        TextEntry::make('notes')
+                            ->label('Notas')
+                            ->icon('heroicon-o-document-text')
+                            ->placeholder('Sin notas')
+                            ->columnSpanFull(),
                     ]),
 
-                // Información de Cliente y Empresa
-                Grid::make(2)
-                    ->schema([
-                        Section::make('Empresa')
-                            ->icon('heroicon-o-building-office-2')
-                            ->schema([
-                                TextEntry::make('company.name')
-                                    ->label('Nombre de la Empresa')
-                                    ->icon('heroicon-o-building-storefront'),
-                            ]),
-
-                        Section::make('Cliente')
-                            ->icon('heroicon-o-user-group')
-                            ->schema([
-                                TextEntry::make('clientCompany.name')
-                                    ->label('Nombre del Cliente')
-                                    ->icon('heroicon-o-user'),
-                            ]),
-                    ]),
-
-                // Fechas
-                Section::make('Fechas Importantes')
-                    ->icon('heroicon-o-calendar')
+                // 2. Fechas Importantes
+                Section::make()
                     ->columns(3)
                     ->schema([
                         TextEntry::make('issue_date')
@@ -94,33 +79,33 @@ class CollectionAccountInfolist
                             ->color('success'),
                     ]),
 
-                // Información de Auditoría
-                Section::make('Información del Sistema')
-                    ->icon('heroicon-o-information-circle')
+                // 3. Empresa Emisora
+                Section::make()
                     ->columns(2)
-                    ->collapsed()
                     ->schema([
-                        TextEntry::make('createdBy.name')
-                            ->label('Creado por')
+                        TextEntry::make('company.name')
+                            ->label('Nombre de la Empresa')
+                            ->icon('heroicon-o-building-storefront')
+                            ->weight(FontWeight::SemiBold),
+
+                        TextEntry::make('clientCompany.name')
+                            ->label('Empresa Cliente')
+                            ->icon('heroicon-o-building-library')
+                            ->weight(FontWeight::SemiBold)
+                            ->placeholder('No asignada')
+                            ->visible(fn ($record) => $record->client_company_id !== null),
+
+                        TextEntry::make('contact.name')
+                            ->label('Cliente/Contacto')
                             ->icon('heroicon-o-user')
-                            ->default('N/A'),
-
-                        TextEntry::make('approvedBy.name')
-                            ->label('Aprobado por')
-                            ->icon('heroicon-o-shield-check')
-                            ->placeholder('Pendiente de aprobación'),
-
-                        TextEntry::make('created_at')
-                            ->label('Fecha de Creación')
-                            ->dateTime('d M, Y H:i')
-                            ->icon('heroicon-o-clock'),
-
-                        TextEntry::make('approved_at')
-                            ->label('Fecha de Aprobación')
-                            ->dateTime('d M, Y H:i')
-                            ->icon('heroicon-o-check-badge')
-                            ->placeholder('No aprobada'),
+                            ->weight(FontWeight::SemiBold)
+                            ->placeholder('No asignado')
+                            ->visible(fn ($record) => $record->contact_id !== null),
                     ]),
+
+              
+
+                // 5. Items (RelationManager - se renderiza automáticamente después)
             ]);
     }
 }

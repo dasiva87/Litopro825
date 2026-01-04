@@ -93,16 +93,17 @@ class ViewCollectionAccount extends ViewRecord
                         \Illuminate\Support\Facades\Notification::route('mail', $clientEmail)
                             ->notify(new \App\Notifications\CollectionAccountSent($this->record->id));
 
-                        // Actualizar registro de envío
+                        // Actualizar registro de envío y cambiar estado a "Enviada"
                         $this->record->update([
                             'email_sent_at' => now(),
                             'email_sent_by' => auth()->id(),
+                            'status' => \App\Enums\CollectionAccountStatus::SENT,
                         ]);
 
                         \Filament\Notifications\Notification::make()
                             ->success()
                             ->title('Email enviado')
-                            ->body("Cuenta enviada exitosamente a {$clientEmail}")
+                            ->body("Cuenta enviada exitosamente a {$clientEmail}. Estado cambiado a 'Enviada'.")
                             ->send();
 
                     } catch (\Exception $e) {
@@ -123,7 +124,7 @@ class ViewCollectionAccount extends ViewRecord
                         ->label('Nuevo Estado')
                         ->options(fn () => collect(CollectionAccountStatus::cases())
                             ->filter(fn ($status) => $status !== $this->record->status) // Mostrar todos excepto el actual
-                            ->mapWithKeys(fn ($status) => [$status->value => $status->label()])
+                            ->mapWithKeys(fn ($status) => [$status->value => $status->getLabel()])
                         )
                         ->required()
                         ->native(false),
@@ -140,7 +141,7 @@ class ViewCollectionAccount extends ViewRecord
                         \Filament\Notifications\Notification::make()
                             ->title('Estado actualizado')
                             ->success()
-                            ->body("La cuenta cambió a: {$newStatus->label()}")
+                            ->body("La cuenta cambió a: {$newStatus->getLabel()}")
                             ->send();
 
                         // Refrescar la página para mostrar el nuevo estado

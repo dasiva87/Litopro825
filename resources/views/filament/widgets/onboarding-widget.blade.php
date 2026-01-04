@@ -1,3 +1,9 @@
+<div>
+@php
+    $hideOnboarding = auth()->user()?->preferences['hide_onboarding'] ?? false;
+@endphp
+
+@if(!$hideOnboarding)
 <div style="background-color:#1A2752; border-radius: 16px; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); margin-bottom: 24px; position: relative; overflow: hidden;">
     <!-- Decorative background elements -->
     <div style="position: absolute; top: -50px; right: -50px; width: 100px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 50%; opacity: 0.5;"></div>
@@ -13,10 +19,10 @@
             </div>
             <div>
                 <h3 style="font-size: 24px; font-weight: 700; color: white; margin: 0; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">
-                    ¡Bienvenido a GrafiRed!
+                    Configuración Inicial
                 </h3>
                 <p style="font-size: 16px; color: rgba(255,255,255,0.9); margin: 4px 0 0 0; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">
-                    Te ayudamos a configurar tu plataforma paso a paso
+                    Completa estos pasos para empezar a usar la plataforma
                 </p>
             </div>
         </div>
@@ -71,18 +77,18 @@
 
                 <!-- Action Button -->
                 @if(!$step['completed'])
-                    <button style="width: 100%; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s ease;"
-                            onmouseover="this.style.background='#2563eb';"
-                            onmouseout="this.style.background='#3b82f6';"
-                            onclick="handleStepAction('{{ $step['id'] }}')">
-                        Comenzar
-                    </button>
+                    <a href="{{ $step['action_url'] }}"
+                       style="display: block; width: 100%; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; text-align: center; text-decoration: none;"
+                       onmouseover="this.style.background='#2563eb';"
+                       onmouseout="this.style.background='#3b82f6';">
+                        {{ $step['action_label'] }}
+                    </a>
                 @else
                     <div style="display: flex; align-items: center; justify-content: center; padding: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;">
                         <svg style="width: 16px; height: 16px; color: #16a34a; margin-right: 8px;" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                         </svg>
-                        <span style="font-size: 14px; font-weight: 500; color: #16a34a;">Completado</span>
+                        <span style="font-size: 14px; font-weight: 500; color: #16a34a;">✓ Completado</span>
                     </div>
                 @endif
             </div>
@@ -103,48 +109,25 @@
                             style="padding: 10px 20px; background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; backdrop-filter: blur(10px); transition: all 0.2s ease;"
                             onmouseover="this.style.background='rgba(255,255,255,0.3)';"
                             onmouseout="this.style.background='rgba(255,255,255,0.2)';">
-                        Ocultar por ahora
+                        Ocultar guía
+                    </button>
+                @else
+                    <button wire:click="hideOnboarding"
+                            style="padding: 10px 20px; background: rgba(255,255,255,0.95); color: #1A2752; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.15);"
+                            onmouseover="this.style.background='rgba(255,255,255,1)'; this.style.transform='translateY(-1px)';"
+                            onmouseout="this.style.background='rgba(255,255,255,0.95)'; this.style.transform='translateY(0)';">
+                        ✓ Cerrar guía
                     </button>
                 @endif
-                <button style="padding: 10px 20px; background: #22c55e; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);"
-                        onmouseover="this.style.background='#16a34a';"
-                        onmouseout="this.style.background='#22c55e';"
-                        onclick="window.location.href='/admin'">
-                    Ir al Dashboard
-                </button>
+                <a href="/admin/dashboard"
+                   style="padding: 10px 20px; background: #22c55e; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3); text-decoration: none; display: inline-block;"
+                   onmouseover="this.style.background='#16a34a';"
+                   onmouseout="this.style.background='#22c55e';">
+                    Ver Panel de Control
+                </a>
             </div>
         </div>
     </div>
 </div>
-
-<script>
-function handleStepAction(stepId) {
-    switch(stepId) {
-        case 'company_setup':
-            window.location.href = '/admin/settings';
-            break;
-        case 'add_contacts':
-            window.location.href = '/admin/contacts';
-            break;
-        case 'inventory_setup':
-            window.location.href = '/admin/products';
-            break;
-        case 'first_quotation':
-            window.location.href = '/admin/documents';
-            break;
-        case 'explore_features':
-            // Show features tour or navigate to help
-            alert('¡Explora las funciones avanzadas en el dashboard!');
-            break;
-        default:
-            console.log('Action for step:', stepId);
-    }
-}
-
-// Escuchar evento de Livewire para refrescar la página
-document.addEventListener('livewire:init', () => {
-    Livewire.on('onboarding-hidden', () => {
-        window.location.reload();
-    });
-});
-</script>
+@endif
+</div>

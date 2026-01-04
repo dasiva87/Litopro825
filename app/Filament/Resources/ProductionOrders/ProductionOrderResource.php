@@ -8,6 +8,7 @@ use App\Filament\Resources\ProductionOrders\Pages\EditProductionOrder;
 use App\Filament\Resources\ProductionOrders\Pages\ListProductionOrders;
 use App\Filament\Resources\ProductionOrders\Pages\ViewProductionOrder;
 use App\Filament\Resources\ProductionOrders\Schemas\ProductionOrderForm;
+use App\Filament\Resources\ProductionOrders\Schemas\ProductionOrderInfolist;
 use App\Filament\Resources\ProductionOrders\Tables\ProductionOrdersTable;
 use App\Models\ProductionOrder;
 use BackedEnum;
@@ -40,6 +41,11 @@ class ProductionOrderResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return ProductionOrderForm::configure($schema);
+    }
+
+    public static function infolist(Schema $schema): Schema
+    {
+        return ProductionOrderInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table

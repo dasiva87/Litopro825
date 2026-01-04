@@ -49,10 +49,6 @@ class AdminPanelProvider extends PanelProvider
             // ->plugin(FilamentNordThemePlugin::make()) // Comentado para Railway
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
-            ->pages([
-                \App\Filament\Pages\Dashboard::class,
-                \App\Filament\Pages\Home::class,
-            ])
             ->default()
             ->homeUrl('/admin')
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
@@ -60,8 +56,8 @@ class AdminPanelProvider extends PanelProvider
                 // Default Filament Widgets
                 AccountWidget::class,
 
-                // LitoPro Onboarding Widget (conditional display)
-                \App\Filament\Widgets\OnboardingWidget::class,
+                // LitoPro Onboarding Widget (removed from global - only shown in Dashboard/Home via getWidgets())
+                // \App\Filament\Widgets\OnboardingWidget::class,
 
                 // LitoPro Central Panel Widgets (optimized load)
                 \App\Filament\Widgets\DashboardStatsWidget::class,

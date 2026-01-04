@@ -20,7 +20,7 @@ class ViewPurchaseOrder extends ViewRecord
                 ->label('Cambiar Estado')
                 ->icon('heroicon-o-arrow-path')
                 ->color('primary')
-                ->visible(fn () => ! in_array($this->record->status, [OrderStatus::RECEIVED, OrderStatus::CANCELLED]))
+                ->visible(fn () => ! in_array($this->record->status, [OrderStatus::COMPLETED, OrderStatus::CANCELLED]))
                 ->form(function () {
                     $nextStatuses = $this->record->status->getNextStatuses();
 
@@ -140,18 +140,17 @@ class ViewPurchaseOrder extends ViewRecord
                         \Illuminate\Support\Facades\Notification::route('mail', $supplierEmail)
                             ->notify(new \App\Notifications\PurchaseOrderCreated($this->record->id));
 
-                        // Actualizar registro de envío
+                        // Actualizar registro de envío y cambiar estado a "Enviada"
                         $this->record->update([
                             'email_sent_at' => now(),
                             'email_sent_by' => auth()->id(),
+                            'status' => OrderStatus::SENT,
                         ]);
-
-                        $action = $this->record->wasChanged('email_sent_at') ? 'reenviado' : 'enviado';
 
                         \Filament\Notifications\Notification::make()
                             ->success()
-                            ->title('Email ' . $action)
-                            ->body("Orden {$action} exitosamente a {$supplierEmail}")
+                            ->title('Email enviado')
+                            ->body("Orden enviada exitosamente a {$supplierEmail}. Estado cambiado a 'Enviada'.")
                             ->send();
 
                     } catch (\Exception $e) {

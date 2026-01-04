@@ -24,7 +24,7 @@ class CollectionAccountSent extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['mail']; // Solo notificación interna, NO email al cliente
+        return ['database']; // Solo notificación interna en base de datos, NO email
     }
 
     public function toMail(object $notifiable): MailMessage

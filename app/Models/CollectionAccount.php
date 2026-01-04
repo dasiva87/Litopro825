@@ -71,15 +71,8 @@ class CollectionAccount extends Model
                 'user_id' => auth()->id(),
             ]);
 
-            // ❌ DESACTIVADO: Envío automático de email al cliente
-            // Ahora se envía manualmente con el botón "Enviar Email al Cliente"
-            // Ver: ViewCollectionAccount::send_email action y CollectionAccountsTable
-
-            // Notificar a los usuarios de la empresa creadora (solo notificación en app)
-            $companyUsers = User::forTenant($account->company_id)->get();
-            if ($companyUsers->isNotEmpty()) {
-                Notification::send($companyUsers, new CollectionAccountSent($account->id));
-            }
+            // ❌ DESACTIVADO: Notificaciones automáticas
+            // No se envían notificaciones ni emails al crear cuentas de cobro
         });
 
         static::updating(function (CollectionAccount $account) {
@@ -88,7 +81,7 @@ class CollectionAccount extends Model
                 $oldStatus = $account->getOriginal('status');
                 $newStatus = $account->status;
 
-                // Crear registro de historial y notificar después de actualizar
+                // Crear registro de historial después de actualizar
                 static::updated(function (CollectionAccount $updatedAccount) use ($oldStatus, $newStatus) {
                     $updatedAccount->statusHistories()->create([
                         'from_status' => $oldStatus,
@@ -96,41 +89,8 @@ class CollectionAccount extends Model
                         'user_id' => auth()->id(),
                     ]);
 
-                    // Notificar a usuarios de la empresa emisora
-                    $companyUsers = User::where('company_id', $updatedAccount->company_id)->get();
-                    if ($companyUsers->isNotEmpty()) {
-                        Notification::send($companyUsers, new CollectionAccountStatusChanged(
-                            $updatedAccount->id,
-                            $oldStatus instanceof CollectionAccountStatus ? $oldStatus->value : $oldStatus,
-                            $newStatus instanceof CollectionAccountStatus ? $newStatus->value : $newStatus
-                        ));
-                    }
-
-                    // ❌ DESACTIVADO: Envío automático de email cuando cambia a SENT
-                    // Ahora se envía manualmente con el botón "Enviar Email al Cliente"
-                    // Ver: ViewCollectionAccount::send_email action y CollectionAccountsTable
-
-                    // Notificar a usuarios del cliente (solo notificación en app, sin email)
-                    if ($newStatus === CollectionAccountStatus::SENT && $updatedAccount->clientCompany) {
-                        $clientUsers = User::where('company_id', $updatedAccount->client_company_id)->get();
-                        if ($clientUsers->isNotEmpty()) {
-                            Notification::send($clientUsers, new CollectionAccountSent($updatedAccount->id));
-                        }
-                    }
-
-                    // Si el estado cambia a 'approved' o 'paid', notificar a la empresa emisora
-                    if (in_array($newStatus, [CollectionAccountStatus::APPROVED, CollectionAccountStatus::PAID])) {
-                        // Notificar por email a la empresa emisora
-                        $emitterCompany = $updatedAccount->company;
-                        if ($emitterCompany && $emitterCompany->email) {
-                            Notification::route('mail', $emitterCompany->email)
-                                ->notify(new CollectionAccountStatusChanged(
-                                    $updatedAccount->id,
-                                    $oldStatus instanceof CollectionAccountStatus ? $oldStatus->value : $oldStatus,
-                                    $newStatus instanceof CollectionAccountStatus ? $newStatus->value : $newStatus
-                                ));
-                        }
-                    }
+                    // ❌ DESACTIVADO: Notificaciones y emails automáticos
+                    // No se envían notificaciones al cambiar de estado
                 });
             }
         });

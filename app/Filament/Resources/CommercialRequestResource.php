@@ -37,7 +37,7 @@ class CommercialRequestResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        if (!auth()->check() || !auth()->user()->company_id) {
+        if (! auth()->check() || ! auth()->user()->company_id) {
             return null;
         }
 
@@ -179,6 +179,27 @@ class CommercialRequestResource extends Resource
                             ->rows(3),
                     ])
                     ->action(function ($record, array $data) {
+                        // Validación de seguridad: solo la empresa destino puede aprobar
+                        if ($record->target_company_id !== auth()->user()->company_id) {
+                            Notification::make()
+                                ->danger()
+                                ->title('Acción no permitida')
+                                ->body('Solo la empresa que recibe la solicitud puede aprobarla')
+                                ->send();
+
+                            return;
+                        }
+
+                        if (! $record->isPending()) {
+                            Notification::make()
+                                ->warning()
+                                ->title('Solicitud ya procesada')
+                                ->body('Esta solicitud ya fue aprobada o rechazada')
+                                ->send();
+
+                            return;
+                        }
+
                         $service = app(CommercialRequestService::class);
 
                         try {
@@ -202,9 +223,14 @@ class CommercialRequestResource extends Resource
                                 ->send();
                         }
                     })
-                    ->visible(fn ($record) => $record->isPending() &&
-                        $record->target_company_id === auth()->user()->company_id
-                    ),
+                    ->visible(function ($record) {
+                        if (! auth()->check() || ! auth()->user()->company_id) {
+                            return false;
+                        }
+
+                        return $record->isPending() &&
+                               $record->target_company_id === auth()->user()->company_id;
+                    }),
 
                 Action::make('reject')
                     ->label('Rechazar')
@@ -218,6 +244,27 @@ class CommercialRequestResource extends Resource
                             ->rows(3),
                     ])
                     ->action(function ($record, array $data) {
+                        // Validación de seguridad: solo la empresa destino puede rechazar
+                        if ($record->target_company_id !== auth()->user()->company_id) {
+                            Notification::make()
+                                ->danger()
+                                ->title('Acción no permitida')
+                                ->body('Solo la empresa que recibe la solicitud puede rechazarla')
+                                ->send();
+
+                            return;
+                        }
+
+                        if (! $record->isPending()) {
+                            Notification::make()
+                                ->warning()
+                                ->title('Solicitud ya procesada')
+                                ->body('Esta solicitud ya fue aprobada o rechazada')
+                                ->send();
+
+                            return;
+                        }
+
                         $service = app(CommercialRequestService::class);
 
                         try {
@@ -241,9 +288,14 @@ class CommercialRequestResource extends Resource
                                 ->send();
                         }
                     })
-                    ->visible(fn ($record) => $record->isPending() &&
-                        $record->target_company_id === auth()->user()->company_id
-                    ),
+                    ->visible(function ($record) {
+                        if (! auth()->check() || ! auth()->user()->company_id) {
+                            return false;
+                        }
+
+                        return $record->isPending() &&
+                               $record->target_company_id === auth()->user()->company_id;
+                    }),
 
                 Action::make('view_response')
                     ->label('Ver Respuesta')
@@ -259,6 +311,12 @@ class CommercialRequestResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
+        // Verificar que el usuario esté autenticado y tenga empresa asignada
+        if (! auth()->check() || ! auth()->user()->company_id) {
+            // Si no hay empresa, no mostrar ninguna solicitud
+            return parent::getEloquentQuery()->whereRaw('1 = 0');
+        }
+
         $companyId = auth()->user()->company_id;
 
         return parent::getEloquentQuery()

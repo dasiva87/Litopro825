@@ -16,10 +16,11 @@ class EditProductionOrder extends EditRecord
 {
     protected static string $resource = ProductionOrderResource::class;
 
-    protected function mutateFormDataBeforeFill(array $data): array
+    protected function mutateFormDataBeforeSave(array $data): array
     {
-        // Determinar el tipo de proveedor basado en los campos de BD
-        $data['supplier_type'] = !empty($data['supplier_company_id']) ? 'company' : 'contact';
+        // Limpiar campos que no existen en la BD
+        unset($data['supplier_type']);
+        unset($data['supplier_company_id']);
 
         return $data;
     }
@@ -27,20 +28,20 @@ class EditProductionOrder extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('queue')
-                ->label('Poner en Cola')
-                ->icon('heroicon-o-queue-list')
-                ->color('warning')
+            Action::make('send')
+                ->label('Marcar como Enviada')
+                ->icon('heroicon-o-paper-airplane')
+                ->color('info')
                 ->requiresConfirmation()
-                ->modalHeading('Poner Orden en Cola')
-                ->modalDescription('¿Está seguro de que desea poner esta orden en cola para producción?')
+                ->modalHeading('Marcar Orden como Enviada')
+                ->modalDescription('¿Está seguro de que desea marcar esta orden como enviada?')
                 ->visible(fn ($record) => $record->status === ProductionStatus::DRAFT && $record->total_items > 0)
                 ->action(function ($record) {
-                    if ($record->changeStatus(ProductionStatus::QUEUED, 'Orden puesta en cola desde panel')) {
+                    if ($record->changeStatus(ProductionStatus::SENT, 'Orden marcada como enviada desde panel')) {
                         Notification::make()
                             ->success()
-                            ->title('Orden en Cola')
-                            ->body('La orden ha sido puesta en cola para producción')
+                            ->title('Orden Enviada')
+                            ->body('La orden ha sido marcada como enviada')
                             ->send();
                     } else {
                         Notification::make()
@@ -80,7 +81,7 @@ class EditProductionOrder extends EditRecord
                         ->searchable()
                         ->preload(),
                 ])
-                ->visible(fn ($record) => $record->status === ProductionStatus::QUEUED)
+                ->visible(fn ($record) => $record->status === ProductionStatus::SENT)
                 ->action(function ($record, array $data) {
                     $record->supplier_id = $data['supplier_id'];
                     $record->operator_user_id = $data['operator_user_id'];
@@ -95,40 +96,6 @@ class EditProductionOrder extends EditRecord
                     }
                 }),
 
-            Action::make('pause_production')
-                ->label('Pausar')
-                ->icon('heroicon-o-pause')
-                ->color('warning')
-                ->form([
-                    Components\Textarea::make('notes')
-                        ->label('Motivo de la Pausa')
-                        ->required()
-                        ->rows(3),
-                ])
-                ->visible(fn ($record) => $record->status === ProductionStatus::IN_PROGRESS)
-                ->action(function ($record, array $data) {
-                    if ($record->changeStatus(ProductionStatus::ON_HOLD, $data['notes'])) {
-                        Notification::make()
-                            ->warning()
-                            ->title('Producción Pausada')
-                            ->send();
-                    }
-                }),
-
-            Action::make('resume_production')
-                ->label('Reanudar')
-                ->icon('heroicon-o-play')
-                ->color('success')
-                ->requiresConfirmation()
-                ->visible(fn ($record) => $record->status === ProductionStatus::ON_HOLD)
-                ->action(function ($record) {
-                    if ($record->changeStatus(ProductionStatus::QUEUED, 'Producción reanudada')) {
-                        Notification::make()
-                            ->success()
-                            ->title('Producción Reanudada')
-                            ->send();
-                    }
-                }),
 
             Action::make('complete_production')
                 ->label('Completar Producción')

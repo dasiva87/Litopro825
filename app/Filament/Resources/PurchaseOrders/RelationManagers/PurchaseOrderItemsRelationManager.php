@@ -120,12 +120,14 @@ class PurchaseOrderItemsRelationManager extends RelationManager
                             ->options(function () {
                                 return Document::where('company_id', auth()->user()->company_id)
                                     ->where('status', 'approved')
+                                    ->with(['contact', 'clientCompany'])
                                     ->orderBy('created_at', 'desc')
                                     ->limit(50)
                                     ->get()
                                     ->mapWithKeys(function ($doc) {
+                                        $clientName = $doc->clientCompany->name ?? $doc->contact->name ?? 'Sin cliente';
                                         return [
-                                            $doc->id => "{$doc->document_number} - {$doc->contact->name} ({$doc->created_at->format('d/m/Y')})"
+                                            $doc->id => "{$doc->document_number} - {$clientName} ({$doc->created_at->format('d/m/Y')})"
                                         ];
                                     });
                             })

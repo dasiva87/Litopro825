@@ -2,14 +2,14 @@
     <x-filament-widgets::widget>
         <div style="background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.07);">
             <!-- Header con gradiente -->
-            <div style="padding: 20px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <div style="padding: 20px 24px; background: linear-gradient(135deg, #3CC8FF 0%, #2BA3D4 100%);">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
                     <svg style="width: 24px; height: 24px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                     </svg>
                     <h2 style="font-size: 18px; font-weight: 700; color: white; margin: 0;">Empresas Sugeridas</h2>
                 </div>
-                <p style="font-size: 14px; color: rgba(255,255,255,0.9); margin: 0;">Conecta con proveedores de tu zona</p>
+                <p style="font-size: 14px; color: rgba(255,255,255,0.95); margin: 0;">Conecta con proveedores de tu zona</p>
             </div>
 
             <!-- Lista de empresas -->
@@ -71,9 +71,9 @@
                         <!-- Botón seguir -->
                         <button
                             wire:click="followCompany({{ $company['id'] }})"
-                            style="padding: 10px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3); white-space: nowrap;"
-                            onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.4)'"
-                            onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 4px rgba(102, 126, 234, 0.3)'"
+                            style="padding: 10px 20px; background: linear-gradient(135deg, #3CC8FF 0%, #2BA3D4 100%); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(60, 200, 255, 0.3); white-space: nowrap;"
+                            onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 12px rgba(60, 200, 255, 0.4)'"
+                            onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 4px rgba(60, 200, 255, 0.3)'"
                         >
                             + Seguir
                         </button>
@@ -91,17 +91,15 @@
                 @endforelse
             </div>
 
-            <!-- Footer con link -->
-            @if($this->getViewData()['suggestions']->count() > 0)
-                <div style="padding: 16px 24px; border-top: 1px solid #e5e7eb; background: #fafafa; text-align: center;">
-                    <a href="/admin/companies" style="font-size: 14px; font-weight: 600; color: #667eea; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: color 0.2s;" onmouseover="this.style.color='#764ba2'" onmouseout="this.style.color='#667eea'">
-                        Ver todas las empresas
-                        <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                        </svg>
-                    </a>
-                </div>
-            @endif
+            <!-- Footer con link - Siempre visible -->
+            <div style="padding: 16px 24px; border-top: 1px solid #e5e7eb; background: #fafafa; text-align: center;">
+                <a href="/admin/companies" style="font-size: 14px; font-weight: 600; color: #3CC8FF; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: color 0.2s;" onmouseover="this.style.color='#2BA3D4'" onmouseout="this.style.color='#3CC8FF'">
+                    Ver todas las empresas
+                    <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </a>
+            </div>
         </div>
     </x-filament-widgets::widget>
 </div>

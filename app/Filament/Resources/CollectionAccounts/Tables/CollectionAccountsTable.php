@@ -4,6 +4,7 @@ namespace App\Filament\Resources\CollectionAccounts\Tables;
 
 use App\Enums\CollectionAccountStatus;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -21,27 +22,9 @@ class CollectionAccountsTable
     {
         return $table
             ->columns([
-                TextColumn::make('account_type')
-                    ->label('Tipo')
-                    ->state(function ($record) {
-                        $currentCompanyId = auth()->user()->company_id;
-
-                        return $record->company_id === $currentCompanyId ? 'Enviada' : 'Recibida';
-                    })
-                    ->badge()
-                    ->color(function ($record) {
-                        $currentCompanyId = auth()->user()->company_id;
-
-                        return $record->company_id === $currentCompanyId ? 'info' : 'success';
-                    })
-                    ->icon(function ($record) {
-                        $currentCompanyId = auth()->user()->company_id;
-
-                        return $record->company_id === $currentCompanyId ? 'heroicon-o-paper-airplane' : 'heroicon-o-inbox-arrow-down';
-                    }),
 
                 TextColumn::make('account_number')
-                    ->label('Número de Cuenta')
+                    ->label('Número')
                     ->searchable()
                     ->sortable()
                     ->copyable(),
@@ -74,6 +57,12 @@ class CollectionAccountsTable
                     ->money('COP')
                     ->sortable(),
 
+                TextColumn::make('paid_date')
+                    ->label('Fecha de Pago')
+                    ->date()
+                    ->sortable()
+                    ->toggleable(),
+
                 TextColumn::make('email_sent_at')
                     ->label('Email')
                     ->badge()
@@ -86,17 +75,7 @@ class CollectionAccountsTable
                     ->sortable()
                     ->toggleable(),
 
-                TextColumn::make('items_count')
-                    ->label('Items')
-                    ->counts('documentItems')
-                    ->badge()
-                    ->color('primary'),
-
-                TextColumn::make('paid_date')
-                    ->label('Fecha de Pago')
-                    ->date()
-                    ->sortable()
-                    ->toggleable(),
+               
 
                 TextColumn::make('createdBy.name')
                     ->label('Creado por')
@@ -118,7 +97,7 @@ class CollectionAccountsTable
                 SelectFilter::make('status')
                     ->label('Estado')
                     ->options(fn () => collect(CollectionAccountStatus::cases())
-                        ->mapWithKeys(fn ($status) => [$status->value => $status->label()])
+                        ->mapWithKeys(fn ($status) => [$status->value => $status->getLabel()])
                     )
                     ->multiple()
                     ->native(false),
@@ -166,24 +145,19 @@ class CollectionAccountsTable
                     ->toggle(),
             ])
             ->actions([
-                ViewAction::make(),
-                EditAction::make(),
+                ActionGroup::make([
+                    ViewAction::make(),
+                    EditAction::make(),
 
-                Action::make('view_pdf')
-                    ->label('Ver PDF')
-                    ->icon('heroicon-o-document-text')
-                    ->color('info')
-                    ->url(fn ($record) => route('collection-accounts.pdf', $record))
-                    ->openUrlInNewTab(),
+                    Action::make('view_pdf')
+                        ->label('Ver PDF')
+                        ->icon('heroicon-o-document-text')
+                        ->color('info')
+                        ->url(fn ($record) => route('collection-accounts.pdf', $record))
+                        ->openUrlInNewTab(),
 
-                Action::make('download_pdf')
-                    ->label('Descargar PDF')
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->color('success')
-                    ->url(fn ($record) => route('collection-accounts.pdf.download', $record)),
-
-                Action::make('send_email')
-                    ->label('')
+                    Action::make('send_email')
+                    ->label('Enviar email')
                     ->icon('heroicon-o-envelope')
                     ->color(fn ($record) => $record->email_sent_at ? 'success' : 'warning')
                     ->tooltip(fn ($record) => $record->email_sent_at
@@ -246,16 +220,17 @@ class CollectionAccountsTable
                             \Illuminate\Support\Facades\Notification::route('mail', $clientEmail)
                                 ->notify(new \App\Notifications\CollectionAccountSent($record->id));
 
-                            // Actualizar registro de envío
+                            // Actualizar registro de envío y cambiar estado a "Enviada"
                             $record->update([
                                 'email_sent_at' => now(),
                                 'email_sent_by' => auth()->id(),
+                                'status' => \App\Enums\CollectionAccountStatus::SENT,
                             ]);
 
                             \Filament\Notifications\Notification::make()
                                 ->success()
                                 ->title('Email enviado')
-                                ->body("Cuenta enviada exitosamente a {$clientEmail}")
+                                ->body("Cuenta enviada exitosamente a {$clientEmail}. Estado cambiado a 'Enviada'.")
                                 ->send();
 
                         } catch (\Exception $e) {
@@ -276,7 +251,7 @@ class CollectionAccountsTable
                             ->label('Nuevo Estado')
                             ->options(fn ($record) => collect(CollectionAccountStatus::cases())
                                 ->filter(fn ($status) => $status !== $record->status) // Mostrar todos excepto el actual
-                                ->mapWithKeys(fn ($status) => [$status->value => $status->label()])
+                                ->mapWithKeys(fn ($status) => [$status->value => $status->getLabel()])
                             )
                             ->required()
                             ->native(false),
@@ -293,7 +268,7 @@ class CollectionAccountsTable
                             \Filament\Notifications\Notification::make()
                                 ->title('Estado actualizado')
                                 ->success()
-                                ->body("La cuenta cambió a: {$newStatus->label()}")
+                                ->body("La cuenta cambió a: {$newStatus->getLabel()}")
                                 ->send();
                         } else {
                             \Filament\Notifications\Notification::make()
@@ -322,7 +297,8 @@ class CollectionAccountsTable
                     })
                     ->visible(fn ($record) => $record->status === CollectionAccountStatus::APPROVED),
 
-                DeleteAction::make(),
+                    DeleteAction::make(),
+                ]),
             ])
             ->bulkActions([
                 BulkActionGroup::make([

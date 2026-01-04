@@ -2,24 +2,26 @@
 
 namespace App\Enums;
 
-enum ProductionStatus: string
+use Filament\Support\Contracts\HasColor;
+use Filament\Support\Contracts\HasIcon;
+use Filament\Support\Contracts\HasLabel;
+
+enum ProductionStatus: string implements HasColor, HasIcon, HasLabel
 {
     case DRAFT = 'draft';
-    case QUEUED = 'queued';
+    case SENT = 'sent';
     case IN_PROGRESS = 'in_progress';
     case COMPLETED = 'completed';
     case CANCELLED = 'cancelled';
-    case ON_HOLD = 'on_hold';
 
     public function getLabel(): string
     {
         return match ($this) {
             self::DRAFT => 'Borrador',
-            self::QUEUED => 'En Cola',
-            self::IN_PROGRESS => 'En Producción',
-            self::COMPLETED => 'Completado',
-            self::CANCELLED => 'Cancelado',
-            self::ON_HOLD => 'En Espera',
+            self::SENT => 'Enviada',
+            self::IN_PROGRESS => 'En Proceso',
+            self::COMPLETED => 'Finalizada',
+            self::CANCELLED => 'Cancelada',
         };
     }
 
@@ -27,11 +29,10 @@ enum ProductionStatus: string
     {
         return match ($this) {
             self::DRAFT => 'gray',
-            self::QUEUED => 'warning',
-            self::IN_PROGRESS => 'info',
+            self::SENT => 'info',
+            self::IN_PROGRESS => 'warning',
             self::COMPLETED => 'success',
             self::CANCELLED => 'danger',
-            self::ON_HOLD => 'secondary',
         };
     }
 
@@ -39,21 +40,19 @@ enum ProductionStatus: string
     {
         return match ($this) {
             self::DRAFT => 'heroicon-o-document',
-            self::QUEUED => 'heroicon-o-clock',
+            self::SENT => 'heroicon-o-paper-airplane',
             self::IN_PROGRESS => 'heroicon-o-cog-6-tooth',
             self::COMPLETED => 'heroicon-o-check-circle',
             self::CANCELLED => 'heroicon-o-x-circle',
-            self::ON_HOLD => 'heroicon-o-pause-circle',
         };
     }
 
     public function canTransitionTo(self $newStatus): bool
     {
         return match ($this) {
-            self::DRAFT => in_array($newStatus, [self::QUEUED, self::CANCELLED]),
-            self::QUEUED => in_array($newStatus, [self::IN_PROGRESS, self::ON_HOLD, self::CANCELLED]),
-            self::IN_PROGRESS => in_array($newStatus, [self::COMPLETED, self::ON_HOLD, self::CANCELLED]),
-            self::ON_HOLD => in_array($newStatus, [self::QUEUED, self::CANCELLED]),
+            self::DRAFT => in_array($newStatus, [self::SENT, self::CANCELLED]),
+            self::SENT => in_array($newStatus, [self::IN_PROGRESS, self::CANCELLED]),
+            self::IN_PROGRESS => in_array($newStatus, [self::COMPLETED, self::CANCELLED]),
             self::COMPLETED => false,
             self::CANCELLED => false,
         };

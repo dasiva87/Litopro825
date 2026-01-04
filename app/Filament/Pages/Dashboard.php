@@ -3,21 +3,19 @@
 namespace App\Filament\Pages;
 
 use BackedEnum;
-use Filament\Pages\Dashboard as BaseDashboard;
+use Filament\Pages\Page;
 
-class Dashboard extends BaseDashboard
+class Dashboard extends Page
 {
-    protected static ?string $title = 'Dashboard';
+    protected static ?string $title = 'Panel de Control';
 
-    protected static ?string $navigationLabel = 'Dashboard';
+    protected static ?string $navigationLabel = 'Panel de Control';
 
-    protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-squares-2x2';
+    protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-chart-bar-square';
 
-    protected static ?int $navigationSort = -1;
+    protected static ?int $navigationSort = 1;
 
-    protected static ?string $slug = '';
-
-    protected static bool $shouldRegisterNavigation = true;
+    protected string $view = 'filament.pages.dashboard';
 
     public function getWidgets(): array
     {
@@ -30,5 +28,10 @@ class Dashboard extends BaseDashboard
             \App\Filament\Widgets\StockAlertsWidget::class,
             \App\Filament\Widgets\DeadlinesWidget::class,
         ];
+    }
+
+    protected function getHeaderWidgets(): array
+    {
+        return $this->getWidgets();
     }
 }

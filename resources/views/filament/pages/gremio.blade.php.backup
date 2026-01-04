@@ -34,6 +34,26 @@
         .dark .gremio-content {
             background-color: #111827 !important;
         }
+
+        /* Fix para modales y slideOvers en página Gremio */
+        [role="dialog"],
+        .fi-modal,
+        .fi-slide-over {
+            z-index: 9999 !important;
+        }
+
+        /* Backdrop del modal debe estar sobre todo */
+        [data-headlessui-state="open"] > div[data-backdrop] {
+            z-index: 9998 !important;
+        }
+
+        /* Asegurar que el backdrop cubra toda la pantalla */
+        .fi-modal-backdrop,
+        [x-data*="modal"] > div:first-child {
+            position: fixed !important;
+            inset: 0 !important;
+            z-index: 9998 !important;
+        }
     </style>
 
     <div class="gremio-layout">
@@ -52,7 +72,7 @@
         <!-- Sidebar Derecho -->
         <aside class="gremio-sidebar">
             <div style="space-y: 24px;">
-                @livewire(\App\Filament\Widgets\CalculadoraCorteWidget::class)
+                @livewire(\App\Filament\Widgets\CalculadoraButtonWidget::class)
                 @livewire(\App\Filament\Widgets\SuggestedCompaniesWidget::class)
             </div>
         </aside>

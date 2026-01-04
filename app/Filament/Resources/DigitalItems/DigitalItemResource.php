@@ -29,7 +29,7 @@ class DigitalItemResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Items Digitales';
 
-    protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Inventario;
+    protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Configuracion;
 
     protected static ?int $navigationSort = 3;
 

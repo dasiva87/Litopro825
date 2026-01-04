@@ -14,12 +14,14 @@ class SocialPostWidget extends Widget
 {
     protected string $view = 'filament.widgets.social-post-widget';
 
+    protected static ?int $sort = 8;
+
     protected int | string | array $columnSpan = 'full';
 
     protected $listeners = ['post-created' => 'refreshPosts'];
 
-    // Mostrar filtros (true para el home, false para perfiles)
-    public bool $showFilters = true;
+    // Mostrar filtros (false = oculto por defecto, true = visible)
+    public bool $showFilters = false;
 
     // Filtros
     public $filterType = '';

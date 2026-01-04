@@ -32,25 +32,19 @@ class ListProductionOrders extends ListRecords
                 ->badge(fn () => static::getResource()::getEloquentQuery()->where('status', ProductionStatus::DRAFT)->count())
                 ->badgeColor('gray'),
 
-            'queued' => Tab::make('En Cola')
-                ->icon('heroicon-o-clock')
-                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', ProductionStatus::QUEUED))
-                ->badge(fn () => static::getResource()::getEloquentQuery()->where('status', ProductionStatus::QUEUED)->count())
-                ->badgeColor('warning'),
+            'sent' => Tab::make('Enviadas')
+                ->icon('heroicon-o-paper-airplane')
+                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', ProductionStatus::SENT))
+                ->badge(fn () => static::getResource()::getEloquentQuery()->where('status', ProductionStatus::SENT)->count())
+                ->badgeColor('info'),
 
-            'in_progress' => Tab::make('En Producción')
+            'in_progress' => Tab::make('En Proceso')
                 ->icon('heroicon-o-cog-6-tooth')
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('status', ProductionStatus::IN_PROGRESS))
                 ->badge(fn () => static::getResource()::getEloquentQuery()->where('status', ProductionStatus::IN_PROGRESS)->count())
-                ->badgeColor('info'),
+                ->badgeColor('warning'),
 
-            'on_hold' => Tab::make('En Espera')
-                ->icon('heroicon-o-pause-circle')
-                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', ProductionStatus::ON_HOLD))
-                ->badge(fn () => static::getResource()::getEloquentQuery()->where('status', ProductionStatus::ON_HOLD)->count())
-                ->badgeColor('secondary'),
-
-            'completed' => Tab::make('Completadas')
+            'completed' => Tab::make('Finalizadas')
                 ->icon('heroicon-o-check-circle')
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('status', ProductionStatus::COMPLETED))
                 ->badge(fn () => static::getResource()::getEloquentQuery()->where('status', ProductionStatus::COMPLETED)->count())

@@ -10,8 +10,8 @@ enum OrderStatus: string implements HasColor, HasIcon, HasLabel
 {
     case DRAFT = 'draft';
     case SENT = 'sent';
-    case CONFIRMED = 'confirmed';
-    case RECEIVED = 'received';
+    case IN_PROGRESS = 'in_progress';
+    case COMPLETED = 'completed';
     case CANCELLED = 'cancelled';
 
     public function getLabel(): string
@@ -19,8 +19,8 @@ enum OrderStatus: string implements HasColor, HasIcon, HasLabel
         return match ($this) {
             self::DRAFT => 'Borrador',
             self::SENT => 'Enviada',
-            self::CONFIRMED => 'Confirmada',
-            self::RECEIVED => 'Recibida',
+            self::IN_PROGRESS => 'En Proceso',
+            self::COMPLETED => 'Finalizada',
             self::CANCELLED => 'Cancelada',
         };
     }
@@ -30,8 +30,8 @@ enum OrderStatus: string implements HasColor, HasIcon, HasLabel
         return match ($this) {
             self::DRAFT => 'gray',
             self::SENT => 'info',
-            self::CONFIRMED => 'warning',
-            self::RECEIVED => 'success',
+            self::IN_PROGRESS => 'warning',
+            self::COMPLETED => 'success',
             self::CANCELLED => 'danger',
         };
     }
@@ -41,8 +41,8 @@ enum OrderStatus: string implements HasColor, HasIcon, HasLabel
         return match ($this) {
             self::DRAFT => 'heroicon-o-document',
             self::SENT => 'heroicon-o-paper-airplane',
-            self::CONFIRMED => 'heroicon-o-check-circle',
-            self::RECEIVED => 'heroicon-o-archive-box',
+            self::IN_PROGRESS => 'heroicon-o-clock',
+            self::COMPLETED => 'heroicon-o-check-circle',
             self::CANCELLED => 'heroicon-o-x-circle',
         };
     }
@@ -51,9 +51,9 @@ enum OrderStatus: string implements HasColor, HasIcon, HasLabel
     {
         return match ($this) {
             self::DRAFT => in_array($newStatus, [self::SENT, self::CANCELLED]),
-            self::SENT => in_array($newStatus, [self::CONFIRMED, self::CANCELLED]),
-            self::CONFIRMED => in_array($newStatus, [self::RECEIVED, self::CANCELLED]),
-            self::RECEIVED => false,
+            self::SENT => in_array($newStatus, [self::IN_PROGRESS, self::CANCELLED]),
+            self::IN_PROGRESS => in_array($newStatus, [self::COMPLETED, self::CANCELLED]),
+            self::COMPLETED => false,
             self::CANCELLED => false,
         };
     }
@@ -62,9 +62,9 @@ enum OrderStatus: string implements HasColor, HasIcon, HasLabel
     {
         return match ($this) {
             self::DRAFT => [self::SENT, self::CANCELLED],
-            self::SENT => [self::CONFIRMED, self::CANCELLED],
-            self::CONFIRMED => [self::RECEIVED, self::CANCELLED],
-            self::RECEIVED => [],
+            self::SENT => [self::IN_PROGRESS, self::CANCELLED],
+            self::IN_PROGRESS => [self::COMPLETED, self::CANCELLED],
+            self::COMPLETED => [],
             self::CANCELLED => [],
         };
     }

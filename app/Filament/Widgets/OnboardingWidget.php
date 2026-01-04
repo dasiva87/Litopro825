@@ -26,46 +26,67 @@ class OnboardingWidget extends Widget
     {
         return [
             [
-                'id' => 'welcome',
-                'title' => 'Bienvenido a GrafiRed',
-                'description' => 'Conoce las funcionalidades principales de tu nueva plataforma de gestión para litografías.',
-                'icon' => 'heroicon-o-hand-raised',
-                'completed' => true,
+                'id' => 'create_client',
+                'title' => 'Crear Cliente',
+                'description' => 'Agrega tu primer cliente para poder generar cotizaciones.',
+                'icon' => 'heroicon-o-user-plus',
+                'completed' => $this->hasClients(),
+                'action_url' => '/admin/clients',
+                'action_label' => 'Agregar Cliente',
             ],
             [
-                'id' => 'company_setup',
-                'title' => 'Configurar Empresa',
-                'description' => 'Completa la información de tu empresa y configura los parámetros básicos.',
-                'icon' => 'heroicon-o-building-office',
-                'completed' => $this->isCompanySetupCompleted(),
+                'id' => 'create_supplier',
+                'title' => 'Crear Proveedor',
+                'description' => 'Registra un proveedor de materiales o servicios.',
+                'icon' => 'heroicon-o-truck',
+                'completed' => $this->hasSuppliers(),
+                'action_url' => '/admin/suppliers',
+                'action_label' => 'Agregar Proveedor',
             ],
             [
-                'id' => 'add_contacts',
-                'title' => 'Agregar Contactos',
-                'description' => 'Agrega tus primeros clientes y proveedores para comenzar a trabajar.',
-                'icon' => 'heroicon-o-users',
-                'completed' => $this->hasContacts(),
+                'id' => 'create_machine',
+                'title' => 'Crear Máquina',
+                'description' => 'Configura tu primera máquina de impresión.',
+                'icon' => 'heroicon-o-cog-6-tooth',
+                'completed' => $this->hasMachines(),
+                'action_url' => '/admin/printing-machines',
+                'action_label' => 'Agregar Máquina',
             ],
             [
-                'id' => 'inventory_setup',
-                'title' => 'Configurar Inventario',
-                'description' => 'Agrega papeles, máquinas de impresión y productos a tu catálogo.',
+                'id' => 'create_paper',
+                'title' => 'Crear Papel',
+                'description' => 'Agrega un tipo de papel a tu inventario.',
+                'icon' => 'heroicon-o-document',
+                'completed' => $this->hasPapers(),
+                'action_url' => '/admin/papers',
+                'action_label' => 'Agregar Papel',
+            ],
+            [
+                'id' => 'create_simple_item',
+                'title' => 'Agregar Item Sencillo',
+                'description' => 'Crea tu primer producto o servicio para cotizar.',
                 'icon' => 'heroicon-o-cube',
-                'completed' => $this->hasInventoryItems(),
+                'completed' => $this->hasSimpleItems(),
+                'action_url' => '/admin/products',
+                'action_label' => 'Agregar Producto',
             ],
             [
-                'id' => 'first_quotation',
-                'title' => 'Primera Cotización',
-                'description' => 'Crea tu primera cotización utilizando los items configurados.',
+                'id' => 'create_quotation',
+                'title' => 'Crear Cotización',
+                'description' => 'Genera tu primera cotización utilizando los elementos creados.',
                 'icon' => 'heroicon-o-document-text',
                 'completed' => $this->hasQuotations(),
+                'action_url' => '/admin/documents',
+                'action_label' => 'Crear Cotización',
             ],
             [
-                'id' => 'explore_features',
-                'title' => 'Explorar Funciones',
-                'description' => 'Descubre la calculadora de papel, widgets del dashboard y más funciones avanzadas.',
-                'icon' => 'heroicon-o-sparkles',
-                'completed' => false,
+                'id' => 'make_post',
+                'title' => 'Hacer Publicación en Gremio',
+                'description' => 'Comparte contenido con otras empresas de la red.',
+                'icon' => 'heroicon-o-megaphone',
+                'completed' => $this->hasPosts(),
+                'action_url' => '/admin',
+                'action_label' => 'Ir a Gremio',
             ],
         ];
     }
@@ -79,25 +100,7 @@ class OnboardingWidget extends Widget
         return $totalSteps > 0 ? round(($completedSteps / $totalSteps) * 100) : 0;
     }
 
-    protected function isCompanySetupCompleted(): bool
-    {
-        $user = auth()->user();
-        $company = $user?->company;
-
-        return $company &&
-               $company->name &&
-               $company->email &&
-               $company->phone;
-    }
-
-    protected function hasContacts(): bool
-    {
-        return auth()->user()?->company
-            ?->contacts()
-            ->exists() ?? false;
-    }
-
-    protected function hasInventoryItems(): bool
+    protected function hasClients(): bool
     {
         $company = auth()->user()?->company;
 
@@ -105,9 +108,49 @@ class OnboardingWidget extends Widget
             return false;
         }
 
-        return $company->papers()->exists() ||
-               $company->printingMachines()->exists() ||
-               $company->products()->exists();
+        return $company->contacts()
+            ->where(function ($query) {
+                $query->where('type', 'customer')
+                    ->orWhere('type', 'both');
+            })
+            ->exists();
+    }
+
+    protected function hasSuppliers(): bool
+    {
+        $company = auth()->user()?->company;
+
+        if (! $company) {
+            return false;
+        }
+
+        return $company->contacts()
+            ->where(function ($query) {
+                $query->where('type', 'supplier')
+                    ->orWhere('type', 'both');
+            })
+            ->exists();
+    }
+
+    protected function hasMachines(): bool
+    {
+        return auth()->user()?->company
+            ?->printingMachines()
+            ->exists() ?? false;
+    }
+
+    protected function hasPapers(): bool
+    {
+        return auth()->user()?->company
+            ?->papers()
+            ->exists() ?? false;
+    }
+
+    protected function hasSimpleItems(): bool
+    {
+        return auth()->user()?->company
+            ?->products()
+            ->exists() ?? false;
     }
 
     protected function hasQuotations(): bool
@@ -120,39 +163,70 @@ class OnboardingWidget extends Widget
             ->exists() ?? false;
     }
 
+    protected function hasPosts(): bool
+    {
+        $company = auth()->user()?->company;
+
+        if (! $company) {
+            return false;
+        }
+
+        return \App\Models\SocialPost::where('company_id', $company->id)
+            ->exists();
+    }
+
     public function hideOnboarding(): void
     {
         $user = auth()->user();
         if ($user) {
-            // Guardar preferencia en la metadata del usuario o en una tabla de configuración
-            $user->update([
-                'preferences' => array_merge(
-                    $user->preferences ?? [],
-                    ['hide_onboarding' => true]
-                )
-            ]);
+            // Obtener preferences actuales
+            $preferences = $user->preferences ?? [];
+            $preferences['hide_onboarding'] = true;
+
+            // Guardar preferencia
+            $user->preferences = $preferences;
+            $user->save();
         }
 
-        // Refrescar la página
-        $this->dispatch('onboarding-hidden');
+        // Redirigir para refrescar la página
+        $this->redirect('/admin');
     }
 
     public static function canView(): bool
     {
+        // Verificación temprana: si no hay usuario autenticado, ocultar
         if (! auth()->check()) {
             return false;
         }
 
         $user = auth()->user();
 
-        // Verificar si el usuario ocultó el onboarding
-        if (isset($user->preferences['hide_onboarding']) && $user->preferences['hide_onboarding']) {
+        // PRIMERA PRIORIDAD: Si el usuario ya ocultó el widget manualmente, SIEMPRE retornar false
+        $preferences = $user->preferences ?? [];
+        if (! empty($preferences['hide_onboarding'])) {
             return false;
         }
 
-        // Create a temporary instance to check progress
-        $widget = new static;
+        // SEGUNDA PRIORIDAD: Verificar si el onboarding está al 100%
+        try {
+            $widget = new static;
+            $progress = $widget->getOnboardingProgress();
 
-        return $widget->getOnboardingProgress() < 100;
+            if ($progress >= 100) {
+                // Auto-ocultar cuando esté al 100%
+                $preferences['hide_onboarding'] = true;
+                $user->preferences = $preferences;
+                $user->save();
+
+                return false;
+            }
+        } catch (\Exception $e) {
+            // Si hay error al calcular progreso, ocultar el widget
+            \Log::error('OnboardingWidget canView error: ' . $e->getMessage());
+            return false;
+        }
+
+        // Si llegamos aquí, mostrar el widget
+        return true;
     }
 }

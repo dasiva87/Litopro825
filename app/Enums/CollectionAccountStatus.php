@@ -2,7 +2,11 @@
 
 namespace App\Enums;
 
-enum CollectionAccountStatus: string
+use Filament\Support\Contracts\HasColor;
+use Filament\Support\Contracts\HasIcon;
+use Filament\Support\Contracts\HasLabel;
+
+enum CollectionAccountStatus: string implements HasColor, HasIcon, HasLabel
 {
     case DRAFT = 'draft';
     case SENT = 'sent';
@@ -10,7 +14,7 @@ enum CollectionAccountStatus: string
     case PAID = 'paid';
     case CANCELLED = 'cancelled';
 
-    public function label(): string
+    public function getLabel(): string
     {
         return match($this) {
             self::DRAFT => 'Borrador',
@@ -21,18 +25,18 @@ enum CollectionAccountStatus: string
         };
     }
 
-    public function color(): string
+    public function getColor(): string
     {
         return match($this) {
             self::DRAFT => 'gray',
-            self::SENT => 'warning',
-            self::APPROVED => 'info',
+            self::SENT => 'info',
+            self::APPROVED => 'warning',
             self::PAID => 'success',
             self::CANCELLED => 'danger',
         };
     }
 
-    public function icon(): string
+    public function getIcon(): string
     {
         return match($this) {
             self::DRAFT => 'heroicon-o-document',
