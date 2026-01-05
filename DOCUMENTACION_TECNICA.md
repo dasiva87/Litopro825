@@ -1,8 +1,8 @@
-# 📖 **LitoPro 3.0 - Documentación Técnica Completa**
+# 📖 **GrafiRed 3.0 - Documentación Técnica Completa**
 
 ## 🏗️ **Arquitectura General**
 
-LitoPro es un SaaS multi-tenant para litografías desarrollado en Laravel 12.25.0 con Filament 4.0.3, diseñado para gestionar cotizaciones, inventarios y producción de manera especializada.
+GrafiRed es un SaaS multi-tenant para litografías desarrollado en Laravel 12.25.0 con Filament 4.0.3, diseñado para gestionar cotizaciones, inventarios y producción de manera especializada.
 
 ### **Stack Tecnológico**
 - **Backend**: Laravel 12.25.0 + PHP 8.3.21
@@ -419,13 +419,13 @@ class ItemHandlerFactory
 }
 ```
 
-### **🎮 Dashboard LitoPro**
+### **🎮 Dashboard GrafiRed**
 
 #### **Página Personalizada:**
 ```php
 class LitoproDashboard extends Page
 {
-    protected string $view = 'filament.pages.litopro-dashboard';
+    protected string $view = 'filament.pages.grafired-dashboard';
     protected static ?string $slug = 'dashboard';
     protected static ?int $navigationSort = 1;
 }
@@ -443,7 +443,7 @@ class LitoproDashboard extends Page
 | `PaperCalculatorWidget` | Calculadora Canvas | HTML5 + visualización |
 
 #### **Topbar Personalizado:**
-- Logo LitoPro con ícono
+- Logo GrafiRed con ícono
 - Barra búsqueda central
 - Botones Dashboard/Red Social
 - Notificaciones con badge
@@ -775,11 +775,11 @@ php artisan pint && composer analyse
 php artisan migrate && php artisan db:seed
 
 # Demo completo con datos
-php artisan litopro:setup-demo --fresh
+php artisan grafired:setup-demo --fresh
 
 # Verificar/corregir precios
-php artisan litopro:fix-prices --dry-run
-php artisan litopro:fix-prices
+php artisan grafired:fix-prices --dry-run
+php artisan grafired:fix-prices
 ```
 
 ### **🛠️ Herramientas de Mantenimiento**
@@ -789,7 +789,7 @@ php artisan litopro:fix-prices
 // app/Console/Commands/SetupDemoCommand.php
 class SetupDemoCommand extends Command
 {
-    protected $signature = 'litopro:setup-demo {--fresh}';
+    protected $signature = 'grafired:setup-demo {--fresh}';
     
     public function handle()
     {
@@ -811,7 +811,7 @@ class SetupDemoCommand extends Command
 // app/Console/Commands/FixPricesCommand.php
 class FixPricesCommand extends Command
 {
-    protected $signature = 'litopro:fix-prices {--dry-run}';
+    protected $signature = 'grafired:fix-prices {--dry-run}';
     
     public function handle()
     {
@@ -836,17 +836,17 @@ class FixPricesCommand extends Command
 ### **🔧 Variables de Entorno**
 ```env
 # App Configuration
-APP_NAME="LitoPro"
+APP_NAME="GrafiRed"
 APP_ENV=production
 APP_DEBUG=false
-APP_URL=https://litopro.com
+APP_URL=https://grafired.com
 
 # Database
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_DATABASE=litopro_production
-DB_USERNAME=litopro_user
+DB_DATABASE=grafired_production
+DB_USERNAME=grafired_user
 DB_PASSWORD=secure_password
 
 # Multi-tenancy
@@ -885,7 +885,7 @@ services:
   database:
     image: mysql:8.0
     environment:
-      MYSQL_DATABASE: litopro
+      MYSQL_DATABASE: grafired
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
@@ -975,7 +975,7 @@ services:
 
 ## ✅ **CONCLUSIONES**
 
-LitoPro 3.0 representa una solución SaaS robusta y escalable para el sector litográfico, con:
+GrafiRed 3.0 representa una solución SaaS robusta y escalable para el sector litográfico, con:
 
 ### **🏆 Fortalezas Principales**
 - **Arquitectura Sólida**: Multi-tenancy + Polimorfismo bien implementado
@@ -997,4 +997,4 @@ El sistema está preparado para:
 - **Integraciones**: API REST foundation lista
 - **Performance**: Optimizaciones de base de datos implementadas
 
-**LitoPro 3.0 es una base sólida para el crecimiento del negocio de litografías en el mercado SaaS.**
+**GrafiRed 3.0 es una base sólida para el crecimiento del negocio de litografías en el mercado SaaS.**

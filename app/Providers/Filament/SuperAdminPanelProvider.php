@@ -34,10 +34,10 @@ class SuperAdminPanelProvider extends PanelProvider
                 'success' => Color::Emerald,
                 'warning' => Color::Orange,
             ])
-            ->brandName('LitoPro Super Admin')
+            ->brandName('GrafiRed Super Admin')
             ->favicon(asset('favicon.ico'))
-            ->brandLogo(fn () => view('components.litopro-logo'))
-            ->darkModeBrandLogo(fn () => view('components.litopro-logo-dark'))
+            ->brandLogo(fn () => view('components.grafired-logo'))
+            ->darkModeBrandLogo(fn () => view('components.grafired-logo-dark'))
             ->resources([
                 \App\Filament\SuperAdmin\Resources\PlanResource::class,
                 \App\Filament\SuperAdmin\Resources\SubscriptionResource::class,
@@ -47,12 +47,10 @@ class SuperAdminPanelProvider extends PanelProvider
                 \App\Filament\SuperAdmin\Resources\NotificationChannels\NotificationChannelResource::class,
                 \App\Filament\SuperAdmin\Resources\ApiIntegrations\ApiIntegrationResource::class,
                 \App\Filament\SuperAdmin\Resources\EnterprisePlans\EnterprisePlanResource::class,
+                \App\Filament\SuperAdmin\Resources\ActivityLogResource::class,
                 // Temporalmente comentadas para probar el registro
                 // \App\Filament\SuperAdmin\Resources\CompanyResource::class,
                 // \App\Filament\SuperAdmin\Resources\UserResource::class,
-                // ActivityLogResource: Problema fundamental con enum navigationGroup en Filament v4.0.3
-                // Requiere actualización de Filament o enfoque alternativo
-                // \App\Filament\SuperAdmin\Resources\ActivityLogResource::class,
             ])
             // ->discoverResources(in: app_path('Filament/SuperAdmin/Resources'), for: 'App\Filament\SuperAdmin\Resources')
             // ->discoverPages(in: app_path('Filament/SuperAdmin/Pages'), for: 'App\Filament\SuperAdmin\Pages')

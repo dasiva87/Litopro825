@@ -22,7 +22,7 @@
             <div style="flex: 1;">
                 <textarea
                     wire:model.live="content"
-                    placeholder="¿Qué quieres compartir con la comunidad de LitoPro? Promociones, trabajos terminados, consejos técnicos..."
+                    placeholder="¿Qué quieres compartir con la comunidad de GrafiRed? Promociones, trabajos terminados, consejos técnicos..."
                     style="width: 100%; border: none; outline: none; font-size: 16px; line-height: 1.5; color: #374151; resize: none; min-height: 60px; background: transparent;"
                     rows="3"
                     required

@@ -13,7 +13,7 @@ class RolePermissionSeeder extends Seeder
         // Reset cached roles and permissions
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // Crear permisos específicos para LitoPro
+        // Crear permisos específicos para GrafiRed
         $permissions = [
             // Gestión de empresas
             'view-companies',

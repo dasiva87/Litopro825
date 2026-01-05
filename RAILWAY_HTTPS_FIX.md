@@ -2,9 +2,9 @@
 
 ## ❌ Problema Identificado
 Los estilos de Filament no cargan porque Railway sirve recursos con HTTP en lugar de HTTPS:
-- `http://litopro825-production.up.railway.app/fonts/filament/...` ❌
-- `http://litopro825-production.up.railway.app/build/assets/...` ❌
-- `http://litopro825-production.up.railway.app/js/filament/...` ❌
+- `http://grafired825-production.up.railway.app/fonts/filament/...` ❌
+- `http://grafired825-production.up.railway.app/build/assets/...` ❌
+- `http://grafired825-production.up.railway.app/js/filament/...` ❌
 
 ## ✅ Solución Implementada
 
@@ -37,9 +37,9 @@ if (app()->environment('production')) {
 
 ```env
 APP_ENV=production
-APP_URL=https://litopro825-production.up.railway.app
-ASSET_URL=https://litopro825-production.up.railway.app
-MIX_ASSET_URL=https://litopro825-production.up.railway.app
+APP_URL=https://grafired825-production.up.railway.app
+ASSET_URL=https://grafired825-production.up.railway.app
+MIX_ASSET_URL=https://grafired825-production.up.railway.app
 FORCE_HTTPS=true
 ```
 
@@ -53,9 +53,9 @@ FORCE_HTTPS=true
 ## 📊 Resultado Esperado
 
 Después del fix, todos los recursos deben cargar con HTTPS:
-- ✅ `https://litopro825-production.up.railway.app/fonts/filament/...`
-- ✅ `https://litopro825-production.up.railway.app/build/assets/...`
-- ✅ `https://litopro825-production.up.railway.app/js/filament/...`
+- ✅ `https://grafired825-production.up.railway.app/fonts/filament/...`
+- ✅ `https://grafired825-production.up.railway.app/build/assets/...`
+- ✅ `https://grafired825-production.up.railway.app/js/filament/...`
 
 ## 🔧 Archivos Modificados
 

@@ -2,9 +2,9 @@
 
 ## 🚨 **Problema Identificado**
 Filament no carga porque **todos los recursos usan HTTP** en lugar de HTTPS:
-- ❌ `http://litopro825-production.up.railway.app/js/filament/schemas/schemas.js`
-- ❌ `http://litopro825-production.up.railway.app/css/filament/filament/app.css`
-- ❌ `http://litopro825-production.up.railway.app/fonts/filament/...`
+- ❌ `http://grafired825-production.up.railway.app/js/filament/schemas/schemas.js`
+- ❌ `http://grafired825-production.up.railway.app/css/filament/filament/app.css`
+- ❌ `http://grafired825-production.up.railway.app/fonts/filament/...`
 
 ## ✅ **Solución: Configurar Variables en Railway**
 
@@ -12,23 +12,23 @@ Filament no carga porque **todos los recursos usan HTTP** en lugar de HTTPS:
 
 ```env
 APP_ENV=production
-APP_URL=https://litopro825-production.up.railway.app
-ASSET_URL=https://litopro825-production.up.railway.app
+APP_URL=https://grafired825-production.up.railway.app
+ASSET_URL=https://grafired825-production.up.railway.app
 FORCE_HTTPS=true
 ```
 
 ### **Pasos en Railway Dashboard:**
 
 1. **Ir a** Railway Dashboard
-2. **Seleccionar** proyecto LitoPro825
+2. **Seleccionar** proyecto GrafiRed825
 3. **Clic en** "Variables" tab
 4. **Agregar** cada variable:
 
 | Variable | Valor |
 |----------|-------|
 | `APP_ENV` | `production` |
-| `APP_URL` | `https://litopro825-production.up.railway.app` |
-| `ASSET_URL` | `https://litopro825-production.up.railway.app` |
+| `APP_URL` | `https://grafired825-production.up.railway.app` |
+| `ASSET_URL` | `https://grafired825-production.up.railway.app` |
 | `FORCE_HTTPS` | `true` |
 
 5. **Redeploy** el proyecto
@@ -57,9 +57,9 @@ FORCE_HTTPS=true
 Después de configurar las variables:
 
 ```
-✅ https://litopro825-production.up.railway.app/js/filament/schemas/schemas.js
-✅ https://litopro825-production.up.railway.app/css/filament/filament/app.css
-✅ https://litopro825-production.up.railway.app/fonts/filament/...
+✅ https://grafired825-production.up.railway.app/js/filament/schemas/schemas.js
+✅ https://grafired825-production.up.railway.app/css/filament/filament/app.css
+✅ https://grafired825-production.up.railway.app/fonts/filament/...
 ```
 
 ## 🔄 **Orden de Aplicación**

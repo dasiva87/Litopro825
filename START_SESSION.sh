@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# LitoPro 3.0 - Comando de Inicio de Sesión
+# GrafiRed 3.0 - Comando de Inicio de Sesión
 # Última actualización: 06-Nov-2025 - Sprint 15 Completado
 
 clear
 
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║         LitoPro 3.0 - SaaS para Litografías               ║"
+echo "║         GrafiRed 3.0 - SaaS para Litografías               ║"
 echo "║         SPRINT 15 COMPLETADO (06-Nov-2025)                ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
@@ -64,7 +64,7 @@ echo "🚀 Iniciando servidor..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-cd /home/dasiva/Descargas/litopro825
+cd /home/dasiva/Descargas/grafired825
 
 # Iniciar servidor
 php artisan serve --port=8000 &

@@ -143,7 +143,7 @@
 
                 <!-- Title -->
                 <h1 class="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 mb-3">
-                    LitoPro
+                    GrafiRed
                 </h1>
                 <p class="text-lg text-slate-600 max-w-2xl mx-auto font-medium">
                     Gestiona tu litografía de forma profesional

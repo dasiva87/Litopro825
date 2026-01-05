@@ -66,7 +66,7 @@ class CompleteProfileController extends Controller
             DB::commit();
 
             return redirect()->route('filament.admin.pages.dashboard')
-                ->with('success', '¡Perfil completado exitosamente! Ahora puedes acceder a todas las funcionalidades de LitoPro.');
+                ->with('success', '¡Perfil completado exitosamente! Ahora puedes acceder a todas las funcionalidades de GrafiRed.');
 
         } catch (\Exception $e) {
             DB::rollBack();

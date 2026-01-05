@@ -134,8 +134,8 @@ Los acabados necesitaban un proveedor (`supplier_id`), pero cuando un acabado es
 Contact {
     id: 9,
     company_id: 1,
-    name: "LitoPro Demo (Producción Propia)",
-    email: "produccion@litoprodemo.com",
+    name: "GrafiRed Demo (Producción Propia)",
+    email: "produccion@grafireddemo.com",
 }
 ```
 
@@ -218,7 +218,7 @@ $acabado = Finishing::create([
 ]);
 
 // Resultado:
-// supplier_id = 9 (Auto-asignado a "LitoPro Demo (Producción Propia)")
+// supplier_id = 9 (Auto-asignado a "GrafiRed Demo (Producción Propia)")
 ```
 
 #### Caso 2: Crear Acabado Externo
@@ -738,7 +738,7 @@ $grouped = [
             ]
         ],
     ],
-    9 => [  // LitoPro Demo (Producción Propia)
+    9 => [  // GrafiRed Demo (Producción Propia)
         'printing' => [],
         'finishings' => [
             [
@@ -944,7 +944,7 @@ $acabados = \App\Models\Finishing::whereNull('supplier_id')->get();
 
 foreach ($acabados as $acabado) {
     if ($acabado->is_own_provider) {
-        $acabado->supplier_id = 9; // LitoPro Demo (Producción Propia)
+        $acabado->supplier_id = 9; // GrafiRed Demo (Producción Propia)
     } else {
         $acabado->supplier_id = 3; // Distribuidora de Papel Colombia
     }
@@ -1172,8 +1172,8 @@ Action::make('generate_production_orders')
 Contact {
     id: 9,
     company_id: 1,
-    name: "LitoPro Demo (Producción Propia)",
-    email: "produccion@litoprodemo.com",
+    name: "GrafiRed Demo (Producción Propia)",
+    email: "produccion@grafireddemo.com",
     type: null,
     created_at: "2025-11-15",
     updated_at: "2025-11-15",

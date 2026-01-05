@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pago Pendiente - LitoPro</title>
+    <title>Pago Pendiente - GrafiRed</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-gray-50">
@@ -62,8 +62,8 @@
                 <div class="mt-6 text-sm text-gray-500">
                     <p>
                         Si tienes alguna pregunta, contacta nuestro soporte:
-                        <a href="mailto:soporte@litopro.com" class="text-blue-600 hover:text-blue-500">
-                            soporte@litopro.com
+                        <a href="mailto:soporte@grafired.com" class="text-blue-600 hover:text-blue-500">
+                            soporte@grafired.com
                         </a>
                     </p>
                 </div>

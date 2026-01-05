@@ -18,7 +18,7 @@ class TestDataSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->command->info('🚀 Creando datos de prueba para LitoPro...');
+        $this->command->info('🚀 Creando datos de prueba para GrafiRed...');
 
         // 1. Crear roles básicos del sistema
         $this->createRoles();
@@ -36,9 +36,9 @@ class TestDataSeeder extends Seeder
         $this->command->info('');
         $this->command->info('📋 DATOS DE ACCESO:');
         $this->command->info('🏢 Empresa: ' . $company->name);
-        $this->command->info('👤 Admin: admin@litopro.test | password: password');
-        $this->command->info('👤 Manager: manager@litopro.test | password: password');
-        $this->command->info('👤 Employee: employee@litopro.test | password: password');
+        $this->command->info('👤 Admin: admin@grafired.test | password: password');
+        $this->command->info('👤 Manager: manager@grafired.test | password: password');
+        $this->command->info('👤 Employee: employee@grafired.test | password: password');
         $this->command->info('');
         $this->command->info('🌐 URL: /admin');
     }
@@ -134,10 +134,10 @@ class TestDataSeeder extends Seeder
         $this->command->info('🏢 Creando empresa de prueba...');
 
         $company = Company::firstOrCreate(
-            ['slug' => 'litopro-demo'],
+            ['slug' => 'grafired-demo'],
             [
-                'name' => 'LitoPro Demo',
-                'email' => 'info@litopro-demo.com',
+                'name' => 'GrafiRed Demo',
+                'email' => 'info@grafired-demo.com',
                 'phone' => '+57 300 123 4567',
                 'tax_id' => '900123456-7',
                 'address' => 'Carrera 15 #93-47, Oficina 501, Bogotá D.C.',
@@ -159,19 +159,19 @@ class TestDataSeeder extends Seeder
         $users = [
             [
                 'name' => 'Administrador Sistema',
-                'email' => 'admin@litopro.test',
+                'email' => 'admin@grafired.test',
                 'role' => 'Company Admin',
                 'position' => 'Gerente General'
             ],
             [
                 'name' => 'María Rodríguez',
-                'email' => 'manager@litopro.test', 
+                'email' => 'manager@grafired.test', 
                 'role' => 'Manager',
                 'position' => 'Jefe de Ventas'
             ],
             [
                 'name' => 'Carlos López',
-                'email' => 'employee@litopro.test',
+                'email' => 'employee@grafired.test',
                 'role' => 'Employee', 
                 'position' => 'Diseñador Gráfico'
             ]

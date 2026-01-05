@@ -1,4 +1,4 @@
-# LitoPro 3.0 - Inventario Completo del Proyecto
+# GrafiRed 3.0 - Inventario Completo del Proyecto
 
 **Generado:** 2025-11-07  
 **Versión del Sistema:** Laravel 12.25.0 + Filament 4.0.3 + PHP 8.3.21
@@ -1585,7 +1585,7 @@ PricingResult {
 php artisan test                    # Testing completo
 php artisan pint && composer analyse    # Lint + análisis
 php artisan migrate && php artisan db:seed  # Setup BD
-php artisan litopro:setup-demo --fresh     # Demo completo
+php artisan grafired:setup-demo --fresh     # Demo completo
 php artisan serve --port=8000      # Servidor de desarrollo
 ```
 
@@ -1593,4 +1593,4 @@ php artisan serve --port=8000      # Servidor de desarrollo
 
 **Fin del Inventario Completo**
 
-Este documento es un mapa completo del proyecto LitoPro 3.0 y debe actualizarse con cada cambio significativo en la arquitectura.
+Este documento es un mapa completo del proyecto GrafiRed 3.0 y debe actualizarse con cada cambio significativo en la arquitectura.

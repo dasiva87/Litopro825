@@ -61,7 +61,7 @@ Ver Todas las Órdenes
 Manténganse al tanto del estado de sus órdenes para optimizar los procesos de aprovisionamiento.
 
 Saludos,
-**Sistema LitoPro**
+**Sistema GrafiRed**
 
 ---
 *Este resumen se envía automáticamente cada día. Para cancelar estas notificaciones, contacten al administrador del sistema.*

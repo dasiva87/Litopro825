@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Completar Perfil - LitoPro</title>
+    <title>Completar Perfil - GrafiRed</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         .input-error {
@@ -119,7 +119,7 @@
                 </div>
                 <div class="ml-3">
                     <h3 class="text-sm font-medium text-blue-800">
-                        ¡Bienvenido a LitoPro, {{ auth()->user()->name }}!
+                        ¡Bienvenido a GrafiRed, {{ auth()->user()->name }}!
                     </h3>
                     <div class="mt-2 text-sm text-blue-700">
                         <p>Tu cuenta ha sido creada exitosamente. Solo necesitamos algunos datos adicionales de tu empresa para personalizar mejor tu experiencia.</p>
@@ -307,7 +307,7 @@
                 <div>
                     <h4 class="font-medium text-gray-900 mb-2">¿Es segura mi información?</h4>
                     <p class="text-sm text-gray-600">
-                        Sí, toda tu información está protegida y solo se usa para mejorar tu experiencia en LitoPro.
+                        Sí, toda tu información está protegida y solo se usa para mejorar tu experiencia en GrafiRed.
                         Nunca compartimos tus datos con terceros.
                     </p>
                 </div>

@@ -3,7 +3,7 @@
     <div class="mb-6 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg p-6 text-white">
         <div class="flex items-center justify-between">
             <div>
-                <h2 class="text-2xl font-bold">Sistema LitoPro SaaS</h2>
+                <h2 class="text-2xl font-bold">Sistema GrafiRed SaaS</h2>
                 <p class="text-purple-100 mt-1">Panel de control para super administradores</p>
             </div>
             <div class="text-right">
@@ -83,7 +83,7 @@
                     Sistema Super Admin Funcionando
                 </h3>
                 <div class="mt-2 text-sm text-green-700">
-                    <p>Panel de super administración de LitoPro SaaS activo y funcional.</p>
+                    <p>Panel de super administración de GrafiRed SaaS activo y funcional.</p>
                 </div>
             </div>
         </div>

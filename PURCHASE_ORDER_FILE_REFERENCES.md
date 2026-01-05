@@ -9,7 +9,7 @@ Total de archivos implicados: **16 archivos principales + 2 eventos/listeners**
 ## Modelos (3 archivos)
 
 ### 1. PurchaseOrder.php
-**Ruta**: `/home/dasiva/Descargas/litopro825/app/Models/PurchaseOrder.php`
+**Ruta**: `/home/dasiva/Descargas/grafired825/app/Models/PurchaseOrder.php`
 **Líneas**: 269
 **Importancia**: CRÍTICA
 
@@ -52,7 +52,7 @@ Total de archivos implicados: **16 archivos principales + 2 eventos/listeners**
 ---
 
 ### 2. PurchaseOrderItem.php
-**Ruta**: `/home/dasiva/Descargas/litopro825/app/Models/PurchaseOrderItem.php`
+**Ruta**: `/home/dasiva/Descargas/grafired825/app/Models/PurchaseOrderItem.php`
 **Líneas**: 125
 **Importancia**: MEDIA
 
@@ -77,7 +77,7 @@ Total de archivos implicados: **16 archivos principales + 2 eventos/listeners**
 ---
 
 ### 3. OrderStatusHistory.php
-**Ruta**: `/home/dasiva/Descargas/litopro825/app/Models/OrderStatusHistory.php`
+**Ruta**: `/home/dasiva/Descargas/grafired825/app/Models/OrderStatusHistory.php`
 **Líneas**: Desconocidas
 **Importancia**: MEDIA
 
@@ -91,7 +91,7 @@ Total de archivos implicados: **16 archivos principales + 2 eventos/listeners**
 ## Eventos (2 archivos)
 
 ### 4. PurchaseOrderStatusChanged (Event)
-**Ruta**: `/home/dasiva/Descargas/litopro825/app/Events/PurchaseOrderStatusChanged.php`
+**Ruta**: `/home/dasiva/Descargas/grafired825/app/Events/PurchaseOrderStatusChanged.php`
 **Líneas**: 25
 **Importancia**: BAJA (no se usa)
 
@@ -113,7 +113,7 @@ class PurchaseOrderStatusChanged {
 ---
 
 ### 5. NotifyPurchaseOrderStatusChange (Listener)
-**Ruta**: `/home/dasiva/Descargas/litopro825/app/Listeners/NotifyPurchaseOrderStatusChange.php`
+**Ruta**: `/home/dasiva/Descargas/grafired825/app/Listeners/NotifyPurchaseOrderStatusChange.php`
 **Líneas**: 26
 **Importancia**: BAJA (vacío)
 
@@ -129,7 +129,7 @@ class PurchaseOrderStatusChanged {
 ## Notificaciones (2 archivos)
 
 ### 6. PurchaseOrderCreated.php
-**Ruta**: `/home/dasiva/Descargas/litopro825/app/Notifications/PurchaseOrderCreated.php`
+**Ruta**: `/home/dasiva/Descargas/grafired825/app/Notifications/PurchaseOrderCreated.php`
 **Líneas**: 59
 **Importancia**: CRÍTICA
 
@@ -154,7 +154,7 @@ class PurchaseOrderStatusChanged {
 ---
 
 ### 7. PurchaseOrderStatusChanged (Notification)
-**Ruta**: `/home/dasiva/Descargas/litopro825/app/Notifications/PurchaseOrderStatusChanged.php`
+**Ruta**: `/home/dasiva/Descargas/grafired825/app/Notifications/PurchaseOrderStatusChanged.php`
 **Líneas**: 73
 **Importancia**: CRÍTICA
 
@@ -185,7 +185,7 @@ public function __construct(
 ## Filament Resources (8 archivos)
 
 ### 8. PurchaseOrderResource.php
-**Ruta**: `/home/dasiva/Descargas/litopro825/app/Filament/Resources/PurchaseOrders/PurchaseOrderResource.php`
+**Ruta**: `/home/dasiva/Descargas/grafired825/app/Filament/Resources/PurchaseOrders/PurchaseOrderResource.php`
 **Líneas**: 80
 **Importancia**: MEDIA
 
@@ -209,7 +209,7 @@ public function __construct(
 ---
 
 ### 9. CreatePurchaseOrder.php
-**Ruta**: `/home/dasiva/Descargas/litopro825/app/Filament/Resources/PurchaseOrders/Pages/CreatePurchaseOrder.php`
+**Ruta**: `/home/dasiva/Descargas/grafired825/app/Filament/Resources/PurchaseOrders/Pages/CreatePurchaseOrder.php`
 **Líneas**: 13
 **Importancia**: BAJA
 
@@ -218,7 +218,7 @@ public function __construct(
 ---
 
 ### 10. EditPurchaseOrder.php
-**Ruta**: `/home/dasiva/Descargas/litopro825/app/Filament/Resources/PurchaseOrders/Pages/EditPurchaseOrder.php`
+**Ruta**: `/home/dasiva/Descargas/grafired825/app/Filament/Resources/PurchaseOrders/Pages/EditPurchaseOrder.php`
 **Líneas**: 55
 **Importancia**: MEDIA
 
@@ -237,21 +237,21 @@ public function __construct(
 ---
 
 ### 11. ListPurchaseOrders.php
-**Ruta**: `/home/dasiva/Descargas/litopro825/app/Filament/Resources/PurchaseOrders/Pages/ListPurchaseOrders.php`
+**Ruta**: `/home/dasiva/Descargas/grafired825/app/Filament/Resources/PurchaseOrders/Pages/ListPurchaseOrders.php`
 **Líneas**: Desconocidas
 **Importancia**: BAJA
 
 ---
 
 ### 12. ViewPurchaseOrder.php
-**Ruta**: `/home/dasiva/Descargas/litopro825/app/Filament/Resources/PurchaseOrders/Pages/ViewPurchaseOrder.php`
+**Ruta**: `/home/dasiva/Descargas/grafired825/app/Filament/Resources/PurchaseOrders/Pages/ViewPurchaseOrder.php`
 **Líneas**: Desconocidas
 **Importancia**: BAJA
 
 ---
 
 ### 13. PurchaseOrderForm.php
-**Ruta**: `/home/dasiva/Descargas/litopro825/app/Filament/Resources/PurchaseOrders/Schemas/PurchaseOrderForm.php`
+**Ruta**: `/home/dasiva/Descargas/grafired825/app/Filament/Resources/PurchaseOrders/Schemas/PurchaseOrderForm.php`
 **Líneas**: 100+
 **Importancia**: MEDIA
 
@@ -269,14 +269,14 @@ public function __construct(
 ---
 
 ### 14. PurchaseOrdersTable.php
-**Ruta**: `/home/dasiva/Descargas/litopro825/app/Filament/Resources/PurchaseOrders/Tables/PurchaseOrdersTable.php`
+**Ruta**: `/home/dasiva/Descargas/grafired825/app/Filament/Resources/PurchaseOrders/Tables/PurchaseOrdersTable.php`
 **Líneas**: Desconocidas
 **Importancia**: MEDIA
 
 ---
 
 ### 15. PurchaseOrderItemsRelationManager.php
-**Ruta**: `/home/dasiva/Descargas/litopro825/app/Filament/Resources/PurchaseOrders/RelationManagers/PurchaseOrderItemsRelationManager.php`
+**Ruta**: `/home/dasiva/Descargas/grafired825/app/Filament/Resources/PurchaseOrders/RelationManagers/PurchaseOrderItemsRelationManager.php`
 **Líneas**: Desconocidas
 **Importancia**: MEDIA
 
@@ -285,7 +285,7 @@ public function __construct(
 ## Documento Resource (1 archivo principal, acción en tabla)
 
 ### 16. DocumentsTable.php
-**Ruta**: `/home/dasiva/Descargas/litopro825/app/Filament/Resources/Documents/Tables/DocumentsTable.php`
+**Ruta**: `/home/dasiva/Descargas/grafired825/app/Filament/Resources/Documents/Tables/DocumentsTable.php`
 **Líneas**: 529+
 **Importancia**: CRÍTICA
 
@@ -355,7 +355,7 @@ public function __construct(
 ## Servicios (1 archivo)
 
 ### 17. PurchaseOrderPdfService.php
-**Ruta**: `/home/dasiva/Descargas/litopro825/app/Services/PurchaseOrderPdfService.php`
+**Ruta**: `/home/dasiva/Descargas/grafired825/app/Services/PurchaseOrderPdfService.php`
 **Líneas**: Desconocidas
 **Importancia**: MEDIA
 
@@ -372,7 +372,7 @@ public function __construct(
 ## Enums (1 archivo)
 
 ### 18. OrderStatus.php
-**Ruta**: `/home/dasiva/Descargas/litopro825/app/Enums/OrderStatus.php`
+**Ruta**: `/home/dasiva/Descargas/grafired825/app/Enums/OrderStatus.php`
 **Líneas**: Desconocidas
 **Importancia**: MEDIA
 

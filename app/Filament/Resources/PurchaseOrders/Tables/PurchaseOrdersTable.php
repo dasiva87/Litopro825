@@ -30,12 +30,12 @@ class PurchaseOrdersTable
                     ->sortable()
                     ->copyable(),
 
-                TextColumn::make('supplierCompany.name')
+                TextColumn::make('supplier_name')
                     ->label('Proveedor')
-                    ->searchable()
-                    ->sortable()
+                    ->getStateUsing(fn ($record) => $record->supplierCompany?->name ?? $record->supplier?->name ?? 'Sin proveedor')
                     ->badge()
-                    ->color('primary'),
+                    ->color('primary')
+                    ->tooltip(fn ($record) => $record->supplierCompany?->email ?? $record->supplier?->email ?? null),
 
                 TextColumn::make('status')
                     ->label('Estado')
@@ -280,6 +280,8 @@ class PurchaseOrdersTable
                 // CRÍTICO: Remover el TenantScope global para aplicar lógica personalizada
                 // El scope global solo filtra por company_id, pero necesitamos también supplier_company_id
                 return $query->withoutGlobalScopes()
+                    ->select('purchase_orders.*')
+                    ->leftJoin('companies', 'companies.id', '=', 'purchase_orders.supplier_company_id')
                     ->whereRaw(
                         "(purchase_orders.company_id = ? OR purchase_orders.supplier_company_id = ?)",
                         [$companyId, $companyId]
@@ -287,6 +289,7 @@ class PurchaseOrdersTable
                     ->with([
                         'documentItems.itemable',
                         'supplierCompany',
+                        'supplier',
                         'createdBy',
                     ]);
             })

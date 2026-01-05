@@ -1,4 +1,4 @@
-# LitoPro 3.0 - Sistema de Notificaciones - REFERENCIAS DE ARCHIVOS
+# GrafiRed 3.0 - Sistema de Notificaciones - REFERENCIAS DE ARCHIVOS
 
 ## Ubicación de Todos los Archivos Relacionados
 

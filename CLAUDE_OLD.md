@@ -1,4 +1,4 @@
-# LitoPro 3.0 - SaaS para Litografías
+# GrafiRed 3.0 - SaaS para Litografías
 
 ## Stack & Arquitectura
 - **Laravel 12.25.0 + PHP 8.3.21 + Filament 4.0.3 + MySQL**
@@ -10,8 +10,8 @@
 php artisan test                    # Testing completo
 php artisan pint && composer analyse    # Lint + análisis
 php artisan migrate && php artisan db:seed  # Setup BD
-php artisan litopro:setup-demo --fresh     # Demo completo
-php artisan litopro:fix-prices --dry-run   # Verificar precios
+php artisan grafired:setup-demo --fresh     # Demo completo
+php artisan grafired:fix-prices --dry-run   # Verificar precios
 ```
 
 ## Convenciones Filament v4
@@ -124,9 +124,9 @@ Total = (width/100 × height/100) × unit_value × quantity
 
 ### Comandos Disponibles
 ```bash
-php artisan litopro:setup-demo --fresh       # Demo completo
-php artisan litopro:fix-prices --dry-run     # Verificar precios 0
-php artisan litopro:fix-prices               # Corregir automático
+php artisan grafired:setup-demo --fresh       # Demo completo
+php artisan grafired:fix-prices --dry-run     # Verificar precios 0
+php artisan grafired:fix-prices               # Corregir automático
 ```
 
 ### Métodos Helper DocumentItem
@@ -154,7 +154,7 @@ public static function fixZeroPrices(): int       // Corrección masiva
 ### Acceso Demo
 ```bash
 URL: /admin
-Usuario: demo@litopro.test / admin@litopro.test
+Usuario: demo@grafired.test / admin@grafired.test
 Password: password
 ```
 
@@ -554,7 +554,7 @@ resources/views/filament/components/
 ## COMANDO PARA CONTINUAR MAÑANA
 ```bash
 # Iniciar sesión de trabajo
-cd /home/dasiva/Descargas/litopro825
+cd /home/dasiva/Descargas/grafired825
 
 # Verificar estado actual del sistema
 php artisan migrate:status
@@ -564,7 +564,7 @@ git status --short
 php artisan serve --port=8001
 
 # Verificar funcionalidades completadas
-echo "✅ Dashboard LitoPro: http://localhost:8001/admin/dashboard"
+echo "✅ Dashboard GrafiRed: http://localhost:8001/admin/dashboard"
 echo "✅ Super Admin Panel: http://localhost:8001/super-admin"
 echo "✅ Sistema Seguimiento Empresas: Widget funcional + perfiles completos"
 echo "✅ MagazineItem Wizard: Crear revistas con páginas en un solo flujo"

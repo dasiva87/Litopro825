@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>¡Suscripción Exitosa! - LitoPro</title>
+    <title>¡Suscripción Exitosa! - GrafiRed</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50">
@@ -19,7 +19,7 @@
 
                 <!-- Success Message -->
                 <h2 class="text-3xl font-bold text-gray-900 mb-4">
-                    ¡Bienvenido a LitoPro!
+                    ¡Bienvenido a GrafiRed!
                 </h2>
 
                 <p class="text-lg text-gray-600 mb-8">
@@ -110,7 +110,7 @@
                 <div class="mt-8 text-center">
                     <p class="text-sm text-gray-600">
                         ¿Necesitas ayuda?
-                        <a href="mailto:soporte@litopro.com" class="text-blue-600 hover:text-blue-500">
+                        <a href="mailto:soporte@grafired.com" class="text-blue-600 hover:text-blue-500">
                             Contáctanos
                         </a>
                     </p>

@@ -1,4 +1,4 @@
-# LitoPro 3.0 - Documento Maestro de Control de Cambios
+# GrafiRed 3.0 - Documento Maestro de Control de Cambios
 
 **Versión del Sistema:** Laravel 12.25.0 + Filament 4.0.3 + PHP 8.3.21
 **Última Actualización:** 2025-11-07
@@ -27,7 +27,7 @@
 ## 🎯 INFORMACIÓN GENERAL DEL PROYECTO
 
 ### Descripción
-LitoPro 3.0 es un **SaaS multi-tenant** para gestión de litografías y papelerías, que permite:
+GrafiRed 3.0 es un **SaaS multi-tenant** para gestión de litografías y papelerías, que permite:
 - Cotización automática con cálculos técnicos avanzados
 - Gestión de órdenes de producción y compra
 - Control de inventario con alertas inteligentes
@@ -921,7 +921,7 @@ Document (cotización aprobada)
 
 ### 4 Tipos de Notificaciones
 
-LitoPro 3.0 tiene **4 sistemas de notificaciones** independientes:
+GrafiRed 3.0 tiene **4 sistemas de notificaciones** independientes:
 
 #### 1. Notificaciones Sociales (SocialNotification)
 
@@ -1080,7 +1080,7 @@ Para documentación detallada del sistema de notificaciones, ver:
 ### Sistema Multi-Tenant
 
 #### Arquitectura
-LitoPro 3.0 usa **multi-tenancy por company_id** con aislamiento total de datos.
+GrafiRed 3.0 usa **multi-tenancy por company_id** con aislamiento total de datos.
 
 **Trait Principal:** `BelongsToTenant`
 **Archivo:** `app/Models/Concerns/BelongsToTenant.php`
@@ -1283,7 +1283,7 @@ if (!$service->canAccessFeature($company, 'advanced_reports')) {
 
 ### Arquitectura de Cálculo (Sprint 13)
 
-LitoPro 3.0 usa un sistema de cálculo modular con **3 servicios principales**:
+GrafiRed 3.0 usa un sistema de cálculo modular con **3 servicios principales**:
 
 ```
 SimpleItemCalculatorService (Orquestador)
@@ -2113,7 +2113,7 @@ public static function canViewAny(): bool
 | 3.0.13 | 2025-11-05 | Nuevo sistema de montaje con divisor |
 | 3.0.12 | - | Sistema de órdenes multi-paper |
 | 3.0.11 | - | Red social empresarial |
-| 3.0.0 | - | Lanzamiento inicial LitoPro 3.0 |
+| 3.0.0 | - | Lanzamiento inicial GrafiRed 3.0 |
 
 ### Cómo Mantener Este Documento
 
@@ -2156,7 +2156,7 @@ public static function canViewAny(): bool
 |-----------|-----------|
 | `README_INVENTARIO.md` | Índice de navegación |
 | `RESUMEN_EJECUTIVO_INVENTARIO.md` | Resumen ejecutivo rápido |
-| `PROYECTO_LITOPRO_INVENTARIO_COMPLETO.md` | Inventario técnico completo |
+| `PROYECTO_GRAFIRED_INVENTARIO_COMPLETO.md` | Inventario técnico completo |
 | `NOTIFICATION_SYSTEM_SUMMARY.md` | Guía de notificaciones |
 | `CLAUDE.md` | Instrucciones para Claude |
 
@@ -2183,7 +2183,7 @@ php artisan test --filter SimpleItemTest
 
 # Base de Datos
 php artisan migrate:fresh --seed
-php artisan litopro:setup-demo --fresh
+php artisan grafired:setup-demo --fresh
 
 # Caché
 php artisan config:cache

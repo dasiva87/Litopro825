@@ -1,8 +1,8 @@
-# LitoPro 3.0 - Sistema de Notificaciones - RESUMEN EJECUTIVO
+# GrafiRed 3.0 - Sistema de Notificaciones - RESUMEN EJECUTIVO
 
 ## Visión General
 
-LitoPro 3.0 implementa un **sistema de notificaciones multi-propósito, escalable y completamente aislado por empresa**. El sistema maneja **4 tipos principales de notificaciones** con canales de entrega flexibles y soporte para procesamiento asíncrono.
+GrafiRed 3.0 implementa un **sistema de notificaciones multi-propósito, escalable y completamente aislado por empresa**. El sistema maneja **4 tipos principales de notificaciones** con canales de entrega flexibles y soporte para procesamiento asíncrono.
 
 ---
 
@@ -479,7 +479,7 @@ $stats = $service->getNotificationStats(days: 7);
 
 ## Conclusión
 
-LitoPro 3.0 implementa un sistema de notificaciones **robusto, escalable y extensible** que soporta múltiples tipos de notificaciones con aislamiento total por empresa. La arquitectura de capas permite agregar nuevos canales y tipos de notificaciones sin modificar el código existente.
+GrafiRed 3.0 implementa un sistema de notificaciones **robusto, escalable y extensible** que soporta múltiples tipos de notificaciones con aislamiento total por empresa. La arquitectura de capas permite agregar nuevos canales y tipos de notificaciones sin modificar el código existente.
 
 El sistema está listo para producción con suporte para notificaciones sociales, alertas de stock, órdenes de compra y un sistema avanzado configurable para casos de uso personalizados.
 

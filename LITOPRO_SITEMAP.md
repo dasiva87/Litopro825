@@ -1,4 +1,4 @@
-# LitoPro 3.0 - Sitemap Completo del Sistema
+# GrafiRed 3.0 - Sitemap Completo del Sistema
 
 **Fecha de Generación**: 2025-11-07  
 **Versión**: 3.0  
@@ -1406,7 +1406,7 @@ enum CompanyType: string {
 
 ## Conclusión
 
-Este sitemap documenta la arquitectura completa de LitoPro 3.0, incluyendo:
+Este sitemap documenta la arquitectura completa de GrafiRed 3.0, incluyendo:
 
 - **19 Recursos CRUD** completos
 - **11 Páginas personalizadas**
@@ -1426,4 +1426,4 @@ Este sitemap documenta la arquitectura completa de LitoPro 3.0, incluyendo:
 
 **Generado**: 2025-11-07  
 **Autor**: Claude Code (Assistant)  
-**Versión LitoPro**: 3.0
+**Versión GrafiRed**: 3.0

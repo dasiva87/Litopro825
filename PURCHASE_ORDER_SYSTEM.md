@@ -1,4 +1,4 @@
-# Sistema de Órdenes de Pedido (Purchase Orders) - LitoPro 3.0
+# Sistema de Órdenes de Pedido (Purchase Orders) - GrafiRed 3.0
 
 ## Visión General
 
@@ -21,7 +21,7 @@ Notificación enviada (Proveedor + Usuarios internos)
 
 ### 1.1 PurchaseOrder (Modelo Principal)
 
-**Ubicación**: `/home/dasiva/Descargas/litopro825/app/Models/PurchaseOrder.php`
+**Ubicación**: `/home/dasiva/Descargas/grafired825/app/Models/PurchaseOrder.php`
 
 **Tabla**: `purchase_orders`
 
@@ -101,7 +101,7 @@ Se ejecuta ANTES de actualizar:
 
 ### 1.2 PurchaseOrderItem (Pivot Entity)
 
-**Ubicación**: `/home/dasiva/Descargas/litopro825/app/Models/PurchaseOrderItem.php`
+**Ubicación**: `/home/dasiva/Descargas/grafired825/app/Models/PurchaseOrderItem.php`
 
 **Tabla**: `document_item_purchase_order` (pivot)
 
@@ -150,7 +150,7 @@ paper()               // Paper (BelongsTo)
 
 ### 2.1 Evento: PurchaseOrderStatusChanged
 
-**Ubicación**: `/home/dasiva/Descargas/litopro825/app/Events/PurchaseOrderStatusChanged.php`
+**Ubicación**: `/home/dasiva/Descargas/grafired825/app/Events/PurchaseOrderStatusChanged.php`
 
 **Propósito**: Se crea cuando cambia el estado de una orden de pedido
 
@@ -181,7 +181,7 @@ class PurchaseOrderStatusChanged
 
 #### A) PurchaseOrderCreated
 
-**Ubicación**: `/home/dasiva/Descargas/litopro825/app/Notifications/PurchaseOrderCreated.php`
+**Ubicación**: `/home/dasiva/Descargas/grafired825/app/Notifications/PurchaseOrderCreated.php`
 
 **Se envía cuando**:
 - Se crea una nueva orden de pedido (PurchaseOrder::created hook)
@@ -214,7 +214,7 @@ public function toArray(object $notifiable): array {
 
 #### B) PurchaseOrderStatusChanged
 
-**Ubicación**: `/home/dasiva/Descargas/litopro825/app/Notifications/PurchaseOrderStatusChanged.php`
+**Ubicación**: `/home/dasiva/Descargas/grafired825/app/Notifications/PurchaseOrderStatusChanged.php`
 
 **Se envía cuando**:
 - El estado de una orden cambia (PurchaseOrder::updating hook)
@@ -246,7 +246,7 @@ public function toArray(object $notifiable): array {
 
 ### 3.1 Punto de Entrada: DocumentsTable
 
-**Ubicación**: `/home/dasiva/Descargas/litopro825/app/Filament/Resources/Documents/Tables/DocumentsTable.php`
+**Ubicación**: `/home/dasiva/Descargas/grafired825/app/Filament/Resources/Documents/Tables/DocumentsTable.php`
 
 **Acción**: `create_purchase_orders` (línea 245-529)
 
@@ -475,7 +475,7 @@ PurchaseOrder::created, updated hooks
 
 ### 6.1 Recurso: PurchaseOrderResource
 
-**Ubicación**: `/home/dasiva/Descargas/litopro825/app/Filament/Resources/PurchaseOrders/PurchaseOrderResource.php`
+**Ubicación**: `/home/dasiva/Descargas/grafired825/app/Filament/Resources/PurchaseOrders/PurchaseOrderResource.php`
 
 **Ubicación de Creación**:
 - No tiene página CreateRecord propia
@@ -500,7 +500,7 @@ PurchaseOrder::created, updated hooks
 
 ### 6.2 Acciones en EditPurchaseOrder
 
-**Ubicación**: `/home/dasiva/Descargas/litopro825/app/Filament/Resources/PurchaseOrders/Pages/EditPurchaseOrder.php`
+**Ubicación**: `/home/dasiva/Descargas/grafired825/app/Filament/Resources/PurchaseOrders/Pages/EditPurchaseOrder.php`
 
 **Acción: send_email** (línea 17-50)
 - Label: "Enviar por Email"
@@ -520,7 +520,7 @@ PurchaseOrder::created, updated hooks
 
 ### 7.1 Enum: OrderStatus
 
-**Ubicación**: `/home/dasiva/Descargas/litopro825/app/Enums/OrderStatus.php`
+**Ubicación**: `/home/dasiva/Descargas/grafired825/app/Enums/OrderStatus.php`
 
 Estados disponibles:
 - `DRAFT` - Borrador
@@ -536,7 +536,7 @@ Estados disponibles:
 
 ### OrderStatusHistory
 
-**Ubicación**: `/home/dasiva/Descargas/litopro825/app/Models/OrderStatusHistory.php`
+**Ubicación**: `/home/dasiva/Descargas/grafired825/app/Models/OrderStatusHistory.php`
 
 **Campos**:
 - `purchase_order_id` - Referencia a orden
@@ -592,34 +592,34 @@ Estados disponibles:
 ## 10. ARCHIVOS IMPLICADOS
 
 ### Modelos
-- `/home/dasiva/Descargas/litopro825/app/Models/PurchaseOrder.php` (269 líneas)
-- `/home/dasiva/Descargas/litopro825/app/Models/PurchaseOrderItem.php` (125 líneas)
-- `/home/dasiva/Descargas/litopro825/app/Models/OrderStatusHistory.php`
+- `/home/dasiva/Descargas/grafired825/app/Models/PurchaseOrder.php` (269 líneas)
+- `/home/dasiva/Descargas/grafired825/app/Models/PurchaseOrderItem.php` (125 líneas)
+- `/home/dasiva/Descargas/grafired825/app/Models/OrderStatusHistory.php`
 
 ### Eventos & Listeners
-- `/home/dasiva/Descargas/litopro825/app/Events/PurchaseOrderStatusChanged.php` (25 líneas)
-- `/home/dasiva/Descargas/litopro825/app/Listeners/NotifyPurchaseOrderStatusChange.php` (26 líneas - vacío)
+- `/home/dasiva/Descargas/grafired825/app/Events/PurchaseOrderStatusChanged.php` (25 líneas)
+- `/home/dasiva/Descargas/grafired825/app/Listeners/NotifyPurchaseOrderStatusChange.php` (26 líneas - vacío)
 
 ### Notificaciones
-- `/home/dasiva/Descargas/litopro825/app/Notifications/PurchaseOrderCreated.php` (59 líneas)
-- `/home/dasiva/Descargas/litopro825/app/Notifications/PurchaseOrderStatusChanged.php` (73 líneas)
+- `/home/dasiva/Descargas/grafired825/app/Notifications/PurchaseOrderCreated.php` (59 líneas)
+- `/home/dasiva/Descargas/grafired825/app/Notifications/PurchaseOrderStatusChanged.php` (73 líneas)
 
 ### Filament Resources
-- `/home/dasiva/Descargas/litopro825/app/Filament/Resources/PurchaseOrders/PurchaseOrderResource.php` (80 líneas)
-- `/home/dasiva/Descargas/litopro825/app/Filament/Resources/PurchaseOrders/Pages/CreatePurchaseOrder.php`
-- `/home/dasiva/Descargas/litopro825/app/Filament/Resources/PurchaseOrders/Pages/EditPurchaseOrder.php` (55 líneas)
-- `/home/dasiva/Descargas/litopro825/app/Filament/Resources/PurchaseOrders/Pages/ListPurchaseOrders.php`
-- `/home/dasiva/Descargas/litopro825/app/Filament/Resources/PurchaseOrders/Pages/ViewPurchaseOrder.php`
-- `/home/dasiva/Descargas/litopro825/app/Filament/Resources/PurchaseOrders/Schemas/PurchaseOrderForm.php`
-- `/home/dasiva/Descargas/litopro825/app/Filament/Resources/PurchaseOrders/Tables/PurchaseOrdersTable.php`
-- `/home/dasiva/Descargas/litopro825/app/Filament/Resources/PurchaseOrders/RelationManagers/PurchaseOrderItemsRelationManager.php`
+- `/home/dasiva/Descargas/grafired825/app/Filament/Resources/PurchaseOrders/PurchaseOrderResource.php` (80 líneas)
+- `/home/dasiva/Descargas/grafired825/app/Filament/Resources/PurchaseOrders/Pages/CreatePurchaseOrder.php`
+- `/home/dasiva/Descargas/grafired825/app/Filament/Resources/PurchaseOrders/Pages/EditPurchaseOrder.php` (55 líneas)
+- `/home/dasiva/Descargas/grafired825/app/Filament/Resources/PurchaseOrders/Pages/ListPurchaseOrders.php`
+- `/home/dasiva/Descargas/grafired825/app/Filament/Resources/PurchaseOrders/Pages/ViewPurchaseOrder.php`
+- `/home/dasiva/Descargas/grafired825/app/Filament/Resources/PurchaseOrders/Schemas/PurchaseOrderForm.php`
+- `/home/dasiva/Descargas/grafired825/app/Filament/Resources/PurchaseOrders/Tables/PurchaseOrdersTable.php`
+- `/home/dasiva/Descargas/grafired825/app/Filament/Resources/PurchaseOrders/RelationManagers/PurchaseOrderItemsRelationManager.php`
 
 ### Documentos (donde se crean órdenes)
-- `/home/dasiva/Descargas/litopro825/app/Filament/Resources/Documents/Tables/DocumentsTable.php` (línea 245-529)
-- `/home/dasiva/Descargas/litopro825/app/Filament/Resources/Documents/DocumentResource.php`
+- `/home/dasiva/Descargas/grafired825/app/Filament/Resources/Documents/Tables/DocumentsTable.php` (línea 245-529)
+- `/home/dasiva/Descargas/grafired825/app/Filament/Resources/Documents/DocumentResource.php`
 
 ### Servicios
-- `/home/dasiva/Descargas/litopro825/app/Services/PurchaseOrderPdfService.php` (genera PDFs)
+- `/home/dasiva/Descargas/grafired825/app/Services/PurchaseOrderPdfService.php` (genera PDFs)
 
 ---
 
@@ -741,7 +741,7 @@ public function handle(PurchaseOrderStatusChanged $event): void {
 
 ## 14. CONCLUSIÓN
 
-El sistema de órdenes de pedido en LitoPro:
+El sistema de órdenes de pedido en GrafiRed:
 
 1. **Usa Model Hooks** para capturar eventos de creación y actualización
 2. **Envía notificaciones directamente** al proveedor y usuarios internos

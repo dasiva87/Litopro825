@@ -28,7 +28,7 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        $this->command->info('✅ LitoPro seeded successfully!');
+        $this->command->info('✅ GrafiRed seeded successfully!');
 
         if ($environment !== 'production') {
             $this->command->info('💡 Para producción usa: php artisan db:seed --class=ProductionSeeder');

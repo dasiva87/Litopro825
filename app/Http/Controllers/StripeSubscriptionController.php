@@ -206,7 +206,7 @@ class StripeSubscriptionController extends Controller
         try {
             return $user->downloadInvoice($invoiceId, [
                 'vendor' => config('app.name'),
-                'product' => 'Suscripción LitoPro',
+                'product' => 'Suscripción GrafiRed',
                 'street' => $user->company->address ?? '',
                 'location' => $user->company->city ?? '',
                 'phone' => $user->company->phone ?? '',

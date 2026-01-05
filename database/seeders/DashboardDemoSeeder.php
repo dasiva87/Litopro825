@@ -20,15 +20,15 @@ class DashboardDemoSeeder extends Seeder
         if (Document::where('document_number', 'like', 'COT-2025-%')->exists()) {
             $this->command->info('🎯 Demo data already exists! Skipping seeding.');
             $this->command->info('🚀 Dashboard ready! Access: /admin');
-            $this->command->info('📧 Login: demo@litopro.test / password');
+            $this->command->info('📧 Login: demo@grafired.test / password');
             return;
         }
 
         // Get the demo company or create it
         $company = Company::firstOrCreate([
-            'name' => 'LitoPro Demo',
+            'name' => 'GrafiRed Demo',
         ], [
-            'email' => 'demo@litopro.com',
+            'email' => 'demo@grafired.com',
             'phone' => '+57 300 123 4567',
             'address' => 'Calle 123 #45-67',
             'city' => 'Cartagena',
@@ -39,7 +39,7 @@ class DashboardDemoSeeder extends Seeder
 
         // Create demo user if not exists
         $user = User::firstOrCreate([
-            'email' => 'demo@litopro.test',
+            'email' => 'demo@grafired.test',
         ], [
             'name' => 'Usuario Demo',
             'password' => Hash::make('password'),
@@ -205,6 +205,6 @@ class DashboardDemoSeeder extends Seeder
         $this->command->info('   • 8 Production Orders');
         $this->command->info('');
         $this->command->info('🚀 Dashboard ready! Access: /admin');
-        $this->command->info('📧 Login: demo@litopro.test / password');
+        $this->command->info('📧 Login: demo@grafired.test / password');
     }
 }

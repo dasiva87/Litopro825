@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Planes de Suscripción - LitoPro</title>
+    <title>Planes de Suscripción - GrafiRed</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50">
@@ -12,7 +12,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center py-6">
                 <div class="flex items-center">
-                    <h1 class="text-2xl font-bold text-gray-900">LitoPro</h1>
+                    <h1 class="text-2xl font-bold text-gray-900">GrafiRed</h1>
                 </div>
                 <div class="flex items-center space-x-4">
                     @auth
@@ -172,7 +172,7 @@
     <!-- Footer -->
     <footer class="bg-gray-900 text-white py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <p>&copy; {{ date('Y') }} LitoPro. Todos los derechos reservados.</p>
+            <p>&copy; {{ date('Y') }} GrafiRed. Todos los derechos reservados.</p>
         </div>
     </footer>
 </body>

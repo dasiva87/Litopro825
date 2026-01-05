@@ -1,4 +1,4 @@
-# Sistema de Notificaciones LitoPro 3.0 - Documentación Completa
+# Sistema de Notificaciones GrafiRed 3.0 - Documentación Completa
 
 ## Documentos Disponibles
 
@@ -65,7 +65,7 @@ Contiene:
 
 ### Sistema Implementado
 
-El sistema de notificaciones de LitoPro 3.0 es un **sistema multi-propósito, escalable y completamente aislado por empresa** que maneja:
+El sistema de notificaciones de GrafiRed 3.0 es un **sistema multi-propósito, escalable y completamente aislado por empresa** que maneja:
 
 | Tipo | Modelo | Tabla | Tipos | Canales |
 |------|--------|-------|-------|---------|
@@ -324,12 +324,12 @@ Para preguntas específicas:
 ## Versión
 
 - **Fecha**: 2025-11-06
-- **Versión LitoPro**: 3.0
+- **Versión GrafiRed**: 3.0
 - **Laravel**: 12.25.0
 - **Filament**: 4.0.3
 - **PHP**: 8.3.21
 
 ---
 
-**Documentación generada automáticamente. Análisis exhaustivo del sistema de notificaciones LitoPro 3.0.**
+**Documentación generada automáticamente. Análisis exhaustivo del sistema de notificaciones GrafiRed 3.0.**
 

@@ -1,4 +1,4 @@
-# 📋 Pruebas Manuales - LitoPro 3.0
+# 📋 Pruebas Manuales - GrafiRed 3.0
 
 ## 🎯 Objetivo
 Verificar todas las funcionalidades del sistema de forma manual y sistemática.

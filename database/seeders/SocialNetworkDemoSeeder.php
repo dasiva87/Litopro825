@@ -15,8 +15,8 @@ class SocialNetworkDemoSeeder extends Seeder
     public function run(): void
     {
         // Get demo company and user
-        $company = Company::where('name', 'LitoPro Demo')->first();
-        $user = User::where('email', 'demo@litopro.test')->first();
+        $company = Company::where('name', 'GrafiRed Demo')->first();
+        $user = User::where('email', 'demo@grafired.test')->first();
         
         if (!$company || !$user) {
             $this->command->info('⚠️  Demo company or user not found. Run setup demo first.');

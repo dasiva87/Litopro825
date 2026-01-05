@@ -323,7 +323,7 @@ class NotificationChannel extends Model
             'slack' => [
                 'webhook_url' => '',
                 'channel' => '#general',
-                'username' => 'LitoPro Bot',
+                'username' => 'GrafiRed Bot',
                 'icon_emoji' => ':robot_face:',
             ],
             'teams' => [
@@ -332,7 +332,7 @@ class NotificationChannel extends Model
             ],
             'discord' => [
                 'webhook_url' => '',
-                'username' => 'LitoPro Bot',
+                'username' => 'GrafiRed Bot',
                 'avatar_url' => '',
             ],
             'webhook' => [

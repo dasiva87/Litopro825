@@ -52,14 +52,14 @@
         <div class="flex items-center justify-center w-full transition-opacity opacity-100 duration-750 lg:grow starting:opacity-0">
             <main class="flex max-w-[335px] w-full flex-col-reverse lg:max-w-4xl lg:flex-row">
                 <div class="text-[13px] leading-[20px] flex-1 p-6 pb-12 lg:p-20 bg-white dark:bg-[#161615] dark:text-[#EDEDEC] shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.16)] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d] rounded-bl-lg rounded-br-lg lg:rounded-tl-lg lg:rounded-br-none">
-                    <h1 class="mb-1 font-medium text-lg">Bienvenido a LitoPro</h1>
+                    <h1 class="mb-1 font-medium text-lg">Bienvenido a GrafiRed</h1>
                     <p class="mb-4 text-[#706f6c] dark:text-[#A1A09A]">La plataforma SaaS líder para gestionar tu litografía de forma profesional. <br>Cotizaciones, inventario, red social y mucho más.</p>
 
                     @guest
                         <div class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                            <h2 class="font-medium text-blue-900 dark:text-blue-100 mb-2">¿Nuevo en LitoPro?</h2>
+                            <h2 class="font-medium text-blue-900 dark:text-blue-100 mb-2">¿Nuevo en GrafiRed?</h2>
                             <p class="text-blue-700 dark:text-blue-300 text-sm mb-3">
-                                Únete a cientos de litografías que ya están digitalizando sus procesos con LitoPro.
+                                Únete a cientos de litografías que ya están digitalizando sus procesos con GrafiRed.
                                 Comienza con nuestro plan gratuito.
                             </p>
                             <a href="{{ route('register') }}"

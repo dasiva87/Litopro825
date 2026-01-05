@@ -8,7 +8,7 @@ use App\Models\Document;
 
 class FixDocumentPricesCommand extends Command
 {
-    protected $signature = 'litopro:fix-prices {--dry-run : Show what would be fixed without making changes}';
+    protected $signature = 'grafired:fix-prices {--dry-run : Show what would be fixed without making changes}';
     protected $description = 'Fix DocumentItems with zero prices by recalculating them automatically';
 
     public function handle()

@@ -1,7 +1,7 @@
-# LitoPro 3.0 - Resumen Ejecutivo del Inventario
+# GrafiRed 3.0 - Resumen Ejecutivo del Inventario
 
 **Generado:** 2025-11-07  
-**Documento completo:** `PROYECTO_LITOPRO_INVENTARIO_COMPLETO.md`
+**Documento completo:** `PROYECTO_GRAFIRED_INVENTARIO_COMPLETO.md`
 
 ---
 
@@ -305,7 +305,7 @@ php artisan test --filter SimpleItemCalculatorTest
 
 # Migraciones
 php artisan migrate:fresh --seed
-php artisan litopro:setup-demo --fresh
+php artisan grafired:setup-demo --fresh
 
 # Caché
 php artisan config:cache
@@ -334,4 +334,4 @@ composer analyse
 
 ---
 
-**Para documentación completa, consultar:** `PROYECTO_LITOPRO_INVENTARIO_COMPLETO.md`
+**Para documentación completa, consultar:** `PROYECTO_GRAFIRED_INVENTARIO_COMPLETO.md`

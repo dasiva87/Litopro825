@@ -80,7 +80,7 @@ class StockAlertNotification extends Notification implements ShouldQueue
                 ->line('⚠️ **Esta es una alerta crítica que requiere atención inmediata.**');
         }
 
-        return $mailMessage->line('Gracias por usar LitoPro.');
+        return $mailMessage->line('Gracias por usar GrafiRed.');
     }
 
     /**
@@ -119,7 +119,7 @@ class StockAlertNotification extends Notification implements ShouldQueue
         return $mailMessage
             ->action('Ver Todas las Alertas', url('/admin'))
             ->line('Revisa tu inventario y toma las acciones necesarias.')
-            ->line('Gracias por usar LitoPro.');
+            ->line('Gracias por usar GrafiRed.');
     }
 
     /**

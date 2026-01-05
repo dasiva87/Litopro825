@@ -34,7 +34,7 @@ Ver Orden
 Manténganse al tanto del progreso de sus órdenes desde el panel de administración.
 
 Saludos,
-**Sistema LitoPro**
+**Sistema GrafiRed**
 
 ---
 *Notificación generada automáticamente el {{ now()->format('d/m/Y H:i') }}*

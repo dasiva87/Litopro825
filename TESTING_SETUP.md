@@ -1,6 +1,6 @@
-# 🧪 Configuración de Testing - LitoPro 3.0
+# 🧪 Configuración de Testing - GrafiRed 3.0
 
-Este documento describe cómo configurar el entorno de testing y desarrollo con datos de demostración para LitoPro 3.0.
+Este documento describe cómo configurar el entorno de testing y desarrollo con datos de demostración para GrafiRed 3.0.
 
 ## 🚀 Setup Rápido
 
@@ -8,26 +8,26 @@ Este documento describe cómo configurar el entorno de testing y desarrollo con 
 
 ```bash
 # Configuración completa con datos demo
-php artisan litopro:setup-demo
+php artisan grafired:setup-demo
 
 # Instalación limpia (⚠️ elimina todos los datos)
-php artisan litopro:setup-demo --fresh
+php artisan grafired:setup-demo --fresh
 ```
 
 ## 👥 Usuarios de Prueba Creados
 
 | Rol | Email | Contraseña | Permisos |
 |-----|-------|------------|----------|
-| **Company Admin** | `admin@litopro.test` | `password` | Acceso completo al sistema |
-| **Manager** | `manager@litopro.test` | `password` | Gestión de ventas y reportes |
-| **Employee** | `employee@litopro.test` | `password` | Operaciones básicas |
+| **Company Admin** | `admin@grafired.test` | `password` | Acceso completo al sistema |
+| **Manager** | `manager@grafired.test` | `password` | Gestión de ventas y reportes |
+| **Employee** | `employee@grafired.test` | `password` | Operaciones básicas |
 
 ## 🏢 Empresa de Demostración
 
 **Datos de la empresa creada:**
-- **Nombre**: LitoPro Demo
+- **Nombre**: GrafiRed Demo
 - **Plan**: Premium (válido por 1 año)
-- **Email**: info@litopro-demo.com  
+- **Email**: info@grafired-demo.com  
 - **Teléfono**: +57 300 123 4567
 - **Límite usuarios**: 50
 
@@ -120,7 +120,7 @@ php artisan test --filter="CuttingCalculatorServiceTest"
 
 **Funcionalidades disponibles para testing:**
 
-### 🎯 Como Admin (`admin@litopro.test`)
+### 🎯 Como Admin (`admin@grafired.test`)
 - ✅ Crear/editar usuarios y roles
 - ✅ Gestionar empresa y configuración  
 - ✅ CRUD completo de contactos
@@ -132,13 +132,13 @@ php artisan test --filter="CuttingCalculatorServiceTest"
 - ✅ Agregar Products de inventario
 - ✅ Ver reportes y estadísticas
 
-### 📊 Como Manager (`manager@litopro.test`)
+### 📊 Como Manager (`manager@grafired.test`)
 - ✅ Gestionar cotizaciones y clientes
 - ✅ Ver y crear productos
 - ✅ Acceder a reportes de ventas
 - ✅ Aprobar documentos
 
-### 👤 Como Employee (`employee@litopro.test`)  
+### 👤 Como Employee (`employee@grafired.test`)  
 - ✅ Crear cotizaciones básicas
 - ✅ Gestionar contactos
 - ✅ Ver productos disponibles
@@ -200,4 +200,4 @@ php artisan optimize:clear
 
 **¡El sistema está listo para testing! 🎉**
 
-Para cualquier duda consulta la documentación en `CLAUDE.md` o ejecuta `php artisan litopro:setup-demo --fresh` para resetear.
+Para cualquier duda consulta la documentación en `CLAUDE.md` o ejecuta `php artisan grafired:setup-demo --fresh` para resetear.

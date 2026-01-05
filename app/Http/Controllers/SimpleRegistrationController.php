@@ -111,7 +111,7 @@ class SimpleRegistrationController extends Controller
             // Redirigir al home con mensaje de bienvenida
             return redirect()->route('filament.admin.pages.home')
                 ->with('registration_success', true)
-                ->with('welcome_message', '¡Bienvenido a LitoPro! Tu cuenta gratuita está lista para usar.');
+                ->with('welcome_message', '¡Bienvenido a GrafiRed! Tu cuenta gratuita está lista para usar.');
 
         } catch (\Exception $e) {
             DB::rollBack();

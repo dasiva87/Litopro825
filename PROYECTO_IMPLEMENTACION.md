@@ -1,4 +1,4 @@
-# 📁 Sistema de Proyectos - LitoPro 3.0
+# 📁 Sistema de Proyectos - GrafiRed 3.0
 
 ## ✅ IMPLEMENTACIÓN COMPLETADA
 
@@ -234,7 +234,7 @@ app/Filament/Resources/Documents/
 
 ## 📞 SOPORTE
 
-Para reportar problemas o sugerencias, contactar al equipo de desarrollo de LitoPro.
+Para reportar problemas o sugerencias, contactar al equipo de desarrollo de GrafiRed.
 
 **Versión**: 1.0
 **Fecha**: 15 de Noviembre de 2025

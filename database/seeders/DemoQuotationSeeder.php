@@ -19,13 +19,13 @@ class DemoQuotationSeeder extends Seeder
     {
         $this->command->info('📋 Creando cotización de demostración...');
 
-        $company = Company::where('slug', 'litopro-demo')->first();
+        $company = Company::where('slug', 'grafired-demo')->first();
         if (!$company) {
             $this->command->error('❌ Empresa de prueba no encontrada. Ejecuta TestDataSeeder primero.');
             return;
         }
 
-        $user = $company->users->where('email', 'admin@litopro.test')->first();
+        $user = $company->users->where('email', 'admin@grafired.test')->first();
         $customer = $company->contacts()->where('type', 'customer')->first();
         $quotationType = DocumentType::where('code', 'QUOTE')->first();
 
@@ -49,7 +49,7 @@ class DemoQuotationSeeder extends Seeder
                 'date' => now(),
                 'due_date' => now()->addDays(30),
                 'status' => 'draft',
-                'notes' => 'Cotización de demostración del sistema LitoPro',
+                'notes' => 'Cotización de demostración del sistema GrafiRed',
                 'tax_percentage' => 19.0
             ]
         );

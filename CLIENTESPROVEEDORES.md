@@ -1,4 +1,4 @@
-# Informe de Arquitectura: Sistema de Clientes y Proveedores en LitoPro 3.0
+# Informe de Arquitectura: Sistema de Clientes y Proveedores en GrafiRed 3.0
 
 ## 📋 Índice
 1. [Resumen Ejecutivo](#resumen-ejecutivo)
@@ -13,7 +13,7 @@
 
 ## 1. Resumen Ejecutivo
 
-El sistema de Clientes y Proveedores en LitoPro utiliza **múltiples modelos interconectados** para manejar dos tipos de relaciones comerciales:
+El sistema de Clientes y Proveedores en GrafiRed utiliza **múltiples modelos interconectados** para manejar dos tipos de relaciones comerciales:
 
 ### Dos Enfoques Coexistentes:
 
@@ -718,5 +718,5 @@ app/
 ---
 
 **Fecha de Análisis**: 5 de Diciembre de 2025
-**Versión de LitoPro**: 3.0
+**Versión de GrafiRed**: 3.0
 **Autor**: Claude (Anthropic) con análisis de codebase

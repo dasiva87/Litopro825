@@ -1,4 +1,4 @@
-# Sistema de Notificaciones LitoPro 3.0 - Análisis Exhaustivo
+# Sistema de Notificaciones GrafiRed 3.0 - Análisis Exhaustivo
 
 ## Tabla de Contenidos
 1. Descripción General
@@ -15,7 +15,7 @@
 
 ## 1. Descripción General
 
-El sistema de notificaciones de LitoPro 3.0 es un sistema multi-propósito que maneja **tres tipos principales de notificaciones**:
+El sistema de notificaciones de GrafiRed 3.0 es un sistema multi-propósito que maneja **tres tipos principales de notificaciones**:
 
 ### 1.1 Tipos de Notificaciones
 
@@ -1045,7 +1045,7 @@ MAIL_MAILER=log                          # En desarrollo: log
 MAIL_HOST=127.0.0.1
 MAIL_PORT=2525
 MAIL_FROM_ADDRESS="hello@example.com"
-MAIL_FROM_NAME="LitoPro"
+MAIL_FROM_NAME="GrafiRed"
 ```
 
 ### 10.2 Configuración en AppServiceProvider
@@ -1110,7 +1110,7 @@ $channel = NotificationChannel::create([
     'config' => [
         'webhook_url' => 'https://hooks.slack.com/...',
         'channel' => '#notificaciones',
-        'username' => 'LitoPro Bot',
+        'username' => 'GrafiRed Bot',
     ],
     'rate_limits' => [
         'per_minute' => 30,
@@ -1204,7 +1204,7 @@ try {
 
 ## Conclusión
 
-El sistema de notificaciones de LitoPro 3.0 es un sistema robusto y extensible que:
+El sistema de notificaciones de GrafiRed 3.0 es un sistema robusto y extensible que:
 
 ✓ Soporta múltiples tipos de notificaciones (social, stock, sistema)
 ✓ Está completamente aislado por empresa (multi-tenant)

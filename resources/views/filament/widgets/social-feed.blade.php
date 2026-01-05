@@ -15,7 +15,7 @@
 
         showBrowserNotification(message) {
             if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification('LitoPro Red Social', {
+                new Notification('GrafiRed Red Social', {
                     body: message,
                     icon: '/favicon.ico',
                     badge: '/favicon.ico',
@@ -128,7 +128,7 @@
                                     {{ auth()->user()->company ? strtoupper(substr(auth()->user()->company->name, 0, 2)) : '??' }}
                                 </div>
                             @endif
-                            <p class="text-gray-500 flex-1">¿Qué quieres compartir con la comunidad de LitoPro?</p>
+                            <p class="text-gray-500 flex-1">¿Qué quieres compartir con la comunidad de GrafiRed?</p>
                         </div>
                     </div>
 

@@ -582,9 +582,9 @@ $item = DocumentItem::create([
 ## 📞 Contacto y Soporte
 
 Para dudas sobre este sprint o implementaciones futuras:
-- 📧 Email: soporte@litopro.com
+- 📧 Email: soporte@grafired.com
 - 📁 Docs: `/docs/sprints/sprint-6/`
-- 🔗 Wiki: https://wiki.litopro.com/sprint-6
+- 🔗 Wiki: https://wiki.grafired.com/sprint-6
 
 ---
 

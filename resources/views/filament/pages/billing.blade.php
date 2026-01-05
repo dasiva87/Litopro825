@@ -58,7 +58,7 @@
                 <div style="text-align: center; padding: 2rem 0;">
                     <x-heroicon-o-credit-card style="width: 3rem; height: 3rem; margin: 0 auto; color: #9ca3af;" />
                     <h3 style="margin-top: 0.5rem; font-size: 0.875rem; font-weight: 600;">Sin Suscripción Activa</h3>
-                    <p style="margin-top: 0.25rem; font-size: 0.875rem; color: #6b7280;">Selecciona un plan para comenzar a usar todas las funcionalidades de LitoPro.</p>
+                    <p style="margin-top: 0.25rem; font-size: 0.875rem; color: #6b7280;">Selecciona un plan para comenzar a usar todas las funcionalidades de GrafiRed.</p>
                 </div>
             @endif
         </div>

@@ -1,10 +1,11 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "grafired/grafired",
+    "version": "1.0.0",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
-    "license": "MIT",
+    "description": "GrafiRed 3.0 - SaaS Multi-tenant para Litografías",
+    "keywords": ["laravel", "framework", "saas", "multi-tenant", "litografia"],
+    "license": "Proprietary",
     "require": {
         "php": "^8.2",
         "andreia/filament-nord-theme": "^2.0",

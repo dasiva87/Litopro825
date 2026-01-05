@@ -78,7 +78,7 @@ class Billing extends Page implements HasActions, HasForms
 
                         Notification::make()
                             ->title('¡Suscripción Activada!')
-                            ->body("Te has suscrito exitosamente al {$plan->name}. ¡Disfruta de LitoPro!")
+                            ->body("Te has suscrito exitosamente al {$plan->name}. ¡Disfruta de GrafiRed!")
                             ->success()
                             ->send();
 
@@ -87,7 +87,7 @@ class Billing extends Page implements HasActions, HasForms
 
                     // Para planes de pago, continuar con PayU
                     // Generar código de referencia único
-                    $referenceCode = 'LITOPRO-'.$company->id.'-'.$plan->id.'-'.time();
+                    $referenceCode = 'GRAFIRED-'.$company->id.'-'.$plan->id.'-'.time();
 
                     // Preparar datos para PayU
                     $paymentData = [

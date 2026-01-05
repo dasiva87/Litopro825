@@ -146,7 +146,7 @@ class RegistrationController extends Controller
         ]);
 
         return redirect()->route('filament.admin.pages.home')->with('success',
-            '¡Bienvenido a LitoPro! Tu cuenta ha sido activada exitosamente.'
+            '¡Bienvenido a GrafiRed! Tu cuenta ha sido activada exitosamente.'
         );
     }
 
@@ -156,7 +156,7 @@ class RegistrationController extends Controller
     protected function redirectToPayU(Company $company, Plan $plan)
     {
         // Generar código de referencia único
-        $referenceCode = 'LITOPRO-'.$company->id.'-'.$plan->id.'-'.time();
+        $referenceCode = 'GRAFIRED-'.$company->id.'-'.$plan->id.'-'.time();
 
         // Preparar datos para PayU
         $paymentData = [

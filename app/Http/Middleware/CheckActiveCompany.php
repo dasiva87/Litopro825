@@ -71,7 +71,7 @@ class CheckActiveCompany
         // Check if subscription is expired
         if ($company->subscription_expires_at && $company->subscription_expires_at->isPast()) {
             return redirect()->route('filament.admin.pages.billing')->with('warning',
-                'Tu suscripción ha expirado. Renueva tu plan para continuar usando LitoPro.'
+                'Tu suscripción ha expirado. Renueva tu plan para continuar usando GrafiRed.'
             );
         }
 

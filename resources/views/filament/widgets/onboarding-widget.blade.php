@@ -100,7 +100,7 @@
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
                 <p style="font-size: 14px; color: rgba(255,255,255,0.8); margin: 0;">
-                    {{ $this->getData()['progress'] === 100 ? '¡Felicitaciones! Has completado la configuración inicial.' : 'Completa todos los pasos para aprovechar al máximo LitoPro.' }}
+                    {{ $this->getData()['progress'] === 100 ? '¡Felicitaciones! Has completado la configuración inicial.' : 'Completa todos los pasos para aprovechar al máximo GrafiRed.' }}
                 </p>
             </div>
             <div style="display: flex; gap: 12px;">

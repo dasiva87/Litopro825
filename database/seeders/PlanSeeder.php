@@ -19,7 +19,7 @@ class PlanSeeder extends Seeder
             [
                 'name' => 'Plan Gratuito',
                 'slug' => 'free',
-                'description' => 'Plan gratuito para probar LitoPro. Funcionalidades básicas.',
+                'description' => 'Plan gratuito para probar GrafiRed. Funcionalidades básicas.',
                 'stripe_price_id' => null,
                 'price' => 0.00,
                 'currency' => 'usd',

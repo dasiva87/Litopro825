@@ -1,6 +1,6 @@
 # Documentación del Sistema de Órdenes de Pedido
 
-Bienvenido a la documentación completa del sistema de órdenes de pedido en LitoPro 3.0.
+Bienvenido a la documentación completa del sistema de órdenes de pedido en GrafiRed 3.0.
 
 Esta documentación consta de **3 documentos principales** que se complementan entre sí.
 
@@ -363,7 +363,7 @@ Visible si: $record->canCreateOrders()
 ## Versión de Documentación
 
 - **Fecha**: 06-Nov-2025
-- **LitoPro**: 3.0
+- **GrafiRed**: 3.0
 - **Total líneas de documentación**: 1,686 líneas
 - **Total KB**: 54 KB
 

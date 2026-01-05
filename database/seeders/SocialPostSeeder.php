@@ -56,7 +56,7 @@ class SocialPostSeeder extends Seeder
             'tags' => ['impresion', 'digital', 'catalogo'],
             'contact_info' => [
                 'phone' => '+57 300 123 4567',
-                'email' => 'ventas@litopro.com',
+                'email' => 'ventas@grafired.com',
                 'whatsapp' => '+57 300 123 4567'
             ]
         ]);

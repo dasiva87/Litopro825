@@ -8,12 +8,12 @@ use Illuminate\Support\Facades\Schema;
 
 class SetupDemoCommand extends Command
 {
-    protected $signature = 'litopro:setup-demo {--fresh : Drop all tables and recreate}';
-    protected $description = 'Setup LitoPro with demo data for testing and development';
+    protected $signature = 'grafired:setup-demo {--fresh : Drop all tables and recreate}';
+    protected $description = 'Setup GrafiRed with demo data for testing and development';
 
     public function handle()
     {
-        $this->info('🚀 Configurando LitoPro para demostración...');
+        $this->info('🚀 Configurando GrafiRed para demostración...');
         $this->newLine();
 
         try {
@@ -67,22 +67,22 @@ class SetupDemoCommand extends Command
     private function displayAccessInfo(): void
     {
         $this->newLine();
-        $this->info('✅ ¡LitoPro configurado exitosamente!');
+        $this->info('✅ ¡GrafiRed configurado exitosamente!');
         $this->newLine();
         
         $this->line('<fg=cyan>📋 INFORMACIÓN DE ACCESO:</fg=cyan>');
         $this->table(
             ['Rol', 'Email', 'Contraseña', 'Descripción'],
             [
-                ['Admin', 'admin@litopro.test', 'password', 'Acceso completo al sistema'],
-                ['Manager', 'manager@litopro.test', 'password', 'Gestión de ventas y reportes'],
-                ['Employee', 'employee@litopro.test', 'password', 'Operación básica']
+                ['Admin', 'admin@grafired.test', 'password', 'Acceso completo al sistema'],
+                ['Manager', 'manager@grafired.test', 'password', 'Gestión de ventas y reportes'],
+                ['Employee', 'employee@grafired.test', 'password', 'Operación básica']
             ]
         );
         
         $this->newLine();
         $this->line('<fg=green>🌐 URL del sistema: /admin</fg=green>');
-        $this->line('<fg=yellow>🏢 Empresa: LitoPro Demo</fg=yellow>');
+        $this->line('<fg=yellow>🏢 Empresa: GrafiRed Demo</fg=yellow>');
         $this->line('<fg=magenta>📊 Cotización demo creada: COT-2025-DEMO-001</fg=magenta>');
         
         $this->newLine();
@@ -95,6 +95,6 @@ class SetupDemoCommand extends Command
         $this->line('   • Cotización con SimpleItems y Products');
         
         $this->newLine();
-        $this->line('<fg=gray>Para reinstalar: php artisan litopro:setup-demo --fresh</fg=gray>');
+        $this->line('<fg=gray>Para reinstalar: php artisan grafired:setup-demo --fresh</fg=gray>');
     }
 }

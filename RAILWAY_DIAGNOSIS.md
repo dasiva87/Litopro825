@@ -32,8 +32,8 @@
 Railway necesita estas variables críticas:
 ```env
 APP_ENV=production
-APP_URL=https://litopro825-production.up.railway.app
-ASSET_URL=https://litopro825-production.up.railway.app
+APP_URL=https://grafired825-production.up.railway.app
+ASSET_URL=https://grafired825-production.up.railway.app
 FORCE_HTTPS=true
 ```
 
@@ -71,8 +71,8 @@ mv vite-safe.config.js vite.config.js
 Agregar en Railway Dashboard:
 ```env
 APP_ENV=production
-APP_URL=https://litopro825-production.up.railway.app
-ASSET_URL=https://litopro825-production.up.railway.app
+APP_URL=https://grafired825-production.up.railway.app
+ASSET_URL=https://grafired825-production.up.railway.app
 FORCE_HTTPS=true
 ```
 

@@ -34,7 +34,7 @@ class FullDemoSeeder extends Seeder
         $this->command->info('✅ Demo completo seeded exitosamente!');
         $this->command->info('🔗 Acceso demo:');
         $this->command->info('   URL: /admin');
-        $this->command->info('   Usuario: demo@litopro.test');
+        $this->command->info('   Usuario: demo@grafired.test');
         $this->command->info('   Password: password');
     }
 }

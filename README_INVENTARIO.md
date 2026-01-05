@@ -1,4 +1,4 @@
-# 📚 Sistema de Documentación del Inventario de LitoPro 3.0
+# 📚 Sistema de Documentación del Inventario de GrafiRed 3.0
 
 ## 📁 Archivos de Documentación
 
@@ -19,7 +19,7 @@ Resumen ejecutivo con:
 
 ---
 
-### 2. PROYECTO_LITOPRO_INVENTARIO_COMPLETO.md (57 KB, 1596 líneas)
+### 2. PROYECTO_GRAFIRED_INVENTARIO_COMPLETO.md (57 KB, 1596 líneas)
 **Lectura completa: 1-2 horas**
 
 Inventario exhaustivo con:
@@ -49,13 +49,13 @@ Inventario exhaustivo con:
 ### Quiero saber sobre...
 
 #### Modelos y Base de Datos
-→ `PROYECTO_LITOPRO_INVENTARIO_COMPLETO.md` - Sección "MODELOS DE BASE DE DATOS"
+→ `PROYECTO_GRAFIRED_INVENTARIO_COMPLETO.md` - Sección "MODELOS DE BASE DE DATOS"
 - 62 modelos organizados en 13 categorías
 - Relaciones completas
 - Scopes y métodos clave
 
 #### Servicios de Cálculo
-→ `PROYECTO_LITOPRO_INVENTARIO_COMPLETO.md` - Sección "SERVICIOS DE NEGOCIO"
+→ `PROYECTO_GRAFIRED_INVENTARIO_COMPLETO.md` - Sección "SERVICIOS DE NEGOCIO"
 - SimpleItemCalculatorService (nuevo sistema de montaje)
 - MountingCalculatorService
 - CuttingCalculatorService
@@ -74,7 +74,7 @@ Inventario exhaustivo con:
 - Aislamiento por company_id
 
 #### Widgets de Dashboard
-→ `PROYECTO_LITOPRO_INVENTARIO_COMPLETO.md` - Sección "WIDGETS DE DASHBOARD"
+→ `PROYECTO_GRAFIRED_INVENTARIO_COMPLETO.md` - Sección "WIDGETS DE DASHBOARD"
 - 29 widgets organizados por categoría
 - Stock, Documentos, Red Social, Calculadoras, Sistema
 
@@ -102,8 +102,8 @@ Inventario exhaustivo con:
 ```
 
 **Documentación detallada:**
-- Modelos: `PROYECTO_LITOPRO_INVENTARIO_COMPLETO.md` - Secciones 2 y 5
-- Servicios: `PROYECTO_LITOPRO_INVENTARIO_COMPLETO.md` - Sección "SERVICIOS DE NEGOCIO"
+- Modelos: `PROYECTO_GRAFIRED_INVENTARIO_COMPLETO.md` - Secciones 2 y 5
+- Servicios: `PROYECTO_GRAFIRED_INVENTARIO_COMPLETO.md` - Sección "SERVICIOS DE NEGOCIO"
 
 ---
 
@@ -130,10 +130,10 @@ Inventario exhaustivo con:
 ## 🗺️ MAPA DE ARCHIVOS DE DOCUMENTACIÓN
 
 ```
-/home/dasiva/Descargas/litopro825/
+/home/dasiva/Descargas/grafired825/
 ├── README_INVENTARIO.md                    ← Estás aquí
 ├── RESUMEN_EJECUTIVO_INVENTARIO.md         ← Lectura rápida (10-15 min)
-├── PROYECTO_LITOPRO_INVENTARIO_COMPLETO.md ← Documentación completa (1-2 hrs)
+├── PROYECTO_GRAFIRED_INVENTARIO_COMPLETO.md ← Documentación completa (1-2 hrs)
 ├── CLAUDE.md                               ← Instrucciones para Claude
 ├── NOTIFICATION_SYSTEM_ANALYSIS.md         ← Análisis técnico notificaciones
 ├── NOTIFICATION_SYSTEM_SUMMARY.md          ← Guía rápida notificaciones
@@ -146,7 +146,7 @@ Inventario exhaustivo con:
 ## 🎯 CASOS DE USO
 
 ### Caso 1: "Necesito agregar un nuevo tipo de item"
-1. Lee: `PROYECTO_LITOPRO_INVENTARIO_COMPLETO.md` - Sección 3 (Modelos de Items Específicos)
+1. Lee: `PROYECTO_GRAFIRED_INVENTARIO_COMPLETO.md` - Sección 3 (Modelos de Items Específicos)
 2. Estudia: Arquitectura polimórfica de DocumentItem
 3. Crea: Nuevo modelo extendiendo la estructura base
 4. Implementa: Relación MorphMany con DocumentItem
@@ -160,14 +160,14 @@ Inventario exhaustivo con:
 5. Prueba: Con diferentes casos de uso
 
 ### Caso 3: "Necesito agregar un nuevo widget"
-1. Lee: `PROYECTO_LITOPRO_INVENTARIO_COMPLETO.md` - Sección "WIDGETS DE DASHBOARD"
+1. Lee: `PROYECTO_GRAFIRED_INVENTARIO_COMPLETO.md` - Sección "WIDGETS DE DASHBOARD"
 2. Crea: Nuevo widget en `app/Filament/Widgets/`
 3. Extiende: `\Filament\Widgets\Widget` o subclase específica
 4. Registra: En `app/Filament/Pages/Dashboard.php`
 5. Prueba: Verifica permisos y multi-tenancy
 
 ### Caso 4: "Necesito agregar un nuevo permiso"
-1. Lee: `PROYECTO_LITOPRO_INVENTARIO_COMPLETO.md` - Sección "SISTEMA DE PERMISOS"
+1. Lee: `PROYECTO_GRAFIRED_INVENTARIO_COMPLETO.md` - Sección "SISTEMA DE PERMISOS"
 2. Agrega: Permiso en `database/seeders/PermissionsSeeder.php`
 3. Asigna: A roles correspondientes en `database/seeders/RolesSeeder.php`
 4. Implementa: Verificación en Policy correspondiente
@@ -203,19 +203,19 @@ find database/migrations -name "*.php" | wc -l
 ## 📖 LECTURA RECOMENDADA POR ROL
 
 ### Desarrollador Backend
-1. `PROYECTO_LITOPRO_INVENTARIO_COMPLETO.md` - Secciones 1-5 (Modelos)
-2. `PROYECTO_LITOPRO_INVENTARIO_COMPLETO.md` - Servicios de Negocio
+1. `PROYECTO_GRAFIRED_INVENTARIO_COMPLETO.md` - Secciones 1-5 (Modelos)
+2. `PROYECTO_GRAFIRED_INVENTARIO_COMPLETO.md` - Servicios de Negocio
 3. `CLAUDE.md` - Notas Técnicas (Sprints 13-15)
 
 ### Desarrollador Frontend/Filament
-1. `PROYECTO_LITOPRO_INVENTARIO_COMPLETO.md` - Recursos Filament
-2. `PROYECTO_LITOPRO_INVENTARIO_COMPLETO.md` - Widgets de Dashboard
+1. `PROYECTO_GRAFIRED_INVENTARIO_COMPLETO.md` - Recursos Filament
+2. `PROYECTO_GRAFIRED_INVENTARIO_COMPLETO.md` - Widgets de Dashboard
 3. `RESUMEN_EJECUTIVO_INVENTARIO.md` - Seguridad
 
 ### Arquitecto de Software
 1. `RESUMEN_EJECUTIVO_INVENTARIO.md` - Completo
-2. `PROYECTO_LITOPRO_INVENTARIO_COMPLETO.md` - Mapa de Relaciones
-3. `PROYECTO_LITOPRO_INVENTARIO_COMPLETO.md` - Arquitectura Multi-Tenant
+2. `PROYECTO_GRAFIRED_INVENTARIO_COMPLETO.md` - Mapa de Relaciones
+3. `PROYECTO_GRAFIRED_INVENTARIO_COMPLETO.md` - Arquitectura Multi-Tenant
 
 ### Product Manager
 1. `RESUMEN_EJECUTIVO_INVENTARIO.md` - Números Clave y Módulos
@@ -224,7 +224,7 @@ find database/migrations -name "*.php" | wc -l
 
 ### QA/Tester
 1. `RESUMEN_EJECUTIVO_INVENTARIO.md` - Seguridad
-2. `PROYECTO_LITOPRO_INVENTARIO_COMPLETO.md` - Sistema de Permisos
+2. `PROYECTO_GRAFIRED_INVENTARIO_COMPLETO.md` - Sistema de Permisos
 3. `RESUMEN_EJECUTIVO_INVENTARIO.md` - Flujos de Trabajo
 
 ---

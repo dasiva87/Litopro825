@@ -32,7 +32,7 @@ try {
                         <li>✅ QUEUE_CONNECTION=sync</li>
                         <li>✅ Emails inmediatos habilitados</li>
                     </ul>
-                    <p><strong>Sistema Grafired - LitoPro 3.0</strong></p>
+                    <p><strong>Sistema Grafired - GrafiRed 3.0</strong></p>
                 ');
     });
 

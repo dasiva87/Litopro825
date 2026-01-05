@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "==================================================="
-echo " PRUEBA DEL SISTEMA DE AUTO-MARCADO - LitoPro 3.0"
+echo " PRUEBA DEL SISTEMA DE AUTO-MARCADO - GrafiRed 3.0"
 echo "==================================================="
 echo ""
 
@@ -64,7 +64,7 @@ echo "==================================================="
 echo ""
 echo "1. Abrir navegador en: http://127.0.0.1:8000/admin"
 echo "2. Abrir DevTools (F12) → Pestaña Console"
-echo "3. Buscar mensaje: 'LitoPro: Sistema de auto-marcado de notificaciones cargado'"
+echo "3. Buscar mensaje: 'GrafiRed: Sistema de auto-marcado de notificaciones cargado'"
 echo "4. Click en el icono de notificaciones (🔔)"
 echo "5. Verificar logs en consola al hacer click en una notificación"
 echo "6. Recargar y verificar contador actualizado"

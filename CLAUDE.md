@@ -1,4 +1,4 @@
-# LitoPro 3.0 - SaaS para Litografías
+# GrafiRed 3.0 - SaaS para Litografías
 
 ## Stack & Arquitectura
 - **Laravel 12.25.0 + PHP 8.3.21 + Filament 4.0.3 + MySQL**
@@ -10,7 +10,7 @@
 php artisan test                              # Testing completo
 php artisan pint && composer analyse          # Lint + análisis
 php artisan migrate && php artisan db:seed    # Setup BD
-php artisan litopro:setup-demo --fresh        # Demo completo
+php artisan grafired:setup-demo --fresh        # Demo completo
 php artisan serve --port=8000                 # Servidor local
 ```
 
@@ -37,6 +37,20 @@ app/Filament/Resources/[Entity]/
 ---
 
 ## PROGRESO RECIENTE
+
+### ✅ Sesión Completada (04-Ene-2026)
+**SPRINT 32: Sistema de Estados Unificado + Activity Logs + Pruebas Manuales**
+
+#### Resumen Ejecutivo
+- **Estados estandarizados**: 3 módulos con workflow unificado (Draft → Sent → In Progress → Completed)
+- **Emails manuales**: Cambio automático de estado a "Enviada" al enviar email
+- **Activity Logs**: Recurso completo en panel super-admin
+- **Documento de pruebas**: 150+ pruebas manuales documentadas
+- **Enums actualizados**: Métodos `getLabel()`, `getColor()`, `getIcon()` consistentes
+
+**Detalles**: Ver sección "Sprint 32" más abajo
+
+---
 
 ### ✅ Sesión Completada (31-Dic-2025)
 **SPRINT 31: UX Mejorada - Vistas Limpias + Fix Notificaciones Email**
@@ -207,6 +221,316 @@ public function via(object $notifiable): array
 
 ---
 
+## 📋 SPRINT 32 - DETALLE COMPLETO (04-Ene-2026)
+
+### 🎯 Objetivo del Sprint
+Estandarizar el sistema de estados y flujo de emails en todos los módulos de documentos (Órdenes de Pedido, Órdenes de Producción, Cuentas de Cobro), crear recurso de Activity Logs en super-admin, y documentar todas las pruebas manuales del sistema.
+
+### 🔄 1. Actualización de Estados
+
+#### **Órdenes de Pedido (Purchase Orders)**
+**Cambios en OrderStatus Enum:**
+- ❌ Estados eliminados: `CONFIRMED`, `PARTIALLY_RECEIVED`, `RECEIVED`
+- ✅ Estados nuevos: `SENT`, `IN_PROGRESS`, `COMPLETED`
+- **Workflow final**: Draft → Sent → In Progress → Completed | Cancelled
+
+**Archivos modificados:**
+- `app/Enums/OrderStatus.php` - Implementación de interfaces Filament
+- `database/migrations/2026_01_03_183005_update_purchase_orders_status_values.php` - Migración ENUM
+- `app/Filament/Resources/PurchaseOrders/Pages/EditPurchaseOrder.php` - Cambio de estado al enviar email
+- `app/Filament/Resources/PurchaseOrders/Pages/ViewPurchaseOrder.php` - Cambio de estado al enviar email
+- `app/Filament/Resources/PurchaseOrders/Tables/PurchaseOrdersTable.php` - Tabs actualizados
+
+#### **Órdenes de Producción (Production Orders)**
+**Cambios en ProductionStatus Enum:**
+- ❌ Estados eliminados: `QUEUED`, `ON_HOLD`
+- ✅ Estado nuevo: `SENT`
+- **Workflow final**: Draft → Sent → In Progress → Completed | Cancelled
+
+**Archivos modificados:**
+- `app/Enums/ProductionStatus.php` - Implementación de interfaces Filament
+- `database/migrations/2026_01_03_185517_update_production_orders_status_values.php` - Migración ENUM
+- `app/Filament/Resources/ProductionOrders/Pages/ViewProductionOrder.php` - Cambio de estado + acciones
+- `app/Filament/Resources/ProductionOrders/Pages/EditProductionOrder.php` - Acciones actualizadas
+- `app/Filament/Resources/ProductionOrders/Pages/ListProductionOrders.php` - Tabs sin QUEUED
+- `app/Filament/Resources/ProductionOrders/Schemas/ProductionOrderInfolist.php` - Colores actualizados
+- `app/Filament/Resources/ProductionOrders/Schemas/ProductionOrderForm.php` - Visibilidad de campos
+
+#### **Cuentas de Cobro (Collection Accounts)**
+**CollectionAccountStatus Enum:**
+- ✅ Sin cambios en estados: `DRAFT`, `SENT`, `APPROVED`, `PAID`, `CANCELLED`
+- ✅ Agregadas interfaces Filament: `HasColor`, `HasIcon`, `HasLabel`
+
+**Archivos modificados:**
+- `app/Enums/CollectionAccountStatus.php` - Interfaces implementadas
+- `app/Filament/Resources/CollectionAccounts/Pages/ViewCollectionAccount.php` - Cambio de estado al enviar
+- `app/Filament/Resources/CollectionAccounts/Pages/EditCollectionAccount.php` - Cambio de estado al enviar
+- `app/Filament/Resources/CollectionAccounts/Tables/CollectionAccountsTable.php` - Cambio de estado al enviar
+
+### 📧 2. Sistema de Emails Manuales
+
+**Comportamiento Implementado (3 módulos):**
+```php
+// Al enviar email manualmente:
+$record->update([
+    'email_sent_at' => now(),
+    'email_sent_by' => auth()->id(),
+    'status' => [Status]::SENT,  // ✅ CAMBIO AUTOMÁTICO
+]);
+```
+
+**Archivos actualizados:**
+1. **Purchase Orders (3 archivos):**
+   - `EditPurchaseOrder.php` (líneas 97-102)
+   - `ViewPurchaseOrder.php` (líneas 97-102)
+   - `PurchaseOrdersTable.php` (líneas 224-229)
+
+2. **Production Orders (2 archivos):**
+   - `ViewProductionOrder.php` (líneas 98-102)
+   - `ProductionOrdersTable.php` (líneas 224-229)
+
+3. **Collection Accounts (3 archivos):**
+   - `ViewCollectionAccount.php` (líneas 97-101)
+   - `EditCollectionAccount.php` (líneas 104-108)
+   - `CollectionAccountsTable.php` (líneas 224-228)
+
+**Total**: 8 archivos actualizados con cambio automático de estado
+
+### 🚫 3. Eliminación de Notificaciones Automáticas
+
+**Problema**: Sistema enviaba notificaciones de base de datos y emails automáticos
+
+**Solución**:
+```php
+// ❌ ANTES
+public function via(object $notifiable): array {
+    return ['mail'];  // Enviaba emails automáticos
+}
+
+// ✅ AHORA
+public function via(object $notifiable): array {
+    return ['database'];  // Solo BD (pero no se usa)
+}
+```
+
+**Archivos modificados:**
+1. `app/Models/PurchaseOrder.php` - Eliminados todos `Notification::send()`
+2. `app/Models/CollectionAccount.php` - Eliminados todos `Notification::send()`
+3. `app/Notifications/PurchaseOrderStatusChanged.php` - `via()` a `['database']`
+4. `app/Notifications/CollectionAccountSent.php` - `via()` a `['database']`
+5. `app/Notifications/CollectionAccountStatusChanged.php` - `via()` a `['database']`
+
+**Resultado**: ✅ Sin notificaciones automáticas, solo emails manuales
+
+### 🎨 4. Estandarización de Enums
+
+**Interfaces Implementadas:**
+```php
+use Filament\Support\Contracts\HasColor;
+use Filament\Support\Contracts\HasIcon;
+use Filament\Support\Contracts\HasLabel;
+
+enum [Status]: string implements HasColor, HasIcon, HasLabel
+{
+    public function getLabel(): string { ... }
+    public function getColor(): string { ... }
+    public function getIcon(): string { ... }
+}
+```
+
+**Enums Actualizados:**
+1. ✅ `OrderStatus` - Purchase Orders
+2. ✅ `ProductionStatus` - Production Orders
+3. ✅ `CollectionAccountStatus` - Collection Accounts
+
+**Enums con métodos legacy (no modificados):**
+- ⚠️ `CompanyType` - Usa `label()` en lugar de `getLabel()`
+- ⚠️ `FinishingMeasurementUnit`
+- ⚠️ `OrderItemStatus`
+
+**Fix en Vistas:**
+- `resources/views/collection-accounts/pdf.blade.php` - `label()` → `getLabel()`
+- `resources/views/pdf/purchase-order.blade.php` - Revertido a `label()` (CompanyType)
+- `resources/views/filament/pages/company-profile.blade.php` - Revertido a `label()` (CompanyType)
+
+### 🎨 5. Colores y Estados en Español
+
+**Paleta de Colores Unificada:**
+```
+🟢 Borrador (Draft)       → gray
+🔵 Enviada (Sent)         → info
+🟡 En Proceso (In Progress) → warning
+🟢 Finalizada (Completed)  → success
+🔴 Cancelada (Cancelled)   → danger
+```
+
+**Collection Accounts adicionales:**
+```
+🟡 Aprobada (Approved) → warning
+🟢 Pagada (Paid)       → success
+```
+
+### 📊 6. Activity Logs - Super Admin
+
+**Problema**: Ruta `http://127.0.0.1:8000/super-admin/activity-logs` daba 404
+
+**Solución**: Creación completa del recurso ActivityLogResource
+
+**Archivos creados:**
+1. `app/Filament/SuperAdmin/Resources/ActivityLogResource.php`
+   - Uso correcto de `Schema` en lugar de `Form`
+   - Tipos correctos: `BackedEnum|string|null` para `$navigationIcon`
+   - `UnitEnum|string|null` para `$navigationGroup`
+   - Namespace correcto: `Filament\Actions\*` para acciones
+
+2. `app/Filament/SuperAdmin/Resources/ActivityLogResource/Pages/ListActivityLogs.php`
+   - Página de lista sin botón crear (logs son read-only)
+
+3. `app/Filament/SuperAdmin/Resources/ActivityLogResource/Pages/ViewActivityLog.php`
+   - Página de vista individual con botón eliminar
+
+**Archivo modificado:**
+4. `app/Providers/Filament/SuperAdminPanelProvider.php`
+   - Descomentado `ActivityLogResource` (línea 50)
+   - Eliminados comentarios sobre problemas de enum
+
+**Características del Recurso:**
+- ✅ Tabla con 8 columnas (ID, Event, User, Company, Subject Type, Subject ID, IP, Date)
+- ✅ Filtros por evento, usuario, empresa, rango de fechas
+- ✅ Eventos con badges de colores
+- ✅ Vista individual de cada log
+- ✅ Eliminación masiva
+- ✅ Ordenamiento por defecto: más recientes primero
+- ✅ Grupo de navegación: "System Administration"
+
+**Rutas creadas:**
+```
+✅ GET /super-admin/activity-logs
+✅ GET /super-admin/activity-logs/{record}
+```
+
+### 📝 7. Documento de Pruebas Manuales
+
+**Archivo creado:**
+- `pruebas-manuales.md` - Guía completa de pruebas
+
+**Contenido:**
+- 20 secciones principales
+- 150+ pruebas individuales con checkboxes
+- Pasos detallados para cada funcionalidad
+- Verificaciones críticas resaltadas
+- Sección de estados con colores
+- Checklist de emails en Mailtrap
+- Espacios para notas de errores y sugerencias
+
+**Secciones incluidas:**
+1. Autenticación y Perfil
+2. Gestión de Contactos
+3. Cotizaciones
+4. Órdenes de Pedido (workflow completo)
+5. Órdenes de Producción (workflow completo)
+6. Cuentas de Cobro (3 formas de enviar email)
+7. Inventario (Papeles, Máquinas, Items Digitales)
+8. Stock (página consolidada)
+9. Solicitudes Comerciales
+10. Sistema de Acabados
+11. Notificaciones y Emails (verificación de NO automáticas)
+12. Permisos y Roles
+13. Búsqueda y Filtros
+14. Exportación y Reportes
+15. Responsive y UX
+16. Validaciones y Errores
+17. Integración entre Módulos
+18. Limpieza y Mantenimiento
+19. Checklist Final
+20. Verificación de Emails (Mailtrap)
+
+### 📦 Resumen de Archivos Modificados
+
+**Enums (3):**
+- `app/Enums/OrderStatus.php`
+- `app/Enums/ProductionStatus.php`
+- `app/Enums/CollectionAccountStatus.php`
+
+**Migraciones (2):**
+- `database/migrations/2026_01_03_183005_update_purchase_orders_status_values.php`
+- `database/migrations/2026_01_03_185517_update_production_orders_status_values.php`
+
+**Purchase Orders (5):**
+- `app/Filament/Resources/PurchaseOrders/Pages/EditPurchaseOrder.php`
+- `app/Filament/Resources/PurchaseOrders/Pages/ViewPurchaseOrder.php`
+- `app/Filament/Resources/PurchaseOrders/Pages/ListPurchaseOrders.php`
+- `app/Filament/Resources/PurchaseOrders/Tables/PurchaseOrdersTable.php`
+- `app/Models/PurchaseOrder.php`
+
+**Production Orders (6):**
+- `app/Filament/Resources/ProductionOrders/Pages/ViewProductionOrder.php`
+- `app/Filament/Resources/ProductionOrders/Pages/EditProductionOrder.php`
+- `app/Filament/Resources/ProductionOrders/Pages/ListProductionOrders.php`
+- `app/Filament/Resources/ProductionOrders/Schemas/ProductionOrderInfolist.php`
+- `app/Filament/Resources/ProductionOrders/Schemas/ProductionOrderForm.php`
+- `app/Models/ProductionOrder.php`
+
+**Collection Accounts (5):**
+- `app/Filament/Resources/CollectionAccounts/Pages/ViewCollectionAccount.php`
+- `app/Filament/Resources/CollectionAccounts/Pages/EditCollectionAccount.php`
+- `app/Filament/Resources/CollectionAccounts/Tables/CollectionAccountsTable.php`
+- `app/Enums/CollectionAccountStatus.php`
+- `app/Models/CollectionAccount.php`
+
+**Notificaciones (3):**
+- `app/Notifications/PurchaseOrderStatusChanged.php`
+- `app/Notifications/CollectionAccountSent.php`
+- `app/Notifications/CollectionAccountStatusChanged.php`
+
+**Vistas (3):**
+- `resources/views/collection-accounts/pdf.blade.php`
+- `resources/views/pdf/purchase-order.blade.php`
+- `resources/views/filament/pages/company-profile.blade.php`
+
+**Activity Logs - Super Admin (4):**
+- `app/Filament/SuperAdmin/Resources/ActivityLogResource.php` (NUEVO)
+- `app/Filament/SuperAdmin/Resources/ActivityLogResource/Pages/ListActivityLogs.php` (NUEVO)
+- `app/Filament/SuperAdmin/Resources/ActivityLogResource/Pages/ViewActivityLog.php` (NUEVO)
+- `app/Providers/Filament/SuperAdminPanelProvider.php`
+
+**Documentación (1):**
+- `pruebas-manuales.md` (NUEVO)
+
+**Total**: 32 archivos modificados + 4 archivos nuevos = **36 archivos**
+
+### ✅ Testing Completado
+
+```bash
+✅ Migraciones ejecutadas correctamente
+✅ Sintaxis PHP sin errores
+✅ Cachés limpiadas (config, view, cache, filament)
+✅ Métodos de enum estandarizados
+✅ Sin referencias a estados obsoletos
+✅ Activity Logs funcionando en super-admin
+✅ Rutas creadas correctamente
+```
+
+### 🎯 Próximas Tareas Sugeridas
+
+**Opción A - Testing Completo:**
+1. Seguir guía de `pruebas-manuales.md`
+2. Verificar todos los workflows de estados
+3. Confirmar emails en Mailtrap
+4. Validar Activity Logs registra eventos
+
+**Opción B - Mejoras UX:**
+1. Aplicar layout 2 columnas a Production Orders
+2. Replicar patrón de vista limpia a todos los módulos
+3. Unificar estilos de PDFs
+
+**Opción C - Funcionalidades Nuevas:**
+1. Dashboard de producción con widgets
+2. Reportes avanzados de órdenes
+3. Notificaciones en tiempo real (broadcasting)
+
+---
+
 ### ✅ Sesión Completada (30-Dic-2025)
 **SPRINT 30: Consolidación de Stock + Gestión Solicitudes Comerciales**
 
@@ -290,8 +614,8 @@ public function via(object $notifiable): array
 ## COMANDO PARA EMPEZAR
 
 ```bash
-# Iniciar LitoPro 3.0 - SPRINT 31 COMPLETADO
-cd /home/dasiva/Descargas/litopro825 && php artisan serve --port=8000
+# Iniciar GrafiRed 3.0 - SPRINT 31 COMPLETADO
+cd /home/dasiva/Descargas/grafired825 && php artisan serve --port=8000
 
 echo "✅ SPRINT 31 COMPLETADO (31-Dic-2025) - UX Mejorada"
 echo ""
@@ -450,7 +774,7 @@ composer analyse                   # PHPStan
 
 # Base de Datos
 php artisan migrate:fresh --seed
-php artisan litopro:setup-demo --fresh
+php artisan grafired:setup-demo --fresh
 ```
 
 ### Estructura de Archivos Clave

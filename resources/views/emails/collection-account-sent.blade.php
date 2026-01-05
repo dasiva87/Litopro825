@@ -79,7 +79,7 @@
 
     <div style="background: #f8f9fa; padding: 15px; text-align: center; border-radius: 0 0 5px 5px; border: 1px solid #ddd; border-top: none;">
         <p style="margin: 0; font-size: 12px; color: #666;">
-            Este es un email automático generado por LitoPro.<br>
+            Este es un email automático generado por GrafiRed.<br>
             Por favor, no responda directamente a este correo.
         </p>
     </div>

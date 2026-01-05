@@ -56,15 +56,15 @@ class AdminPanelProvider extends PanelProvider
                 // Default Filament Widgets
                 AccountWidget::class,
 
-                // LitoPro Onboarding Widget (removed from global - only shown in Dashboard/Home via getWidgets())
+                // GrafiRed Onboarding Widget (removed from global - only shown in Dashboard/Home via getWidgets())
                 // \App\Filament\Widgets\OnboardingWidget::class,
 
-                // LitoPro Central Panel Widgets (optimized load)
+                // GrafiRed Central Panel Widgets (optimized load)
                 \App\Filament\Widgets\DashboardStatsWidget::class,
                 \App\Filament\Widgets\ActiveDocumentsWidget::class,
                 \App\Filament\Widgets\SocialFeedWidget::class,
 
-                // LitoPro Sidebar Widgets (specialized tools)
+                // GrafiRed Sidebar Widgets (specialized tools)
                 \App\Filament\Widgets\StockAlertsWidget::class,
                 \App\Filament\Widgets\DeadlinesWidget::class,
                 \App\Filament\Widgets\PaperCalculatorWidget::class,

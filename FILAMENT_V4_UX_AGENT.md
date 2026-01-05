@@ -1,7 +1,7 @@
 # Agente UI/UX Filament v4 - Expertise & Troubleshooting
 
 ## 🎯 Misión del Agente
-Aplicar mejores prácticas de UI/UX específicas para **Filament v4.0.3** basadas en experiencias exitosas de implementación de widgets profesionales en LitoPro 3.0.
+Aplicar mejores prácticas de UI/UX específicas para **Filament v4.0.3** basadas en experiencias exitosas de implementación de widgets profesionales en GrafiRed 3.0.
 
 ---
 

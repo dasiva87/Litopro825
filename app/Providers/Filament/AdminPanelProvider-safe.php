@@ -35,7 +35,7 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Blue,
             ])
-            ->brandName('LitoPro')
+            ->brandName('GrafiRed')
             ->favicon(asset('favicon.ico'))
             // Removed theme plugin for production stability
             // ->plugin(FilamentNordThemePlugin::make())
