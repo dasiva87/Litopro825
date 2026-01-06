@@ -54,17 +54,25 @@ class SimpleItemsTable
                     )
                     ->alignCenter(),
                     
-                TextColumn::make('mounting_quantity')
-                    ->label('Montaje')
+                TextColumn::make('paper_sheets_needed')
+                    ->label('Pliegos')
                     ->numeric()
                     ->suffix(' pliegos')
-                    ->sortable(),
-                    
+                    ->sortable()
+                    ->toggleable(),
+
+                TextColumn::make('copies_per_form')
+                    ->label('Copias/Hoja')
+                    ->numeric()
+                    ->suffix(' copias')
+                    ->sortable()
+                    ->toggleable(),
+
                 TextColumn::make('cuts_display')
-                    ->label('Cortes')
-                    ->getStateUsing(fn ($record) => 
-                        $record->paper_cuts_h . ' × ' . $record->paper_cuts_v . 
-                        ' = ' . ($record->paper_cuts_h * $record->paper_cuts_v)
+                    ->label('Cortes/Hoja')
+                    ->getStateUsing(fn ($record) =>
+                        $record->cuts_per_form_h . ' × ' . $record->cuts_per_form_v .
+                        ' = ' . ($record->cuts_per_form_h * $record->cuts_per_form_v)
                     )
                     ->alignCenter()
                     ->toggleable(),

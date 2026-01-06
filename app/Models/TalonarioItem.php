@@ -296,7 +296,7 @@ class TalonarioItem extends Model
                 }
 
                 // Sumar los pliegos necesarios de este papel
-                $papers[$paperId]['total_sheets'] += $sheet->simpleItem->mounting_quantity ?? 0;
+                $papers[$paperId]['total_sheets'] += $sheet->simpleItem->paper_sheets_needed ?? 0;
                 $papers[$paperId]['sheets_using'][] = $sheet->sheet_type_name;
             }
         }

@@ -69,7 +69,10 @@ class CheckActiveCompany
         }
 
         // Check if subscription is expired
-        if ($company->subscription_expires_at && $company->subscription_expires_at->isPast()) {
+        // EXCEPCIÓN: Permitir acceso durante las primeras 24 horas después de crear la empresa
+        $isRecentlyCreated = $company->created_at && $company->created_at->diffInHours(now()) < 24;
+
+        if ($company->subscription_expires_at && $company->subscription_expires_at->isPast() && !$isRecentlyCreated) {
             return redirect()->route('filament.admin.pages.billing')->with('warning',
                 'Tu suscripción ha expirado. Renueva tu plan para continuar usando GrafiRed.'
             );

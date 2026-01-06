@@ -359,7 +359,7 @@ class MagazineItem extends Model
                 }
 
                 // Sumar los pliegos necesarios de este papel
-                $papers[$paperId]['total_sheets'] += $page->simpleItem->mounting_quantity ?? 0;
+                $papers[$paperId]['total_sheets'] += $page->simpleItem->paper_sheets_needed ?? 0;
                 $papers[$paperId]['pages_using'][] = $page->page_type_name;
             }
         }
@@ -391,7 +391,7 @@ class MagazineItem extends Model
 
     /**
      * Obtener el total de pliegos necesarios para toda la revista
-     * Suma los mounting_quantity de todos los SimpleItems de las páginas
+     * Suma los paper_sheets_needed de todos los SimpleItems de las páginas
      */
     public function getTotalSheetsAttribute(): int
     {
@@ -399,7 +399,7 @@ class MagazineItem extends Model
 
         foreach ($this->pages as $page) {
             if ($page->simpleItem) {
-                $totalSheets += $page->simpleItem->mounting_quantity ?? 0;
+                $totalSheets += $page->simpleItem->paper_sheets_needed ?? 0;
             }
         }
 

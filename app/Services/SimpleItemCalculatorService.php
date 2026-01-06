@@ -88,7 +88,13 @@ class SimpleItemCalculatorService
 
     /**
      * NUEVO PASO 1: Calcular montaje con sistema de cortes integrado
-     * Calcula: montaje (copias en máquina) + divisor (cortes de máquina en pliego) + pliegos necesarios
+     *
+     * TERMINOLOGÍA CORRECTA:
+     * - PLIEGO (Paper Sheet): Papel como viene del proveedor (70x100cm)
+     * - HOJA (Printing Form): Corte del pliego donde se imprime (50x70cm - tamaño máquina)
+     * - COPIA (Copy): Producto final (10x15cm volante)
+     *
+     * FLUJO: PLIEGO → [divisor] → HOJAS → [mounting] → COPIAS
      */
     public function calculateMountingWithCuts(SimpleItem $item): ?array
     {
@@ -96,7 +102,7 @@ class SimpleItemCalculatorService
             return null;
         }
 
-        // PASO 1A: Calcular montaje (cuántas copias caben en tamaño máquina)
+        // PASO 1A: Calcular montaje (cuántas COPIAS caben en una HOJA)
         $mountingResult = $this->mountingCalculator->calculateMounting(
             workWidth: $item->horizontal_size,
             workHeight: $item->vertical_size,
@@ -105,13 +111,13 @@ class SimpleItemCalculatorService
             marginPerSide: 1.0
         );
 
-        $copiesPerMounting = $mountingResult['maximum']['copies_per_sheet'];
+        $copiesPerForm = $mountingResult['maximum']['copies_per_sheet']; // Copias por hoja
 
-        if ($copiesPerMounting <= 0) {
+        if ($copiesPerForm <= 0) {
             return null; // No cabe ni una copia
         }
 
-        // PASO 1B: Calcular divisor (cuántos cortes del tamaño máquina caben en el pliego)
+        // PASO 1B: Calcular divisor (cuántas HOJAS salen de un PLIEGO)
         $divisorResult = $this->cuttingCalculator->calculateCuts(
             paperWidth: $item->paper->width,
             paperHeight: $item->paper->height,
@@ -121,39 +127,46 @@ class SimpleItemCalculatorService
             orientation: 'maximum'
         );
 
-        $divisor = $divisorResult['cutsPerSheet']; // Cuántos cortes de máquina en pliego
+        $formsPerPaperSheet = $divisorResult['cutsPerSheet']; // Hojas por pliego
 
-        if ($divisor <= 0) {
-            return null; // El tamaño de máquina no cabe en el pliego
+        if ($formsPerPaperSheet <= 0) {
+            return null; // El tamaño de hoja no cabe en el pliego
         }
 
-        // PASO 1C: Calcular pliegos necesarios
+        // PASO 1C: Calcular PLIEGOS necesarios
         $totalQuantity = (int) $item->quantity + ($item->sobrante_papel ?? 0);
-        $impressionsNeeded = ceil($totalQuantity / $copiesPerMounting);
-        $sheetsNeeded = ceil($impressionsNeeded / $divisor);
+        $formsNeeded = ceil($totalQuantity / $copiesPerForm); // Hojas necesarias
+        $paperSheetsNeeded = ceil($formsNeeded / $formsPerPaperSheet); // Pliegos necesarios
 
-        // PASO 1D: Calcular impresiones totales
-        $totalImpressions = $sheetsNeeded * $divisor;
+        // PASO 1D: Calcular HOJAS totales a imprimir
+        $totalPrintingForms = $paperSheetsNeeded * $formsPerPaperSheet;
 
-        // PASO 1E: Calcular copias producidas
-        $totalCopiesProduced = $totalImpressions * $copiesPerMounting;
+        // PASO 1E: Calcular COPIAS producidas
+        $totalCopiesProduced = $totalPrintingForms * $copiesPerForm;
 
         return [
             'mounting' => $mountingResult['maximum'],
-            'copies_per_mounting' => $copiesPerMounting,
-            'divisor' => $divisor,
+            'copies_per_form' => $copiesPerForm,                    // Copias por hoja
+            'forms_per_paper_sheet' => $formsPerPaperSheet,         // Hojas por pliego (divisor)
+            'forms_needed' => $formsNeeded,                         // Hojas necesarias
+            'paper_sheets_needed' => $paperSheetsNeeded,            // Pliegos necesarios
+            'printing_forms_needed' => $totalPrintingForms,         // Hojas a imprimir
+            'total_copies_produced' => $totalCopiesProduced,        // Copias producidas
+            'waste_copies' => $totalCopiesProduced - $totalQuantity,
+            'paper_cost' => $paperSheetsNeeded * $item->paper->cost_per_sheet,
+            'utilization_percentage' => $divisorResult['usedAreaPercentage'],
             'divisor_layout' => [
                 'vertical_cuts' => $divisorResult['verticalCuts'],
                 'horizontal_cuts' => $divisorResult['horizontalCuts']
             ],
-            'impressions_needed' => $impressionsNeeded,
-            'sheets_needed' => $sheetsNeeded,
-            'total_impressions' => $totalImpressions,
-            'total_copies_produced' => $totalCopiesProduced,
-            'waste_copies' => $totalCopiesProduced - $totalQuantity,
-            'paper_cost' => $sheetsNeeded * $item->paper->cost_per_sheet,
-            'utilization_percentage' => $divisorResult['usedAreaPercentage'],
-            'raw_divisor_result' => $divisorResult
+            'raw_divisor_result' => $divisorResult,
+
+            // LEGACY KEYS (mantener por compatibilidad temporal)
+            'copies_per_mounting' => $copiesPerForm,
+            'divisor' => $formsPerPaperSheet,
+            'impressions_needed' => $formsNeeded,
+            'sheets_needed' => $paperSheetsNeeded,
+            'total_impressions' => $totalPrintingForms,
         ];
     }
 
@@ -362,7 +375,7 @@ class SimpleItemCalculatorService
         // Calcular costos adicionales (usar pliegos del nuevo cálculo)
         $cuttingCost = ($item->cutting_cost > 0)
             ? $item->cutting_cost
-            : $this->calculateCuttingCostFromSheets($mountingWithCuts['sheets_needed']);
+            : $this->calculateCuttingCostFromSheets($mountingWithCuts['paper_sheets_needed']);
 
         $mountingCost = ($item->mounting_cost > 0)
             ? $item->mounting_cost
@@ -395,13 +408,18 @@ class SimpleItemCalculatorService
         // Crear MountingOption compatible para el resultado
         $mountingOption = new MountingOption(
             orientation: 'maximum',
-            cutsPerSheet: $mountingWithCuts['copies_per_mounting'],
-            sheetsNeeded: $mountingWithCuts['sheets_needed'],
+            cutsPerSheet: $mountingWithCuts['copies_per_form'],
+            sheetsNeeded: $mountingWithCuts['paper_sheets_needed'],
             utilizationPercentage: $mountingWithCuts['utilization_percentage'],
             wastePercentage: 100 - $mountingWithCuts['utilization_percentage'],
             paperCost: $mountingWithCuts['paper_cost'],
             cuttingLayout: $mountingWithCuts['divisor_layout'],
-            rawCalculation: $mountingWithCuts
+            rawCalculation: $mountingWithCuts,
+            // NUEVAS PROPIEDADES CON TERMINOLOGÍA CORRECTA
+            copiesPerForm: $mountingWithCuts['copies_per_form'],
+            formsPerPaperSheet: $mountingWithCuts['forms_per_paper_sheet'],
+            paperSheetsNeeded: $mountingWithCuts['paper_sheets_needed'],
+            printingFormsNeeded: $mountingWithCuts['printing_forms_needed']
         );
 
         return new PricingResult(
@@ -625,12 +643,12 @@ class SimpleItemCalculatorService
         return [
             'paper' => [
                 'description' => 'Papel',
-                'quantity' => $mountingWithCuts['sheets_needed'] . ' pliegos',
+                'quantity' => $mountingWithCuts['paper_sheets_needed'] . ' pliegos',
                 'cost' => $mountingWithCuts['paper_cost']
             ],
             'printing' => [
                 'description' => 'Impresión',
-                'quantity' => $printing->millaresFinal . ' millares (' . $mountingWithCuts['total_impressions'] . ' impresiones)',
+                'quantity' => $printing->millaresFinal . ' millares (' . $mountingWithCuts['printing_forms_needed'] . ' hojas)',
                 'cost' => $printing->printingCost
             ],
             'setup' => [
@@ -640,12 +658,12 @@ class SimpleItemCalculatorService
             ],
             'cutting' => [
                 'description' => 'Corte',
-                'quantity' => $mountingWithCuts['sheets_needed'] . ' pliegos',
+                'quantity' => $mountingWithCuts['paper_sheets_needed'] . ' pliegos',
                 'cost' => $additional->cuttingCost
             ],
             'mounting' => [
                 'description' => 'Montaje',
-                'quantity' => $mountingWithCuts['copies_per_mounting'] . ' copias/montaje × ' . $mountingWithCuts['divisor'] . ' cortes',
+                'quantity' => $mountingWithCuts['copies_per_form'] . ' copias/hoja × ' . $mountingWithCuts['forms_per_paper_sheet'] . ' hojas/pliego',
                 'cost' => $additional->mountingCost
             ],
             'design' => [
@@ -737,18 +755,29 @@ class SimpleItemCalculatorService
 
 /**
  * Opción de montaje disponible para un item
+ *
+ * TERMINOLOGÍA CORRECTA:
+ * - copiesPerForm: Copias que caben en una hoja
+ * - formsPerPaperSheet: Hojas que salen de un pliego (divisor)
+ * - paperSheetsNeeded: Pliegos necesarios
+ * - printingFormsNeeded: Hojas a imprimir
  */
 class MountingOption
 {
     public function __construct(
         public readonly string $orientation,
-        public readonly int $cutsPerSheet,
-        public readonly int $sheetsNeeded,
+        public readonly int $cutsPerSheet,              // LEGACY: usar copiesPerForm
+        public readonly int $sheetsNeeded,              // LEGACY: usar paperSheetsNeeded
         public readonly float $utilizationPercentage,
         public readonly float $wastePercentage,
         public readonly float $paperCost,
         public readonly array $cuttingLayout,
-        public readonly array $rawCalculation = []
+        public readonly array $rawCalculation = [],
+        // NUEVAS PROPIEDADES CON TERMINOLOGÍA CORRECTA
+        public readonly ?int $copiesPerForm = null,
+        public readonly ?int $formsPerPaperSheet = null,
+        public readonly ?int $paperSheetsNeeded = null,
+        public readonly ?int $printingFormsNeeded = null,
     ) {}
 
     public function getEfficiencyRating(): string

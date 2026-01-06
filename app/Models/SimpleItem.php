@@ -22,13 +22,16 @@ class SimpleItem extends Model
         'sobrante_papel',
         'horizontal_size',
         'vertical_size',
-        'mounting_quantity',
+        'copies_per_form', // Copias que caben en una hoja (antes mounting_quantity)
+        'forms_per_paper_sheet', // Hojas por pliego - divisor (NUEVO)
+        'paper_sheets_needed', // Pliegos necesarios (NUEVO)
+        'printing_forms_needed', // Hojas a imprimir (NUEVO)
         'custom_paper_width', // Ancho de papel personalizado
         'custom_paper_height', // Alto de papel personalizado
         'mounting_type', // 'automatic' o 'custom'
         'custom_mounting_data', // JSON con datos del montaje custom
-        'paper_cuts_h',
-        'paper_cuts_v',
+        'cuts_per_form_h', // Cortes horizontales en la hoja (antes paper_cuts_h)
+        'cuts_per_form_v', // Cortes verticales en la hoja (antes paper_cuts_v)
         'ink_front_count',
         'ink_back_count',
         'front_back_plate',
@@ -57,9 +60,12 @@ class SimpleItem extends Model
         'custom_paper_width' => 'decimal:2',
         'custom_paper_height' => 'decimal:2',
         'custom_mounting_data' => 'array',
-        'paper_cuts_h' => 'decimal:2',
-        'paper_cuts_v' => 'decimal:2',
-        'mounting_quantity' => 'integer',
+        'cuts_per_form_h' => 'decimal:2',
+        'cuts_per_form_v' => 'decimal:2',
+        'copies_per_form' => 'integer',
+        'forms_per_paper_sheet' => 'integer',
+        'paper_sheets_needed' => 'integer',
+        'printing_forms_needed' => 'integer',
         'ink_front_count' => 'integer',
         'ink_back_count' => 'integer',
         'front_back_plate' => 'boolean',
@@ -207,6 +213,11 @@ class SimpleItem extends Model
     }
 
     // Métodos de cálculo automático
+
+    /**
+     * LEGACY METHOD - Mantener por compatibilidad
+     * Calcula pliegos necesarios usando el método antiguo
+     */
     public function calculateMounting(): int
     {
         if (! $this->paper || ! $this->horizontal_size || ! $this->vertical_size) {
@@ -225,7 +236,7 @@ class SimpleItem extends Model
                 desiredCuts: (int) $this->quantity
             );
 
-            // Retornar la cantidad de pliegos necesarios como montaje
+            // Retornar la cantidad de pliegos necesarios
             return $result['sheetsNeeded'] ?? 0;
 
         } catch (\Exception $e) {
@@ -260,20 +271,22 @@ class SimpleItem extends Model
 
     public function calculatePaperCost(): float
     {
-        if (! $this->paper || ! $this->mounting_quantity) {
+        if (! $this->paper || ! $this->paper_sheets_needed) {
             return 0;
         }
 
-        return $this->mounting_quantity * $this->paper->cost_per_sheet;
+        // CORRECTO: Usar pliegos necesarios (no copias por hoja)
+        return $this->paper_sheets_needed * $this->paper->cost_per_sheet;
     }
 
     public function calculatePrintingCost(): float
     {
-        if (! $this->printingMachine || ! $this->mounting_quantity) {
+        if (! $this->printingMachine || ! $this->printing_forms_needed) {
             return 0;
         }
 
-        $impressions = $this->mounting_quantity;
+        // CORRECTO: Usar hojas a imprimir (no copias por hoja)
+        $printingForms = $this->printing_forms_needed;
         $totalInks = $this->ink_front_count + $this->ink_back_count;
 
         // Si es tiro y retiro plancha, se cobra solo la mayor cantidad de tintas (frente o respaldo)
@@ -282,7 +295,7 @@ class SimpleItem extends Model
         }
 
         // Calcular costo por millar (cost_per_impression es por 1000)
-        $costPerImpression = $this->printingMachine->calculateCostForQuantity($impressions);
+        $costPerImpression = $this->printingMachine->calculateCostForQuantity($printingForms);
 
         // Multiplicar por colores y agregar costo de alistamiento
         return ($costPerImpression * $totalInks) + $this->printingMachine->setup_cost;
@@ -291,7 +304,7 @@ class SimpleItem extends Model
     public function calculateMountingCost(): float
     {
         // Costo de montaje básico - se puede hacer más sofisticado
-        if ($this->mounting_quantity <= 0) {
+        if ($this->copies_per_form <= 0) {
             return 0;
         }
 
@@ -349,9 +362,13 @@ class SimpleItem extends Model
             }
 
             // Actualizar campos con los resultados del nuevo calculador
-            $this->mounting_quantity = $pricingResult->mountingOption->sheetsNeeded;
-            $this->paper_cuts_h = $pricingResult->mountingOption->cuttingLayout['horizontal_cuts'];
-            $this->paper_cuts_v = $pricingResult->mountingOption->cuttingLayout['vertical_cuts'];
+            // TERMINOLOGÍA CORRECTA:
+            $this->copies_per_form = $pricingResult->mountingOption->copiesPerForm;
+            $this->forms_per_paper_sheet = $pricingResult->mountingOption->formsPerPaperSheet;
+            $this->paper_sheets_needed = $pricingResult->mountingOption->paperSheetsNeeded;
+            $this->printing_forms_needed = $pricingResult->mountingOption->printingFormsNeeded;
+            $this->cuts_per_form_h = $pricingResult->mountingOption->cuttingLayout['horizontal_cuts'];
+            $this->cuts_per_form_v = $pricingResult->mountingOption->cuttingLayout['vertical_cuts'];
             $this->paper_cost = $pricingResult->mountingOption->paperCost;
             $this->printing_cost = $pricingResult->printingCalculation->totalCost;
 
@@ -403,11 +420,13 @@ class SimpleItem extends Model
     // Mantener el método anterior como fallback
     private function calculateAllLegacy(): void
     {
-        $this->mounting_quantity = $this->calculateMounting();
+        // LEGACY: Este método usa el cálculo antiguo
+        // TODO: Eventualmente eliminar cuando el nuevo sistema esté 100% probado
+        $this->paper_sheets_needed = $this->calculateMounting();
 
         $cuts = $this->calculatePaperCuts();
-        $this->paper_cuts_h = $cuts['h'];
-        $this->paper_cuts_v = $cuts['v'];
+        $this->cuts_per_form_h = $cuts['h'];
+        $this->cuts_per_form_v = $cuts['v'];
 
         $this->paper_cost = $this->calculatePaperCost();
         $this->printing_cost = $this->calculatePrintingCost();

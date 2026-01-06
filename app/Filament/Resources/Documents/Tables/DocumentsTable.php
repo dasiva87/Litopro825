@@ -351,7 +351,7 @@ class DocumentsTable
                                                         $simpleItem = $item->itemable;
                                                         $paper = $simpleItem->paper;
                                                         $description .= $paper ?
-                                                            " - {$paper->name} ({$simpleItem->mounting_quantity} pliegos - {$simpleItem->horizontal_size}x{$simpleItem->vertical_size}cm)" :
+                                                            " - {$paper->name} ({$simpleItem->paper_sheets_needed} pliegos - {$simpleItem->horizontal_size}x{$simpleItem->vertical_size}cm)" :
                                                             ' - Papel no definido';
                                                     } elseif ($item->itemable_type === 'App\Models\MagazineItem' && $item->itemable) {
                                                         $magazine = $item->itemable;
@@ -376,7 +376,7 @@ class DocumentsTable
                                                         $supplier = $paper && $paper->company ? $paper->company->name : 'Proveedor no definido';
                                                         $info .= " | Proveedor: {$supplier}";
                                                         if ($paper) {
-                                                            $cost = ($simpleItem->mounting_quantity ?? 0) * $paper->cost_per_sheet;
+                                                            $cost = ($simpleItem->paper_sheets_needed ?? 0) * $paper->cost_per_sheet;
                                                             $info .= ' | Costo estimado: $'.number_format($cost, 2);
                                                         }
                                                     } elseif ($item->itemable_type === 'App\Models\MagazineItem' && $item->itemable) {
@@ -585,7 +585,7 @@ class DocumentsTable
 
                                         if ($item->itemable_type === 'App\Models\SimpleItem' && $item->itemable) {
                                             $paper = $item->itemable->paper;
-                                            $sheets = $item->itemable->mounting_quantity ?? 0;
+                                            $sheets = $item->itemable->paper_sheets_needed ?? 0;
                                             $unitPrice = $paper ? ($paper->cost_per_sheet ?? 0) : 0;
                                             $totalPrice = $sheets * $unitPrice;
                                             $paperId = $paper?->id;

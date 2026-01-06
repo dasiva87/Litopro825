@@ -184,6 +184,10 @@ class Register extends BaseRegister
             $selectedPlan = Plan::findOrFail($data['plan_id']);
 
             // Create company
+            // Para planes de pago, agregar 1 mes + 1 día de gracia
+            // Para planes gratuitos, no expiran (null)
+            $expiresAt = $selectedPlan->price == 0 ? null : now()->addMonth()->addDay();
+
             $company = Company::create([
                 'name' => $data['company_name'],
                 'slug' => Str::slug($data['company_name']),
@@ -195,7 +199,7 @@ class Register extends BaseRegister
                 'status' => 'active',
                 'is_active' => true,
                 'subscription_plan' => $selectedPlan->slug,
-                'subscription_expires_at' => $selectedPlan->price == 0 ? null : now()->addMonth(),
+                'subscription_expires_at' => $expiresAt,
                 'max_users' => $selectedPlan->max_users ?? 5,
             ]);
 

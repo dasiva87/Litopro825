@@ -189,7 +189,7 @@ class PurchaseOrderItemsRelationManager extends RelationManager
                                 // SimpleItem: Agregar como una sola fila
                                 $paperId = $item->itemable->paper_id;
                                 $paperDescription = $item->itemable->paper?->name;
-                                $sheets = $item->itemable->mounting_quantity ?? 0;
+                                $sheets = $item->itemable->paper_sheets_needed ?? 0;
                                 $cutWidth = $item->itemable->horizontal_size;
                                 $cutHeight = $item->itemable->vertical_size;
 
@@ -497,7 +497,7 @@ class PurchaseOrderItemsRelationManager extends RelationManager
     private function calculateTotalPrice(DocumentItem $item): float
     {
         if ($item->itemable_type === 'App\Models\SimpleItem' && $item->itemable) {
-            $sheets = $item->itemable->mounting_quantity ?? 0;
+            $sheets = $item->itemable->paper_sheets_needed ?? 0;
             $unitPrice = $this->calculateUnitPrice($item);
             return $sheets * $unitPrice;
         } elseif ($item->itemable_type === 'App\Models\Product' && $item->itemable) {
