@@ -261,6 +261,8 @@ class DocumentsTable
                         ->icon('heroicon-o-banknotes')
                         ->color('success')
                         ->visible(fn ($record) => $record->status === 'approved')
+                        ->modalWidth('5xl')
+                        ->closeModalByClickingAway(false)
                         ->form([
                             \Filament\Schemas\Components\Section::make('Seleccionar Items para Cuenta de Cobro')
                                 ->description('Selecciona los items que deseas incluir en la cuenta de cobro')
@@ -280,10 +282,14 @@ class DocumentsTable
                                         ->minItems(1)
                                         ->columns(1),
 
-                                    \Filament\Forms\Components\Select::make('client_company_id')
+                                    \Filament\Forms\Components\Select::make('contact_id')
                                         ->label('Cliente')
-                                        ->relationship('contact.company', 'name')
-                                        ->default(fn ($record) => $record->contact->company_id ?? null)
+                                        ->relationship('contact', 'name', function ($query) {
+                                            return $query->forCurrentTenant()->customers();
+                                        })
+                                        ->searchable()
+                                        ->preload()
+                                        ->default(fn ($record) => $record->contact_id)
                                         ->required(),
 
                                     \Filament\Forms\Components\DatePicker::make('due_date')
@@ -300,7 +306,7 @@ class DocumentsTable
                         ->action(function ($record, array $data) {
                             $collectionAccount = \App\Models\CollectionAccount::create([
                                 'company_id' => auth()->user()->company_id,
-                                'client_company_id' => $data['client_company_id'],
+                                'contact_id' => $data['contact_id'],
                                 'issue_date' => now(),
                                 'due_date' => $data['due_date'],
                                 'notes' => $data['notes'] ?? null,
@@ -327,8 +333,13 @@ class DocumentsTable
                                 ->body("Cuenta {$collectionAccount->account_number} creada con {$selectedItems->count()} items")
                                 ->send();
 
-                            return redirect()->route('filament.admin.resources.collection-accounts.view', $collectionAccount);
-                        }),
+                            // Usar JavaScript para redirigir sin alertas
+                            $url = route('filament.admin.resources.collection-accounts.view', $collectionAccount);
+                            return new \Illuminate\Http\RedirectResponse($url);
+                        })
+                        ->extraAttributes([
+                            'x-on:close-modal.window' => 'window.onbeforeunload = null',
+                        ]),
 
                     Action::make('create_purchase_orders')
                         ->label('Crear Órdenes de Pedido')

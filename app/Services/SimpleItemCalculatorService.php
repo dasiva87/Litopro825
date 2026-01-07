@@ -47,12 +47,15 @@ class SimpleItemCalculatorService
         }
 
         // Calcular montaje usando el nuevo servicio
+        // Usar margen configurable del item, o 1.0cm por defecto
+        $marginPerSide = $item->margin_per_side ?? 1.0;
+
         $mounting = $this->mountingCalculator->calculateMounting(
             workWidth: $item->horizontal_size,
             workHeight: $item->vertical_size,
             machineWidth: $machineWidth,
             machineHeight: $machineHeight,
-            marginPerSide: 1.0  // Margen estándar 1cm
+            marginPerSide: $marginPerSide
         );
 
         // Agregar información del tipo de montaje usado
@@ -103,12 +106,15 @@ class SimpleItemCalculatorService
         }
 
         // PASO 1A: Calcular montaje (cuántas COPIAS caben en una HOJA)
+        // Usar margen configurable del item, o 1.0cm por defecto
+        $marginPerSide = $item->margin_per_side ?? 1.0;
+
         $mountingResult = $this->mountingCalculator->calculateMounting(
             workWidth: $item->horizontal_size,
             workHeight: $item->vertical_size,
             machineWidth: $item->printingMachine->max_width ?? 50.0,
             machineHeight: $item->printingMachine->max_height ?? 70.0,
-            marginPerSide: 1.0
+            marginPerSide: $marginPerSide
         );
 
         $copiesPerForm = $mountingResult['maximum']['copies_per_sheet']; // Copias por hoja

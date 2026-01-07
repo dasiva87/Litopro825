@@ -1087,7 +1087,14 @@ class DocumentItemsRelationManager extends RelationManager
                     ->label('')
                     ->icon('heroicon-o-document-duplicate')
                     ->color('secondary')
-                    ->visible(fn ($record) => $record && $record->itemable !== null)
+                    ->visible(function ($record) {
+                        if (!$record || $record->itemable === null) {
+                            return false;
+                        }
+
+                        $document = $this->getOwnerRecord();
+                        return !$document->isApproved() && !$document->isRejected();
+                    })
                     ->authorize(false)
                     ->requiresConfirmation()
                     ->modalHeading('Duplicar Item')
@@ -1174,7 +1181,14 @@ class DocumentItemsRelationManager extends RelationManager
                     ->label('')
                     ->icon('heroicon-o-document-duplicate')
                     ->color('secondary')
-                    ->visible(fn ($record) => $record && $record->itemable !== null)
+                    ->visible(function ($record) {
+                        if (!$record || $record->itemable === null) {
+                            return false;
+                        }
+
+                        $document = $this->getOwnerRecord();
+                        return !$document->isApproved() && !$document->isRejected();
+                    })
                     ->action(function ($record) {
                         if ($record->itemable) {
                             // For products, just duplicate the DocumentItem without creating a new product

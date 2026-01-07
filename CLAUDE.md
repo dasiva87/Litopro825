@@ -38,6 +38,32 @@ app/Filament/Resources/[Entity]/
 
 ## PROGRESO RECIENTE
 
+### ✅ Sesión Completada (06-Ene-2026)
+**SPRINT 34: Margen Configurable + Fix Railway Billing Loop**
+
+#### Resumen Ejecutivo
+- **Margen configurable**: Campo `margin_per_side` en SimpleItem (0-5cm, default 1cm)
+- **Vista previa dinámica**: Actualización en tiempo real del montaje
+- **Fix Railway**: Período de gracia 24h para empresas nuevas + día extra en suscripciones
+- **84 items migrados**: Margen automático de 1cm aplicado
+
+**Detalles**: Ver sección "Sprint 34" más abajo
+
+---
+
+### ✅ Sesión Completada (06-Ene-2026)
+**SPRINT 33: Refactorización Terminología PLIEGO vs HOJA**
+
+#### Resumen Ejecutivo
+- **Terminología clara**: PLIEGO (70×100cm) → HOJA (50×70cm) → COPIAS (10×15cm)
+- **6 campos nuevos**: `copies_per_form`, `forms_per_paper_sheet`, `paper_sheets_needed`, `printing_forms_needed`, `cuts_per_form_h/v`
+- **14 archivos actualizados**: Modelos, servicios, tablas, vistas Filament
+- **Compatibilidad legacy**: Keys antiguos mantenidos temporalmente
+
+**Detalles**: Ver sección "Sprint 33" más abajo
+
+---
+
 ### ✅ Sesión Completada (04-Ene-2026)
 **SPRINT 32: Sistema de Estados Unificado + Activity Logs + Pruebas Manuales**
 
@@ -801,6 +827,258 @@ resources/
 
 ---
 
+## 📋 SPRINT 34 - DETALLE COMPLETO (06-Ene-2026)
+
+### 🎯 Objetivo del Sprint
+1. Agregar campo configurable para el margen del montaje en SimpleItems
+2. Solucionar problema de redirección a billing en Railway después del login
+
+### 📐 1. Margen Configurable del Montaje
+
+#### **Problema Original**
+El margen del montaje estaba hardcodeado a 1cm en todo el sistema, sin posibilidad de ajuste según las necesidades específicas de cada trabajo.
+
+#### **Solución Implementada**
+
+**Base de Datos**:
+- Migración: `2026_01_06_031623_add_margin_per_side_to_simple_items_table.php`
+- Campo: `margin_per_side DECIMAL(5,2) DEFAULT 1.00`
+- Ubicación: Después de `copies_per_form`
+
+**Modelo SimpleItem.php**:
+```php
+protected $fillable = [
+    'margin_per_side', // Margen por lado en cm (configurable, default 1cm)
+];
+
+protected $casts = [
+    'margin_per_side' => 'decimal:2',
+];
+```
+
+**SimpleItemCalculatorService.php** (2 métodos actualizados):
+```php
+// Método 1: calculatePureMounting()
+$marginPerSide = $item->margin_per_side ?? 1.0;
+$mounting = $this->mountingCalculator->calculateMounting(
+    marginPerSide: $marginPerSide
+);
+
+// Método 2: calculateMountingWithCuts()
+$marginPerSide = $item->margin_per_side ?? 1.0;
+$mountingResult = $this->mountingCalculator->calculateMounting(
+    marginPerSide: $marginPerSide
+);
+```
+
+**SimpleItemForm.php** (Formulario Filament):
+```php
+TextInput::make('margin_per_side')
+    ->label('Margen del Montaje')
+    ->numeric()
+    ->default(1.0)
+    ->step(0.1)
+    ->minValue(0)
+    ->maxValue(5)
+    ->suffix('cm')
+    ->helperText('Margen por lado (default 1cm)')
+    ->live(onBlur: true),
+```
+
+**Vista Previa Dinámica** (2 tabs actualizados):
+- Tab "Montaje Automático": Usa `$get('margin_per_side') ?? 1.0`
+- Tab "Montaje Manual": Usa `$get('margin_per_side') ?? 1.0`
+
+#### **Casos de Uso**
+
+**Poco Margen (0.5cm)**:
+- Tarjetas de presentación
+- Etiquetas adhesivas
+- Maximizar copias por hoja
+
+**Margen Default (1cm)**:
+- Trabajos estándar
+- Balance entre seguridad y aprovechamiento
+- Mayoría de impresiones offset
+
+**Más Margen (1.5-2cm)**:
+- Trabajos grandes
+- Papeles delicados
+- Acabados complejos
+- Registro crítico
+
+**Archivos Modificados**:
+1. `database/migrations/2026_01_06_031623_add_margin_per_side_to_simple_items_table.php` (NUEVO)
+2. `app/Models/SimpleItem.php`
+3. `app/Services/SimpleItemCalculatorService.php`
+4. `app/Filament/Resources/SimpleItems/Schemas/SimpleItemForm.php`
+
+**Total**: 4 archivos (1 nuevo + 3 modificados)
+
+---
+
+### 🔧 2. Fix Railway Billing Loop
+
+#### **Problema**
+Usuarios recién registrados en Railway eran redirigidos inmediatamente a `/admin/billing` después del login, creando un loop infinito.
+
+#### **Causa Raíz**
+El middleware `CheckActiveCompany` verificaba si la suscripción estaba expirada usando `subscription_expires_at->isPast()`, pero por problemas de zona horaria en Railway, la fecha podía ser interpretada como pasada inmediatamente después del registro.
+
+#### **Solución 1: Período de Gracia 24h**
+
+**Archivo**: `app/Http/Middleware/CheckActiveCompany.php`
+
+```php
+// ANTES:
+if ($company->subscription_expires_at && $company->subscription_expires_at->isPast()) {
+    return redirect()->route('filament.admin.pages.billing');
+}
+
+// DESPUÉS:
+$isRecentlyCreated = $company->created_at &&
+                     $company->created_at->diffInHours(now()) < 24;
+
+if ($company->subscription_expires_at &&
+    $company->subscription_expires_at->isPast() &&
+    !$isRecentlyCreated) {
+    return redirect()->route('filament.admin.pages.billing');
+}
+```
+
+**Beneficio**: Empresas recién creadas tienen 24 horas de gracia antes de verificar expiración.
+
+#### **Solución 2: Día Extra en Suscripción**
+
+**Archivo**: `app/Filament/Pages/Auth/Register.php`
+
+```php
+// ANTES:
+'subscription_expires_at' => $selectedPlan->price == 0 ? null : now()->addMonth()
+
+// DESPUÉS:
+$expiresAt = $selectedPlan->price == 0 ? null : now()->addMonth()->addDay();
+
+$company = Company::create([
+    'subscription_expires_at' => $expiresAt,
+]);
+```
+
+**Beneficio**:
+- Planes gratuitos: `null` (nunca expiran)
+- Planes de pago: 31 días en lugar de 30 (buffer contra problemas de timezone)
+
+**Archivos Modificados**:
+1. `app/Http/Middleware/CheckActiveCompany.php`
+2. `app/Filament/Pages/Auth/Register.php`
+
+**Total**: 2 archivos modificados
+
+---
+
+### ✅ Testing Sprint 34
+
+```bash
+✅ Migración margin_per_side ejecutada correctamente
+✅ 84 items existentes tienen margen automático de 1cm
+✅ Campo visible y funcional en formulario Filament
+✅ Vista previa actualiza con margen configurable
+✅ Sintaxis PHP correcta en todos los archivos
+✅ Middleware permite acceso a empresas nuevas
+✅ Registro agrega día extra de gracia
+✅ Cachés limpiados
+```
+
+---
+
+## 📋 SPRINT 33 - DETALLE COMPLETO (06-Ene-2026)
+
+### 🎯 Objetivo del Sprint
+Clarificar la confusión terminológica entre PLIEGO (papel como viene del proveedor) y HOJA (corte del pliego donde se imprime) en el sistema de cálculo de SimpleItems.
+
+### 📊 Terminología Correcta Implementada
+
+**Flujo del Proceso**:
+```
+PLIEGO (70×100cm - papel del proveedor)
+    ↓ [forms_per_paper_sheet = divisor]
+HOJA (50×70cm - tamaño máquina donde se imprime)
+    ↓ [copies_per_form = montaje]
+COPIAS (10×15cm - producto final)
+```
+
+### 🗄️ Cambios en Base de Datos
+
+**Migración**: `2026_01_06_021651_refactor_simple_items_terminology_to_clarify_sheets_vs_forms.php`
+
+**Columnas Renombradas**:
+- `mounting_quantity` → `copies_per_form` (copias que caben en una hoja)
+- `paper_cuts_h` → `cuts_per_form_h` (cortes horizontales en la hoja)
+- `paper_cuts_v` → `cuts_per_form_v` (cortes verticales en la hoja)
+
+**Columnas Nuevas**:
+- `forms_per_paper_sheet` INT(11) DEFAULT 0 (hojas por pliego - divisor)
+- `paper_sheets_needed` INT(11) DEFAULT 0 (pliegos necesarios)
+- `printing_forms_needed` INT(11) DEFAULT 0 (hojas a imprimir)
+
+### 📁 Archivos Modificados
+
+**Modelos (3)**:
+1. `app/Models/SimpleItem.php` - Actualizado $fillable, $casts, y métodos de cálculo
+2. `app/Models/MagazineItem.php` - Actualizado getPapersBySupplier() y getTotalSheetsAttribute()
+3. `app/Models/TalonarioItem.php` - Actualizado getPapersBySupplier()
+
+**Servicios (1)**:
+4. `app/Services/SimpleItemCalculatorService.php`
+   - `calculateMountingWithCuts()`: Variables y keys actualizados
+   - `calculateFinalPricingNew()`: Usa nuevos campos
+   - `generateCostBreakdownNew()`: Textos descriptivos actualizados
+   - `MountingOption` class: Propiedades nuevas agregadas
+
+**Filament - Tablas (2)**:
+5. `app/Filament/Resources/SimpleItems/Tables/SimpleItemsTable.php`
+6. `app/Filament/Resources/Documents/Tables/DocumentsTable.php`
+
+**Filament - Relation Managers (1)**:
+7. `app/Filament/Resources/PurchaseOrders/RelationManagers/PurchaseOrderItemsRelationManager.php`
+
+**Migraciones (1)**:
+8. `database/migrations/2026_01_06_021651_refactor_simple_items_terminology_to_clarify_sheets_vs_forms.php`
+
+**Total**: 8 archivos modificados + 1 migración = **9 archivos**
+
+### 🔑 Compatibilidad Legacy
+
+El sistema mantiene compatibilidad temporal con código antiguo:
+
+```php
+return [
+    // NUEVOS (correctos)
+    'copies_per_form' => $copiesPerForm,
+    'forms_per_paper_sheet' => $formsPerPaperSheet,
+    'paper_sheets_needed' => $paperSheetsNeeded,
+    'printing_forms_needed' => $totalPrintingForms,
+
+    // LEGACY (mantener hasta eliminar código viejo)
+    'copies_per_mounting' => $copiesPerForm,
+    'divisor' => $formsPerPaperSheet,
+    'sheets_needed' => $paperSheetsNeeded,
+    'total_impressions' => $totalPrintingForms,
+];
+```
+
+### ✅ Testing Sprint 33
+
+```bash
+✅ Migraciones ejecutadas correctamente
+✅ Sintaxis PHP sin errores (5 archivos validados)
+✅ Cachés limpiados (config, view, cache, filament)
+✅ Estructura de BD verificada (6 columnas confirmadas)
+✅ Sin referencias a nombres antiguos (búsqueda completa)
+```
+
+---
+
 ## Contacto y Soporte
 
 - **GitHub Issues**: Para reportar bugs o solicitar features
@@ -809,6 +1087,6 @@ resources/
 
 ---
 
-**Última Actualización**: 31 de Diciembre 2025, 20:00 COT
-**Versión**: 3.0.31
+**Última Actualización**: 06 de Enero 2026, 22:00 COT
+**Versión**: 3.0.34
 **Estado**: ✅ Producción

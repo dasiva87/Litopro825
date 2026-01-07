@@ -166,7 +166,7 @@ class SimpleItemForm
                                     ->columnSpan(1),
                             ]),
 
-                        Grid::make(3)
+                        Grid::make(4)
                             ->schema([
                                 TextInput::make('ink_front_count')
                                     ->label('Tintas Tiro (Frente)')
@@ -185,6 +185,17 @@ class SimpleItemForm
                                     ->minValue(0)
                                     ->maxValue(8)
                                     ->helperText('Colores en la cara posterior'),
+
+                                TextInput::make('margin_per_side')
+                                    ->label('Margen del Montaje')
+                                    ->numeric()
+                                    ->default(1.0)
+                                    ->step(0.1)
+                                    ->minValue(0)
+                                    ->maxValue(5)
+                                    ->suffix('cm')
+                                    ->helperText('Margen por lado (default 1cm)')
+                                    ->live(onBlur: true),
 
                                 Placeholder::make('total_colors')
                                     ->label('Total de Tintas')
@@ -243,12 +254,15 @@ class SimpleItemForm
                                     }
 
                                     $calc = new \App\Services\MountingCalculatorService();
+                                    // Usar margen configurable o 1.0 por defecto
+                                    $marginPerSide = $get('margin_per_side') ?? 1.0;
+
                                     $result = $calc->calculateMounting(
                                         workWidth: (float) $horizontalSize,
                                         workHeight: (float) $verticalSize,
                                         machineWidth: $machine->max_width ?? 50.0,
                                         machineHeight: $machine->max_height ?? 70.0,
-                                        marginPerSide: 1.0
+                                        marginPerSide: $marginPerSide
                                     );
 
                                     $best = $result['maximum'];
@@ -445,12 +459,15 @@ class SimpleItemForm
 
                                                 try {
                                                     $calc = new \App\Services\MountingCalculatorService();
+                                                    // Usar margen configurable o 1.0 por defecto
+                                                    $marginPerSide = $get('margin_per_side') ?? 1.0;
+
                                                     $result = $calc->calculateMounting(
                                                         workWidth: (float) $horizontalSize,
                                                         workHeight: (float) $verticalSize,
                                                         machineWidth: (float) $customWidth,
                                                         machineHeight: (float) $customHeight,
-                                                        marginPerSide: 1.0
+                                                        marginPerSide: $marginPerSide
                                                     );
 
                                                     $best = $result['maximum'];

@@ -23,6 +23,7 @@ class SimpleItem extends Model
         'horizontal_size',
         'vertical_size',
         'copies_per_form', // Copias que caben en una hoja (antes mounting_quantity)
+        'margin_per_side', // Margen por lado en cm (configurable, default 1cm)
         'forms_per_paper_sheet', // Hojas por pliego - divisor (NUEVO)
         'paper_sheets_needed', // Pliegos necesarios (NUEVO)
         'printing_forms_needed', // Hojas a imprimir (NUEVO)
@@ -63,6 +64,7 @@ class SimpleItem extends Model
         'cuts_per_form_h' => 'decimal:2',
         'cuts_per_form_v' => 'decimal:2',
         'copies_per_form' => 'integer',
+        'margin_per_side' => 'decimal:2',
         'forms_per_paper_sheet' => 'integer',
         'paper_sheets_needed' => 'integer',
         'printing_forms_needed' => 'integer',

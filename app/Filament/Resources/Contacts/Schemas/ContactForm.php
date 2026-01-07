@@ -77,20 +77,54 @@ class ContactForm
                             ->schema([
                                 Select::make('country_id')
                                     ->label('País')
-                                    ->relationship('country', 'name')
+                                    ->relationship(
+                                        name: 'country',
+                                        titleAttribute: 'name',
+                                        modifyQueryUsing: fn ($query) => $query->where('is_active', true)->orderBy('name')
+                                    )
                                     ->searchable()
-                                    ->live(),
-                                    
+                                    ->preload()
+                                    ->live()
+                                    ->afterStateUpdated(function ($state, callable $set) {
+                                        $set('state_id', null);
+                                        $set('city_id', null);
+                                    }),
+
                                 Select::make('state_id')
                                     ->label('Departamento/Estado')
-                                    ->relationship('state', 'name')
+                                    ->relationship(
+                                        name: 'state',
+                                        titleAttribute: 'name',
+                                        modifyQueryUsing: fn ($query, $get) => $query
+                                            ->when(
+                                                $get('country_id'),
+                                                fn ($q, $countryId) => $q->where('country_id', $countryId)
+                                            )
+                                            ->where('is_active', true)
+                                            ->orderBy('name')
+                                    )
                                     ->searchable()
-                                    ->live(),
-                                    
+                                    ->preload()
+                                    ->live()
+                                    ->disabled(fn ($get) => !$get('country_id'))
+                                    ->afterStateUpdated(fn (callable $set) => $set('city_id', null)),
+
                                 Select::make('city_id')
                                     ->label('Ciudad')
-                                    ->relationship('city', 'name')
-                                    ->searchable(),
+                                    ->relationship(
+                                        name: 'city',
+                                        titleAttribute: 'name',
+                                        modifyQueryUsing: fn ($query, $get) => $query
+                                            ->when(
+                                                $get('state_id'),
+                                                fn ($q, $stateId) => $q->where('state_id', $stateId)
+                                            )
+                                            ->where('is_active', true)
+                                            ->orderBy('name')
+                                    )
+                                    ->searchable()
+                                    ->preload()
+                                    ->disabled(fn ($get) => !$get('state_id')),
                             ]),
                             
                         TextInput::make('website')

@@ -1,0 +1,87 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    🚨 SOLUCIÓN: VISTAS NO ACTUALIZADAS                       ║
+║                         EN PRODUCCIÓN (RAILWAY)                              ║
+╔══════════════════════════════════════════════════════════════════════════════╗
+
+📋 PROBLEMA:
+   La vista de "restablecer contraseña" no se actualiza en producción Railway
+
+🔍 CAUSA:
+   Railway cachea las vistas Blade compiladas para optimizar rendimiento
+
+✅ SOLUCIÓN RÁPIDA (1 comando):
+
+   php artisan grafired:clear-cache --production
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📝 OPCIONES DE EJECUCIÓN:
+
+   Opción 1: Railway CLI (desde tu PC)
+   ────────────────────────────────────
+   railway login
+   railway link
+   railway run php artisan grafired:clear-cache --production
+
+   Opción 2: Script Bash (en servidor)
+   ────────────────────────────────────
+   ./clear-production-cache.sh
+
+   Opción 3: Comandos Individuales
+   ────────────────────────────────────
+   php artisan view:clear
+   php artisan config:cache
+   php artisan route:cache
+   php artisan filament:cache-components
+   php artisan optimize
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 QUÉ HACE EL COMANDO:
+
+   1. Limpia caché de configuración
+   2. Limpia caché de rutas
+   3. Limpia caché de vistas Blade (TU PROBLEMA)
+   4. Limpia caché de aplicación
+   5. Limpia caché de eventos
+   6. Limpia caché de componentes Filament
+   7. Regenera cachés optimizados (con --production)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📦 ARCHIVOS CREADOS:
+
+   ✓ app/Console/Commands/ClearProductionCache.php
+   ✓ clear-production-cache.sh
+   ✓ DEPLOYMENT-CHECKLIST.md (guía completa)
+   ✓ RAILWAY-DEPLOYMENT.md (guía Railway)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔄 AUTOMATIZAR (Recomendado):
+
+   En Railway Dashboard → Settings → Start Command:
+
+   php artisan migrate --force && php artisan grafired:clear-cache --production
+
+   Esto limpiará cachés automáticamente después de cada deploy.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ VERIFICACIÓN:
+
+   1. Ejecutar el comando
+   2. Abrir navegador en modo incógnito
+   3. Ir a /admin/password-reset/request
+   4. Verificar que la vista está actualizada
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 BUENAS PRÁCTICAS:
+
+   - Ejecutar después de CADA deploy a producción
+   - NO deshabilitar cachés en producción (APP_ENV=production)
+   - Usar Railway CLI para ejecutar comandos remotos
+   - Revisar logs después: railway logs
+
+╚══════════════════════════════════════════════════════════════════════════════╝
