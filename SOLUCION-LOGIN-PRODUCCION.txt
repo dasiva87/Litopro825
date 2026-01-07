@@ -1,0 +1,185 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║              🔐 SOLUCIÓN: USUARIOS NO PUEDEN HACER LOGIN                     ║
+║                      DESPUÉS DE REGISTRARSE                                  ║
+╔══════════════════════════════════════════════════════════════════════════════╗
+
+📋 PROBLEMA:
+   Usuario se registra correctamente en producción
+   Al hacer logout e intentar login → "Credenciales incorrectas"
+
+🔍 CAUSA RAÍZ:
+   DOBLE HASHING de contraseñas
+
+   1. Modelo User tiene: 'password' => 'hashed' (Laravel 11+)
+      → Hashea automáticamente al guardar
+   
+   2. Código de registro usaba: Hash::make($password)
+      → Hashea manualmente ANTES de guardar
+   
+   3. Resultado: Password hasheada DOS veces = Login imposible
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ SOLUCIÓN APLICADA (6 archivos corregidos):
+
+   1. app/Filament/Pages/Auth/Register.php
+   2. app/Http/Controllers/SimpleRegistrationController.php
+   3. app/Http/Controllers/RegistrationController.php
+   4. database/seeders/TestDataSeeder.php
+   5. database/seeders/DashboardDemoSeeder.php
+   6. database/factories/UserFactory.php
+
+   CAMBIO:
+   ────────────────────────────────────────────────────────
+   // ❌ ANTES (doble hashing)
+   'password' => Hash::make($data['password'])
+
+   // ✅ AHORA (hashing automático)
+   'password' => $data['password']
+   ────────────────────────────────────────────────────────
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 DEPLOYMENT A PRODUCCIÓN:
+
+   1. Hacer commit y push:
+      ─────────────────────────────────────────────
+      git add .
+      git commit -m "fix: resolver doble hashing de passwords en registro"
+      git push origin main
+      ─────────────────────────────────────────────
+
+   2. Esperar deploy en Railway (auto)
+
+   3. Limpiar cachés:
+      ─────────────────────────────────────────────
+      railway run php artisan grafired:clear-cache --production
+      ─────────────────────────────────────────────
+
+   4. Verificar logs:
+      ─────────────────────────────────────────────
+      railway logs
+      ─────────────────────────────────────────────
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+👥 USUARIOS AFECTADOS (creados ANTES del fix):
+
+   OPCIÓN 1: Auto-Reset (Recomendado)
+   ───────────────────────────────────────────────────────
+   railway run php artisan grafired:notify-password-reset
+   
+   → Envía email automático a usuarios afectados
+   → Incluye link de reset de password
+   → Usuarios crean nueva contraseña y listo
+   ───────────────────────────────────────────────────────
+
+   OPCIÓN 2: Manual (Comunicar a usuarios)
+   ───────────────────────────────────────────────────────
+   1. Informar a usuarios afectados
+   2. Enviarles link: https://tu-app.railway.app/admin/password-reset/request
+   3. Usuarios resetean password
+   4. Login funciona correctamente
+   ───────────────────────────────────────────────────────
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🧪 TESTING POST-FIX:
+
+   1. Crear nuevo usuario en producción
+      URL: https://tu-app.railway.app/admin/register
+      Email: test@ejemplo.com
+      Password: Test1234!
+
+   2. Completar registro
+
+   3. Hacer LOGOUT
+
+   4. Intentar LOGIN con mismas credenciales
+      Email: test@ejemplo.com
+      Password: Test1234!
+
+   5. RESULTADO ESPERADO:
+      ✅ Login exitoso → Fix funcionando
+      ❌ Credenciales incorrectas → Problema persiste
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 IMPACTO:
+
+   ✅ Usuarios NUEVOS (después del fix):
+      → Registro funciona correctamente
+      → Login funciona correctamente
+      → Sin problemas
+
+   ⚠️  Usuarios EXISTENTES (antes del fix):
+      → Registro ya completado
+      → Login NO funciona
+      → Requieren RESET de password (UNA SOLA VEZ)
+      → Después del reset, login funciona normalmente
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 CHECKLIST DE DEPLOYMENT:
+
+   [ ] Commit y push del fix
+   [ ] Esperar build en Railway
+   [ ] Ejecutar: railway run php artisan grafired:clear-cache --production
+   [ ] Verificar logs: railway logs
+   [ ] Crear usuario de prueba
+   [ ] Confirmar login de usuario nuevo funciona
+   [ ] Ejecutar: railway run php artisan grafired:notify-password-reset --dry-run
+   [ ] Ver usuarios afectados
+   [ ] Ejecutar: railway run php artisan grafired:notify-password-reset (sin --dry-run)
+   [ ] Confirmar emails enviados
+   [ ] Monitorear que usuarios puedan resetear
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🛠️ COMANDOS ÚTILES:
+
+   # Ver usuarios afectados (sin enviar emails)
+   railway run php artisan grafired:notify-password-reset --dry-run
+
+   # Enviar emails de reset a usuarios afectados
+   railway run php artisan grafired:notify-password-reset
+
+   # Especificar fecha límite personalizada
+   railway run php artisan grafired:notify-password-reset --date=2026-01-05
+
+   # Verificar configuración de email
+   railway run php artisan tinker
+   >>> config('mail.default')
+   >>> config('mail.from')
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 PREVENCIÓN FUTURA:
+
+   Al crear usuarios programáticamente, SIEMPRE usar:
+
+   ✅ CORRECTO:
+   User::create([
+       'password' => 'plaintext',  // Cast 'hashed' lo hashea auto
+   ]);
+
+   ❌ INCORRECTO:
+   User::create([
+       'password' => Hash::make('plaintext'),  // DOBLE HASH!
+   ]);
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📚 DOCUMENTACIÓN:
+
+   Guía completa: FIX-PASSWORDS-PRODUCCION.md
+   
+   Incluye:
+   - Explicación detallada del problema
+   - Instrucciones de deployment
+   - Template de email para usuarios
+   - SQL queries de debugging
+   - Testing manual
+   - Prevención futura
+
+╚══════════════════════════════════════════════════════════════════════════════╝

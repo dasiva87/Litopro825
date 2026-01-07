@@ -183,7 +183,7 @@ class TestDataSeeder extends Seeder
                 [
                     'company_id' => $company->id,
                     'name' => $userData['name'],
-                    'password' => Hash::make('password'),
+                    'password' => 'password', // El cast 'hashed' hashea automáticamente
                     'position' => $userData['position'],
                     'phone' => '+57 300 ' . rand(1000000, 9999999),
                     'is_active' => true,

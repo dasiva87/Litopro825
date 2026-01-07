@@ -42,7 +42,7 @@ class DashboardDemoSeeder extends Seeder
             'email' => 'demo@grafired.test',
         ], [
             'name' => 'Usuario Demo',
-            'password' => Hash::make('password'),
+            'password' => 'password', // El cast 'hashed' hashea automáticamente
             'company_id' => $company->id,
             'is_active' => true,
         ]);

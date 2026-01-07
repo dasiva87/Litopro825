@@ -75,10 +75,11 @@ class SimpleRegistrationController extends Controller
             ]);
 
             // Crear el usuario administrador
+            // No usar Hash::make() - el modelo User tiene 'password' => 'hashed' en casts()
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
-                'password' => Hash::make($request->password),
+                'password' => $request->password,
                 'company_id' => $company->id,
                 'is_active' => true,
                 'email_verified_at' => now(), // Auto-verificar para simplificar

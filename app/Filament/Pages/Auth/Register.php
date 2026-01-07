@@ -204,10 +204,12 @@ class Register extends BaseRegister
             ]);
 
             // Create user
+            // No usar Hash::make() porque el modelo User tiene 'password' => 'hashed' en casts()
+            // Esto evita doble hashing que causaría fallos de login
             $user = User::create([
                 'name' => $data['name'],
                 'email' => $data['email'],
-                'password' => Hash::make($data['password']),
+                'password' => $data['password'], // El cast 'hashed' se encarga del hashing automático
                 'company_id' => $company->id,
                 'is_active' => true,
                 'email_verified_at' => now(),
