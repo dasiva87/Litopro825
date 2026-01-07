@@ -1,0 +1,133 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║           🍪 PROBLEMA: COOKIES VIEJAS IMPIDEN LOGIN                          ║
+║         (Funciona en incógnito, pero NO en ventana normal)                   ║
+╔══════════════════════════════════════════════════════════════════════════════╗
+
+📋 SÍNTOMAS:
+   ✅ Incógnito: Login/Logout funciona perfectamente
+   ❌ Ventana Normal: No puede entrar después de logout
+   ❌ Cookie de sesión vieja con configuración antigua
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ SOLUCIÓN (DESPUÉS DE HACER PUSH):
+
+   1. ESPERAR QUE RAILWAY TERMINE EL DEPLOY (3-5 min)
+
+   2. EJECUTAR ESTE COMANDO:
+      ───────────────────────────────────────────────────────
+      CON Railway CLI:
+      railway run php artisan grafired:invalidate-sessions --force
+
+      SIN Railway CLI (commit temporal):
+      git commit --allow-empty -m "temp: invalidar sesiones"
+      git push origin main
+      ───────────────────────────────────────────────────────
+
+   3. ESTO HARÁ:
+      • Eliminar TODAS las sesiones de la base de datos
+      • Forzar que las cookies viejas sean inválidas
+      • Obligar a todos los usuarios a hacer login nuevamente
+      • Crear sesiones nuevas con configuración correcta
+
+   4. RESULTADO:
+      ✅ Ventana normal funcionará correctamente
+      ✅ Cookies nuevas con SESSION_DOMAIN=null
+      ✅ Login/Logout funcional
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 PASOS EXACTOS:
+
+   1. Hacer commit y push (como planeaste):
+      ───────────────────────────────────────────────────────
+      git add .
+      git commit -m "fix: configuración completa producción"
+      git push origin main
+      ───────────────────────────────────────────────────────
+
+   2. Esperar deploy de Railway (ver en dashboard)
+
+   3. Actualizar variables en Railway:
+      ───────────────────────────────────────────────────────
+      APP_ENV=production
+      SESSION_SECURE_COOKIE=true
+      SESSION_HTTP_ONLY=true
+      SESSION_SAME_SITE=lax
+      ───────────────────────────────────────────────────────
+
+   4. Esperar segundo deploy (por variables)
+
+   5. EJECUTAR (elige opción):
+      ───────────────────────────────────────────────────────
+      OPCIÓN A - Con Railway CLI:
+      railway run php artisan grafired:invalidate-sessions --force
+
+      OPCIÓN B - Sin Railway CLI (Manual en BD):
+      railway run php artisan tinker --execute="DB::table('sessions')->truncate();"
+
+      OPCIÓN C - Redeploy completo:
+      Railway Dashboard → Deployments → Redeploy
+      ───────────────────────────────────────────────────────
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 POR QUÉ ES NECESARIO:
+
+   Las cookies viejas tienen:
+   • SESSION_DOMAIN con valor antiguo
+   • Session ID que apunta a sesiones con config vieja
+   • Conflicto con nueva configuración
+
+   Al truncar la tabla 'sessions':
+   • Todas las cookies viejas se vuelven inválidas
+   • Usuarios deben crear sesión nueva
+   • Nueva sesión usa configuración correcta
+   • Problema resuelto permanentemente
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📝 NOTIFICAR A USUARIOS:
+
+   Si tienes usuarios activos, envía este mensaje:
+
+   "Estimado usuario,
+
+   Hemos actualizado la seguridad de la aplicación.
+   Por favor:
+   1. Cierra tu sesión
+   2. Limpia las cookies de tu navegador (Ctrl+Shift+Del)
+   3. Inicia sesión nuevamente
+
+   O simplemente usa modo incógnito mientras se propagan los cambios.
+
+   Gracias por tu comprensión."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ VERIFICACIÓN FINAL:
+
+   1. Abre navegador normal (NO incógnito)
+   2. Ve a: https://litopro825-production.up.railway.app/admin
+   3. Haz login
+   4. Haz logout
+   5. Haz login nuevamente
+   6. ✅ Debe funcionar sin problemas
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🆘 SI NO TIENES RAILWAY CLI:
+
+   Instálalo ahora (solo 1 vez):
+   ───────────────────────────────────────────────────────
+   npm install -g @railway/cli
+   railway login
+   cd /home/dasiva/Descargas/litopro825
+   railway link
+   ───────────────────────────────────────────────────────
+
+   Luego podrás usar:
+   railway run php artisan grafired:invalidate-sessions --force
+   railway logs --tail
+
+╚══════════════════════════════════════════════════════════════════════════════╝
