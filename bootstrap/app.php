@@ -12,8 +12,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Configurar trusted proxies para Railway/Cloudflare
+        $middleware->trustProxies(at: '*');
+
         $middleware->web(prepend: [
-            \App\Http\Middleware\TrustedProxyMiddleware::class,
+            \App\Http\Middleware\TrustProxies::class,
         ]);
         $middleware->web(append: [
             \App\Http\Middleware\SetTenantContext::class,

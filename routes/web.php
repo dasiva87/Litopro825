@@ -133,8 +133,16 @@ Route::middleware('auth')->group(function () {
 Route::get('/pricing', [StripeSubscriptionController::class, 'pricing'])->name('pricing');
 
 // Ruta de logout simple para páginas públicas
-Route::get('/logout', function () {
+// Usar POST por seguridad (CSRF protection)
+Route::post('/logout', function () {
     Auth::logout();
+    request()->session()->invalidate();
+    request()->session()->regenerateToken();
 
     return redirect('/');
 })->name('simple.logout');
+
+// Ruta GET que redirige a POST (compatibilidad)
+Route::get('/logout', function () {
+    return view('logout-form');
+})->name('simple.logout.form');
