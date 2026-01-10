@@ -23,6 +23,12 @@ class SocialPostWidget extends Widget
     // Mostrar filtros (false = oculto por defecto, true = visible)
     public bool $showFilters = false;
 
+    // Paginación
+    public int $perPage = 10;
+    public int $page = 1;
+    public bool $hasMorePages = true;
+    public $loadedPosts = []; // Almacenar posts cargados
+
     // Filtros
     public $filterType = '';
     public $filterCity = '';
@@ -30,7 +36,13 @@ class SocialPostWidget extends Widget
     public $filterDateTo = '';
     public $filterSearch = '';
 
-    public function getSocialPosts()
+    public function mount()
+    {
+        // Cargar posts iniciales
+        $this->loadPosts();
+    }
+
+    public function loadPosts()
     {
         $userCompanyId = auth()->user()?->company_id;
 
@@ -75,15 +87,48 @@ class SocialPostWidget extends Widget
             });
         }
 
-        return $query->recent()
-            ->limit(20)
+        // Paginación
+        $posts = $query->recent()
+            ->skip(($this->page - 1) * $this->perPage)
+            ->take($this->perPage + 1) // +1 para saber si hay más páginas
             ->get();
+
+        // Verificar si hay más páginas
+        $this->hasMorePages = $posts->count() > $this->perPage;
+
+        // Agregar nuevos posts al array acumulado
+        $newPosts = $posts->take($this->perPage);
+        foreach ($newPosts as $post) {
+            $this->loadedPosts[] = $post;
+        }
+    }
+
+    public function getSocialPosts()
+    {
+        return collect($this->loadedPosts);
+    }
+
+    public function loadMore()
+    {
+        if ($this->hasMorePages) {
+            $this->page++;
+            $this->loadPosts();
+        }
+    }
+
+    public function resetPagination()
+    {
+        $this->page = 1;
+        $this->hasMorePages = true;
+        $this->loadedPosts = [];
+        $this->loadPosts();
     }
 
     public function refreshPosts()
     {
         // Este método se ejecuta cuando se recibe el evento 'post-created'
-        // Livewire automáticamente re-renderiza el componente
+        // Resetear paginación y recargar
+        $this->resetPagination();
         $this->dispatch('$refresh');
     }
 
@@ -195,7 +240,16 @@ class SocialPostWidget extends Widget
         $this->filterDateFrom = '';
         $this->filterDateTo = '';
         $this->filterSearch = '';
+        $this->resetPagination();
         $this->dispatch('$refresh');
+    }
+
+    // Resetear paginación cuando cambian los filtros
+    public function updated($propertyName)
+    {
+        if (in_array($propertyName, ['filterType', 'filterCity', 'filterDateFrom', 'filterDateTo', 'filterSearch'])) {
+            $this->resetPagination();
+        }
     }
 
     public function getPostTypes()

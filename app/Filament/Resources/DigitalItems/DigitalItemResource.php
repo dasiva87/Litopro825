@@ -23,11 +23,11 @@ class DigitalItemResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-computer-desktop';
 
-    protected static ?string $navigationLabel = 'Items Digitales';
+    protected static ?string $navigationLabel = 'Impresión Digital';
 
-    protected static ?string $modelLabel = 'Item Digital';
+    protected static ?string $modelLabel = 'Impresión Digital';
 
-    protected static ?string $pluralModelLabel = 'Items Digitales';
+    protected static ?string $pluralModelLabel = 'Impresión Digital';
 
     protected static UnitEnum|string|null $navigationGroup = NavigationGroup::Configuracion;
 

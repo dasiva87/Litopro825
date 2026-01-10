@@ -134,6 +134,53 @@ class Product extends Model
         return $this->image_1 ?? $this->image_2 ?? $this->image_3 ?? null;
     }
 
+    /**
+     * Obtener URL de imagen 1
+     */
+    public function getImage1Url(): ?string
+    {
+        return $this->image_1 ? \Storage::disk('r2')->url($this->image_1) : null;
+    }
+
+    /**
+     * Obtener URL de imagen 2
+     */
+    public function getImage2Url(): ?string
+    {
+        return $this->image_2 ? \Storage::disk('r2')->url($this->image_2) : null;
+    }
+
+    /**
+     * Obtener URL de imagen 3
+     */
+    public function getImage3Url(): ?string
+    {
+        return $this->image_3 ? \Storage::disk('r2')->url($this->image_3) : null;
+    }
+
+    /**
+     * Obtener URL de la primera imagen disponible
+     */
+    public function getPrimaryImageUrl(): ?string
+    {
+        if ($this->image_1) return $this->getImage1Url();
+        if ($this->image_2) return $this->getImage2Url();
+        if ($this->image_3) return $this->getImage3Url();
+        return null;
+    }
+
+    /**
+     * Obtener array de URLs de todas las imágenes
+     */
+    public function getImageUrls(): array
+    {
+        return array_filter([
+            $this->getImage1Url(),
+            $this->getImage2Url(),
+            $this->getImage3Url(),
+        ]);
+    }
+
     // Scopes
     public function scopeActive($query)
     {

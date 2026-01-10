@@ -120,8 +120,8 @@ class CompanySettings extends Page implements HasForms, HasActions
                                 Placeholder::make('current_avatar')
                                     ->label('Logo/Avatar Actual')
                                     ->content(function () {
-                                        if ($this->company->avatar && Storage::disk('public')->exists($this->company->avatar)) {
-                                            $url = Storage::disk('public')->url($this->company->avatar);
+                                        if ($this->company->avatar && Storage::disk('r2')->exists($this->company->avatar)) {
+                                            $url = Storage::disk('r2')->url($this->company->avatar);
                                             return new HtmlString('<img src="' . $url . '" style="max-width: 200px; border-radius: 8px;" />');
                                         }
                                         return 'Sin logo/avatar';
@@ -132,7 +132,7 @@ class CompanySettings extends Page implements HasForms, HasActions
                                     ->label('Nuevo Logo/Avatar (opcional)')
                                     ->helperText('Selecciona una imagen solo si deseas cambiar el logo actual')
                                     ->image()
-                                    ->disk('public')
+                                    ->disk('r2') // Cloudflare R2
                                     ->directory('companies/avatars')
                                     ->visibility('public')
                                     ->imageResizeMode('cover')
@@ -147,8 +147,8 @@ class CompanySettings extends Page implements HasForms, HasActions
                                 Placeholder::make('current_banner')
                                     ->label('Banner/Portada Actual')
                                     ->content(function () {
-                                        if ($this->company->banner && Storage::disk('public')->exists($this->company->banner)) {
-                                            $url = Storage::disk('public')->url($this->company->banner);
+                                        if ($this->company->banner && Storage::disk('r2')->exists($this->company->banner)) {
+                                            $url = Storage::disk('r2')->url($this->company->banner);
                                             return new HtmlString('<img src="' . $url . '" style="max-width: 100%; border-radius: 8px;" />');
                                         }
                                         return 'Sin banner/portada';
@@ -159,7 +159,7 @@ class CompanySettings extends Page implements HasForms, HasActions
                                     ->label('Nuevo Banner/Portada (opcional)')
                                     ->helperText('Selecciona una imagen solo si deseas cambiar el banner actual')
                                     ->image()
-                                    ->disk('public')
+                                    ->disk('r2')
                                     ->directory('companies/banners')
                                     ->visibility('public')
                                     ->imageResizeMode('cover')

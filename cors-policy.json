@@ -1,0 +1,23 @@
+[
+  {
+    "AllowedOrigins": [
+      "http://127.0.0.1:8000",
+      "http://localhost:8000",
+      "https://*"
+    ],
+    "AllowedMethods": [
+      "GET",
+      "PUT",
+      "POST",
+      "DELETE",
+      "HEAD"
+    ],
+    "AllowedHeaders": [
+      "*"
+    ],
+    "ExposeHeaders": [
+      "ETag"
+    ],
+    "MaxAgeSeconds": 3000
+  }
+]

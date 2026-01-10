@@ -20,6 +20,9 @@ class CreateDocument extends CreateRecord
             $data['document_type_id'] = DocumentType::where('code', 'QUOTE')->first()?->id;
         }
 
+        // Siempre crear en estado borrador (draft)
+        $data['status'] = 'draft';
+
         // Limpiar campos que no existen en la BD
         unset($data['client_type']);
 

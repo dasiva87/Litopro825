@@ -17,24 +17,17 @@ class DigitalItem extends Model
 
     protected $fillable = [
         'company_id',
-        'code',
         'description',
-        'purchase_price',
         'sale_price',
-        'profit_margin',
         'is_own_product',
         'supplier_contact_id',
         'pricing_type',
-        'unit_value',
         'metadata',
         'active',
     ];
 
     protected $casts = [
-        'purchase_price' => 'decimal:2',
         'sale_price' => 'decimal:2',
-        'profit_margin' => 'decimal:2',
-        'unit_value' => 'decimal:2',
         'is_own_product' => 'boolean',
         'active' => 'boolean',
         'metadata' => 'array',
@@ -45,29 +38,13 @@ class DigitalItem extends Model
         parent::boot();
 
         static::creating(function ($item) {
-            // Generar código automáticamente si no existe
-            if (empty($item->code)) {
-                $item->code = $item->generateCode();
-            }
-
             // Establecer valores por defecto para campos requeridos
             if (empty($item->description)) {
-                $item->description = 'Item digital - '.$item->code;
-            }
-
-            if (empty($item->sale_price)) {
-                $item->sale_price = $item->unit_value ?? 0;
-            }
-
-            if (empty($item->unit_value)) {
-                $item->unit_value = $item->sale_price ?? 0;
+                $item->description = 'Item digital';
             }
         });
 
         static::saving(function ($item) {
-            // Calcular margen automáticamente
-            $item->profit_margin = $item->calculateProfitMargin();
-
             // Agregar acabados a la descripción si están cargados
             $item->appendFinishingsToDescription();
         });
@@ -99,52 +76,17 @@ class DigitalItem extends Model
     // Métodos de negocio
 
     /**
-     * Generar código único para el item
-     */
-    public function generateCode(): string
-    {
-        $prefix = 'DIG-';
-        $companyId = $this->company_id ?? auth()->user()->company_id ?? 1;
-
-        // Buscar el último código con este prefijo para esta empresa
-        $lastItem = static::where('company_id', $companyId)
-            ->where('code', 'LIKE', $prefix.'%')
-            ->latest('id')
-            ->first();
-
-        $number = 1;
-        if ($lastItem) {
-            $lastCode = str_replace($prefix, '', $lastItem->code);
-            $number = (int) $lastCode + 1;
-        }
-
-        return $prefix.str_pad($number, 3, '0', STR_PAD_LEFT);
-    }
-
-    /**
-     * Calcular margen de ganancia automáticamente
-     */
-    public function calculateProfitMargin(): float
-    {
-        if ($this->purchase_price == 0) {
-            return 100.0; // Si no hay precio de compra, asumimos 100% ganancia
-        }
-
-        return (($this->sale_price - $this->purchase_price) / $this->purchase_price) * 100;
-    }
-
-    /**
      * Calcular precio total por unidad
-     * Formula: cantidad × unit_value
+     * Formula: cantidad × sale_price
      */
     public function calculateByUnit(int $quantity): float
     {
-        return $quantity * $this->unit_value;
+        return $quantity * $this->sale_price;
     }
 
     /**
      * Calcular precio total por tamaño (área)
-     * Formula: (ancho_cm / 100) × (alto_cm / 100) × unit_value × cantidad
+     * Formula: (ancho_cm / 100) × (alto_cm / 100) × sale_price × cantidad
      * Convierte centímetros a metros para el cálculo
      */
     public function calculateBySize(float $width, float $height, int $quantity = 1): float
@@ -154,7 +96,7 @@ class DigitalItem extends Model
         $heightM = $height / 100;
         $areaM2 = $widthM * $heightM;
 
-        return $areaM2 * $this->unit_value * $quantity;
+        return $areaM2 * $this->sale_price * $quantity;
     }
 
     /**
@@ -174,13 +116,6 @@ class DigitalItem extends Model
         }
     }
 
-    /**
-     * Obtener la ganancia por unidad
-     */
-    public function getProfitPerUnit(): float
-    {
-        return $this->sale_price - $this->purchase_price;
-    }
 
     /**
      * Validar si los parámetros son correctos según el tipo
@@ -220,18 +155,13 @@ class DigitalItem extends Model
         return $this->pricing_type === 'unit' ? 'Por Unidad' : 'Por Tamaño (m²)';
     }
 
-    public function getFormattedUnitValueAttribute(): string
+    public function getFormattedSalePriceAttribute(): string
     {
         if ($this->pricing_type === 'unit') {
-            return '$'.number_format($this->unit_value, 2).' por unidad';
+            return '$'.number_format($this->sale_price, 2).' por unidad';
         } else {
-            return '$'.number_format($this->unit_value, 2).' por m²';
+            return '$'.number_format($this->sale_price, 2).' por m²';
         }
-    }
-
-    public function getFormattedProfitMarginAttribute(): string
-    {
-        return number_format($this->profit_margin, 2).'%';
     }
 
     // Scopes
@@ -271,10 +201,10 @@ class DigitalItem extends Model
         ];
     }
 
-    public static function getActiveCodes(): array
+    public static function getActiveDescriptions(): array
     {
         return static::active()
-            ->pluck('code', 'id')
+            ->pluck('description', 'id')
             ->toArray();
     }
 

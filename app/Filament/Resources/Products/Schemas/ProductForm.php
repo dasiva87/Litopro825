@@ -52,7 +52,7 @@ class ProductForm
                         FileUpload::make('image_1')
                             ->label('Imagen 1')
                             ->image()
-                            ->disk('public')
+                            ->disk('r2') // Cloudflare R2
                             ->directory('products')
                             ->maxSize(2048)
                             ->columnSpanFull(),
@@ -60,7 +60,7 @@ class ProductForm
                         FileUpload::make('image_2')
                             ->label('Imagen 2')
                             ->image()
-                            ->disk('public')
+                            ->disk('r2') // Cloudflare R2
                             ->directory('products')
                             ->maxSize(2048)
                             ->columnSpanFull(),
@@ -68,7 +68,7 @@ class ProductForm
                         FileUpload::make('image_3')
                             ->label('Imagen 3')
                             ->image()
-                            ->disk('public')
+                            ->disk('r2') // Cloudflare R2
                             ->directory('products')
                             ->maxSize(2048)
                             ->columnSpanFull(),

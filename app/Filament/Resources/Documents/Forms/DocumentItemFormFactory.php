@@ -42,11 +42,11 @@ class DocumentItemFormFactory
             Forms\Components\Hidden::make('itemable_type')
                 ->default('App\\Models\\DigitalItem'),
 
-            \Filament\Schemas\Components\Section::make('Seleccionar Item Digital')
-                ->description('Elige un item digital existente y especifica parámetros')
+            \Filament\Schemas\Components\Section::make('Seleccionar Impresión Digital')
+                ->description('Elige una impresión digital existente y especifica parámetros')
                 ->schema([
                     Forms\Components\Select::make('itemable_id')
-                        ->label('Item Digital')
+                        ->label('Impresión Digital')
                         ->options(function () {
                             return \App\Models\DigitalItem::where('company_id', auth()->user()->company_id)
                                 ->where('active', true)

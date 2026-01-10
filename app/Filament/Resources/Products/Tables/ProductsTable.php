@@ -28,9 +28,9 @@ class ProductsTable
     {
         return $table
             ->columns([
-                ImageColumn::make('image_1')
+                ImageColumn::make('primary_image_url')
                     ->label('Imagen')
-                    ->disk('public')
+                    ->getStateUsing(fn ($record) => $record->getPrimaryImageUrl())
                     ->circular()
                     ->defaultImageUrl(url('/images/default-product.png'))
                     ->toggleable(),

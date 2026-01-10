@@ -97,6 +97,22 @@ class SupplierResource extends Resource
                     ->query(fn (Builder $query) => $query->active()),
             ])
             ->actions([
+                // Acciones para proveedores LOCALES (propios)
+                Action::make('edit')
+                    ->label('Editar')
+                    ->icon('heroicon-o-pencil')
+                    ->url(fn ($record) => route('filament.admin.resources.contacts.edit', $record))
+                    ->visible(fn ($record) => $record->is_local)
+                    ->color('primary'),
+
+                Action::make('create_production_order')
+                    ->label('Nueva Orden')
+                    ->icon('heroicon-o-cog-6-tooth')
+                    ->color('warning')
+                    ->url(fn ($record) => route('filament.admin.resources.production-orders.create', ['supplier_id' => $record->id]))
+                    ->visible(fn ($record) => $record->isSupplier()),
+
+                // Acciones para proveedores GRAFIRED (enlazados)
                 Action::make('view_company')
                     ->label('Ver Empresa')
                     ->icon('heroicon-o-building-office')
@@ -114,12 +130,12 @@ class SupplierResource extends Resource
                     ->visible(fn ($record) => $record->isGrafired())
                     ->successNotificationTitle('Datos sincronizados correctamente'),
 
-                Action::make('create_production_order')
-                    ->label('Nueva Orden')
-                    ->icon('heroicon-o-cog-6-tooth')
-                    ->color('warning')
-                    ->url(fn ($record) => route('filament.admin.resources.production-orders.create', ['supplier_id' => $record->id]))
-                    ->visible(fn ($record) => $record->isSupplier()),
+                Action::make('view_grafired')
+                    ->label('Ver/Editar')
+                    ->icon('heroicon-o-eye')
+                    ->url(fn ($record) => route('filament.admin.resources.contacts.edit', $record))
+                    ->visible(fn ($record) => $record->isGrafired())
+                    ->color('info'),
             ])
             ->headerActions([
                 Action::make('add_local_supplier')

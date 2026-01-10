@@ -1,0 +1,222 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    🚀 DEPLOYMENT FINAL A PRODUCCIÓN                          ║
+║                         GUÍA PASO A PASO                                     ║
+╔══════════════════════════════════════════════════════════════════════════════╗
+
+📦 ARCHIVOS MODIFICADOS/CREADOS (Total: 23):
+
+   ✅ TrustProxies (fix 403):
+      • app/Http/Middleware/TrustProxies.php (NUEVO)
+      • bootstrap/app.php (ACTUALIZADO)
+      • nixpacks.toml (ACTUALIZADO)
+
+   ✅ Fix Passwords (doble hashing):
+      • app/Filament/Pages/Auth/Register.php
+      • app/Http/Controllers/SimpleRegistrationController.php
+      • app/Http/Controllers/RegistrationController.php
+      • database/seeders/TestDataSeeder.php
+      • database/seeders/DashboardDemoSeeder.php
+      • database/factories/UserFactory.php
+
+   ✅ UX Improvements:
+      • app/Filament/Resources/Contacts/Schemas/ContactForm.php
+      • app/Filament/Resources/Contacts/Pages/CreateContact.php
+      • app/Filament/Resources/PrintingMachines/Pages/CreatePrintingMachine.php
+      • app/Filament/Resources/Papers/Pages/CreatePaper.php
+      • app/Filament/Resources/Documents/RelationManagers/DocumentItemsRelationManager.php
+      • app/Filament/Resources/Documents/Tables/DocumentsTable.php
+
+   ✅ Logout Fix:
+      • routes/web.php
+      • resources/views/logout-form.blade.php (NUEVO)
+
+   ✅ Comandos Artisan:
+      • app/Console/Commands/ClearProductionCache.php (NUEVO)
+      • app/Console/Commands/NotifyPasswordReset.php (NUEVO)
+      • app/Console/Commands/InvalidateAllSessions.php (NUEVO)
+
+   ✅ Scripts:
+      • clear-production-cache.sh (NUEVO)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 PASO 1: COMMIT Y PUSH
+
+   cd /home/dasiva/Descargas/litopro825
+   git add .
+   git commit -m "fix: configuración completa para producción Railway
+
+   - TrustProxies middleware para Railway (fix error 403)
+   - Fix doble hashing de passwords (login después de registro)
+   - Comando grafired:clear-cache optimizado
+   - Nixpacks con limpieza automática de cachés
+   - Fixes UX: redirecciones, duplicar items, países/ciudades
+   - Logout seguro con formulario POST
+   - Comando grafired:invalidate-sessions para limpiar sesiones viejas
+   - Documentación completa de deployment"
+
+   git push origin main
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 PASO 2: ACTUALIZAR VARIABLES EN RAILWAY
+
+   Railway Dashboard → Tu Proyecto → Variables
+
+   CAMBIAR:
+   ───────────────────────────────────────────────────────
+   APP_ENV → production
+   APP_DEBUG → false
+   SESSION_DOMAIN → null
+   ───────────────────────────────────────────────────────
+
+   AGREGAR (nuevas):
+   ───────────────────────────────────────────────────────
+   SESSION_SECURE_COOKIE → true
+   SESSION_HTTP_ONLY → true
+   SESSION_SAME_SITE → lax
+   ───────────────────────────────────────────────────────
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 PASO 3: ESPERAR DEPLOYS
+
+   1. Primer deploy (por push): 3-5 minutos
+   2. Segundo deploy (por variables): 2-3 minutos
+
+   Ver progreso en: Railway Dashboard → Deployments
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 PASO 4: INVALIDAR SESIONES VIEJAS (IMPORTANTE!)
+
+   Esto elimina cookies viejas que causan problemas en ventana normal.
+
+   OPCIÓN A - Con Railway CLI (recomendado):
+   ───────────────────────────────────────────────────────
+   railway run php artisan grafired:invalidate-sessions --force
+   ───────────────────────────────────────────────────────
+
+   OPCIÓN B - Sin Railway CLI:
+   ───────────────────────────────────────────────────────
+   railway run php artisan tinker --execute="DB::table('sessions')->truncate();"
+   ───────────────────────────────────────────────────────
+
+   OPCIÓN C - Instalar Railway CLI primero:
+   ───────────────────────────────────────────────────────
+   npm install -g @railway/cli
+   railway login
+   cd /home/dasiva/Descargas/litopro825
+   railway link
+   railway run php artisan grafired:invalidate-sessions --force
+   ───────────────────────────────────────────────────────
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 PASO 5: TESTING COMPLETO
+
+   ✅ TEST 1: Login/Logout en Incógnito
+      1. Abrir ventana incógnito
+      2. https://litopro825-production.up.railway.app/admin
+      3. Login
+      4. Logout
+      5. Login nuevamente
+      ✅ Debe funcionar
+
+   ✅ TEST 2: Login/Logout en Ventana Normal
+      1. Abrir ventana normal (limpiar cookies primero: Ctrl+Shift+Del)
+      2. https://litopro825-production.up.railway.app/admin
+      3. Login
+      4. Logout
+      5. Login nuevamente
+      ✅ Debe funcionar (PROBLEMA RESUELTO)
+
+   ✅ TEST 3: Crear Nuevo Usuario
+      1. Registrar nuevo usuario
+      2. Completar registro
+      3. Logout
+      4. Login con credenciales
+      ✅ Debe funcionar (sin doble hashing)
+
+   ✅ TEST 4: Verificar Países/Ciudades
+      1. Crear contacto
+      2. Seleccionar país
+      3. Verificar que departamentos cargan
+      4. Seleccionar departamento
+      5. Verificar que ciudades cargan
+      ✅ Debe funcionar
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 PROBLEMAS RESUELTOS (Total: 10):
+
+   1. ✅ Países/ciudades no cargaban
+   2. ✅ No redirigía a lista después de crear
+   3. ✅ Duplicar items en cotizaciones aprobadas
+   4. ✅ Cliente no preseleccionado en cuenta cobro
+   5. ✅ Modal "cambios no guardados"
+   6. ✅ Vistas no actualizaban en producción
+   7. ✅ Login fallaba después de registro (doble hashing)
+   8. ✅ Error 405 al hacer logout
+   9. ✅ Error 403 con APP_ENV=production (TrustProxies)
+   10. ✅ Cookies viejas impedían login en ventana normal
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🆘 TROUBLESHOOTING:
+
+   Si algo falla después del deploy:
+
+   1. Ver logs en tiempo real:
+      railway logs --tail
+
+   2. Verificar variables:
+      railway run php artisan tinker
+      >>> config('app.env')
+      >>> config('session.domain')
+
+   3. Limpiar cachés manualmente:
+      railway run php artisan grafired:clear-cache --production
+
+   4. Verificar migraciones:
+      railway run php artisan migrate:status
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📚 DOCUMENTACIÓN CREADA:
+
+   • FIX-403-PRODUCCION.txt - Solución error 403
+   • CONFIGURACION-PRODUCCION-RAILWAY.md - Guía completa Railway
+   • SOLUCION-LOGIN-PRODUCCION.txt - Fix doble hashing
+   • FIX-PASSWORDS-PRODUCCION.md - Documentación detallada passwords
+   • SOLUCION-COOKIES-VIEJAS.md - Problema cookies
+   • EJECUTAR-DESPUES-DEPLOY.txt - Pasos post-deploy
+   • DEPLOYMENT-CHECKLIST.md - Checklist general
+   • RAILWAY-DEPLOYMENT.md - Guía Railway específica
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ CHECKLIST FINAL:
+
+   [ ] Commit y push realizados
+   [ ] Primer deploy completado (código)
+   [ ] Variables actualizadas en Railway
+   [ ] Segundo deploy completado (variables)
+   [ ] Sesiones invalidadas (comando ejecutado)
+   [ ] Test login/logout incógnito OK
+   [ ] Test login/logout ventana normal OK
+   [ ] Test crear nuevo usuario OK
+   [ ] Test países/ciudades OK
+   [ ] Logs sin errores críticos
+   [ ] APP_ENV=production verificado
+   [ ] Usuarios notificados (si hay activos)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎉 ¡TODO LISTO PARA PRODUCCIÓN!
+
+   Versión: 3.0.37
+   Fecha: 06-Ene-2026
+   Status: ✅ Configuración completa para Railway
+
+╚══════════════════════════════════════════════════════════════════════════════╝

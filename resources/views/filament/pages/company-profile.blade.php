@@ -22,8 +22,8 @@
         <div style="background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.07); margin-bottom: 24px;">
             <!-- Banner -->
             <div style="height: 200px; position: relative;" class="profile-header-gradient">
-                @if($company->banner)
-                    <img src="{{ asset('storage/' . $company->banner) }}" alt="Banner" style="width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0;">
+                @if($company->getBannerUrl())
+                    <img src="{{ $company->getBannerUrl() }}" alt="Banner" style="width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0;">
                 @endif
                 <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.15);"></div>
             </div>
@@ -33,8 +33,8 @@
                 <!-- Avatar -->
                 <div style="position: relative; margin-top: -80px; margin-bottom: 20px;">
                     <div style="width: 160px; height: 160px; background: white; border-radius: 50%; border: 6px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); overflow: hidden;">
-                        @if($company->avatar)
-                            <img src="{{ asset('storage/' . $company->avatar) }}" alt="{{ $company->name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                        @if($company->getAvatarUrl())
+                            <img src="{{ $company->getAvatarUrl() }}" alt="{{ $company->name }}" style="width: 100%; height: 100%; object-fit: cover;">
                         @else
                             <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center;">
                                 <span style="font-size: 48px; font-weight: 700; color: white; letter-spacing: 2px;">

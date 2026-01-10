@@ -11,14 +11,14 @@ class CreateDigitalItem extends CreateRecord
 
     public function getTitle(): string
     {
-        return 'Crear Item Digital';
+        return 'Crear Impresión Digital';
     }
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         // Agregar company_id automáticamente
         $data['company_id'] = auth()->user()->company_id;
-        
+
         return $data;
     }
 
@@ -29,6 +29,6 @@ class CreateDigitalItem extends CreateRecord
 
     protected function getCreatedNotificationTitle(): ?string
     {
-        return 'Item digital creado exitosamente';
+        return 'Impresión digital creada exitosamente';
     }
 }

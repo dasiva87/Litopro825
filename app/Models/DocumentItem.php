@@ -728,10 +728,34 @@ class DocumentItem extends Model
         return match($this->itemable_type) {
             'App\\Models\\SimpleItem' => 'Item Sencillo: ' . ($this->itemable->description ?? 'Sin descripción'),
             'App\\Models\\Product' => 'Producto: ' . ($this->itemable->name ?? 'Sin nombre'),
-            'App\\Models\\DigitalItem' => 'Servicio Digital: ' . ($this->itemable->description ?? 'Sin descripción'),
+            'App\\Models\\DigitalItem' => $this->generateDigitalItemDescription(),
             'App\\Models\\TalonarioItem' => 'Talonario: ' . ($this->itemable->description ?? 'Sin descripción'),
             'App\\Models\\MagazineItem' => 'Revista: ' . ($this->itemable->description ?? 'Sin descripción'),
             default => 'Item: ' . class_basename($this->itemable_type),
         };
+    }
+
+    /**
+     * Generar descripción para items digitales, incluyendo tamaño si aplica
+     */
+    private function generateDigitalItemDescription(): string
+    {
+        // Asegurar que itemable esté cargado
+        if (!$this->relationLoaded('itemable')) {
+            $this->load('itemable');
+        }
+
+        if (!$this->itemable) {
+            return 'Sin descripción';
+        }
+
+        $baseDescription = $this->itemable->description ?? 'Sin descripción';
+
+        // Si es por tamaño y tiene dimensiones, agregar el tamaño
+        if ($this->itemable->pricing_type === 'size' && $this->width && $this->height) {
+            return $baseDescription . ' tamaño ' . number_format($this->width, 0) . ' x ' . number_format($this->height, 0) . ' cm';
+        }
+
+        return $baseDescription;
     }
 }

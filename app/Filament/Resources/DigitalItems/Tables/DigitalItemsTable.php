@@ -20,15 +20,6 @@ class DigitalItemsTable
     {
         return $table
             ->columns([
-                TextColumn::make('code')
-                    ->label('Código')
-                    ->searchable()
-                    ->sortable()
-                    ->weight('bold')
-                    ->copyable()
-                    ->copyMessage('Código copiado')
-                    ->copyMessageDuration(1500),
-
                 TextColumn::make('description')
                     ->label('Descripción')
                     ->searchable()
@@ -55,27 +46,9 @@ class DigitalItemsTable
                         default => $state,
                     }),
 
-                TextColumn::make('unit_value')
-                    ->label('Valor Unitario')
-                    ->money('COP')
-                    ->sortable(),
-
                 TextColumn::make('sale_price')
                     ->label('Precio de Venta')
                     ->money('COP')
-                    ->sortable(),
-
-                TextColumn::make('profit_margin')
-                    ->label('Margen')
-                    ->numeric(
-                        decimalPlaces: 1,
-                    )
-                    ->suffix('%')
-                    ->color(function ($state) {
-                        if ($state < 10) return 'danger';
-                        if ($state < 30) return 'warning';
-                        return 'success';
-                    })
                     ->sortable(),
 
                 TextColumn::make('supplier_type')
@@ -128,14 +101,6 @@ class DigitalItemsTable
                     ->placeholder('Todos los estados')
                     ->trueLabel('Solo activos')
                     ->falseLabel('Solo inactivos'),
-
-                Filter::make('high_margin')
-                    ->label('Margen Alto (>30%)')
-                    ->query(fn (Builder $query): Builder => $query->where('profit_margin', '>', 30)),
-
-                Filter::make('low_margin')
-                    ->label('Margen Bajo (<15%)')
-                    ->query(fn (Builder $query): Builder => $query->where('profit_margin', '<', 15)),
             ])
             ->actions([
                 EditAction::make()

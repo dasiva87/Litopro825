@@ -181,7 +181,7 @@ class SocialPost extends Model
             return null;
         }
 
-        return asset('storage/' . $this->image_path);
+        return \Storage::disk('r2')->url($this->image_path);
     }
 
     // Company-related methods

@@ -18,21 +18,17 @@ return new class extends Migration
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
             
             // Información básica del producto digital
-            $table->string('code')->unique(); // Código único del producto
             $table->text('description'); // Descripción del servicio
-            
-            // Precios y costos
-            $table->decimal('purchase_price', 10, 2)->default(0.00); // Precio de compra
+
+            // Precio
             $table->decimal('sale_price', 10, 2); // Precio de venta
-            $table->decimal('profit_margin', 5, 2)->default(0.00); // Margen calculado automáticamente
-            
+
             // Información del proveedor
             $table->boolean('is_own_product')->default(true); // Si es propio o de terceros
             $table->foreignId('supplier_contact_id')->nullable()->constrained('contacts')->nullOnDelete();
-            
+
             // Tipo de valoración
             $table->enum('pricing_type', ['unit', 'size'])->default('unit'); // Por unidad o por tamaño
-            $table->decimal('unit_value', 10, 2); // Valor unitario para cálculos
             
             // Datos adicionales
             $table->json('metadata')->nullable(); // Información adicional
@@ -45,7 +41,6 @@ return new class extends Migration
             $table->index(['company_id', 'active']);
             $table->index(['pricing_type']);
             $table->index(['is_own_product']);
-            $table->index(['code']);
         });
     }
 

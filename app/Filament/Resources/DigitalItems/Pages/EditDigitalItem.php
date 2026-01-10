@@ -20,7 +20,7 @@ class EditDigitalItem extends EditRecord
 
     public function getTitle(): string
     {
-        return 'Editar Item Digital';
+        return 'Editar Impresión Digital';
     }
 
     protected function getRedirectUrl(): string
@@ -30,6 +30,6 @@ class EditDigitalItem extends EditRecord
 
     protected function getSavedNotificationTitle(): ?string
     {
-        return 'Item digital actualizado exitosamente';
+        return 'Impresión digital actualizada exitosamente';
     }
 }

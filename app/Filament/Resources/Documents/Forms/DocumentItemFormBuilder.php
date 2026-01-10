@@ -77,7 +77,7 @@ class DocumentItemFormBuilder
 
         $typeLabels = [
             'simple' => 'Item Sencillo',
-            'digital' => 'Item Digital',
+            'digital' => 'Impresión Digital',
             'custom' => 'Item Personalizado',
             'product' => 'Producto',
             'magazine' => 'Revista',
@@ -113,7 +113,7 @@ class DocumentItemFormBuilder
                     $item = \App\Models\DigitalItem::find($itemId);
                     if ($item) {
                         $content .= '<div class="mt-3 p-2 bg-white rounded border">';
-                        $content .= '<strong>Item Digital:</strong> ' . e($item->code . ' - ' . $item->description);
+                        $content .= '<strong>Impresión Digital:</strong> ' . e($item->description);
                         $content .= '</div>';
                     }
                 }

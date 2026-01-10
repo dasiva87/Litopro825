@@ -48,7 +48,8 @@ class DocumentForm
                                         'cancelled' => 'Cancelado',
                                     ])
                                     ->default('draft')
-                                    ->required(),
+                                    ->required()
+                                    ->visible(fn ($record) => $record !== null), // Solo visible al editar
                             ]),
                             
                         Grid::make(1)

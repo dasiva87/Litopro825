@@ -1,4 +1,4 @@
-<div style="space-y: 24px;">
+<div style="space-y: 24px;" id="posts-container-{{ $this->getId() }}">
     <!-- Panel de Filtros -->
     <div style="background: white; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px;">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: {{ $showFilters ? '16px' : '0' }};">
@@ -102,7 +102,7 @@
 
             <!-- Contador de resultados -->
             <div style="margin-top: 12px; text-align: center; font-size: 13px; color: #6b7280;">
-                Mostrando {{ $this->getSocialPosts()->count() }} publicaciones
+                Mostrando {{ $page * $perPage - ($perPage - $this->getSocialPosts()->count()) }} publicaciones{{ $hasMorePages ? ' (hay más disponibles)' : '' }}
             </div>
         @endif
     </div>
@@ -374,4 +374,52 @@
             </p>
         </div>
     @endif
+
+    <!-- Botón Cargar Más -->
+    @if($hasMorePages && !$this->getSocialPosts()->isEmpty())
+        <div style="text-align: center; margin-top: 24px; margin-bottom: 24px;">
+            <button
+                wire:click="loadMore"
+                type="button"
+                style="padding: 14px 28px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 10px;"
+                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.6)'"
+                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.4)'"
+            >
+                <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+                <span>Cargar más publicaciones</span>
+                <span style="background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 12px; font-size: 12px;">+10</span>
+            </button>
+        </div>
+    @endif
+
+    <!-- Loading Indicator -->
+    <div wire:loading wire:target="loadMore" style="text-align: center; margin-top: 16px; margin-bottom: 16px;">
+        <div style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; background: #f3f4f6; border-radius: 8px; color: #6b7280; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <svg style="width: 18px; height: 18px; animation: spin 1s linear infinite;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            <span>Cargando más publicaciones...</span>
+        </div>
+    </div>
+
+    <!-- Mensaje de fin -->
+    @if(!$hasMorePages && !$this->getSocialPosts()->isEmpty())
+        <div style="text-align: center; margin-top: 24px; padding: 16px;">
+            <div style="display: inline-flex; align-items: center; gap: 8px; color: #9ca3af; font-size: 14px;">
+                <svg style="width: 16px; height: 16px;" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                <span>Has visto todas las publicaciones</span>
+            </div>
+        </div>
+    @endif
+
+    <style>
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
 </div>

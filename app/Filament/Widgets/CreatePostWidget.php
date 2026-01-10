@@ -47,7 +47,7 @@ class CreatePostWidget extends Widget
         // Manejar la carga de imagen
         $imagePath = null;
         if ($this->image) {
-            $imagePath = $this->image->store('social-posts', 'public');
+            $imagePath = $this->image->store('social-posts', 'r2');
         }
 
         $post = SocialPost::create([

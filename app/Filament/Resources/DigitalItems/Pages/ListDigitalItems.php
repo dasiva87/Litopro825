@@ -14,14 +14,14 @@ class ListDigitalItems extends ListRecords
     {
         return [
             Actions\CreateAction::make()
-                ->label('Nuevo Item Digital')
+                ->label('Nueva Impresión Digital')
                 ->icon('heroicon-o-plus'),
         ];
     }
 
     public function getTitle(): string
     {
-        return 'Items Digitales';
+        return 'Impresión Digital';
     }
 
     protected function getHeaderWidgets(): array

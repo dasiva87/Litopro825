@@ -17,12 +17,24 @@ class CompanyPostsWidget extends Widget
     // Controlar si se muestran los filtros (false para perfiles de empresa)
     public bool $showFilters = false;
 
+    // Paginación
+    public int $perPage = 10;
+    public int $page = 1;
+    public bool $hasMorePages = true;
+    public $loadedPosts = []; // Almacenar posts cargados
+
     protected $listeners = ['post-created' => 'refreshPosts'];
 
-    public function getSocialPosts()
+    public function mount()
+    {
+        // Cargar posts iniciales
+        $this->loadPosts();
+    }
+
+    public function loadPosts()
     {
         if (!$this->companyId) {
-            return collect();
+            return;
         }
 
         // Remover el scope global para permitir posts cross-tenant
@@ -37,13 +49,46 @@ class CompanyPostsWidget extends Widget
             ->public()
             ->notExpired();
 
-        return $query->recent()
-            ->limit(20)
+        // Paginación
+        $posts = $query->recent()
+            ->skip(($this->page - 1) * $this->perPage)
+            ->take($this->perPage + 1) // +1 para saber si hay más páginas
             ->get();
+
+        // Verificar si hay más páginas
+        $this->hasMorePages = $posts->count() > $this->perPage;
+
+        // Agregar nuevos posts al array acumulado
+        $newPosts = $posts->take($this->perPage);
+        foreach ($newPosts as $post) {
+            $this->loadedPosts[] = $post;
+        }
+    }
+
+    public function getSocialPosts()
+    {
+        return collect($this->loadedPosts);
+    }
+
+    public function loadMore()
+    {
+        if ($this->hasMorePages) {
+            $this->page++;
+            $this->loadPosts();
+        }
+    }
+
+    public function resetPagination()
+    {
+        $this->page = 1;
+        $this->hasMorePages = true;
+        $this->loadedPosts = [];
+        $this->loadPosts();
     }
 
     public function refreshPosts()
     {
+        $this->resetPagination();
         $this->dispatch('$refresh');
     }
 

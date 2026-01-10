@@ -117,9 +117,9 @@
                     <!-- Collapsed state -->
                     <div x-show="!showForm" @click="showForm = true" class="cursor-pointer">
                         <div class="flex items-center space-x-3">
-                            @if(auth()->user()->company && auth()->user()->company->avatar)
+                            @if(auth()->user()->company && auth()->user()->company->getAvatarUrl())
                                 <img
-                                    src="{{ asset('storage/' . auth()->user()->company->avatar) }}"
+                                    src="{{ auth()->user()->company->getAvatarUrl() }}"
                                     alt="{{ auth()->user()->company->name }}"
                                     class="h-8 w-8 rounded-full object-cover border border-gray-200"
                                 />
@@ -609,9 +609,9 @@
                                 <div class="mt-4 pl-4 border-l-2 border-blue-100 bg-blue-50 rounded-r-lg p-3">
                                     <form wire:submit.prevent="addComment({{ $post['id'] }})" class="space-y-2">
                                         <div class="flex space-x-2">
-                                            @if(auth()->user()->company && auth()->user()->company->avatar)
+                                            @if(auth()->user()->company && auth()->user()->company->getAvatarUrl())
                                                 <img
-                                                    src="{{ asset('storage/' . auth()->user()->company->avatar) }}"
+                                                    src="{{ auth()->user()->company->getAvatarUrl() }}"
                                                     alt="{{ auth()->user()->company->name }}"
                                                     class="h-6 w-6 rounded-full object-cover border border-gray-200 flex-shrink-0"
                                                 />

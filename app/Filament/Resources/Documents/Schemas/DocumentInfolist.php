@@ -131,7 +131,7 @@ class DocumentInfolist
                             ->url(fn ($state) => $state ? 'tel:' . $state : null)
                             ->placeholder('Sin teléfono'),
 
-                        TextEntry::make('contact.city')
+                        TextEntry::make('contact.city.name')
                             ->label('Ciudad')
                             ->icon('heroicon-o-map-pin')
                             ->placeholder('Sin ciudad'),

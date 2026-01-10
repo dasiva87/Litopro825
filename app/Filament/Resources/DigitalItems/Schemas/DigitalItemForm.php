@@ -23,13 +23,6 @@ class DigitalItemForm
                     ->schema([
                         Grid::make(2)
                             ->schema([
-                                TextInput::make('code')
-                                    ->label('Código del Item Digital')
-                                    ->maxLength(255)
-                                    ->unique(ignoreRecord: true)
-                                    ->placeholder('Se generará automáticamente si se deja vacío')
-                                    ->helperText('Código único para identificar el item digital'),
-                                    
                                 Select::make('pricing_type')
                                     ->label('Método de Valoración')
                                     ->required()
@@ -40,7 +33,7 @@ class DigitalItemForm
                                     ->default('unit')
                                     ->live()
                                     ->helperText('Seleccione cómo se calculará el precio'),
-                                    
+
                                 Textarea::make('description')
                                     ->label('Descripción del Servicio')
                                     ->required()
@@ -52,59 +45,16 @@ class DigitalItemForm
                     
                 Section::make('Configuración de Precios')
                     ->schema([
-                        Grid::make(3)
-                            ->schema([
-                                TextInput::make('unit_value')
-                                    ->label(fn ($get) => $get('pricing_type') === 'size' ? 'Valor por m²' : 'Valor por Unidad')
-                                    ->numeric()
-                                    ->prefix('$')
-                                    ->required()
-                                    ->minValue(0)
-                                    ->step(0.01)
-                                    ->live()
-                                    ->placeholder('0.00')
-                                    ->afterStateUpdated(function ($set, $get, $state) {
-                                        if (!$get('sale_price')) {
-                                            $set('sale_price', $state);
-                                        }
-                                    }),
-                                    
-                                TextInput::make('purchase_price')
-                                    ->label('Precio de Compra')
-                                    ->numeric()
-                                    ->prefix('$')
-                                    ->default(0)
-                                    ->minValue(0)
-                                    ->step(0.01)
-                                    ->live()
-                                    ->placeholder('0.00'),
-                                    
-                                TextInput::make('sale_price')
-                                    ->label('Precio de Venta Base')
-                                    ->numeric()
-                                    ->prefix('$')
-                                    ->required()
-                                    ->minValue(0)
-                                    ->step(0.01)
-                                    ->live()
-                                    ->placeholder('0.00'),
-                            ]),
-                            
-                        Placeholder::make('profit_margin')
-                            ->label('Margen de Ganancia')
-                            ->content(function ($get) {
-                                $purchase = $get('purchase_price') ?? 0;
-                                $sale = $get('sale_price') ?? 0;
-                                
-                                if ($purchase == 0 || $sale == 0) {
-                                    return '-';
-                                }
-                                
-                                $margin = (($sale - $purchase) / $purchase) * 100;
-                                $profit = $sale - $purchase;
-                                
-                                return number_format($margin, 2) . '% ($' . number_format($profit, 2) . ')';
-                            }),
+                        TextInput::make('sale_price')
+                            ->label(fn ($get) => $get('pricing_type') === 'size' ? 'Precio de Venta por m²' : 'Precio de Venta por Unidad')
+                            ->numeric()
+                            ->prefix('$')
+                            ->required()
+                            ->minValue(0)
+                            ->step(0.01)
+                            ->live()
+                            ->placeholder('0.00')
+                            ->helperText('Precio de venta que se aplicará en las cotizaciones'),
                     ]),
                     
                 Section::make('Información del Proveedor')
@@ -142,19 +92,19 @@ class DigitalItemForm
                         Placeholder::make('pricing_examples')
                             ->label('Ejemplos de Precio')
                             ->content(function ($get) {
-                                $unitValue = $get('unit_value') ?? 0;
+                                $salePrice = $get('sale_price') ?? 0;
                                 $pricingType = $get('pricing_type') ?? 'unit';
-                                
-                                if ($unitValue == 0) {
-                                    return 'Ingresa un valor unitario para ver los ejemplos';
+
+                                if ($salePrice == 0) {
+                                    return 'Ingresa un precio de venta para ver los ejemplos';
                                 }
-                                
+
                                 $content = '<div class="grid grid-cols-2 gap-4 text-sm">';
-                                
+
                                 if ($pricingType === 'unit') {
                                     $quantities = [1, 5, 10, 50, 100, 500];
                                     foreach ($quantities as $qty) {
-                                        $total = $unitValue * $qty;
+                                        $total = $salePrice * $qty;
                                         $content .= '<div class="p-2 bg-blue-50 rounded">';
                                         $content .= '<div class="font-semibold">' . number_format($qty) . ' unidades</div>';
                                         $content .= '<div class="text-blue-600">$' . number_format($total, 2) . '</div>';
@@ -169,19 +119,19 @@ class DigitalItemForm
                                         ['w' => 2, 'h' => 2, 'desc' => '2m × 2m'],
                                         ['w' => 4, 'h' => 3, 'desc' => '4m × 3m'],
                                     ];
-                                    
+
                                     foreach ($sizes as $size) {
                                         $area = $size['w'] * $size['h'];
-                                        $total = $area * $unitValue;
+                                        $total = $area * $salePrice;
                                         $content .= '<div class="p-2 bg-green-50 rounded">';
                                         $content .= '<div class="font-semibold">' . $size['desc'] . ' (' . $area . 'm²)</div>';
                                         $content .= '<div class="text-green-600">$' . number_format($total, 2) . '</div>';
                                         $content .= '</div>';
                                     }
                                 }
-                                
+
                                 $content .= '</div>';
-                                
+
                                 return $content;
                             })
                             ->html()

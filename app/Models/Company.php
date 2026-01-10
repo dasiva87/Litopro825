@@ -228,12 +228,12 @@ class Company extends Model
     // Helper methods for profile
     public function getAvatarUrl(): ?string
     {
-        return $this->avatar ? Storage::url($this->avatar) : null;
+        return $this->avatar ? Storage::disk('r2')->url($this->avatar) : null;
     }
 
     public function getBannerUrl(): ?string
     {
-        return $this->banner ? Storage::url($this->banner) : null;
+        return $this->banner ? Storage::disk('r2')->url($this->banner) : null;
     }
 
     public function getInitials(): string

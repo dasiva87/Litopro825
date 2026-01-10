@@ -209,7 +209,7 @@ class DocumentItemsRelationManager extends RelationManager
                         'App\\Models\\Product' => 'Producto',
                         'App\\Models\\TalonarioItem' => 'Talonario',
                         'App\\Models\\MagazineItem' => 'Revista',
-                        'App\\Models\\DigitalItem' => 'Digital',
+                        'App\\Models\\DigitalItem' => 'Impresión Digital',
                         'App\\Models\\CustomItem' => 'Personalizado',
                         default => 'Otro'
                     })
@@ -395,7 +395,7 @@ class DocumentItemsRelationManager extends RelationManager
                         'App\\Models\\Product' => 'Producto',
                         'App\\Models\\TalonarioItem' => 'Talonario',
                         'App\\Models\\MagazineItem' => 'Revista',
-                        'App\\Models\\DigitalItem' => 'Digital',
+                        'App\\Models\\DigitalItem' => 'Impresión Digital',
                         'App\\Models\\CustomItem' => 'Personalizado',
                     ]),
             ])
@@ -779,9 +779,9 @@ class DocumentItemsRelationManager extends RelationManager
 
                         // DigitalItem - Con acabados opcionales
                         if ($record->itemable_type === 'App\\Models\\DigitalItem') {
-                            $handler = new DigitalItemQuickHandler;
+                            $handler = new \App\Filament\Resources\Documents\RelationManagers\Handlers\DigitalItemHandler;
 
-                            return $handler->getFormSchema();
+                            return $handler->getEditForm($record);
                         }
                     })
                     ->mutateRecordDataUsing(function (array $data, $record): array {
@@ -845,34 +845,11 @@ class DocumentItemsRelationManager extends RelationManager
                             return $handler->fillForm($record);
                         }
 
-                        // Para DigitalItems, cargar acabados existentes
+                        // Para DigitalItems, usar el handler
                         if ($record->itemable_type === 'App\\Models\\DigitalItem' && $record->itemable) {
-                            $digitalItem = $record->itemable;
+                            $handler = new \App\Filament\Resources\Documents\RelationManagers\Handlers\DigitalItemHandler;
 
-                            // Cargar acabados existentes desde tabla pivot (Arquitectura 1)
-                            $finishingsData = [];
-                            $existingFinishings = $digitalItem->finishings()->get();
-
-                            foreach ($existingFinishings as $finishing) {
-                                $finishingsData[] = [
-                                    'finishing_id' => $finishing->id,
-                                    'quantity' => $finishing->pivot->quantity ?? 1,
-                                    'width' => $finishing->pivot->width,
-                                    'height' => $finishing->pivot->height,
-                                    'calculated_cost' => $finishing->pivot->calculated_cost,
-                                ];
-                            }
-
-                            return [
-                                'item_type' => 'digital',
-                                'itemable_type' => $record->itemable_type,
-                                'itemable_id' => $record->itemable_id,
-                                'digital_item_id' => $record->itemable_id, // Para pre-llenar el select
-                                'quantity' => $record->quantity,
-                                'finishings_data' => $finishingsData, // Cambiado de 'finishings' a 'finishings_data'
-                                'unit_price' => $record->unit_price,
-                                'total_price' => $record->total_price,
-                            ];
+                            return $handler->fillForm($record);
                         }
 
                         // Para otros tipos, usar datos del DocumentItem
@@ -999,48 +976,9 @@ class DocumentItemsRelationManager extends RelationManager
                             $handler = new TalonarioItemHandler;
                             $handler->handleUpdate($record, $data);
                         } elseif ($record->itemable_type === 'App\\Models\\DigitalItem' && $record->itemable) {
-                            // Manejar edición de DigitalItems con acabados (Arquitectura 1)
-                            $digitalItem = $record->itemable;
-
-                            // Procesar acabados desde finishings_data
-                            $finishingsData = $data['finishings_data'] ?? [];
-                            $finishingsCost = 0;
-
-                            // Limpiar acabados existentes
-                            $digitalItem->finishings()->detach();
-
-                            // Agregar nuevos acabados usando attach directo (Arquitectura 1)
-                            if (! empty($finishingsData)) {
-                                foreach ($finishingsData as $finishingData) {
-                                    if (isset($finishingData['finishing_id'])) {
-                                        $finishing = \App\Models\Finishing::find($finishingData['finishing_id']);
-
-                                        if ($finishing) {
-                                            // Attach finishing a DigitalItem usando tabla pivot
-                                            $digitalItem->finishings()->attach($finishingData['finishing_id'], [
-                                                'quantity' => $finishingData['quantity'] ?? 1,
-                                                'width' => $finishingData['width'] ?? null,
-                                                'height' => $finishingData['height'] ?? null,
-                                                'calculated_cost' => $finishingData['calculated_cost'] ?? 0,
-                                            ]);
-
-                                            $finishingsCost += (float) ($finishingData['calculated_cost'] ?? 0);
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Recalcular precio total del item
-                            $basePrice = $digitalItem->calculateTotalPrice(['quantity' => $data['quantity']]);
-                            $totalPrice = $basePrice + $finishingsCost;
-                            $unitPrice = $totalPrice / $data['quantity'];
-
-                            // Actualizar DocumentItem
-                            $record->update([
-                                'quantity' => $data['quantity'],
-                                'unit_price' => $unitPrice,
-                                'total_price' => $totalPrice,
-                            ]);
+                            // Usar el handler para manejar la edición de DigitalItems
+                            $handler = new \App\Filament\Resources\Documents\RelationManagers\Handlers\DigitalItemHandler;
+                            $handler->handleUpdate($record, $data);
                         } elseif ($record->itemable_type === 'App\\Models\\Product' && $record->itemable) {
                             // Usar el handler para manejar la edición de Products
                             $handler = new ProductHandler;

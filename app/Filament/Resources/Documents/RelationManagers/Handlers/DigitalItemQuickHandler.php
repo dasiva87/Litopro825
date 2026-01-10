@@ -20,11 +20,11 @@ class DigitalItemQuickHandler implements QuickActionHandlerInterface
     public function getFormSchema(): array
     {
         return [
-            \Filament\Schemas\Components\Section::make('Agregar Item Digital')
-                ->description('Selecciona un item digital existente y especifica parámetros')
+            \Filament\Schemas\Components\Section::make('Agregar Impresión Digital')
+                ->description('Selecciona una impresión digital existente y especifica parámetros')
                 ->schema([
                     Select::make('digital_item_id')
-                        ->label('Item Digital')
+                        ->label('Impresión Digital')
                         ->options(function () {
                             return $this->getDigitalItemOptions();
                         })
@@ -37,7 +37,7 @@ class DigitalItemQuickHandler implements QuickActionHandlerInterface
                                 if ($item) {
                                     $set('item_description', $item->description);
                                     $set('pricing_type', $item->pricing_type);
-                                    $set('unit_value', $item->unit_value);
+                                    $set('sale_price', $item->sale_price);
                                 }
                             }
                         }),
@@ -153,7 +153,7 @@ class DigitalItemQuickHandler implements QuickActionHandlerInterface
 
                     Components\Hidden::make('item_description'),
                     Components\Hidden::make('pricing_type'),
-                    Components\Hidden::make('unit_value'),
+                    Components\Hidden::make('sale_price'),
                 ]),
         ];
     }
@@ -202,25 +202,30 @@ class DigitalItemQuickHandler implements QuickActionHandlerInterface
         // Crear configuración del item
         $itemConfig = [
             'pricing_type' => $digitalItem->pricing_type,
-            'unit_value' => $digitalItem->unit_value,
+            'sale_price' => $digitalItem->sale_price,
         ];
 
-        if ($digitalItem->pricing_type === 'size') {
-            $itemConfig['width'] = $params['width'];
-            $itemConfig['height'] = $params['height'];
-        }
-
-        // Crear el DocumentItem asociado
-        $documentItem = $document->items()->create([
+        // Preparar datos del DocumentItem
+        $documentItemData = [
             'itemable_type' => 'App\\Models\\DigitalItem',
             'itemable_id' => $digitalItem->id,
-            'description' => 'Digital: '.$digitalItem->description,
+            'description' => '', // Se generará automáticamente
             'quantity' => $params['quantity'],
             'unit_price' => $unitPrice,
             'total_price' => $totalPrice,
             'item_type' => 'digital',
             'item_config' => json_encode($itemConfig),
-        ]);
+        ];
+
+        if ($digitalItem->pricing_type === 'size') {
+            $itemConfig['width'] = $params['width'];
+            $itemConfig['height'] = $params['height'];
+            $documentItemData['width'] = $params['width'];
+            $documentItemData['height'] = $params['height'];
+        }
+
+        // Crear el DocumentItem asociado
+        $documentItem = $document->items()->create($documentItemData);
 
         // Procesar acabados después de crear el DocumentItem
         if (!empty($finishingsData)) {
@@ -262,7 +267,7 @@ class DigitalItemQuickHandler implements QuickActionHandlerInterface
 
     public function getLabel(): string
     {
-        return 'Digital';
+        return 'Impresión Digital';
     }
 
     public function getIcon(): string
@@ -305,7 +310,7 @@ class DigitalItemQuickHandler implements QuickActionHandlerInterface
             ->get()
             ->mapWithKeys(function ($item) {
                 return [
-                    $item->id => $item->code.' - '.$item->description.' ('.$item->pricing_type_name.')',
+                    $item->id => $item->description.' ('.$item->pricing_type_name.')',
                 ];
             })
             ->toArray();
@@ -352,7 +357,7 @@ class DigitalItemQuickHandler implements QuickActionHandlerInterface
         $content = '<div class="space-y-2">';
         $content .= '<div><strong>📋 Item:</strong> '.$item->description.'</div>';
         $content .= '<div><strong>📐 Tipo:</strong> '.$item->pricing_type_name.'</div>';
-        $content .= '<div><strong>💰 Valor unitario:</strong> '.$item->formatted_unit_value.'</div>';
+        $content .= '<div><strong>💰 Precio de Venta:</strong> '.$item->formatted_sale_price.'</div>';
 
         if (!empty($errors)) {
             $content .= '<div class="text-red-600 mt-2">';

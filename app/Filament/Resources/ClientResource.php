@@ -92,6 +92,15 @@ class ClientResource extends Resource
                     ->query(fn (Builder $query) => $query->active()),
             ])
             ->actions([
+                // Acciones para clientes LOCALES (propios)
+                Action::make('edit')
+                    ->label('Editar')
+                    ->icon('heroicon-o-pencil')
+                    ->url(fn ($record) => route('filament.admin.resources.contacts.edit', $record))
+                    ->visible(fn ($record) => $record->is_local)
+                    ->color('primary'),
+
+                // Acciones para clientes GRAFIRED (enlazados)
                 Action::make('view_company')
                     ->label('Ver Empresa')
                     ->icon('heroicon-o-building-office')
@@ -109,11 +118,12 @@ class ClientResource extends Resource
                     ->visible(fn ($record) => $record->isGrafired())
                     ->successNotificationTitle('Datos sincronizados correctamente'),
 
-                Action::make('request_client')
-                    ->label('Solicitar Cliente')
-                    ->icon('heroicon-o-paper-airplane')
-                    ->color('success')
-                    ->visible(false), // Se implementará en siguiente fase
+                Action::make('view_grafired')
+                    ->label('Ver/Editar')
+                    ->icon('heroicon-o-eye')
+                    ->url(fn ($record) => route('filament.admin.resources.contacts.edit', $record))
+                    ->visible(fn ($record) => $record->isGrafired())
+                    ->color('info'),
             ])
             ->headerActions([
                 Action::make('add_local_client')
