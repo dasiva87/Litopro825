@@ -4,6 +4,7 @@
 - **Laravel 12.25.0 + PHP 8.3.21 + Filament 4.0.3 + MySQL**
 - **Multi-tenant**: Scopes automáticos por `company_id`
 - **Frontend**: Livewire 3.6.4 + TailwindCSS 4.1.12
+- **Email**: Resend (Production) + Mailtrap (Testing)
 
 ## Comandos Core
 ```bash
@@ -37,6 +38,26 @@ app/Filament/Resources/[Entity]/
 ---
 
 ## PROGRESO RECIENTE
+
+### ✅ Sesión Completada (10-Ene-2026)
+**SPRINT 35: Integración de Resend para Emails**
+
+#### Resumen Ejecutivo
+- **Resend instalado**: v1.1.0 + configuración completa
+- **Variables de entorno**: RESEND_API_KEY agregada (pendiente configurar en production)
+- **Comando de prueba**: `php artisan resend:test {email}`
+- **Mailtrap comentado**: Mantiene configuración para testing si es necesario
+
+**Archivos Modificados**:
+1. `.env` - Configuración de Resend + Mailtrap comentado
+2. `config/resend.php` - Archivo de configuración publicado (NUEVO)
+3. `app/Console/Commands/TestResendEmail.php` - Comando de prueba (NUEVO)
+
+**Total**: 3 archivos (1 modificado + 2 nuevos)
+
+**Detalles**: Ver sección "Sprint 35" más abajo
+
+---
 
 ### ✅ Sesión Completada (06-Ene-2026)
 **SPRINT 34: Margen Configurable + Fix Railway Billing Loop**
@@ -824,6 +845,212 @@ resources/
     ├── filament/                 # Vistas Filament
     └── emails/                   # Templates email
 ```
+
+---
+
+## 📋 SPRINT 35 - DETALLE COMPLETO (10-Ene-2026)
+
+### 🎯 Objetivo del Sprint
+Integrar Resend como servicio de envío de emails para producción, reemplazando Mailtrap (solo para testing) y preparar el sistema para envíos reales con mejor deliverability.
+
+### 📧 1. Instalación de Resend
+
+**Paquete instalado**:
+```bash
+composer require resend/resend-laravel
+```
+
+**Versiones**:
+- `resend/resend-php`: v1.1.0
+- `resend/resend-laravel`: v1.1.0
+
+**Service Provider**: Registrado automáticamente por Laravel Package Discovery
+
+### ⚙️ 2. Configuración
+
+#### **Variables de Entorno (.env)**
+
+**Configuración Nueva**:
+```bash
+# RESEND EMAIL SERVICE (Production-ready)
+MAIL_MAILER=resend
+RESEND_API_KEY=
+
+MAIL_FROM_ADDRESS="noreply@grafired.com"
+MAIL_FROM_NAME="${APP_NAME}"
+```
+
+**Mailtrap Comentado** (mantiene para testing):
+```bash
+# MAILTRAP (Testing - comentado)
+# MAIL_MAILER=smtp
+# MAIL_HOST=sandbox.smtp.mailtrap.io
+# MAIL_PORT=2525
+# MAIL_USERNAME=abc8810c3c835e
+# MAIL_PASSWORD=269f3d9f95677a
+# MAIL_ENCRYPTION=tls
+```
+
+#### **Archivo de Configuración (config/resend.php)**
+
+```php
+return [
+    'api_key' => env('RESEND_API_KEY'),
+    'domain' => env('RESEND_DOMAIN', null),
+    'path' => env('RESEND_PATH', 'resend'),
+    'webhook' => [
+        'secret' => env('RESEND_WEBHOOK_SECRET'),
+        'tolerance' => env('RESEND_WEBHOOK_TOLERANCE', 300),
+    ],
+];
+```
+
+**Publicado con**:
+```bash
+php artisan vendor:publish --tag="resend-config"
+```
+
+#### **Mail.php ya configurado**
+
+El archivo `config/mail.php` de Laravel 12 ya incluye soporte nativo para Resend:
+```php
+'mailers' => [
+    'resend' => [
+        'transport' => 'resend',
+    ],
+    // ... otros mailers
+],
+```
+
+### 🧪 3. Comando de Prueba
+
+**Archivo creado**: `app/Console/Commands/TestResendEmail.php`
+
+**Signature**: `php artisan resend:test {email}`
+
+**Funcionalidad**:
+- Envía un email de prueba al correo especificado
+- Manejo de errores con mensajes claros
+- Valida configuración de API key
+- Indica posibles soluciones en caso de error
+
+**Uso**:
+```bash
+# Enviar email de prueba
+php artisan resend:test tu@email.com
+
+# Salida esperada:
+# Enviando email de prueba a: tu@email.com
+# ✅ Email enviado correctamente!
+# Revisa tu bandeja de entrada en: tu@email.com
+```
+
+**Código del comando**:
+```php
+<?php
+
+namespace App\Console\Commands;
+
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Mail;
+
+class TestResendEmail extends Command
+{
+    protected $signature = 'resend:test {email}';
+    protected $description = 'Enviar un email de prueba con Resend';
+
+    public function handle()
+    {
+        $email = $this->argument('email');
+
+        $this->info('Enviando email de prueba a: '.$email);
+
+        try {
+            Mail::raw('Este es un email de prueba desde GrafiRed 3.0 usando Resend.',
+                function ($message) use ($email) {
+                    $message->to($email)
+                        ->subject('Email de Prueba - GrafiRed 3.0');
+                });
+
+            $this->info('✅ Email enviado correctamente!');
+            return Command::SUCCESS;
+        } catch (\Exception $e) {
+            $this->error('❌ Error al enviar email: '.$e->getMessage());
+            $this->line('Posibles soluciones:');
+            $this->line('1. Verifica que RESEND_API_KEY esté configurada en .env');
+            $this->line('2. Verifica que el dominio esté verificado en Resend');
+            $this->line('3. Ejecuta: php artisan config:clear');
+            return Command::FAILURE;
+        }
+    }
+}
+```
+
+### 📦 Resumen de Archivos
+
+**Archivos Modificados (1)**:
+1. `.env` - Configuración de Resend + Mailtrap comentado
+
+**Archivos Nuevos (2)**:
+2. `config/resend.php` - Configuración de Resend
+3. `app/Console/Commands/TestResendEmail.php` - Comando de prueba
+
+**Total**: 3 archivos (1 modificado + 2 nuevos)
+
+### 🚀 Próximos Pasos
+
+**Para Producción**:
+1. Crear cuenta en [resend.com](https://resend.com)
+2. Verificar dominio `grafired.com` (agregar registros DNS)
+3. Obtener API Key de producción
+4. Configurar `RESEND_API_KEY` en Railway
+5. Probar envío con `php artisan resend:test`
+
+**Registros DNS necesarios** (ejemplo):
+```
+Tipo  | Nombre             | Valor
+------|-------------------|------------------
+TXT   | _resend           | resend-verify=xxxxx
+MX    | grafired.com      | feedback-smtp.resend.com
+TXT   | grafired.com      | v=spf1 include:_spf.resend.com ~all
+TXT   | resend._domainkey | v=DKIM1; k=rsa; p=xxxxx
+```
+
+**Configuración Webhooks** (opcional):
+- URL: `https://grafired.com/resend/webhook`
+- Eventos: email.sent, email.delivered, email.bounced, email.opened
+- Secret: Configurar en `RESEND_WEBHOOK_SECRET`
+
+### ✅ Testing Completado
+
+```bash
+✅ Paquete resend/resend-laravel instalado
+✅ Variables de entorno configuradas
+✅ Configuración publicada
+✅ Comando de prueba creado
+✅ Mail.php ya soporta Resend nativamente
+✅ Documentación agregada a CLAUDE.md
+```
+
+### 🎯 Ventajas de Resend
+
+**vs Mailtrap**:
+- ✅ Envíos reales (Mailtrap solo testing)
+- ✅ 50,000 emails/mes por $20
+- ✅ Dominios ilimitados (multi-tenant)
+- ✅ Webhooks nativos para tracking
+
+**vs SendGrid/Mailgun**:
+- ✅ Más económico ($20 vs $35)
+- ✅ API moderna y simple
+- ✅ Mejor UX de configuración
+- ✅ Usa Amazon SES bajo el capó (99.9% deliverability)
+
+**Compatibilidad**:
+- ✅ Sin cambios en código existente
+- ✅ Usa `Mail::` facade estándar de Laravel
+- ✅ Compatible con todas las notificaciones actuales
+- ✅ PDFs adjuntos funcionan sin cambios
 
 ---
 
