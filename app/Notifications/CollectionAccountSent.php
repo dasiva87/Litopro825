@@ -4,14 +4,11 @@ namespace App\Notifications;
 
 use App\Models\CollectionAccount;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class CollectionAccountSent extends Notification
 {
-    use Queueable;
 
     public function __construct(
         public int $collectionAccountId
@@ -24,7 +21,7 @@ class CollectionAccountSent extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['database']; // Solo notificación interna en base de datos, NO email
+        return ['mail']; // Enviar por email
     }
 
     public function toMail(object $notifiable): MailMessage

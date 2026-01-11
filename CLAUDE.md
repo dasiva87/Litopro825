@@ -40,20 +40,32 @@ app/Filament/Resources/[Entity]/
 ## PROGRESO RECIENTE
 
 ### ✅ Sesión Completada (10-Ene-2026)
-**SPRINT 35: Integración de Resend para Emails**
+**SPRINT 35: Integración Completa de Resend + Password Reset + Fix Email Cuentas de Cobro**
 
 #### Resumen Ejecutivo
-- **Resend instalado**: v1.1.0 + configuración completa
-- **Variables de entorno**: RESEND_API_KEY agregada (pendiente configurar en production)
-- **Comando de prueba**: `php artisan resend:test {email}`
-- **Mailtrap comentado**: Mantiene configuración para testing si es necesario
+- **Resend configurado**: v1.1.0 + emails funcionando en producción
+- **Nombre de empresa**: Agregado a subject de todos los emails
+- **Idioma español**: Hardcodeado en config + traducciones de password reset
+- **Password reset custom**: Notificación con branding de empresa + URLs firmadas
+- **Fix Cuentas de Cobro**: Canal cambiado de `['database']` a `['mail']`
+- **Sin Queueable**: Todos los emails se envían inmediatamente (sin cola)
 
-**Archivos Modificados**:
-1. `.env` - Configuración de Resend + Mailtrap comentado
-2. `config/resend.php` - Archivo de configuración publicado (NUEVO)
-3. `app/Console/Commands/TestResendEmail.php` - Comando de prueba (NUEVO)
+**Archivos Modificados (13)**:
+1. `.env` - Configuración de Resend
+2. `config/resend.php` - Configuración publicada (NUEVO)
+3. `config/app.php` - Locale hardcodeado a 'es'
+4. `app/Console/Commands/TestResendEmail.php` (NUEVO)
+5. `app/Console/Commands/TestResendEmailWithCompany.php` (NUEVO)
+6. `app/Notifications/QuoteSent.php` - Company name + sin Queueable
+7. `app/Notifications/PurchaseOrderCreated.php` - Company name + sin Queueable
+8. `app/Notifications/ProductionOrderSent.php` - Company name + sin Queueable
+9. `app/Notifications/CollectionAccountSent.php` - Company name + via(['mail']) + sin Queueable
+10. `app/Notifications/CustomResetPassword.php` (NUEVO) - Sin Queueable + URLs firmadas
+11. `app/Models/User.php` - sendPasswordResetNotification() override
+12. `app/Filament/Pages/Auth/PasswordReset/RequestPasswordReset.php` - request() override
+13. `lang/es/passwords.php` (NUEVO) - Traducciones
 
-**Total**: 3 archivos (1 modificado + 2 nuevos)
+**Total**: 13 archivos (8 modificados + 5 nuevos)
 
 **Detalles**: Ver sección "Sprint 35" más abajo
 
@@ -851,7 +863,7 @@ resources/
 ## 📋 SPRINT 35 - DETALLE COMPLETO (10-Ene-2026)
 
 ### 🎯 Objetivo del Sprint
-Integrar Resend como servicio de envío de emails para producción, reemplazando Mailtrap (solo para testing) y preparar el sistema para envíos reales con mejor deliverability.
+Implementar sistema completo de emails con Resend para producción, agregar nombre de empresa a todos los emails, configurar idioma español en producción, crear sistema de password reset personalizado con branding de empresa, y solucionar el problema de emails de cuentas de cobro que no se enviaban.
 
 ### 📧 1. Instalación de Resend
 
@@ -986,16 +998,295 @@ class TestResendEmail extends Command
 }
 ```
 
+### 🏢 4. Nombre de Empresa en Subject de Emails
+
+**Problema**: Los emails salían con subject genérico sin identificar la empresa emisora.
+
+**Solución**: Agregado `$companyName` a subject en 4 notificaciones.
+
+**Formato Implementado**:
+```php
+$companyName = $document->company->name ?? 'GrafiRed';
+->subject("{$companyName} - Nueva Cotización #{$document->document_number}")
+```
+
+**Archivos Modificados**:
+1. `app/Notifications/QuoteSent.php` - Línea 46
+2. `app/Notifications/PurchaseOrderCreated.php` - Línea 36
+3. `app/Notifications/ProductionOrderSent.php` - Línea 58
+4. `app/Notifications/CollectionAccountSent.php` - Línea 77
+
+**Testing**:
+```bash
+php artisan tinker
+\Illuminate\Support\Facades\Notification::route('mail', 'test@email.com')
+    ->notify(new \App\Notifications\CollectionAccountSent(1));
+```
+
+**Resultado**: Email con subject "LitoPro Demo - Nueva Cuenta de Cobro #COB-2025-0001"
+
+---
+
+### 🌐 5. Idioma Español en Producción
+
+**Problema**: Plataforma mostraba textos en inglés en producción (Railway) a pesar de estar en español en localhost.
+
+**Causa**: Variable `APP_LOCALE` no estaba siendo respetada en Railway.
+
+**Solución**: Hardcodear locale en `config/app.php`
+
+**Archivo Modificado**: `config/app.php` (líneas 71-72)
+```php
+// ANTES
+'locale' => env('APP_LOCALE', 'en'),
+'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
+
+// DESPUÉS
+'locale' => 'es', // Siempre español
+'fallback_locale' => 'es', // Siempre español como fallback
+```
+
+**Archivo Creado**: `lang/es/passwords.php` - Traducciones de password reset
+```php
+return [
+    'reset' => 'Tu contraseña ha sido restablecida.',
+    'sent' => 'Te hemos enviado el enlace para restablecer tu contraseña.',
+    'throttled' => 'Por favor espera antes de volver a intentarlo.',
+    'token' => 'Este token de restablecimiento de contraseña es inválido.',
+    'user' => "No podemos encontrar un usuario con ese correo electrónico.",
+];
+```
+
+---
+
+### 🔐 6. Password Reset Personalizado
+
+**Problema**: Emails de restablecimiento de contraseña no llegaban desde la página de Filament.
+
+**Solución Multi-Paso**:
+
+#### **6.1. Notificación Personalizada**
+
+**Archivo Creado**: `app/Notifications/CustomResetPassword.php`
+
+**Características**:
+- ❌ Sin trait `Queueable` (envío inmediato, sin cola)
+- ✅ URLs firmadas con `temporarySignedRoute()`
+- ✅ Branding de empresa en subject
+- ✅ Email personalizado con instrucciones en español
+
+**Código Clave**:
+```php
+public function via(object $notifiable): array
+{
+    return ['mail']; // Sin Queueable, sin database
+}
+
+public function toMail(object $notifiable): MailMessage
+{
+    $resetUrl = URL::temporarySignedRoute(
+        'filament.admin.auth.password-reset.reset',
+        now()->addHour(),
+        [
+            'token' => $this->token,
+            'email' => $notifiable->getEmailForPasswordReset(),
+        ]
+    );
+
+    $companyName = $notifiable->company->name ?? 'GrafiRed';
+
+    return (new MailMessage)
+        ->subject("{$companyName} - Restablecer Contraseña")
+        ->greeting("¡Hola {$notifiable->name}!")
+        ->line('Recibimos una solicitud para restablecer tu contraseña.')
+        ->action('Restablecer Contraseña', $resetUrl)
+        ->line('Si no solicitaste este cambio, puedes ignorar este mensaje.');
+}
+```
+
+#### **6.2. Override en Modelo User**
+
+**Archivo Modificado**: `app/Models/User.php` (línea 160)
+
+```php
+public function sendPasswordResetNotification($token)
+{
+    $this->notify(new CustomResetPassword($token));
+}
+```
+
+#### **6.3. Override en Página de Filament**
+
+**Archivo Modificado**: `app/Filament/Pages/Auth/PasswordReset/RequestPasswordReset.php`
+
+**Problema**: Filament usa su propio sistema para enviar el email de reset, no llama al método del User.
+
+**Solución**: Override del método `request()` para usar notificación custom.
+
+```php
+public function request(): void
+{
+    $data = $this->form->getState();
+
+    $status = Password::broker(Filament::getAuthPasswordBroker())->sendResetLink(
+        $data,
+        function (CanResetPassword $user, string $token): void {
+            $user->notify(new CustomResetPassword($token));
+        },
+    );
+
+    if ($status === Password::RESET_LINK_SENT) {
+        Notification::make()
+            ->title(__($status))
+            ->success()
+            ->send();
+        $this->form->fill();
+    } else {
+        Notification::make()
+            ->title(__($status))
+            ->danger()
+            ->send();
+    }
+}
+```
+
+**Errores Encontrados y Solucionados**:
+
+1. **Error: 404 en URL de reset**
+   - Causa: Formato de URL incorrecto
+   - Fix: Usar `temporarySignedRoute()` con parámetros correctos
+
+2. **Error: 403 "Invalid signature"**
+   - Causa: URL no firmada
+   - Fix: Usar `URL::temporarySignedRoute()` en lugar de `url()`
+
+3. **Error: Email no llega desde página de Filament**
+   - Causa: Filament usa su propio flujo
+   - Fix: Override método `request()` en `RequestPasswordReset`
+
+4. **Error: Emails en cola sin procesarse**
+   - Causa: Trait `Queueable` en notificaciones
+   - Fix: Remover trait de todas las notificaciones
+
+---
+
+### 🚫 7. Eliminación de Queueable Trait
+
+**Problema**: Emails se quedaban en cola porque no hay queue worker corriendo.
+
+**Solución**: Remover `use Queueable` de todas las notificaciones.
+
+**Archivos Modificados**:
+1. `app/Notifications/QuoteSent.php`
+2. `app/Notifications/PurchaseOrderCreated.php`
+3. `app/Notifications/ProductionOrderSent.php`
+4. `app/Notifications/CollectionAccountSent.php`
+5. `app/Notifications/CustomResetPassword.php` (nunca lo tuvo)
+
+**ANTES**:
+```php
+use Illuminate\Bus\Queueable;
+
+class QuoteSent extends Notification
+{
+    use Queueable;
+}
+```
+
+**DESPUÉS**:
+```php
+class QuoteSent extends Notification
+{
+    // Sin Queueable - envío inmediato
+}
+```
+
+---
+
+### 📧 8. Fix Email Cuentas de Cobro
+
+**Problema**: Emails de cuentas de cobro no llegaban a pesar de que el código se ejecutaba correctamente.
+
+**Síntomas**:
+- Base de datos actualizaba `email_sent_at` y `email_sent_by`
+- Validaciones pasaban correctamente
+- PDFs se generaban sin errores
+- Pero emails no llegaban a destinatario
+
+**Debugging**:
+1. Agregados logs extensivos en `toMail()`:
+```php
+\Log::info('CollectionAccountSent::toMail called');
+\Log::info('CollectionAccount loaded');
+\Log::info('PDF generated successfully');
+\Log::info('Building MailMessage');
+```
+
+2. Testing manual:
+```php
+\Illuminate\Support\Facades\Notification::route('mail', 'dasiva87@gmail.com')
+    ->notify(new \App\Notifications\CollectionAccountSent(1));
+```
+
+3. Revisión de logs: **Vacíos** - `toMail()` nunca se ejecutaba
+
+**Causa Raíz**:
+```php
+public function via(object $notifiable): array
+{
+    return ['database']; // ← PROBLEMA
+}
+```
+
+El canal estaba configurado en `['database']` desde Sprint 31 para evitar emails automáticos, pero esto previno que se enviaran emails incluso cuando se usaba `Notification::route('mail', ...)`.
+
+**Solución**:
+```php
+public function via(object $notifiable): array
+{
+    return ['mail']; // ← FIX
+}
+```
+
+**Archivo Modificado**: `app/Notifications/CollectionAccountSent.php` (línea 24)
+
+**Testing Final**:
+```bash
+php artisan tinker
+\Illuminate\Support\Facades\Notification::route('mail', 'dasiva87@gmail.com')
+    ->notify(new \App\Notifications\CollectionAccountSent(1));
+
+# Logs confirmaron:
+# [2026-01-11 03:11:22] local.INFO: CollectionAccountSent::toMail called
+# [2026-01-11 03:11:22] local.INFO: CollectionAccount loaded
+# [2026-01-11 03:11:22] local.INFO: PDF generated successfully
+# [2026-01-11 03:11:22] local.INFO: Building MailMessage
+```
+
+**Resultado**: ✅ Email llegó correctamente con PDF adjunto
+
+---
+
 ### 📦 Resumen de Archivos
 
-**Archivos Modificados (1)**:
-1. `.env` - Configuración de Resend + Mailtrap comentado
+**Archivos Modificados (8)**:
+1. `.env` - Configuración de Resend
+2. `config/app.php` - Locale hardcodeado a 'es'
+3. `app/Notifications/QuoteSent.php` - Company name + sin Queueable
+4. `app/Notifications/PurchaseOrderCreated.php` - Company name + sin Queueable
+5. `app/Notifications/ProductionOrderSent.php` - Company name + sin Queueable
+6. `app/Notifications/CollectionAccountSent.php` - Company name + via(['mail']) + sin Queueable
+7. `app/Models/User.php` - sendPasswordResetNotification() override
+8. `app/Filament/Pages/Auth/PasswordReset/RequestPasswordReset.php` - request() override
 
-**Archivos Nuevos (2)**:
-2. `config/resend.php` - Configuración de Resend
-3. `app/Console/Commands/TestResendEmail.php` - Comando de prueba
+**Archivos Nuevos (5)**:
+9. `config/resend.php` - Configuración de Resend
+10. `app/Console/Commands/TestResendEmail.php` - Comando de prueba básico
+11. `app/Console/Commands/TestResendEmailWithCompany.php` - Comando de prueba con empresa
+12. `app/Notifications/CustomResetPassword.php` - Notificación personalizada sin Queueable
+13. `lang/es/passwords.php` - Traducciones de password reset
 
-**Total**: 3 archivos (1 modificado + 2 nuevos)
+**Total**: 13 archivos (8 modificados + 5 nuevos)
 
 ### 🚀 Próximos Pasos
 

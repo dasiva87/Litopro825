@@ -4,14 +4,11 @@ namespace App\Notifications;
 
 use App\Models\Document;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class QuoteSent extends Notification
 {
-    use Queueable;
 
     public function __construct(
         public int $documentId
