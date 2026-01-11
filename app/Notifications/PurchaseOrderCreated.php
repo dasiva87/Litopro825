@@ -33,8 +33,10 @@ class PurchaseOrderCreated extends Notification
         $pdfService = new PurchaseOrderPdfService;
         $pdf = $pdfService->generatePdf($purchaseOrder);
 
+        $companyName = $purchaseOrder->company->name ?? 'GrafiRed';
+
         return (new MailMessage)
-            ->subject("Nueva Orden de Pedido #{$purchaseOrder->order_number}")
+            ->subject("{$companyName} - Nueva Orden de Pedido #{$purchaseOrder->order_number}")
             ->markdown('emails.purchase-order.created', [
                 'purchaseOrder' => $purchaseOrder,
             ])

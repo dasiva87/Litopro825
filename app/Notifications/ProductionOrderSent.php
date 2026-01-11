@@ -55,8 +55,10 @@ class ProductionOrderSent extends Notification
             ?? $productionOrder->supplier->name
             ?? 'Estimado operador';
 
+        $companyName = $productionOrder->company->name ?? 'GrafiRed';
+
         return (new MailMessage)
-            ->subject("Nueva Orden de Producción #{$productionOrder->production_number}")
+            ->subject("{$companyName} - Nueva Orden de Producción #{$productionOrder->production_number}")
             ->markdown('emails.production-order.sent', [
                 'productionOrder' => $productionOrder,
             ])

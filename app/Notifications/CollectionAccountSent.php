@@ -46,9 +46,10 @@ class CollectionAccountSent extends Notification
 
         // Obtener nombre del destinatario (usuario o empresa)
         $recipientName = $notifiable->name ?? $collectionAccount->clientCompany->name ?? 'Estimado cliente';
+        $companyName = $collectionAccount->company->name ?? 'GrafiRed';
 
         return (new MailMessage)
-            ->subject("Nueva Cuenta de Cobro #{$collectionAccount->account_number}")
+            ->subject("{$companyName} - Nueva Cuenta de Cobro #{$collectionAccount->account_number}")
             ->greeting("¡Hola {$recipientName}!")
             ->line("Se ha generado una nueva cuenta de cobro para su revisión.")
             ->line("**Número de Cuenta:** {$collectionAccount->account_number}")

@@ -43,9 +43,10 @@ class QuoteSent extends Notification
             ]);
 
         $documentTypeName = $document->documentType->name ?? 'Documento';
+        $companyName = $document->company->name ?? 'GrafiRed';
 
         return (new MailMessage)
-            ->subject("Nueva {$documentTypeName} #{$document->document_number}")
+            ->subject("{$companyName} - Nueva {$documentTypeName} #{$document->document_number}")
             ->markdown('emails.quote.sent', [
                 'document' => $document,
             ])
