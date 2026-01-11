@@ -159,6 +159,12 @@ class User extends Authenticatable
      */
     public function sendPasswordResetNotification($token)
     {
+        // Log para debug
+        \Log::info('sendPasswordResetNotification called', [
+            'email' => $this->email,
+            'token' => substr($token, 0, 10) . '...',
+        ]);
+
         $this->notify(new CustomResetPassword($token));
     }
 }

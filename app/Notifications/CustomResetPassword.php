@@ -2,14 +2,13 @@
 
 namespace App\Notifications;
 
-use Illuminate\Bus\Queueable;
+use Filament\Facades\Filament;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\URL;
 
 class CustomResetPassword extends Notification
 {
-    use Queueable;
-
     public $token;
 
     /**
@@ -35,8 +34,15 @@ class CustomResetPassword extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
-        // Usar la ruta de Filament para reset password
-        $resetUrl = url("/admin/password-reset/reset/{$this->token}?email=" . urlencode($notifiable->getEmailForPasswordReset()));
+        // Generar URL firmada correctamente usando Filament
+        $resetUrl = URL::temporarySignedRoute(
+            'filament.admin.auth.password-reset.reset',
+            now()->addHour(),
+            [
+                'token' => $this->token,
+                'email' => $notifiable->getEmailForPasswordReset(),
+            ]
+        );
 
         $companyName = $notifiable->company->name ?? 'GrafiRed';
 
