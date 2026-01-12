@@ -60,6 +60,29 @@ class CompanySettings extends Page implements HasForms, HasActions
         unset($data['avatar']);
         unset($data['banner']);
 
+        // Limpiar prefijos de redes sociales para mostrar solo el nombre de usuario
+        $socialNetworks = [
+            'facebook' => 'https://facebook.com/',
+            'instagram' => 'https://instagram.com/',
+            'twitter' => 'https://twitter.com/',
+            'linkedin' => 'https://linkedin.com/company/',
+        ];
+
+        foreach ($socialNetworks as $network => $prefix) {
+            if (!empty($data[$network]) && str_starts_with($data[$network], $prefix)) {
+                $data[$network] = str_replace($prefix, '', $data[$network]);
+            }
+        }
+
+        // Limpiar prefijo https:// del sitio web
+        if (!empty($data['website'])) {
+            if (str_starts_with($data['website'], 'https://')) {
+                $data['website'] = str_replace('https://', '', $data['website']);
+            } elseif (str_starts_with($data['website'], 'http://')) {
+                $data['website'] = str_replace('http://', '', $data['website']);
+            }
+        }
+
         $this->form->fill($data);
     }
 
@@ -101,8 +124,9 @@ class CompanySettings extends Page implements HasForms, HasActions
 
                                 TextInput::make('website')
                                     ->label('Sitio Web')
-                                    ->url()
+                                    ->helperText('Solo ingresa el dominio (ej: grafired.com)')
                                     ->prefix('https://')
+                                    ->maxLength(255)
                                     ->columnSpanFull(),
                             ])
                             ->columns(2),
@@ -178,23 +202,27 @@ class CompanySettings extends Page implements HasForms, HasActions
                             ->schema([
                                 TextInput::make('facebook')
                                     ->label('Facebook')
-                                    ->url()
-                                    ->prefix('https://facebook.com/'),
+                                    ->helperText('Solo ingresa tu nombre de usuario (ej: grafired)')
+                                    ->prefix('https://facebook.com/')
+                                    ->maxLength(255),
 
                                 TextInput::make('instagram')
                                     ->label('Instagram')
-                                    ->url()
-                                    ->prefix('https://instagram.com/'),
+                                    ->helperText('Solo ingresa tu nombre de usuario (ej: grafired)')
+                                    ->prefix('https://instagram.com/')
+                                    ->maxLength(255),
 
                                 TextInput::make('twitter')
                                     ->label('Twitter/X')
-                                    ->url()
-                                    ->prefix('https://twitter.com/'),
+                                    ->helperText('Solo ingresa tu nombre de usuario (ej: grafired)')
+                                    ->prefix('https://twitter.com/')
+                                    ->maxLength(255),
 
                                 TextInput::make('linkedin')
                                     ->label('LinkedIn')
-                                    ->url()
-                                    ->prefix('https://linkedin.com/company/'),
+                                    ->helperText('Solo ingresa el nombre de tu empresa (ej: grafired)')
+                                    ->prefix('https://linkedin.com/company/')
+                                    ->maxLength(255),
                             ])
                             ->columns(2),
 
@@ -246,6 +274,30 @@ class CompanySettings extends Page implements HasForms, HasActions
 
             if (array_key_exists('banner', $data) && is_null($data['banner'])) {
                 unset($data['banner']);
+            }
+
+            // Procesar sitio web: agregar prefijo https:// si no tiene
+            if (!empty($data['website'])) {
+                if (!str_starts_with($data['website'], 'http://') && !str_starts_with($data['website'], 'https://')) {
+                    $data['website'] = 'https://' . $data['website'];
+                }
+            }
+
+            // Procesar redes sociales: agregar prefijo si solo se ingresó el nombre de usuario
+            $socialNetworks = [
+                'facebook' => 'https://facebook.com/',
+                'instagram' => 'https://instagram.com/',
+                'twitter' => 'https://twitter.com/',
+                'linkedin' => 'https://linkedin.com/company/',
+            ];
+
+            foreach ($socialNetworks as $network => $prefix) {
+                if (!empty($data[$network])) {
+                    // Si no empieza con http:// o https://, agregar el prefijo
+                    if (!str_starts_with($data[$network], 'http://') && !str_starts_with($data[$network], 'https://')) {
+                        $data[$network] = $prefix . $data[$network];
+                    }
+                }
             }
 
             $this->company->update($data);

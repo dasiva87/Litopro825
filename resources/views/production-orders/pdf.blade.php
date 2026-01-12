@@ -191,14 +191,19 @@
     <div class="header">
         <div class="header-content">
             @php
-                $logoPath = $productionOrder->company->logo ?: $productionOrder->company->avatar;
-                $logoFullPath = $logoPath ? storage_path('app/public/' . $logoPath) : null;
+                // Usar avatar como logo (se configura en Settings → Logo/Avatar)
+                $logoUrl = $productionOrder->company->getAvatarUrl();
                 $logoBase64 = null;
-                if ($logoFullPath && file_exists($logoFullPath)) {
-                    $imageData = base64_encode(file_get_contents($logoFullPath));
-                    $imageInfo = getimagesize($logoFullPath);
-                    $mimeType = $imageInfo['mime'] ?? 'image/jpeg';
-                    $logoBase64 = 'data:' . $mimeType . ';base64,' . $imageData;
+                if ($logoUrl) {
+                    try {
+                        $imageData = base64_encode(file_get_contents($logoUrl));
+                        $finfo = new finfo(FILEINFO_MIME_TYPE);
+                        $mimeType = $finfo->buffer(base64_decode($imageData));
+                        $logoBase64 = 'data:' . $mimeType . ';base64,' . $imageData;
+                    } catch (\Exception $e) {
+                        // Si falla, no mostrar logo
+                        $logoBase64 = null;
+                    }
                 }
             @endphp
             @if($logoBase64)
@@ -322,7 +327,7 @@
                 <td class="center">{{ $index + 1 }}</td>
                 <td>
                     <strong>{{ $item->itemable->name ?? 'Item' }}</strong>
-                    @if($item->itemable && method_exists($item->itemable, 'getDescriptionAttribute'))
+                    @if($item->itemable && $item->itemable->description)
                         <br><small style="color: #666;">{{ Str::limit($item->itemable->description, 80) }}</small>
                     @endif
                 </td>

@@ -1288,29 +1288,29 @@ php artisan tinker
 
 **Total**: 13 archivos (8 modificados + 5 nuevos)
 
-### 🚀 Próximos Pasos
+### 🚀 9. Para Producción (Railway)
 
-**Para Producción**:
-1. Crear cuenta en [resend.com](https://resend.com)
-2. Verificar dominio `grafired.com` (agregar registros DNS)
-3. Obtener API Key de producción
-4. Configurar `RESEND_API_KEY` en Railway
-5. Probar envío con `php artisan resend:test`
+**Pasos a Seguir**:
+1. ✅ Resend configurado y funcionando
+2. ✅ API Key configurada en `.env` local
+3. ⏳ Configurar `RESEND_API_KEY` en Railway (pendiente)
+4. ⏳ Verificar dominio en Resend si se requiere (opcional - `app.gremio.grafired.com` ya configurado)
 
-**Registros DNS necesarios** (ejemplo):
-```
-Tipo  | Nombre             | Valor
-------|-------------------|------------------
-TXT   | _resend           | resend-verify=xxxxx
-MX    | grafired.com      | feedback-smtp.resend.com
-TXT   | grafired.com      | v=spf1 include:_spf.resend.com ~all
-TXT   | resend._domainkey | v=DKIM1; k=rsa; p=xxxxx
+**Variables de Entorno en Railway**:
+```bash
+RESEND_API_KEY=re_JgUY7uN4_NAp6zjgbmop6YeFvQa2n5PNR
+MAIL_MAILER=resend
+MAIL_FROM_ADDRESS="app@gremio.grafired.com"
+MAIL_FROM_NAME="GrafiRed"
 ```
 
-**Configuración Webhooks** (opcional):
-- URL: `https://grafired.com/resend/webhook`
-- Eventos: email.sent, email.delivered, email.bounced, email.opened
-- Secret: Configurar en `RESEND_WEBHOOK_SECRET`
+**Testing en Producción**:
+```bash
+# Conectar a Railway via SSH y ejecutar:
+php artisan tinker
+\Illuminate\Support\Facades\Notification::route('mail', 'test@email.com')
+    ->notify(new \App\Notifications\CollectionAccountSent(1));
+```
 
 ### ✅ Testing Completado
 

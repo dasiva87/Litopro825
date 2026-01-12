@@ -47,14 +47,10 @@ class CollectionAccountSent extends Notification
 
         return (new MailMessage)
             ->subject("{$companyName} - Nueva Cuenta de Cobro #{$collectionAccount->account_number}")
-            ->greeting("¡Hola {$recipientName}!")
-            ->line("Se ha generado una nueva cuenta de cobro para su revisión.")
-            ->line("**Número de Cuenta:** {$collectionAccount->account_number}")
-            ->line("**Total:** $".number_format($collectionAccount->total_amount, 2))
-            ->line("**Fecha de Emisión:** {$collectionAccount->issue_date->format('d/m/Y')}")
-            ->line("**Fecha de Vencimiento:** ".($collectionAccount->due_date ? $collectionAccount->due_date->format('d/m/Y') : 'No definida'))
-            ->action('Ver Cuenta de Cobro', url("/admin/collection-accounts/{$collectionAccount->id}"))
-            ->line('Gracias por su preferencia.')
+            ->markdown('emails.collection-account.sent', [
+                'collectionAccount' => $collectionAccount,
+                'recipientName' => $recipientName,
+            ])
             ->attachData($pdf->output(), "cuenta-cobro-{$collectionAccount->account_number}.pdf", [
                 'mime' => 'application/pdf',
             ]);

@@ -1,4 +1,4 @@
-@component('mail::message')
+@component('emails.layouts.company-mail', ['company' => $productionOrder->company])
 # Nueva Orden de Producción
 
 Estimado {{ $productionOrder->operator->name ?? $productionOrder->supplierCompany->name ?? $productionOrder->supplier->name ?? 'Operador' }},

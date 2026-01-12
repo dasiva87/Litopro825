@@ -175,3 +175,12 @@
 .fi-resource-relation-manager table {
     background-color: #e9f3ff !important;
 }
+
+/* ========================================
+   BOTONES DEL WIZARD DE REGISTRO
+   ======================================== */
+
+/* Ocultar el botón de submit grande que está fuera del wizard (solo en registro) */
+.fi-sc-wizard ~ .fi-sc-actions .fi-ac.fi-width-full {
+    display: none !important;
+}

@@ -198,7 +198,7 @@ class SimpleItem extends Model
 
     public function paper(): BelongsTo
     {
-        return $this->belongsTo(Paper::class);
+        return $this->belongsTo(Paper::class)->withoutGlobalScope(\App\Models\Scopes\TenantScope::class);
     }
 
     public function printingMachine(): BelongsTo

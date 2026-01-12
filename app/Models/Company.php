@@ -236,6 +236,12 @@ class Company extends Model
         return $this->banner ? Storage::disk('r2')->url($this->banner) : null;
     }
 
+    public function getLogoUrl(): ?string
+    {
+        // El logo para emails es el mismo que el avatar del perfil social
+        return $this->getAvatarUrl();
+    }
+
     public function getInitials(): string
     {
         return strtoupper(substr($this->name, 0, 2));

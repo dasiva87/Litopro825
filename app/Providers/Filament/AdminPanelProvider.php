@@ -43,7 +43,7 @@ class AdminPanelProvider extends PanelProvider
                 'primary' => Color::Blue,
             ])
             ->brandName('Grafired')
-            ->favicon(asset('images/favicon.jpg'))
+            ->favicon('https://pub-fd2398f0dac743f9b528801c526bafb2.r2.dev/grafired/Icono-grafired.png')
             ->brandLogo(fn () => view('components.grafired-logo'))
             ->darkModeBrandLogo(fn () => view('components.grafired-logo-dark'))
             // ->plugin(FilamentNordThemePlugin::make()) // Comentado para Railway

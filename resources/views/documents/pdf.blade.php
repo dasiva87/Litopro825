@@ -150,14 +150,19 @@
     <div class="header">
         <div class="header-content">
             @php
-                $logoPath = $document->company->logo ?: $document->company->avatar;
-                $logoFullPath = $logoPath ? storage_path('app/public/' . $logoPath) : null;
+                // Usar avatar como logo (se configura en Settings → Logo/Avatar)
+                $logoUrl = $document->company->getAvatarUrl();
                 $logoBase64 = null;
-                if ($logoFullPath && file_exists($logoFullPath)) {
-                    $imageData = base64_encode(file_get_contents($logoFullPath));
-                    $imageInfo = getimagesize($logoFullPath);
-                    $mimeType = $imageInfo['mime'] ?? 'image/jpeg';
-                    $logoBase64 = 'data:' . $mimeType . ';base64,' . $imageData;
+                if ($logoUrl) {
+                    try {
+                        $imageData = base64_encode(file_get_contents($logoUrl));
+                        $finfo = new finfo(FILEINFO_MIME_TYPE);
+                        $mimeType = $finfo->buffer(base64_decode($imageData));
+                        $logoBase64 = 'data:' . $mimeType . ';base64,' . $imageData;
+                    } catch (\Exception $e) {
+                        // Si falla, no mostrar logo
+                        $logoBase64 = null;
+                    }
                 }
             @endphp
             @if($logoBase64)

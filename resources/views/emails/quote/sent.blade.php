@@ -1,4 +1,4 @@
-@component('mail::message')
+@component('emails.layouts.company-mail', ['company' => $document->company])
 # Nueva {{ $document->documentType->name ?? 'Cotización' }}
 
 Estimado {{ $document->clientCompany->name ?? $document->contact->name ?? 'Cliente' }},

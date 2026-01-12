@@ -126,11 +126,6 @@ class ClientResource extends Resource
                     ->color('info'),
             ])
             ->headerActions([
-                Action::make('add_local_client')
-                    ->label('Nuevo Cliente Local')
-                    ->icon('heroicon-o-plus')
-                    ->color('primary')
-                    ->url(fn () => route('filament.admin.resources.contacts.create', ['type' => 'customer', 'is_local' => true])),
 
                 Action::make('search_grafired')
                     ->label('Buscar en Grafired')

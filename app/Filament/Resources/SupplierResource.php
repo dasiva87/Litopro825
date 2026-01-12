@@ -138,12 +138,7 @@ class SupplierResource extends Resource
                     ->color('info'),
             ])
             ->headerActions([
-                Action::make('add_local_supplier')
-                    ->label('Nuevo Proveedor Local')
-                    ->icon('heroicon-o-plus')
-                    ->color('primary')
-                    ->url(fn () => route('filament.admin.resources.contacts.create', ['type' => 'supplier', 'is_local' => true])),
-
+         
                 Action::make('search_grafired')
                     ->label('Buscar en Grafired')
                     ->icon('heroicon-o-magnifying-glass')
