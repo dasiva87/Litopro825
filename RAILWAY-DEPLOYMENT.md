@@ -146,8 +146,12 @@ railway login
 # Conectar al proyecto
 railway link
 
-# Limpiar todos los datos de prueba (empresas, usuarios, cotizaciones, etc.)
-railway run php artisan grafired:clean-test-data --force
+# IMPORTANTE: Usar 'railway shell' en lugar de 'railway run'
+# 'railway shell' ejecuta EN el servidor, 'railway run' ejecuta local
+railway shell
+
+# Una vez dentro del shell interactivo:
+php artisan grafired:clean-test-data --force
 ```
 
 Este comando elimina:
@@ -160,11 +164,24 @@ Este comando elimina:
 #### 5.2 Ejecutar Seeder de Producción
 
 ```bash
-# Ejecutar seeder limpio
-railway run php artisan db:seed --class=MinimalProductionSeeder --force
+# Si sigues en railway shell (del paso anterior):
+php artisan db:seed --class=MinimalProductionSeeder --force
+
+# O abrirlo de nuevo:
+railway shell
+php artisan db:seed --class=MinimalProductionSeeder --force
+
+# Verificar:
+php artisan tinker
+>>> \App\Models\Plan::count();  // Debe retornar: 4
+>>> \App\Models\Company::count();  // Debe retornar: 0
+>>> exit
+
+# Salir del shell:
+exit
 ```
 
-**Railway Dashboard**:
+**Railway Dashboard (Alternativa)**:
 
 1. Ir a **Deployments** → Último deployment exitoso
 2. Click en **View Logs**

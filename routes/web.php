@@ -146,3 +146,59 @@ Route::post('/logout', function () {
 Route::get('/logout', function () {
     return view('logout-form');
 })->name('simple.logout.form');
+
+// ============================================
+// RUTA TEMPORAL PARA LIMPIAR DATOS DE PRUEBA
+// ============================================
+// IMPORTANTE: Eliminar esta ruta después de limpiar producción
+Route::get('/admin/clean-test-data-temp', function() {
+    // Solo en producción
+    if (app()->environment() !== 'production') {
+        abort(403, 'Solo disponible en producción');
+    }
+
+    // Verificar token de seguridad
+    if (request()->query('token') !== 'GrafiRed2026Clean') {
+        abort(403, 'Token inválido');
+    }
+
+    try {
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+
+        // Eliminar datos de prueba en orden correcto
+        \App\Models\CollectionAccount::truncate();
+        DB::table('document_item_production_order')->delete();
+        \App\Models\ProductionOrder::query()->delete();
+        DB::table('purchase_order_items')->delete();
+        \App\Models\PurchaseOrder::query()->delete();
+        DB::table('document_items')->delete();
+        \App\Models\Document::query()->delete();
+        \App\Models\User::whereNotNull('company_id')->delete();
+        \App\Models\Company::query()->delete();
+
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
+        // Ejecutar seeder de producción
+        Artisan::call('db:seed', [
+            '--class' => 'MinimalProductionSeeder',
+            '--force' => true
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Datos de prueba eliminados y seeder ejecutado correctamente',
+            'data' => [
+                'companies_count' => \App\Models\Company::count(),
+                'users_count' => \App\Models\User::count(),
+                'plans_count' => \App\Models\Plan::count(),
+                'roles_count' => \Spatie\Permission\Models\Role::count(),
+            ]
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => app()->environment('local') ? $e->getTraceAsString() : null
+        ], 500);
+    }
+})->name('admin.clean-test-data-temp');
