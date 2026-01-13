@@ -14,3 +14,12 @@ cmds = [
 
 [start]
 cmd = 'php artisan migrate --force && php artisan grafired:clear-cache --production && php artisan storage:link && php artisan serve --host=0.0.0.0 --port=${PORT}'
+
+# NOTA: Para el primer deployment, ejecutar manualmente:
+# php artisan db:seed --class=MinimalProductionSeeder --force
+#
+# Esto creará:
+# - 4 planes de suscripción (Free, Básico, Profesional, Empresarial)
+# - 5 roles y permisos del sistema
+# - 1 usuario super-admin (admin@grafired.com / GrafiRed2026!)
+# - Datos geográficos, tipos de documentos, acabados

@@ -1,61 +1,197 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# GrafiRed 3.0 - SaaS para Litografías
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Sistema SaaS multi-tenant para gestión de litografías con cotizaciones, órdenes de producción, inventario y red social de proveedores.
 
-## About Laravel
+## 🚀 Despliegue Rápido para Producción
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+### 1. Requisitos del Servidor
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- PHP 8.3+
+- MySQL 8.0+
+- Composer 2.x
+- Node.js 18+ y npm
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### 2. Instalación
 
-## Learning Laravel
+```bash
+# Clonar repositorio
+git clone <repo-url> grafired
+cd grafired
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+# Instalar dependencias
+composer install --optimize-autoloader --no-dev
+npm install
+npm run build
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+# Configurar variables de entorno
+cp .env.example .env
+php artisan key:generate
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 3. Configurar Base de Datos
 
-## Laravel Sponsors
+Editar `.env` con credenciales de MySQL:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=grafired_prod
+DB_USERNAME=tu_usuario
+DB_PASSWORD=tu_password_seguro
+```
 
-### Premium Partners
+Ejecutar migraciones y seeder de producción:
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+```bash
+php artisan migrate --force
+php artisan db:seed --class=MinimalProductionSeeder
+```
 
-## Contributing
+### 4. Configurar Emails (Resend)
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+En `.env`:
 
-## Code of Conduct
+```env
+MAIL_MAILER=resend
+RESEND_API_KEY=tu_api_key_aqui
+MAIL_FROM_ADDRESS="noreply@tudominio.com"
+MAIL_FROM_NAME="GrafiRed"
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### 5. Configurar Pagos (Stripe)
 
-## Security Vulnerabilities
+En `.env`:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```env
+STRIPE_KEY=pk_live_...
+STRIPE_SECRET=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+```
 
-## License
+En Stripe Dashboard:
+1. Crear 3 productos (Básico, Profesional, Empresarial)
+2. Obtener Price IDs
+3. Actualizar en base de datos:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```sql
+UPDATE plans SET stripe_price_id = 'price_xxxxx' WHERE slug = 'basico';
+UPDATE plans SET stripe_price_id = 'price_yyyyy' WHERE slug = 'profesional';
+UPDATE plans SET stripe_price_id = 'price_zzzzz' WHERE slug = 'empresarial';
+```
+
+### 6. Optimización de Producción
+
+```bash
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+php artisan filament:cache-components
+```
+
+### 7. Primer Acceso
+
+**Super Admin Panel**: `https://tudominio.com/super-admin`
+
+Credenciales iniciales:
+- Email: `admin@grafired.com`
+- Password: `GrafiRed2026!`
+
+**⚠️ IMPORTANTE**: Cambiar contraseña inmediatamente después del primer login.
+
+## 📋 Checklist de Producción
+
+- [ ] `APP_ENV=production` en `.env`
+- [ ] `APP_DEBUG=false` en `.env`
+- [ ] `APP_URL` configurado con dominio real
+- [ ] Base de datos MySQL configurada
+- [ ] Migraciones ejecutadas
+- [ ] `MinimalProductionSeeder` ejecutado
+- [ ] Resend API key configurada
+- [ ] Stripe keys de producción configuradas
+- [ ] Stripe Price IDs actualizados en DB
+- [ ] Contraseña super-admin cambiada
+- [ ] SSL/HTTPS activo
+- [ ] Cachés optimizados
+- [ ] Backups automáticos configurados
+
+## 📚 Documentación Completa
+
+Ver `PRODUCCION-SETUP.md` para:
+- Comparativa de planes de suscripción
+- Seguridad y mejores prácticas
+- Troubleshooting
+- Monitoreo y métricas
+- Comandos útiles
+
+## 🛠️ Desarrollo Local
+
+```bash
+# Copiar .env de ejemplo
+cp .env.example .env
+
+# Configurar para desarrollo
+php artisan key:generate
+
+# Base de datos (SQLite o MySQL)
+php artisan migrate:fresh --seed
+
+# Usar FullDemoSeeder para datos de prueba
+php artisan grafired:setup-demo --fresh
+
+# Iniciar servidor
+php artisan serve --port=8000
+
+# En otra terminal: Compilar assets
+npm run dev
+```
+
+**URLs Locales**:
+- Dashboard: `http://127.0.0.1:8000/admin`
+- Super Admin: `http://127.0.0.1:8000/super-admin`
+
+## 📦 Estructura de Seeders
+
+**Para Producción**:
+```bash
+php artisan db:seed --class=MinimalProductionSeeder
+```
+Crea: 4 planes, roles/permisos, super-admin, datos geográficos, tipos de documentos.
+
+**Para Desarrollo**:
+```bash
+php artisan db:seed --class=FullDemoSeeder
+```
+Crea todo lo anterior + 2 empresas demo con datos de prueba.
+
+## 🧪 Testing
+
+```bash
+# Ejecutar tests
+php artisan test
+
+# Lint y análisis
+php artisan pint
+composer analyse
+```
+
+## 🔒 Seguridad
+
+- Laravel CSRF habilitado por defecto
+- XSS protection automática con Blade
+- SQL injection protegido con Eloquent ORM
+- Rate limiting en rutas de autenticación
+- Passwords hasheados con bcrypt (12 rounds)
+
+## 📞 Soporte
+
+Para reportar bugs o solicitar features, usar GitHub Issues del repositorio.
+
+## 📄 Licencia
+
+Propietario - GrafiRed 3.0
+
+---
+
+**Versión**: 3.0
+**Última Actualización**: Enero 2026

@@ -19,22 +19,6 @@ class SimpleItemQuickHandler implements QuickActionHandlerInterface
     public function getFormSchema(): array
     {
         return [
-            // Resumen de cálculo reactivo para creación - AL INICIO para que siempre esté visible
-            \Filament\Schemas\Components\Section::make('💰 Resumen de Precios')
-                ->description('Vista previa del cálculo en tiempo real')
-                ->schema([
-                    Components\Placeholder::make('price_preview')
-                        ->label('')
-                        ->live()
-                        ->content(function ($get) {
-                            return $this->getPricePreview($get);
-                        })
-                        ->html()
-                        ->columnSpanFull(),
-                ])
-                ->collapsed(false)
-                ->collapsible(),
-
             ...SimpleItemForm::configure(new \Filament\Schemas\Schema)->getComponents(),
 
             // Sección de Acabados
@@ -111,6 +95,21 @@ class SimpleItemQuickHandler implements QuickActionHandlerInterface
                         ->collapsible()
                         ->addActionLabel('+ Agregar Acabado'),
                 ]),
+
+            // Resumen de cálculo reactivo - AL FINAL para visualizar el total incluyendo acabados
+            \Filament\Schemas\Components\Section::make('💰 Resumen de precios')
+                ->schema([
+                    Components\Placeholder::make('price_preview')
+                        ->label('')
+                        ->live()
+                        ->content(function ($get) {
+                            return $this->getPricePreview($get);
+                        })
+                        ->html()
+                        ->columnSpanFull(),
+                ])
+                ->collapsed(false)
+                ->collapsible(),
         ];
     }
 
@@ -297,6 +296,16 @@ class SimpleItemQuickHandler implements QuickActionHandlerInterface
                     <div class="text-sm">Complete todos los campos requeridos para ver el cálculo</div>
                     <div class="text-xs mt-1">Se requiere: cantidad, tamaño, papel y máquina</div>
                 </div>';
+            }
+
+            // Validar montaje manual si está seleccionado
+            if ($tempItem->mounting_type === 'custom') {
+                if (! $tempItem->custom_paper_width || ! $tempItem->custom_paper_height) {
+                    return '<div class="p-4 bg-blue-50 rounded text-center text-blue-700">
+                        <div class="text-sm">✏️ Montaje Manual seleccionado</div>
+                        <div class="text-xs mt-1">Ingresa las dimensiones del papel personalizado en el tab "Montaje Manual"</div>
+                    </div>';
+                }
             }
 
             // Calcular usando el servicio

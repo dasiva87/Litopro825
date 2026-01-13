@@ -47,11 +47,7 @@ class ClientResource extends Resource
                 TextColumn::make('name')
                     ->label('Nombre')
                     ->searchable()
-                    ->sortable()
-                    ->description(fn ($record) => $record->isGrafired() ?
-                        '🏢 '.$record->linkedCompany?->name :
-                        '📍 Local'
-                    ),
+                    ->sortable(),
 
                 TextColumn::make('is_local')
                     ->label('Origen')

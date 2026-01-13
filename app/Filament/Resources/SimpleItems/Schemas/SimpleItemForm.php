@@ -225,22 +225,14 @@ class SimpleItemForm
                                             ->label('')
                                             ->live()
                                             ->content(function ($get) {
-                                // Debug: Siempre mostrar algo
                                 $horizontalSize = $get('horizontal_size');
                                 $verticalSize = $get('vertical_size');
                                 $machineId = $get('printing_machine_id');
                                 $quantity = $get('quantity') ?? 0;
                                 $sobrante = $get('sobrante_papel') ?? 0;
 
-                                // Debug info
-                                $debugInfo = '<div class="text-xs text-gray-500 mb-2">
-                                    Debug: Ancho=' . ($horizontalSize ?? 'null') . ',
-                                    Alto=' . ($verticalSize ?? 'null') . ',
-                                    Máquina=' . ($machineId ?? 'null') . '
-                                </div>';
-
                                 if (!$horizontalSize || !$verticalSize || !$machineId) {
-                                    return new \Illuminate\Support\HtmlString($debugInfo . '<div class="p-4 bg-gray-50 rounded text-gray-500 text-center">
+                                    return new \Illuminate\Support\HtmlString('<div class="p-4 bg-gray-50 rounded text-gray-500 text-center">
                                         📋 Complete los campos de tamaño y máquina para ver el montaje
                                     </div>');
                                 }
@@ -291,31 +283,40 @@ class SimpleItemForm
                                         );
 
                                         $sheetsInfo = '
-                                            <div class="mt-3 p-3 bg-blue-50 rounded border border-blue-200">
-                                                <div class="font-semibold text-blue-800 mb-2">📦 Pliegos Necesarios</div>
-                                                <div class="grid grid-cols-3 gap-2 text-sm">
-                                                    <div>
-                                                        <div class="text-gray-600 text-xs">Pliegos</div>
-                                                        <div class="font-bold text-blue-600">' . $sheets['sheets_needed'] . '</div>
-                                                    </div>
-                                                    <div>
-                                                        <div class="text-gray-600 text-xs">Producción</div>
-                                                        <div class="font-bold">' . number_format($sheets['total_copies_produced']) . '</div>
-                                                    </div>
-                                                    <div>
-                                                        <div class="text-gray-600 text-xs">Desperdicio</div>
-                                                        <div class="font-bold text-orange-600">' . $sheets['waste_copies'] . '</div>
+                                            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden h-full" style="display:flex;flex-direction:column;">
+                                                <div class="bg-gradient-to-r from-emerald-500 to-teal-600 px-3 py-2 text-center">
+                                                    <div style="color:white;font-weight:600;font-size:12px;margin-bottom:4px;">📦 Producción</div>
+                                                    <div style="background:rgba(255,255,255,0.2);color:white;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;display:inline-block;">
+                                                        ' . number_format($efficiency, 1) . '% aprovech.
                                                     </div>
                                                 </div>
-                                                <div class="mt-2 text-xs text-gray-600">
-                                                    Aprovechamiento: <strong>' . number_format($efficiency, 1) . '%</strong>
+                                                <div class="p-3" style="flex:1;display:flex;flex-direction:column;gap:8px;">
+                                                    <!-- Pliegos -->
+                                                    <div style="text-align:center;padding:8px;background:linear-gradient(to bottom right, #dbeafe, #bfdbfe);border:2px solid #93c5fd;border-radius:6px;flex:1;">
+                                                        <div style="font-size:22px;margin-bottom:2px;">📄</div>
+                                                        <div style="font-size:20px;font-weight:700;color:#1e40af;margin-bottom:1px;">' . $sheets['sheets_needed'] . '</div>
+                                                        <div style="font-size:10px;color:#2563eb;font-weight:600;">Pliegos</div>
+                                                    </div>
+
+                                                    <!-- Producción -->
+                                                    <div style="text-align:center;padding:8px;background:linear-gradient(to bottom right, #d1fae5, #a7f3d0);border:2px solid #6ee7b7;border-radius:6px;flex:1;">
+                                                        <div style="font-size:22px;margin-bottom:2px;">✅</div>
+                                                        <div style="font-size:20px;font-weight:700;color:#065f46;margin-bottom:1px;">' . number_format($sheets['total_copies_produced']) . '</div>
+                                                        <div style="font-size:10px;color:#059669;font-weight:600;">Producción</div>
+                                                    </div>
+
+                                                    <!-- Desperdicio -->
+                                                    <div style="text-align:center;padding:8px;background:linear-gradient(to bottom right, #fed7aa, #fbbf24);border:2px solid #fb923c;border-radius:6px;flex:1;">
+                                                        <div style="font-size:22px;margin-bottom:2px;">⚠️</div>
+                                                        <div style="font-size:20px;font-weight:700;color:#c2410c;margin-bottom:1px;">' . $sheets['waste_copies'] . '</div>
+                                                        <div style="font-size:10px;color:#ea580c;font-weight:600;">Desperdicio</div>
+                                                    </div>
                                                 </div>
                                             </div>';
                                     }
 
                                     // Generar visualización SVG
                                     $svgVisual = '';
-                                    $svgDebug = '';
                                     try {
                                         $svgVisual = self::generateMountingSVG(
                                             $best,
@@ -324,8 +325,6 @@ class SimpleItemForm
                                             (float) $horizontalSize,
                                             (float) $verticalSize
                                         );
-
-                                        $svgDebug = '<div class="text-xs text-green-600 mt-1">✅ SVG generado (' . strlen($svgVisual) . ' chars)</div>';
 
                                     } catch (\Exception $svgError) {
                                         // Fallback visual simple si falla el SVG
@@ -336,58 +335,63 @@ class SimpleItemForm
                                                 <br>
                                                 Layout: ' . $best['layout'] . ' (' . ucfirst($best['orientation']) . ')
                                             </div>
-                                            <div class="text-xs text-gray-500 mt-2">Error SVG: ' . $svgError->getMessage() . '</div>
                                         </div>';
-                                        $svgDebug = '<div class="text-xs text-red-600 mt-1">❌ Error: ' . $svgError->getMessage() . '</div>';
                                     }
 
                                     $content = '
-                                        <div class="space-y-4">
-                                            <!-- Visualización Gráfica -->
-                                            <div class="bg-gradient-to-br from-gray-50 to-gray-100 p-4 rounded-lg border border-gray-300">
-                                                <div class="text-sm font-semibold text-gray-700 mb-3 text-center">
-                                                    🎨 Vista del Pliego - Orientación ' . ucfirst($best['orientation']) . '
-                                                </div>
-                                                <div class="flex justify-center">
-                                                    ' . $svgVisual . '
-                                                </div>
-                                                <div class="mt-3 text-xs text-gray-600 text-center">
-                                                    <span class="inline-block px-2 py-1 bg-blue-100 rounded">Pliego</span>
-                                                    <span class="inline-block px-2 py-1 bg-green-100 rounded ml-2">Trabajo</span>
-                                                    <span class="inline-block px-2 py-1 bg-yellow-100 rounded ml-2">Margen</span>
-                                                </div>
-                                                ' . $svgDebug . '
-                                            </div>
-
-                                            <div class="grid grid-cols-3 gap-3">
-                                                <!-- Horizontal -->
-                                                <div class="p-3 ' . ($best['orientation'] === 'horizontal' ? 'bg-green-50 border-2 border-green-300' : 'bg-gray-50 border border-gray-200') . ' rounded">
-                                                    <div class="text-xs text-gray-600 mb-1">Horizontal</div>
-                                                    <div class="font-bold text-lg">' . $result['horizontal']['copies_per_sheet'] . '</div>
-                                                    <div class="text-xs text-gray-600">' . $result['horizontal']['layout'] . '</div>
-                                                    ' . ($best['orientation'] === 'horizontal' ? '<div class="text-xs text-green-600 mt-1">✓ Mejor</div>' : '') . '
-                                                </div>
-
-                                                <!-- Vertical -->
-                                                <div class="p-3 ' . ($best['orientation'] === 'vertical' ? 'bg-green-50 border-2 border-green-300' : 'bg-gray-50 border border-gray-200') . ' rounded">
-                                                    <div class="text-xs text-gray-600 mb-1">Vertical</div>
-                                                    <div class="font-bold text-lg">' . $result['vertical']['copies_per_sheet'] . '</div>
-                                                    <div class="text-xs text-gray-600">' . $result['vertical']['layout'] . '</div>
-                                                    ' . ($best['orientation'] === 'vertical' ? '<div class="text-xs text-green-600 mt-1">✓ Mejor</div>' : '') . '
-                                                </div>
-
-                                                <!-- Recomendado -->
-                                                <div class="p-3 bg-green-100 border-2 border-green-400 rounded">
-                                                    <div class="text-xs text-green-700 mb-1">⭐ Recomendado</div>
-                                                    <div class="font-bold text-xl text-green-700">' . $best['copies_per_sheet'] . '</div>
-                                                    <div class="text-xs text-green-600">copias/pliego</div>
+                                        <div class="grid grid-cols-3 gap-4">
+                                            <!-- Columna 1: Visualización SVG -->
+                                            <div class="col-span-1">
+                                                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden h-full">
+                                                    <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-3 py-2 text-white text-center">
+                                                        <span style="font-weight:600;font-size:12px;">🎨 ' . ucfirst($best['orientation']) . '</span>
+                                                    </div>
+                                                    <div class="p-3 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center" style="min-height:200px;">
+                                                        ' . $svgVisual . '
+                                                    </div>
                                                 </div>
                                             </div>
 
-                                            ' . $sheetsInfo . '
+                                            <!-- Columna 2: Opciones de Montaje -->
+                                            <div class="col-span-1">
+                                                <div style="display:flex;flex-direction:column;gap:12px;height:100%;">
+                                                    <!-- Horizontal -->
+                                                    <div class="relative bg-white rounded-lg border-2 ' . ($best['orientation'] === 'horizontal' ? 'border-green-400 shadow-md' : 'border-gray-200') . '" style="padding:12px;flex:1;">
+                                                        ' . ($best['orientation'] === 'horizontal' ? '<div style="position:absolute;top:-8px;right:-8px;background:#10b981;color:white;font-size:9px;font-weight:bold;padding:3px 8px;border-radius:10px;">✓ MEJOR</div>' : '') . '
+                                                        <div style="margin-bottom:6px;">
+                                                            <span style="font-size:18px;margin-right:4px;">↔️</span>
+                                                            <span style="font-size:12px;font-weight:600;color:#374151;">Horizontal</span>
+                                                        </div>
+                                                        <div style="margin-bottom:3px;">
+                                                            <span style="font-size:28px;font-weight:700;color:#111827;">' . $result['horizontal']['copies_per_sheet'] . '</span>
+                                                            <span style="font-size:11px;color:#6b7280;margin-left:3px;">copias</span>
+                                                        </div>
+                                                        <div style="display:inline-block;font-size:10px;color:#4b5563;background:#f3f4f6;padding:2px 6px;border-radius:3px;">
+                                                            ' . $result['horizontal']['layout'] . '
+                                                        </div>
+                                                    </div>
 
-                                            <div class="text-xs text-gray-500 text-center">
-                                                Máquina: ' . $machine->name . ' (' . ($machine->max_width ?? 50) . '×' . ($machine->max_height ?? 70) . 'cm) | Margen: 1cm por lado
+                                                    <!-- Vertical -->
+                                                    <div class="relative bg-white rounded-lg border-2 ' . ($best['orientation'] === 'vertical' ? 'border-green-400 shadow-md' : 'border-gray-200') . '" style="padding:12px;flex:1;">
+                                                        ' . ($best['orientation'] === 'vertical' ? '<div style="position:absolute;top:-8px;right:-8px;background:#10b981;color:white;font-size:9px;font-weight:bold;padding:3px 8px;border-radius:10px;">✓ MEJOR</div>' : '') . '
+                                                        <div style="margin-bottom:6px;">
+                                                            <span style="font-size:18px;margin-right:4px;">↕️</span>
+                                                            <span style="font-size:12px;font-weight:600;color:#374151;">Vertical</span>
+                                                        </div>
+                                                        <div style="margin-bottom:3px;">
+                                                            <span style="font-size:28px;font-weight:700;color:#111827;">' . $result['vertical']['copies_per_sheet'] . '</span>
+                                                            <span style="font-size:11px;color:#6b7280;margin-left:3px;">copias</span>
+                                                        </div>
+                                                        <div style="display:inline-block;font-size:10px;color:#4b5563;background:#f3f4f6;padding:2px 6px;border-radius:3px;">
+                                                            ' . $result['vertical']['layout'] . '
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Columna 3: Resumen de Producción -->
+                                            <div class="col-span-1">
+                                                ' . $sheetsInfo . '
                                             </div>
                                         </div>';
 
@@ -496,24 +500,34 @@ class SimpleItemForm
                                                         );
 
                                                         $sheetsInfo = '
-                                                            <div class="mt-3 p-3 bg-purple-50 rounded border border-purple-200">
-                                                                <div class="font-semibold text-purple-800 mb-2">📦 Pliegos Necesarios (Montaje Manual)</div>
-                                                                <div class="grid grid-cols-3 gap-2 text-sm">
-                                                                    <div>
-                                                                        <div class="text-gray-600 text-xs">Pliegos</div>
-                                                                        <div class="font-bold text-purple-600">' . $sheets['sheets_needed'] . '</div>
-                                                                    </div>
-                                                                    <div>
-                                                                        <div class="text-gray-600 text-xs">Producción</div>
-                                                                        <div class="font-bold">' . number_format($sheets['total_copies_produced']) . '</div>
-                                                                    </div>
-                                                                    <div>
-                                                                        <div class="text-gray-600 text-xs">Desperdicio</div>
-                                                                        <div class="font-bold text-orange-600">' . $sheets['waste_copies'] . '</div>
+                                                            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden h-full" style="display:flex;flex-direction:column;">
+                                                                <div class="bg-gradient-to-r from-purple-500 to-purple-600 px-3 py-2 text-center">
+                                                                    <div style="color:white;font-weight:600;font-size:12px;margin-bottom:4px;">📦 Producción</div>
+                                                                    <div style="background:rgba(255,255,255,0.2);color:white;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;display:inline-block;">
+                                                                        ' . number_format($efficiency, 1) . '% aprovech.
                                                                     </div>
                                                                 </div>
-                                                                <div class="mt-2 text-xs text-gray-600">
-                                                                    Aprovechamiento: <strong>' . number_format($efficiency, 1) . '%</strong>
+                                                                <div class="p-3" style="flex:1;display:flex;flex-direction:column;gap:8px;">
+                                                                    <!-- Pliegos -->
+                                                                    <div style="text-align:center;padding:8px;background:linear-gradient(to bottom right, #dbeafe, #bfdbfe);border:2px solid #93c5fd;border-radius:6px;flex:1;">
+                                                                        <div style="font-size:22px;margin-bottom:2px;">📄</div>
+                                                                        <div style="font-size:20px;font-weight:700;color:#1e40af;margin-bottom:1px;">' . $sheets['sheets_needed'] . '</div>
+                                                                        <div style="font-size:10px;color:#2563eb;font-weight:600;">Pliegos</div>
+                                                                    </div>
+
+                                                                    <!-- Producción -->
+                                                                    <div style="text-align:center;padding:8px;background:linear-gradient(to bottom right, #d1fae5, #a7f3d0);border:2px solid #6ee7b7;border-radius:6px;flex:1;">
+                                                                        <div style="font-size:22px;margin-bottom:2px;">✅</div>
+                                                                        <div style="font-size:20px;font-weight:700;color:#065f46;margin-bottom:1px;">' . number_format($sheets['total_copies_produced']) . '</div>
+                                                                        <div style="font-size:10px;color:#059669;font-weight:600;">Producción</div>
+                                                                    </div>
+
+                                                                    <!-- Desperdicio -->
+                                                                    <div style="text-align:center;padding:8px;background:linear-gradient(to bottom right, #fed7aa, #fbbf24);border:2px solid #fb923c;border-radius:6px;flex:1;">
+                                                                        <div style="font-size:22px;margin-bottom:2px;">⚠️</div>
+                                                                        <div style="font-size:20px;font-weight:700;color:#c2410c;margin-bottom:1px;">' . $sheets['waste_copies'] . '</div>
+                                                                        <div style="font-size:10px;color:#ea580c;font-weight:600;">Desperdicio</div>
+                                                                    </div>
                                                                 </div>
                                                             </div>';
                                                     }
@@ -540,51 +554,59 @@ class SimpleItemForm
                                                     }
 
                                                     $content = '
-                                                        <div class="space-y-4">
-                                                            <!-- Visualización Gráfica -->
-                                                            <div class="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-300">
-                                                                <div class="text-sm font-semibold text-purple-700 mb-3 text-center">
-                                                                    🎨 Vista del Papel Personalizado - Orientación ' . ucfirst($best['orientation']) . '
-                                                                </div>
-                                                                <div class="flex justify-center">
-                                                                    ' . $svgVisual . '
-                                                                </div>
-                                                                <div class="mt-3 text-xs text-gray-600 text-center">
-                                                                    <span class="inline-block px-2 py-1 bg-blue-100 rounded">Papel</span>
-                                                                    <span class="inline-block px-2 py-1 bg-green-100 rounded ml-2">Trabajo</span>
-                                                                    <span class="inline-block px-2 py-1 bg-yellow-100 rounded ml-2">Margen</span>
+                                                        <div class="grid grid-cols-3 gap-4">
+                                                            <!-- Columna 1: Visualización SVG -->
+                                                            <div class="col-span-1">
+                                                                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden h-full">
+                                                                    <div class="bg-gradient-to-r from-purple-500 to-purple-600 px-3 py-2 text-white text-center">
+                                                                        <span style="font-weight:600;font-size:12px;">🎨 ' . ucfirst($best['orientation']) . '</span>
+                                                                    </div>
+                                                                    <div class="p-3 bg-gradient-to-br from-purple-50 to-purple-100 flex items-center justify-center" style="min-height:200px;">
+                                                                        ' . $svgVisual . '
+                                                                    </div>
                                                                 </div>
                                                             </div>
 
-                                                            <div class="grid grid-cols-3 gap-3">
-                                                                <!-- Horizontal -->
-                                                                <div class="p-3 ' . ($best['orientation'] === 'horizontal' ? 'bg-purple-50 border-2 border-purple-300' : 'bg-gray-50 border border-gray-200') . ' rounded">
-                                                                    <div class="text-xs text-gray-600 mb-1">Horizontal</div>
-                                                                    <div class="font-bold text-lg">' . $result['horizontal']['copies_per_sheet'] . '</div>
-                                                                    <div class="text-xs text-gray-600">' . $result['horizontal']['layout'] . '</div>
-                                                                    ' . ($best['orientation'] === 'horizontal' ? '<div class="text-xs text-purple-600 mt-1">✓ Mejor</div>' : '') . '
-                                                                </div>
+                                                            <!-- Columna 2: Opciones de Montaje -->
+                                                            <div class="col-span-1">
+                                                                <div style="display:flex;flex-direction:column;gap:12px;height:100%;">
+                                                                    <!-- Horizontal -->
+                                                                    <div class="relative bg-white rounded-lg border-2 ' . ($best['orientation'] === 'horizontal' ? 'border-purple-400 shadow-md' : 'border-gray-200') . '" style="padding:12px;flex:1;">
+                                                                        ' . ($best['orientation'] === 'horizontal' ? '<div style="position:absolute;top:-8px;right:-8px;background:#a855f7;color:white;font-size:9px;font-weight:bold;padding:3px 8px;border-radius:10px;">✓ MEJOR</div>' : '') . '
+                                                                        <div style="margin-bottom:6px;">
+                                                                            <span style="font-size:18px;margin-right:4px;">↔️</span>
+                                                                            <span style="font-size:12px;font-weight:600;color:#374151;">Horizontal</span>
+                                                                        </div>
+                                                                        <div style="margin-bottom:3px;">
+                                                                            <span style="font-size:28px;font-weight:700;color:#111827;">' . $result['horizontal']['copies_per_sheet'] . '</span>
+                                                                            <span style="font-size:11px;color:#6b7280;margin-left:3px;">copias</span>
+                                                                        </div>
+                                                                        <div style="display:inline-block;font-size:10px;color:#4b5563;background:#f3f4f6;padding:2px 6px;border-radius:3px;">
+                                                                            ' . $result['horizontal']['layout'] . '
+                                                                        </div>
+                                                                    </div>
 
-                                                                <!-- Vertical -->
-                                                                <div class="p-3 ' . ($best['orientation'] === 'vertical' ? 'bg-purple-50 border-2 border-purple-300' : 'bg-gray-50 border border-gray-200') . ' rounded">
-                                                                    <div class="text-xs text-gray-600 mb-1">Vertical</div>
-                                                                    <div class="font-bold text-lg">' . $result['vertical']['copies_per_sheet'] . '</div>
-                                                                    <div class="text-xs text-gray-600">' . $result['vertical']['layout'] . '</div>
-                                                                    ' . ($best['orientation'] === 'vertical' ? '<div class="text-xs text-purple-600 mt-1">✓ Mejor</div>' : '') . '
-                                                                </div>
-
-                                                                <!-- Recomendado -->
-                                                                <div class="p-3 bg-purple-100 border-2 border-purple-400 rounded">
-                                                                    <div class="text-xs text-purple-700 mb-1">⭐ Recomendado</div>
-                                                                    <div class="font-bold text-xl text-purple-700">' . $best['copies_per_sheet'] . '</div>
-                                                                    <div class="text-xs text-purple-600">copias/pliego</div>
+                                                                    <!-- Vertical -->
+                                                                    <div class="relative bg-white rounded-lg border-2 ' . ($best['orientation'] === 'vertical' ? 'border-purple-400 shadow-md' : 'border-gray-200') . '" style="padding:12px;flex:1;">
+                                                                        ' . ($best['orientation'] === 'vertical' ? '<div style="position:absolute;top:-8px;right:-8px;background:#a855f7;color:white;font-size:9px;font-weight:bold;padding:3px 8px;border-radius:10px;">✓ MEJOR</div>' : '') . '
+                                                                        <div style="margin-bottom:6px;">
+                                                                            <span style="font-size:18px;margin-right:4px;">↕️</span>
+                                                                            <span style="font-size:12px;font-weight:600;color:#374151;">Vertical</span>
+                                                                        </div>
+                                                                        <div style="margin-bottom:3px;">
+                                                                            <span style="font-size:28px;font-weight:700;color:#111827;">' . $result['vertical']['copies_per_sheet'] . '</span>
+                                                                            <span style="font-size:11px;color:#6b7280;margin-left:3px;">copias</span>
+                                                                        </div>
+                                                                        <div style="display:inline-block;font-size:10px;color:#4b5563;background:#f3f4f6;padding:2px 6px;border-radius:3px;">
+                                                                            ' . $result['vertical']['layout'] . '
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
                                                             </div>
 
-                                                            ' . $sheetsInfo . '
-
-                                                            <div class="text-xs text-gray-500 text-center">
-                                                                Papel Personalizado: ' . $customWidth . '×' . $customHeight . 'cm | Margen: 1cm por lado
+                                                            <!-- Columna 3: Resumen de Producción -->
+                                                            <div class="col-span-1">
+                                                                ' . $sheetsInfo . '
                                                             </div>
                                                         </div>';
 
@@ -629,7 +651,7 @@ class SimpleItemForm
 
                 // Sección de costos - ancho completo pero más compacta
                 Section::make('💰 Costos y Márgenes')
-                    ->collapsed()
+                    ->collapsed(false)
                     ->schema([
                         Grid::make(4)
                             ->schema([
