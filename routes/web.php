@@ -165,15 +165,29 @@ Route::get('/admin/clean-test-data-temp', function() {
     try {
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
 
-        // Eliminar datos de prueba en orden correcto
-        \App\Models\CollectionAccount::truncate();
+        // Eliminar datos de prueba en orden correcto (por foreign keys)
+
+        // 1. Eliminar tablas pivot primero
+        DB::table('document_item_collection_account')->delete();
         DB::table('document_item_production_order')->delete();
+        DB::table('document_item_purchase_order')->delete();
+        DB::table('document_item_finishings')->delete();
+
+        // 2. Eliminar órdenes y cuentas
+        \App\Models\CollectionAccount::query()->delete();
         \App\Models\ProductionOrder::query()->delete();
-        DB::table('purchase_order_items')->delete();
         \App\Models\PurchaseOrder::query()->delete();
+
+        // 3. Eliminar items de documentos
         DB::table('document_items')->delete();
+
+        // 4. Eliminar documentos (cotizaciones)
         \App\Models\Document::query()->delete();
+
+        // 5. Eliminar usuarios de empresas
         \App\Models\User::whereNotNull('company_id')->delete();
+
+        // 6. Eliminar empresas
         \App\Models\Company::query()->delete();
 
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
