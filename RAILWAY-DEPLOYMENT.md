@@ -130,12 +130,14 @@ Railway detecta `nixpacks.toml` y ejecuta automáticamente:
 - php artisan serve
 ```
 
-### Paso 5: Ejecutar Seeder (SOLO PRIMERA VEZ)
+### Paso 5: Limpiar Datos de Prueba y Ejecutar Seeder
 
-**Railway CLI** (Recomendado):
+#### 5.1 Limpiar Datos de Prueba Existentes
+
+Si ya hiciste deployments anteriores con datos de prueba:
 
 ```bash
-# Instalar Railway CLI
+# Instalar Railway CLI (si no lo tienes)
 npm i -g @railway/cli
 
 # Login
@@ -144,7 +146,21 @@ railway login
 # Conectar al proyecto
 railway link
 
-# Ejecutar seeder
+# Limpiar todos los datos de prueba (empresas, usuarios, cotizaciones, etc.)
+railway run php artisan grafired:clean-test-data --force
+```
+
+Este comando elimina:
+- ✅ Todas las empresas de prueba
+- ✅ Todos los usuarios de empresas
+- ✅ Todas las cotizaciones y órdenes
+- ✅ Todas las cuentas de cobro
+- ⚠️ **Preserva**: Super admin, planes, roles, datos geográficos
+
+#### 5.2 Ejecutar Seeder de Producción
+
+```bash
+# Ejecutar seeder limpio
 railway run php artisan db:seed --class=MinimalProductionSeeder --force
 ```
 
