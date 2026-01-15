@@ -29,10 +29,15 @@ class CollectionAccountsTable
                     ->sortable()
                     ->copyable(),
 
-                TextColumn::make('clientCompany.name')
+                TextColumn::make('client_name')
                     ->label('Cliente')
-                    ->searchable()
-                    ->sortable()
+                    ->state(fn ($record) => $record->clientCompany?->name ?? $record->contact?->name ?? 'Sin cliente')
+                    ->searchable(query: function ($query, string $search) {
+                        $query->where(function ($q) use ($search) {
+                            $q->whereHas('clientCompany', fn ($q) => $q->where('name', 'like', "%{$search}%"))
+                              ->orWhereHas('contact', fn ($q) => $q->where('name', 'like', "%{$search}%"));
+                        });
+                    })
                     ->badge()
                     ->color('primary'),
 
@@ -203,8 +208,8 @@ class CollectionAccountsTable
                         }
 
                         // VALIDACIÓN 3: Verificar email del cliente
-                        $clientEmail = $record->clientCompany->email
-                            ?? $record->contact->email;
+                        $clientEmail = $record->clientCompany?->email
+                            ?? $record->contact?->email;
 
                         if (!$clientEmail) {
                             \Filament\Notifications\Notification::make()

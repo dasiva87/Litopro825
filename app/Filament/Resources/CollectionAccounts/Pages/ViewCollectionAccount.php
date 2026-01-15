@@ -76,8 +76,8 @@ class ViewCollectionAccount extends ViewRecord
                     }
 
                     // VALIDACIÓN 3: Verificar email del cliente
-                    $clientEmail = $this->record->clientCompany->email
-                        ?? $this->record->contact->email;
+                    $clientEmail = $this->record->clientCompany?->email
+                        ?? $this->record->contact?->email;
 
                     if (!$clientEmail) {
                         \Filament\Notifications\Notification::make()

@@ -18,40 +18,68 @@
             line-height: 1.4;
         }
         .header {
-            border-bottom: 2px solid #333;
-            padding-bottom: 15px;
-            margin-bottom: 20px;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
             page-break-inside: avoid;
-            overflow: hidden;
         }
         .header-content {
             position: relative;
-            min-height: 100px;
-            margin-bottom: 15px;
+            min-height: 90px;
         }
         .company-logo {
             position: absolute;
             left: 0;
             top: 0;
-            width: 120px;
+            width: 100px;
         }
         .company-logo img {
-            width: 120px;
+            width: 100px;
             height: auto;
-            max-height: 90px;
+            max-height: 80px;
             display: block;
         }
         .company-info {
-            text-align: right;
-            margin-left: 140px;
+            margin-left: 115px;
+            margin-right: 180px;
         }
         .company-info h1 {
-            font-size: 20pt;
-            margin: 0 0 10px 0;
+            color: #007bff;
+            font-size: 16pt;
+            margin: 0 0 5px 0;
+            font-weight: bold;
         }
         .company-info p {
-            margin: 3px 0;
-            font-size: 10pt;
+            margin: 2px 0;
+            font-size: 9pt;
+            color: #666;
+        }
+        .document-title {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 170px;
+            text-align: right;
+        }
+        .document-title .doc-type {
+            font-size: 14pt;
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 3px;
+        }
+        .document-title .doc-number {
+            font-size: 12pt;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .document-title .doc-status {
+            background: #28a745;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 9pt;
+            display: inline-block;
         }
         .document-info {
             background: #f8f9fa;
@@ -175,31 +203,28 @@
                 @if($document->company->address)
                     <p>{{ $document->company->address }}</p>
                 @endif
-                @if($document->company->phone || $document->company->email)
-                    <p>
-                        @if($document->company->phone){{ $document->company->phone }}@endif
-                        @if($document->company->phone && $document->company->email) | @endif
-                        @if($document->company->email){{ $document->company->email }}@endif
-                    </p>
+                @if($document->company->phone)
+                    <p>Tel: {{ $document->company->phone }}</p>
+                @endif
+                @if($document->company->email)
+                    <p>Email: {{ $document->company->email }}</p>
                 @endif
             </div>
+            <div class="document-title">
+                <div class="doc-type">{{ $document->documentType->name ?? 'COTIZACIÓN' }}</div>
+                <div class="doc-number">#{{ $document->document_number }}</div>
+                <div class="doc-status">{{ ucfirst($document->status) }}</div>
+            </div>
         </div>
+    </div>
 
-        <div class="document-info">
-            <h2>{{ $document->documentType->name ?? 'Documento' }}</h2>
-            <div class="info-grid">
-                <div class="info-row">
-                    <span class="info-label">Número:</span>
-                    <span class="info-value">{{ $document->document_number }}</span>
-                    <span class="info-label">Estado:</span>
-                    <span class="info-value">{{ ucfirst($document->status) }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Fecha:</span>
-                    <span class="info-value">{{ $document->date->format('d/m/Y') }}</span>
-                    <span class="info-label">Válido hasta:</span>
-                    <span class="info-value">{{ $document->valid_until ? $document->valid_until->format('d/m/Y') : 'N/A' }}</span>
-                </div>
+    <div class="document-info">
+        <div class="info-grid">
+            <div class="info-row">
+                <span class="info-label">Fecha:</span>
+                <span class="info-value">{{ $document->date->format('d/m/Y') }}</span>
+                <span class="info-label">Válido hasta:</span>
+                <span class="info-value">{{ $document->valid_until ? $document->valid_until->format('d/m/Y') : 'N/A' }}</span>
             </div>
         </div>
     </div>
@@ -228,11 +253,10 @@
     <table class="items-table">
         <thead>
             <tr>
-                <th style="width: 35%;">Descripción</th>
-                <th style="width: 25%;">Detalles</th>
-                <th style="width: 12%;">Cantidad</th>
-                <th style="width: 14%;">Precio Unitario</th>
-                <th style="width: 14%;">Total</th>
+                <th style="width: 50%;">Descripción</th>
+                <th style="width: 15%;">Cantidad</th>
+                <th style="width: 17%;">Precio Unitario</th>
+                <th style="width: 18%;">Total</th>
             </tr>
         </thead>
         <tbody>
@@ -266,37 +290,6 @@
             @endphp
             <tr>
                 <td>{{ $item->description }}</td>
-                <td class="item-details">
-                    @if($item->itemable_type === 'App\\Models\\SimpleItem' && $item->itemable)
-                        {{ $item->itemable->horizontal_size }}×{{ $item->itemable->vertical_size }}cm<br>
-                        Tintas: {{ $item->itemable->ink_front_count }}+{{ $item->itemable->ink_back_count }}
-                        @if($item->itemable->paper)
-                            <br>{{ $item->itemable->paper->name }} {{ $item->itemable->paper->weight }}g
-                        @endif
-                    @elseif($item->itemable_type === 'App\\Models\\TalonarioItem' && $item->itemable)
-                        Talonario {{ $item->itemable->prefijo ? $item->itemable->prefijo . '-' : '' }}{{ str_pad($item->itemable->numero_inicial, 3, '0', STR_PAD_LEFT) }} al {{ str_pad($item->itemable->numero_final, 3, '0', STR_PAD_LEFT) }}<br>
-                        {{ $item->itemable->numeros_por_talonario }} números por talonario<br>
-                        {{ $item->itemable->ancho }}×{{ $item->itemable->alto }}cm
-                    @elseif($item->itemable_type === 'App\\Models\\MagazineItem' && $item->itemable)
-                        Revista {{ $item->itemable->closed_width }}×{{ $item->itemable->closed_height }}cm cerrada<br>
-                        Encuadernación: {{ ucfirst($item->itemable->binding_type ?? 'No definida') }}
-                    @elseif($item->itemable_type === 'App\\Models\\DigitalItem' && $item->itemable)
-                        Servicio digital {{ ucfirst($item->itemable->pricing_type ?? 'unit') }}<br>
-                        @if($item->itemable->pricing_type === 'size' && $item->itemable->width && $item->itemable->height)
-                            {{ $item->itemable->width }}×{{ $item->itemable->height }}cm
-                        @endif
-                    @elseif($item->itemable_type === 'App\\Models\\CustomItem' && $item->itemable)
-                        Item personalizado
-                        @if($item->itemable->notes)
-                            <br>{{ $item->itemable->notes }}
-                        @endif
-                    @elseif($item->itemable_type === 'App\\Models\\Product' && $item->itemable)
-                        Producto inventario<br>
-                        Código: {{ $item->itemable->code }}
-                    @else
-                        Item estándar
-                    @endif
-                </td>
                 <td class="center">{{ number_format($item->quantity, 0, ',', '.') }}</td>
                 <td class="number">${{ number_format($unitPrice, 2, ',', '.') }}</td>
                 <td class="number">${{ number_format($totalPrice, 2, ',', '.') }}</td>

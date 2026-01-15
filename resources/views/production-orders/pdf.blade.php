@@ -18,41 +18,66 @@
             line-height: 1.4;
         }
         .header {
-            border-bottom: 2px solid #333;
-            padding-bottom: 15px;
-            margin-bottom: 20px;
+            border-bottom: 2px solid #dc2626;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
             page-break-inside: avoid;
-            overflow: hidden;
         }
         .header-content {
             position: relative;
-            min-height: 100px;
-            margin-bottom: 15px;
+            min-height: 90px;
         }
         .company-logo {
             position: absolute;
             left: 0;
             top: 0;
-            width: 120px;
+            width: 100px;
         }
         .company-logo img {
-            width: 120px;
+            width: 100px;
             height: auto;
-            max-height: 90px;
+            max-height: 80px;
             display: block;
         }
         .company-info {
-            text-align: right;
-            margin-left: 140px;
+            margin-left: 115px;
+            margin-right: 200px;
         }
         .company-info h1 {
-            font-size: 20pt;
-            margin: 0 0 10px 0;
             color: #dc2626;
+            font-size: 16pt;
+            margin: 0 0 5px 0;
+            font-weight: bold;
         }
         .company-info p {
-            margin: 3px 0;
-            font-size: 10pt;
+            margin: 2px 0;
+            font-size: 9pt;
+            color: #666;
+        }
+        .document-title {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 190px;
+            text-align: right;
+        }
+        .document-title .doc-type {
+            font-size: 13pt;
+            font-weight: bold;
+            color: #dc2626;
+            margin-bottom: 3px;
+        }
+        .document-title .doc-number {
+            font-size: 12pt;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .document-title .doc-status {
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 9pt;
+            display: inline-block;
         }
         .document-info {
             background: #fef2f2;
@@ -214,36 +239,31 @@
             <div class="company-info">
                 <h1>{{ $productionOrder->company->name }}</h1>
                 @if($productionOrder->company->tax_id)
-                    <p><strong>NIT:</strong> {{ $productionOrder->company->tax_id }}</p>
+                    <p>NIT: {{ $productionOrder->company->tax_id }}</p>
                 @endif
                 @if($productionOrder->company->address)
                     <p>{{ $productionOrder->company->address }}</p>
                 @endif
-                @if($productionOrder->company->city || $productionOrder->company->state)
-                    <p>{{ $productionOrder->company->city }}@if($productionOrder->company->city && $productionOrder->company->state), @endif{{ $productionOrder->company->state }}</p>
-                @endif
                 @if($productionOrder->company->phone)
-                    <p><strong>Tel:</strong> {{ $productionOrder->company->phone }}</p>
+                    <p>Tel: {{ $productionOrder->company->phone }}</p>
                 @endif
                 @if($productionOrder->company->email)
-                    <p><strong>Email:</strong> {{ $productionOrder->company->email }}</p>
+                    <p>Email: {{ $productionOrder->company->email }}</p>
                 @endif
+            </div>
+            <div class="document-title">
+                <div class="doc-type">ORDEN DE PRODUCCIÓN</div>
+                <div class="doc-number">#{{ $productionOrder->production_number }}</div>
+                <span class="doc-status status-badge status-{{ strtolower(str_replace('_', '-', $productionOrder->status->value)) }}">
+                    {{ $productionOrder->status->getLabel() }}
+                </span>
             </div>
         </div>
     </div>
 
     <!-- Información del documento -->
     <div class="document-info">
-        <h2>ORDEN DE PRODUCCIÓN #{{ $productionOrder->production_number }}</h2>
         <div class="info-grid">
-            <div class="info-row">
-                <div class="info-label">Estado:</div>
-                <div class="info-value">
-                    <span class="status-badge status-{{ strtolower(str_replace('_', '-', $productionOrder->status->value)) }}">
-                        {{ $productionOrder->status->getLabel() }}
-                    </span>
-                </div>
-            </div>
             @if($productionOrder->scheduled_date)
             <div class="info-row">
                 <div class="info-label">Fecha Programada:</div>

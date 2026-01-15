@@ -18,52 +18,72 @@
             line-height: 1.4;
         }
         .header {
-            border-bottom: 2px solid #333;
-            padding-bottom: 15px;
-            margin-bottom: 20px;
+            border-bottom: 2px solid #1e40af;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
             page-break-inside: avoid;
-            overflow: hidden;
         }
         .header-content {
             position: relative;
-            min-height: 100px;
-            margin-bottom: 15px;
+            min-height: 90px;
         }
         .company-logo {
             position: absolute;
             left: 0;
             top: 0;
-            width: 120px;
+            width: 100px;
         }
         .company-logo img {
-            width: 120px;
+            width: 100px;
             height: auto;
-            max-height: 90px;
+            max-height: 80px;
             display: block;
         }
         .company-info {
-            text-align: right;
-            margin-left: 140px;
+            margin-left: 115px;
+            margin-right: 180px;
         }
         .company-info h1 {
-            font-size: 20pt;
-            margin: 0 0 10px 0;
             color: #1e40af;
+            font-size: 16pt;
+            margin: 0 0 5px 0;
+            font-weight: bold;
         }
         .company-info p {
-            margin: 3px 0;
-            font-size: 10pt;
+            margin: 2px 0;
+            font-size: 9pt;
+            color: #666;
+        }
+        .document-title {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 170px;
+            text-align: right;
+        }
+        .document-title .doc-type {
+            font-size: 14pt;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 3px;
+        }
+        .document-title .doc-number {
+            font-size: 12pt;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .document-title .doc-status {
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 9pt;
+            display: inline-block;
         }
         .document-info {
             background: #f8f9fa;
             padding: 8px;
             border: 1px solid #ddd;
             margin-bottom: 10px;
-        }
-        .document-info h2 {
-            font-size: 14pt;
-            margin: 0 0 5px 0;
-            color: #1e40af;
         }
         .info-grid {
             display: table;
@@ -199,33 +219,29 @@
             @endif
             <div class="company-info">
                 <h1>{{ $collectionAccount->company->name }}</h1>
-                @if($collectionAccount->company->email)
-                    <p><strong>Email:</strong> {{ $collectionAccount->company->email }}</p>
+                @if($collectionAccount->company->address)
+                    <p>{{ $collectionAccount->company->address }}</p>
                 @endif
                 @if($collectionAccount->company->phone)
-                    <p><strong>Teléfono:</strong> {{ $collectionAccount->company->phone }}</p>
+                    <p>Tel: {{ $collectionAccount->company->phone }}</p>
                 @endif
-                @if($collectionAccount->company->address)
-                    <p><strong>Dirección:</strong> {{ $collectionAccount->company->address }}</p>
+                @if($collectionAccount->company->email)
+                    <p>Email: {{ $collectionAccount->company->email }}</p>
                 @endif
+            </div>
+            <div class="document-title">
+                <div class="doc-type">CUENTA DE COBRO</div>
+                <div class="doc-number">#{{ $collectionAccount->account_number }}</div>
+                <span class="doc-status status-badge status-{{ $collectionAccount->status->value }}">
+                    {{ $collectionAccount->status->getLabel() }}
+                </span>
             </div>
         </div>
     </div>
 
     <!-- Información del documento -->
     <div class="document-info">
-        <h2>CUENTA DE COBRO</h2>
         <div class="info-grid">
-            <div class="info-row">
-                <span class="info-label">Número:</span>
-                <span class="info-value">{{ $collectionAccount->account_number }}</span>
-                <span class="info-label">Estado:</span>
-                <span class="info-value">
-                    <span class="status-badge status-{{ $collectionAccount->status->value }}">
-                        {{ $collectionAccount->status->getLabel() }}
-                    </span>
-                </span>
-            </div>
             <div class="info-row">
                 <span class="info-label">Fecha Emisión:</span>
                 <span class="info-value">{{ $collectionAccount->issue_date->format('d/m/Y') }}</span>
@@ -249,15 +265,15 @@
         <div class="info-grid">
             <div class="info-row">
                 <span class="info-label">Nombre:</span>
-                <span class="info-value"><strong>{{ $collectionAccount->clientCompany->name }}</strong></span>
+                <span class="info-value"><strong>{{ $collectionAccount->clientCompany?->name ?? $collectionAccount->contact?->name ?? 'Sin cliente' }}</strong></span>
                 <span class="info-label">Teléfono:</span>
-                <span class="info-value">{{ $collectionAccount->clientCompany->phone ?? 'N/A' }}</span>
+                <span class="info-value">{{ $collectionAccount->clientCompany?->phone ?? $collectionAccount->contact?->phone ?? 'N/A' }}</span>
             </div>
             <div class="info-row">
                 <span class="info-label">Email:</span>
-                <span class="info-value">{{ $collectionAccount->clientCompany->email ?? 'N/A' }}</span>
+                <span class="info-value">{{ $collectionAccount->clientCompany?->email ?? $collectionAccount->contact?->email ?? 'N/A' }}</span>
                 <span class="info-label">Dirección:</span>
-                <span class="info-value">{{ $collectionAccount->clientCompany->address ?? 'N/A' }}</span>
+                <span class="info-value">{{ $collectionAccount->clientCompany?->address ?? $collectionAccount->contact?->address ?? 'N/A' }}</span>
             </div>
         </div>
     </div>
