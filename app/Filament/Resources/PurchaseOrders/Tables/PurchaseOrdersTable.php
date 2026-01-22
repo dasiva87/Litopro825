@@ -291,6 +291,7 @@ class PurchaseOrdersTable
                         'supplierCompany',
                         'supplier',
                         'createdBy',
+                        'emailSentBy',
                     ]);
             })
             ->defaultSort('created_at', 'desc');

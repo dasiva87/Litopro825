@@ -121,28 +121,50 @@ class ViewProductionOrder extends ViewRecord
                 ->icon('heroicon-o-play')
                 ->color('success')
                 ->form([
-                    Components\Select::make('supplier_id')
-                        ->label('Proveedor')
-                        ->relationship(
-                            name: 'supplier',
-                            titleAttribute: 'name',
-                            modifyQueryUsing: fn ($query) => $query
-                                ->where('company_id', auth()->user()->company_id)
-                                ->whereIn('type', ['supplier', 'both'])
-                        )
-                        ->required(),
                     Components\Select::make('operator_user_id')
-                        ->label('Operador')
+                        ->label('Operador que realizará la producción')
                         ->relationship(
                             name: 'operator',
                             titleAttribute: 'name',
-                            modifyQueryUsing: fn ($query) => $query->where('company_id', auth()->user()->company_id)
+                            modifyQueryUsing: fn ($query) => $query
+                                ->where('company_id', auth()->user()->company_id)
+                                ->where('is_active', true)
                         )
+                        ->searchable()
+                        ->preload()
                         ->required(),
                 ])
-                ->visible(fn ($record) => $record->status === ProductionStatus::SENT)
+                // Solo visible para órdenes propias (company_id = empresa logueada) sin proveedor externo
+                ->visible(function ($record) {
+                    $userCompanyId = auth()->user()->company_id;
+
+                    // Solo órdenes de MI empresa (no órdenes que me enviaron)
+                    if ($record->company_id !== $userCompanyId) {
+                        return false;
+                    }
+
+                    // Verificar estado
+                    if (!in_array($record->status, [ProductionStatus::DRAFT, ProductionStatus::SENT])) {
+                        return false;
+                    }
+
+                    // Si tiene supplier_company_id es para proveedor externo
+                    if (!is_null($record->supplier_company_id)) {
+                        return false;
+                    }
+
+                    // Si tiene supplier_id, verificar que sea un contacto de MI empresa (proveedor interno)
+                    if (!is_null($record->supplier_id) && $record->supplier) {
+                        return $record->supplier->company_id === $userCompanyId;
+                    }
+
+                    // Sin proveedor = producción interna
+                    return true;
+                })
                 ->action(function ($record, array $data) {
-                    $record->update($data);
+                    $record->update([
+                        'operator_user_id' => $data['operator_user_id'],
+                    ]);
                     if ($record->changeStatus(ProductionStatus::IN_PROGRESS)) {
                         Notification::make()->success()->title('Producción Iniciada')->send();
                     }

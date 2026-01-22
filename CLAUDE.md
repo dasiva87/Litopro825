@@ -39,6 +39,54 @@ app/Filament/Resources/[Entity]/
 
 ## PROGRESO RECIENTE
 
+### ✅ Sesión Completada (22-Ene-2026)
+**SPRINT 36: Optimización de Rendimiento + Fix "Iniciar Producción"**
+
+#### Resumen Ejecutivo
+- **Prueba de estrés k6**: 885ms promedio inicial → 746ms después de optimizaciones
+- **Eager Loading**: Agregado a 4 tablas Filament para evitar N+1 queries
+- **13 índices compuestos**: Migración para optimizar consultas frecuentes
+- **Queue workers**: 4 notificaciones implementan `ShouldQueue`
+- **Fix Iniciar Producción**: Botón solo visible para órdenes internas propias
+
+**Archivos Modificados (14)**:
+
+**Tests de Estrés (2 nuevos)**:
+1. `tests/stress/basic-load-test.js` - k6 script con ramping VUs
+2. `tests/stress/authenticated-flow-test.js` - Flujo autenticado
+
+**Tablas Filament - Eager Loading (4)**:
+3. `app/Filament/Resources/Documents/Tables/DocumentsTable.php` - `modifyQueryUsing()` con contact, documentType, clientCompany, items.itemable, emailSentBy
+4. `app/Filament/Resources/SimpleItems/Tables/SimpleItemsTable.php` - `modifyQueryUsing()` con paper, printingMachine, company, finishings
+5. `app/Filament/Resources/PurchaseOrders/Tables/PurchaseOrdersTable.php` - Agregado emailSentBy
+6. `app/Filament/Resources/CollectionAccounts/Tables/CollectionAccountsTable.php` - `modifyQueryUsing()` con clientCompany, contact, createdBy, emailSentBy, documentItems.itemable
+
+**Modelo Document (1)**:
+7. `app/Models/Document.php` - `getAvailableItemsForOrder()` con `morphWith()` para polymorphic relations
+
+**Migraciones (1 nuevo)**:
+8. `database/migrations/2026_01_21_230000_add_performance_indexes.php` - 13 índices compuestos
+
+**Notificaciones - ShouldQueue (4)**:
+9. `app/Notifications/QuoteSent.php` - `implements ShouldQueue`, `onQueue('emails')`
+10. `app/Notifications/PurchaseOrderCreated.php` - `implements ShouldQueue`, `onQueue('emails')`
+11. `app/Notifications/CollectionAccountSent.php` - `implements ShouldQueue`, `onQueue('emails')`
+12. `app/Notifications/ProductionOrderSent.php` - `implements ShouldQueue`, `onQueue('emails')`
+
+**Production Orders - Fix Iniciar Producción (2)**:
+13. `app/Filament/Resources/ProductionOrders/Pages/ViewProductionOrder.php` - Visibilidad corregida
+14. `app/Filament/Resources/ProductionOrders/Pages/EditProductionOrder.php` - Visibilidad corregida
+
+**Configuración (2)**:
+15. `supervisor.conf` (NUEVO) - Config para queue workers
+16. `public/.htaccess` - Gzip compression + cache headers
+
+**Total**: 16 archivos (13 modificados + 3 nuevos)
+
+**Detalles**: Ver sección "Sprint 36" más abajo
+
+---
+
 ### ✅ Sesión Completada (10-Ene-2026)
 **SPRINT 35: Integración Completa de Resend + Password Reset + Fix Email Cuentas de Cobro**
 
@@ -652,31 +700,32 @@ enum [Status]: string implements HasColor, HasIcon, HasLabel
 
 ## 🎯 PRÓXIMA TAREA PRIORITARIA
 
-**Opción A - Órdenes de Producción - Envío Manual Email** (RECOMENDADO):
-1. Verificar si existe `email_sent_at`, `email_sent_by` en tabla `production_orders`
-2. Verificar notificación `ProductionOrderSent` (crear si no existe)
-3. Agregar acción de envío manual en `ViewProductionOrder.php`
-4. Agregar acción en tabla si no existe
+**Opción A - Instalar Redis** (RECOMENDADO):
+1. `sudo apt install redis-server php8.3-redis`
+2. Configurar `.env`: CACHE_STORE=redis, SESSION_DRIVER=redis, QUEUE_CONNECTION=redis
+3. Iniciar queue worker: `php artisan queue:work redis --queue=emails,pdfs`
+4. Verificar mejora de rendimiento con k6
 
-**Opción B - Replicar Patrón de Vista Limpia**:
-1. Aplicar layout 2 columnas a Production Orders
-2. Eliminar títulos de secciones
-3. Verificar que fondo azul de items se aplique
+**Opción B - Optimización de Assets**:
+1. Convertir logo a SVG (3KB vs 15KB)
+2. Optimizar favicon a .ico (32x32)
+3. Configurar headers de caché en nginx/apache
+4. Habilitar gzip para CSS/JS
 
-**Opción C - Optimizaciones**:
-1. Remover placeholder de debug de `ProductQuickHandler`
-2. Dashboard de producción con widgets
-3. Mejoras en sistema Grafired (búsqueda, filtros)
+**Opción C - Dashboard de Producción**:
+1. Crear widgets de resumen de órdenes
+2. Gráficos de eficiencia
+3. Alertas de órdenes atrasadas
 
 ---
 
 ## COMANDO PARA EMPEZAR
 
 ```bash
-# Iniciar GrafiRed 3.0 - SPRINT 31 COMPLETADO
-cd /home/dasiva/Descargas/grafired825 && php artisan serve --port=8000
+# Iniciar GrafiRed 3.0 - SPRINT 36 COMPLETADO
+cd /home/dasiva/Descargas/litopro825 && php artisan serve --port=8000
 
-echo "✅ SPRINT 31 COMPLETADO (31-Dic-2025) - UX Mejorada"
+echo "✅ SPRINT 36 COMPLETADO (22-Ene-2026) - Optimización de Rendimiento"
 echo ""
 echo "📍 URLs de Testing:"
 echo "   🏠 Dashboard: http://127.0.0.1:8000/admin"
@@ -687,21 +736,22 @@ echo "   🏭 Órdenes Producción: http://127.0.0.1:8000/admin/production-order
 echo ""
 echo "⚠️  IMPORTANTE: Usar http://127.0.0.1:8000 (NO localhost)"
 echo ""
-echo "🎉 SPRINT 31 - MEJORAS COMPLETADAS:"
-echo "   • ✅ Vistas sin títulos (DocumentInfolist)"
-echo "   • ✅ Layout 2 columnas (mejor uso del espacio)"
-echo "   • ✅ Fondo azul #e9f3ff en tabla de items"
-echo "   • ✅ Fix notificaciones email (PurchaseOrder + CollectionAccount)"
-echo "   • ✅ ActionGroup en cuentas de cobro (menú 3 puntos)"
+echo "🎉 SPRINT 36 - MEJORAS COMPLETADAS:"
+echo "   • ✅ Prueba de estrés k6 (885ms → 746ms)"
+echo "   • ✅ Eager Loading en 4 tablas Filament"
+echo "   • ✅ 13 índices compuestos en BD"
+echo "   • ✅ Queue workers para emails (ShouldQueue)"
+echo "   • ✅ Fix 'Iniciar Producción' solo en órdenes internas"
 echo ""
-echo "📋 PATRONES APLICADOS:"
-echo "   1. Infolist 2 columnas: Info General (2 cols) + Fechas/Cliente (1 col c/u)"
-echo "   2. Notificaciones: via() = ['database'] para evitar emails automáticos"
-echo "   3. ActionGroup: Todas las acciones en menú desplegable"
+echo "📋 OPTIMIZACIONES APLICADAS:"
+echo "   1. modifyQueryUsing() con with() para evitar N+1"
+echo "   2. morphWith() para relaciones polymorphic"
+echo "   3. ShouldQueue + onQueue('emails') en notificaciones"
+echo "   4. Visibilidad basada en company_id del usuario"
 echo ""
 echo "🎯 PRÓXIMA TAREA:"
-echo "   Opción A: Implementar envío manual en Production Orders"
-echo "   Opción B: Replicar patrón de vista limpia a otros módulos"
+echo "   Opción A: Instalar Redis para mejor cache/queue"
+echo "   Opción B: Optimización de assets (SVG, favicon)"
 echo "   Opción C: Dashboard de producción con widgets"
 ```
 
@@ -789,6 +839,11 @@ use Filament\Actions\ActionGroup; // Import correcto
 
 ## Historial de Sprints (Resumen)
 
+- **SPRINT 36** (22-Ene): Optimización de Rendimiento + Fix "Iniciar Producción"
+- **SPRINT 35** (10-Ene): Resend + Password Reset + Fix Email Cuentas de Cobro
+- **SPRINT 34** (06-Ene): Margen Configurable + Fix Railway Billing Loop
+- **SPRINT 33** (06-Ene): Refactorización Terminología PLIEGO vs HOJA
+- **SPRINT 32** (04-Ene): Sistema de Estados Unificado + Activity Logs
 - **SPRINT 31** (31-Dic): UX Mejorada - Vistas Limpias + Fix Notificaciones
 - **SPRINT 30** (30-Dic): Consolidación Stock + Gestión Solicitudes
 - **SPRINT 29** (30-Dic): Sistema Notificaciones + Logos PDFs
@@ -1605,6 +1660,266 @@ return [
 
 ---
 
-**Última Actualización**: 06 de Enero 2026, 22:00 COT
-**Versión**: 3.0.34
+## 📋 SPRINT 36 - DETALLE COMPLETO (22-Ene-2026)
+
+### 🎯 Objetivo del Sprint
+1. Realizar pruebas de estrés con k6 para identificar cuellos de botella
+2. Implementar optimizaciones de rendimiento en 4 fases
+3. Corregir visibilidad del botón "Iniciar Producción" en órdenes de producción
+
+### 📊 1. Pruebas de Estrés con k6
+
+**Instalación**:
+```bash
+sudo snap install k6
+```
+
+**Resultados Iniciales (100 usuarios)**:
+- **Tiempo promedio**: 885ms (objetivo: <200ms)
+- **Tasa de errores**: 33%
+- **p95**: 2,237ms (muy alto)
+
+**Resultados Post-Optimización**:
+- **Tiempo promedio**: 746ms (mejora 16%)
+- **Más requests procesados**
+- **Menor tasa de errores**
+
+**Scripts Creados**:
+```
+tests/stress/
+├── basic-load-test.js          # Test con ramping VUs hasta 100
+└── authenticated-flow-test.js  # Flujo autenticado
+```
+
+### 🔧 2. FASE 1 - Optimización de Queries
+
+#### **2.1 Eager Loading en Tablas Filament**
+
+**Patrón Aplicado**:
+```php
+use Illuminate\Database\Eloquent\Builder;
+
+public static function table(Table $table): Table
+{
+    return $table
+        ->modifyQueryUsing(fn (Builder $query) => $query->with([
+            'contact',
+            'documentType',
+            'clientCompany',
+            'items.itemable',
+            'emailSentBy',
+        ]))
+        // resto de la tabla...
+}
+```
+
+**Tablas Optimizadas**:
+| Archivo | Relaciones Cargadas |
+|---------|---------------------|
+| `DocumentsTable.php` | contact, documentType, clientCompany, items.itemable, emailSentBy |
+| `SimpleItemsTable.php` | paper, printingMachine, company, finishings |
+| `PurchaseOrdersTable.php` | emailSentBy (agregado a existing) |
+| `CollectionAccountsTable.php` | clientCompany, contact, createdBy, emailSentBy, documentItems.itemable |
+
+#### **2.2 Optimización de Modelo Document**
+
+**Método**: `getAvailableItemsForOrder()`
+
+```php
+public function getAvailableItemsForOrder()
+{
+    return $this->items()
+        ->whereIn('order_status', ['available', 'ordered'])
+        ->with([
+            'itemable' => function ($morphTo) {
+                $morphTo->morphWith([
+                    'App\Models\SimpleItem' => ['paper.company', 'printingMachine', 'finishings', 'company'],
+                    'App\Models\MagazineItem' => ['pages.simpleItem.paper.company', 'company'],
+                    'App\Models\TalonarioItem' => ['sheets.simpleItem.paper.company', 'company'],
+                    'App\Models\Product' => ['company'],
+                    'App\Models\DigitalItem' => ['company', 'finishings'],
+                    'App\Models\CustomItem' => ['company'],
+                ]);
+            },
+        ])
+        ->get();
+}
+```
+
+#### **2.3 Índices de Base de Datos**
+
+**Migración**: `2026_01_21_230000_add_performance_indexes.php`
+
+**13 Índices Compuestos**:
+```php
+// documents
+$table->index(['company_id', 'status']);
+$table->index(['company_id', 'document_type_id']);
+
+// purchase_orders
+$table->index(['company_id', 'status']);
+$table->index(['company_id', 'supplier_company_id']);
+
+// collection_accounts
+$table->index(['company_id', 'status']);
+$table->index(['client_company_id', 'status']);
+
+// simple_items
+$table->index(['company_id', 'paper_id']);
+
+// document_items
+$table->index(['document_id', 'itemable_type', 'itemable_id']);
+$table->index(['order_status', 'company_id']);
+
+// production_orders
+$table->index(['company_id', 'status']);
+$table->index(['company_id', 'supplier_company_id']);
+```
+
+### 📧 3. FASE 3 - Queue Workers
+
+**Configuración**: Las notificaciones ahora implementan `ShouldQueue`
+
+**Patrón Aplicado**:
+```php
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+
+class QuoteSent extends Notification implements ShouldQueue
+{
+    use Queueable;
+
+    public int $tries = 3;
+    public int $backoff = 30;
+
+    public function __construct(public int $documentId)
+    {
+        $this->onQueue('emails');
+    }
+}
+```
+
+**Archivos Modificados**:
+1. `QuoteSent.php`
+2. `PurchaseOrderCreated.php`
+3. `CollectionAccountSent.php`
+4. `ProductionOrderSent.php`
+
+**Supervisor Config** (`supervisor.conf`):
+```ini
+[program:grafired-worker]
+process_name=%(program_name)s_%(process_num)02d
+command=php /path/to/artisan queue:work redis --queue=emails,pdfs --sleep=3 --tries=3
+autostart=true
+autorestart=true
+numprocs=2
+```
+
+### 🔒 4. Fix "Iniciar Producción"
+
+#### **Problema**
+El botón "Iniciar Producción" aparecía en:
+- ❌ Órdenes enviadas a proveedores externos
+- ❌ Órdenes recibidas de otras empresas
+
+#### **Reglas de Negocio**
+El botón solo debe aparecer cuando:
+1. ✅ La orden pertenece a MI empresa (`company_id === $userCompanyId`)
+2. ✅ Estado es DRAFT o SENT
+3. ✅ NO tiene proveedor externo (`supplier_company_id` es null)
+4. ✅ Si tiene proveedor interno, debe ser contacto de MI empresa
+
+#### **Solución Implementada**
+
+```php
+Action::make('start_production')
+    ->label('Iniciar Producción')
+    ->icon('heroicon-o-play')
+    ->color('success')
+    ->form([
+        Components\Select::make('operator_user_id')
+            ->label('Operador que realizará la producción')
+            ->relationship(
+                name: 'operator',
+                titleAttribute: 'name',
+                modifyQueryUsing: fn ($query) => $query
+                    ->where('company_id', auth()->user()->company_id)
+                    ->where('is_active', true)
+            )
+            ->searchable()
+            ->preload()
+            ->required(),
+    ])
+    ->visible(function ($record) {
+        $userCompanyId = auth()->user()->company_id;
+
+        // Solo órdenes de MI empresa (no órdenes que me enviaron)
+        if ($record->company_id !== $userCompanyId) {
+            return false;
+        }
+
+        // Verificar estado
+        if (!in_array($record->status, [ProductionStatus::DRAFT, ProductionStatus::SENT])) {
+            return false;
+        }
+
+        // Si tiene supplier_company_id es para proveedor externo
+        if (!is_null($record->supplier_company_id)) {
+            return false;
+        }
+
+        // Si tiene supplier_id, verificar que sea un contacto de MI empresa
+        if (!is_null($record->supplier_id) && $record->supplier) {
+            return $record->supplier->company_id === $userCompanyId;
+        }
+
+        // Sin proveedor = producción interna
+        return true;
+    })
+```
+
+**Archivos Modificados**:
+1. `ViewProductionOrder.php`
+2. `EditProductionOrder.php`
+
+**Cambios Clave**:
+- Removida selección de proveedor del modal
+- Solo se selecciona operador (User de la misma empresa)
+- Agregada verificación de propiedad de la orden
+
+### ✅ Testing Sprint 36
+
+```bash
+✅ k6 instalado y scripts creados
+✅ Prueba de estrés inicial completada
+✅ Eager loading agregado a 4 tablas
+✅ Migración de índices creada
+✅ 4 notificaciones con ShouldQueue
+✅ Botón "Iniciar Producción" solo en órdenes internas propias
+✅ Cachés limpiadas
+✅ Sintaxis PHP sin errores
+```
+
+### 🎯 Próximas Optimizaciones Sugeridas
+
+**Pendiente de FASE 2 (Redis)**:
+```bash
+# Instalar Redis
+sudo apt install redis-server php8.3-redis
+
+# Configurar .env
+CACHE_STORE=redis
+SESSION_DRIVER=redis
+QUEUE_CONNECTION=redis
+```
+
+**Pendiente de FASE 4 (Assets)**:
+- Convertir logo a SVG
+- Optimizar favicon
+- Headers de caché en nginx
+
+---
+
+**Última Actualización**: 22 de Enero 2026, 12:00 COT
+**Versión**: 3.0.36
 **Estado**: ✅ Producción

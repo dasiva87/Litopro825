@@ -4,15 +4,30 @@ namespace App\Notifications;
 
 use App\Models\CollectionAccount;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class CollectionAccountSent extends Notification
+class CollectionAccountSent extends Notification implements ShouldQueue
 {
+    use Queueable;
+
+    /**
+     * Número de intentos antes de fallar
+     */
+    public int $tries = 3;
+
+    /**
+     * Segundos de espera entre reintentos
+     */
+    public int $backoff = 30;
 
     public function __construct(
         public int $collectionAccountId
-    ) {}
+    ) {
+        $this->onQueue('emails');
+    }
 
     protected function getCollectionAccount(): CollectionAccount
     {

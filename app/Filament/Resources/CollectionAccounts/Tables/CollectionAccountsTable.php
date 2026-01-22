@@ -15,6 +15,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class CollectionAccountsTable
 {
@@ -310,6 +311,13 @@ class CollectionAccountsTable
                     DeleteBulkAction::make(),
                 ]),
             ])
-            ->defaultSort('created_at', 'desc');
+            ->defaultSort('created_at', 'desc')
+            ->modifyQueryUsing(fn (Builder $query) => $query->with([
+                'clientCompany',
+                'contact',
+                'createdBy',
+                'emailSentBy',
+                'documentItems.itemable',
+            ]));
     }
 }

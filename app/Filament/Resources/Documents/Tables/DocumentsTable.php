@@ -884,6 +884,13 @@ class DocumentsTable
                         }),
                 ]),
             ])
-            ->defaultSort('created_at', 'desc');
+            ->defaultSort('created_at', 'desc')
+            ->modifyQueryUsing(fn (Builder $query) => $query->with([
+                'contact',
+                'documentType',
+                'clientCompany',
+                'items.itemable',
+                'emailSentBy',
+            ]));
     }
 }

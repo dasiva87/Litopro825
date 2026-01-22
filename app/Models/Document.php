@@ -130,14 +130,20 @@ class Document extends Model
     public function getAvailableItemsForOrder()
     {
         // Retornar items que pueden agregarse a órdenes (available u ordered)
-        // Note: Can't eager load 'itemable.paper' because not all itemable types have paper relation
-        // (Product doesn't have paper, but SimpleItem does)
+        // Usar morphWith para cargar relaciones específicas según tipo de itemable
         return $this->items()
             ->whereIn('order_status', ['available', 'ordered'])
             ->with([
-                'itemable.company',
-                'paper',
-                'printingMachine'
+                'itemable' => function ($morphTo) {
+                    $morphTo->morphWith([
+                        'App\Models\SimpleItem' => ['paper.company', 'printingMachine', 'finishings', 'company'],
+                        'App\Models\MagazineItem' => ['pages.simpleItem.paper.company', 'company'],
+                        'App\Models\TalonarioItem' => ['sheets.simpleItem.paper.company', 'company'],
+                        'App\Models\Product' => ['company'],
+                        'App\Models\DigitalItem' => ['company', 'finishings'],
+                        'App\Models\CustomItem' => ['company'],
+                    ]);
+                },
             ])
             ->get();
     }

@@ -4,15 +4,30 @@ namespace App\Notifications;
 
 use App\Models\PurchaseOrder;
 use App\Services\PurchaseOrderPdfService;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class PurchaseOrderCreated extends Notification
+class PurchaseOrderCreated extends Notification implements ShouldQueue
 {
+    use Queueable;
+
+    /**
+     * Número de intentos antes de fallar
+     */
+    public int $tries = 3;
+
+    /**
+     * Segundos de espera entre reintentos
+     */
+    public int $backoff = 30;
 
     public function __construct(
         public int $purchaseOrderId
-    ) {}
+    ) {
+        $this->onQueue('emails');
+    }
 
     protected function getPurchaseOrder(): PurchaseOrder
     {
