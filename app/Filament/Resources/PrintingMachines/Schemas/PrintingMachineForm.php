@@ -69,6 +69,11 @@ class PrintingMachineForm
                             ->label('Activa')
                             ->default(true)
                             ->helperText('Solo las máquinas activas aparecen en cotizaciones'),
+
+                        Toggle::make('is_public')
+                            ->label('Público para clientes')
+                            ->default(false)
+                            ->helperText('Si está activo, las litografías clientes podrán ver y usar esta máquina'),
                     ]),
                     
                 Section::make('Especificaciones Técnicas')

@@ -112,7 +112,30 @@ class ProductionOrdersTable
                 ActionGroup::make([
                     ViewAction::make(),
 
-                    EditAction::make(),
+                    EditAction::make()
+                        ->visible(function ($record) {
+                            $userCompanyId = auth()->user()->company_id;
+
+                            // Orden RECIBIDA: yo soy el proveedor
+                            if ($record->supplier_company_id === $userCompanyId) {
+                                return true;
+                            }
+
+                            // Orden PROPIA: mi empresa la creó Y no tiene proveedor externo
+                            if ($record->company_id === $userCompanyId && is_null($record->supplier_company_id)) {
+                                return true;
+                            }
+
+                            // Orden ENVIADA: no puedo editar
+                            return false;
+                        }),
+
+                    Action::make('view_pdf')
+                        ->label('Ver PDF')
+                        ->icon('heroicon-o-document')
+                        ->color('info')
+                        ->url(fn ($record) => route('production-orders.pdf', $record))
+                        ->openUrlInNewTab(),
 
                     Action::make('send_email')
                         ->label(fn ($record) => $record->email_sent_at ? 'Reenviar Email' : 'Enviar Email')
@@ -137,6 +160,14 @@ class ProductionOrdersTable
                             return $description;
                         })
                         ->modalIcon('heroicon-o-envelope')
+                        // Solo visible para órdenes propias (no recibidas)
+                        ->visible(function ($record) {
+                            $userCompanyId = auth()->user()->company_id;
+
+                            // Solo puedo enviar email si es MI orden (company_id = mi empresa)
+                            // No puedo enviar email de órdenes que me enviaron (recibidas)
+                            return $record->company_id === $userCompanyId;
+                        })
                         ->action(function ($record) {
                             // VALIDACIÓN 1: Verificar items
                             if ($record->documentItems->isEmpty()) {
@@ -199,12 +230,33 @@ class ProductionOrdersTable
                             }
                         }),
 
-                    DeleteAction::make(),
+                    DeleteAction::make()
+                        ->visible(function ($record) {
+                            $userCompanyId = auth()->user()->company_id;
+
+                            // Orden RECIBIDA: yo soy el proveedor - puedo eliminar
+                            if ($record->supplier_company_id === $userCompanyId) {
+                                return true;
+                            }
+
+                            // Orden PROPIA: mi empresa la creó Y no tiene proveedor externo
+                            if ($record->company_id === $userCompanyId && is_null($record->supplier_company_id)) {
+                                return true;
+                            }
+
+                            // Orden ENVIADA: no puedo eliminar
+                            return false;
+                        }),
                 ]),
             ])
             ->bulkActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->visible(function ($livewire) {
+                            // Deshabilitamos bulk delete para evitar eliminación accidental de órdenes enviadas
+                            // Se podría mejorar filtrando solo las que se pueden eliminar
+                            return true;
+                        }),
                 ]),
             ])
             ->defaultSort('created_at', 'desc')

@@ -24,12 +24,14 @@ class DigitalItem extends Model
         'pricing_type',
         'metadata',
         'active',
+        'is_public',
     ];
 
     protected $casts = [
         'sale_price' => 'decimal:2',
         'is_own_product' => 'boolean',
         'active' => 'boolean',
+        'is_public' => 'boolean',
         'metadata' => 'array',
     ];
 

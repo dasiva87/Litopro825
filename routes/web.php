@@ -10,7 +10,7 @@ use App\Http\Controllers\SuperAdmin\ImpersonateController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect('/admin/login');
 });
 
 // Rutas de registro público - Redirige a Filament

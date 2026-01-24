@@ -185,6 +185,11 @@ class ProductForm
                             ->label('Producto Activo')
                             ->default(true)
                             ->helperText('Solo los productos activos aparecerán en las cotizaciones'),
+
+                        Toggle::make('is_public')
+                            ->label('Público para clientes')
+                            ->default(false)
+                            ->helperText('Si está activo, las litografías clientes podrán ver y usar este producto'),
                     ]),
 
                 Section::make('🎨 Acabados')

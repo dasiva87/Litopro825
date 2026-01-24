@@ -38,11 +38,23 @@ class ListProductionOrders extends ListRecords
                 ->badge(fn () => static::getResource()::getEloquentQuery()->where('status', ProductionStatus::SENT)->count())
                 ->badgeColor('info'),
 
+            'received' => Tab::make('Recibidas')
+                ->icon('heroicon-o-inbox-arrow-down')
+                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', ProductionStatus::RECEIVED))
+                ->badge(fn () => static::getResource()::getEloquentQuery()->where('status', ProductionStatus::RECEIVED)->count())
+                ->badgeColor('primary'),
+
             'in_progress' => Tab::make('En Proceso')
                 ->icon('heroicon-o-cog-6-tooth')
                 ->modifyQueryUsing(fn (Builder $query) => $query->where('status', ProductionStatus::IN_PROGRESS))
                 ->badge(fn () => static::getResource()::getEloquentQuery()->where('status', ProductionStatus::IN_PROGRESS)->count())
                 ->badgeColor('warning'),
+
+            'on_hold' => Tab::make('En Pausa')
+                ->icon('heroicon-o-pause-circle')
+                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', ProductionStatus::ON_HOLD))
+                ->badge(fn () => static::getResource()::getEloquentQuery()->where('status', ProductionStatus::ON_HOLD)->count())
+                ->badgeColor('gray'),
 
             'completed' => Tab::make('Finalizadas')
                 ->icon('heroicon-o-check-circle')

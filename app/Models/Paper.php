@@ -28,6 +28,7 @@ class Paper extends Model
         'is_own',
         'supplier_id',
         'is_active',
+        'is_public',
     ];
 
     protected $casts = [
@@ -40,6 +41,7 @@ class Paper extends Model
         'min_stock' => 'integer',
         'is_own' => 'boolean',
         'is_active' => 'boolean',
+        'is_public' => 'boolean',
     ];
 
     public function company(): BelongsTo

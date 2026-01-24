@@ -14,6 +14,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use App\Models\Scopes\TenantScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use BackedEnum;
@@ -71,30 +72,37 @@ class PaperResource extends Resource
         $query = parent::getEloquentQuery()
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
+                TenantScope::class,
             ]);
 
-        // Aplicar filtro por empresa manualmente
-        $tenantId = config('app.current_tenant_id');
-        $currentCompanyId = $tenantId ?? (auth()->check() ? auth()->user()->company_id : null);
+        // Obtener company_id del usuario autenticado (más confiable en peticiones Livewire)
+        if (!auth()->check()) {
+            return $query->with(['company']);
+        }
 
-        if ($currentCompanyId) {
-            $company = \App\Models\Company::find($currentCompanyId);
+        $currentCompanyId = auth()->user()->company_id;
+        $company = auth()->user()->company;
 
-            if ($company && $company->isLitografia()) {
+        if ($currentCompanyId && $company) {
+            if ($company->isLitografia()) {
                 // Para litografías: mostrar sus propios papeles + papeles de proveedores con relación aprobada y activa
                 $supplierCompanyIds = \App\Models\SupplierRelationship::where('client_company_id', $currentCompanyId)
                     ->where('is_active', true)
-                    ->whereNotNull('approved_at') // Solo relaciones aprobadas
+                    ->whereNotNull('approved_at')
                     ->pluck('supplier_company_id')
                     ->toArray();
 
                 $query->where(function ($query) use ($currentCompanyId, $supplierCompanyIds) {
-                    $query->forTenant($currentCompanyId) // Propios
-                          ->orWhereIn('company_id', $supplierCompanyIds); // Solo de proveedores aprobados
+                    $query->where('company_id', $currentCompanyId) // Propios (todos)
+                          ->orWhere(function ($q) use ($supplierCompanyIds) {
+                              // De proveedores: solo los públicos
+                              $q->whereIn('company_id', $supplierCompanyIds)
+                                ->where('is_public', true);
+                          });
                 });
             } else {
                 // Para papelerías: solo sus propios papeles
-                $query->forTenant($currentCompanyId);
+                $query->where('company_id', $currentCompanyId);
             }
         }
 
@@ -107,7 +115,7 @@ class PaperResource extends Resource
         if (!$record || !isset($record->company_id)) {
             return false;
         }
-        $currentCompanyId = config('app.current_tenant_id') ?? (auth()->check() ? auth()->user()->company_id : null);
+        $currentCompanyId = auth()->check() ? auth()->user()->company_id : null;
         return $record->company_id === $currentCompanyId;
     }
 
@@ -117,7 +125,7 @@ class PaperResource extends Resource
         if (!$record || !isset($record->company_id)) {
             return false;
         }
-        $currentCompanyId = config('app.current_tenant_id') ?? (auth()->check() ? auth()->user()->company_id : null);
+        $currentCompanyId = auth()->check() ? auth()->user()->company_id : null;
         return $record->company_id === $currentCompanyId;
     }
 }

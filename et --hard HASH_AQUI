@@ -1,0 +1,90 @@
+[33m6c29347[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Sprint 36: Optimización de rendimiento + Fix Iniciar Producción
+[33m4fdbc50[m se ajustaron los diseños de los docuemtnos y envio de email de las cuentas de cobro
+[33m66ebfde[m endpoint2
+[33mfb5f20f[m endpoint
+[33m99e8880[m agregar comando para limpiar datos de prueba en producción
+[33m57bdcf0[m se optimizó todo en base de datos y archivos para producción de aquí en adelante este es el primer commit production
+[33m7a40107[m ajuste en registro, redes sociales en el perfil social, logo en todos los pdf, logo de la empresa en el email
+[33m07aacad[m ajuste en correo de cuenta de cobro
+[33mba22b22[m se arregle el reestablecer contraseña
+[33mfc6440c[m se arregle el idioma y el reestablecimiento de contraseña
+[33m1f113f5[m ajustes en migracion
+[33m4c332c6[m se configuro el envio de correos con Resend, funciona 100%
+[33m077ffe8[m se movieron archivos que no se usaban y otros que no estaban en su lugar para organizar las carpetas
+[33m60259e0[m se agrego clauflare para almacenar las imagenes
+[33md72abc7[m cambios en session
+[33m1bbf2e0[m se realizaron cambios en nixpack
+[33m3018a8c[m se cambiaron unas variables para que railwey identifique la variable de entorno production
+[33m88ea838[m se realizo un cambio en el hash del pasword login ya que lo hacia doble
+[33mf55fdcb[m se hizo un ajuste en la pagina bill para que se puedan registrar usuarios en produccion 2
+[33mcc7d463[m se hizo un ajuste en la pagina bill para que se puedan registrar usuarios en produccion
+[33m88355eb[m ajutes para produccion
+[33m7aa114b[m ajuted de vizualizacion
+[33m58a40ab[m se arreglo el stock y en las relaciones de los provedores y cleintes tambien se le hizo ajustes
+[33mc1624b9[m preparando la app para deploy
+[33m33238c8[m Fix: Agregar verificación de columna en migración de production_orders
+[33mf4643eb[m ya se puede enviar por correo las cuentas de cobro, cotizaciones, ordenes de pedido, y ordenes de produccion, se adjunta el PDF
+[33m4e45875[m se inicia el desarrollo de envio de email con mailtrap y ya funciona en las ordenes de pedido
+[33m7f9427e[m se crearon los clientes y proveedores para que se enlazaran con los usuarios registrados en el sistema
+[33m110f766[m se agregaron los acabados a item sencillo, productos e item digitales, ya estan probados para enviarlos a orden de produccion
+[33mac218ad[m se le agrego la condicion a todos los documentos que no salienran los botones de agrewgar item si se esta viendo, que aparezcan solo en modo edicion, a los productos ya se les puede subir imagenes
+[33m0d2b35d[m avance en pequeños detalles
+[33mf219a3f[m avance en pequeños detalles
+[33mf91ee4e[m avance en pequeños detalles
+[33mf33893d[m se implementó una seccion para ingresar el tamaño del papel a utilizar mara un motaje en elos item sencillos
+[33m1890173[m se arreglo el montaje en item sencillo y el widged calculadora
+[33m4093535[m se creo orden de produccion
+[33ma7690eb[m refinando el codigo
+[33m7bc27a2[m se hizo una refactorizacion de todo el codigo
+[33m42660a9[m se arreglaron las dos formas de agregar un item a una orden de pedido, actualmense se agregan pero no muestran la informacion necesaria
+[33ma6f53a8[m se refactorizó el archivo document ya que tenía muchas lineas de codigo
+[33m81cd96d[m se creo la empresa de tipo papeleria, las litografias las pueden agrgar como proveedora y enseguida se muetras los papeles y productos que esta vende, falta arreglar qye los productos se puedan editar
+[33m7d57859[m Se inicio el desarrollo para arreglar el scope
+[33m0e6f56e[m se arreglaron los widget, el registro de nueva empresa con plan gratis, hay que verificar el scope
+[33m09bd045[m se ajustò una tabla que se repetia
+[33m374955d[m se avanzo en el dashboar super-admin, sotock y moviemineto de inventario, se activo el dashboard porque estaba presentando inconvenientes con home, se creo un agente de diseño para ayudar en el ui de los dashboard
+[33me7f9f3f[m agregando funcionalidades al panel super-admin
+[33mfbaa689[m agregando funcionalidades al panel super-admin
+[33m968928c[m[33m ([m[1;31morigin/desarrollo[m[33m, [m[1;32mdesarrollo[m[33m)[m iniciada la separacion de los paneles de administracion y el de usuario
+[33md363dbc[m refinando calculo de item sencillo
+[33m456632f[m refinando calculo de item sencillo
+[33m1890c0e[m arregle el calculo del item sencillo, el algoritomo de la calculadora y el widget de calculadora del home
+[33macf8b15[m avance en la pasarela de pago con payu, tambien se arreglo el top bar, borre la pagina de calculadora
+[33me50893a[m avance en talonario y revista, no funcionaba agregar hoja
+[33md7c00af[m modificacion para deploy
+[33mc086664[m modificacion para deploy
+[33mca302ba[m modificacion para deploy
+[33mc6387bf[m modificacion para deploy
+[33mc86ac13[m modificacion para deploy
+[33m5a1eda8[m modificacion para deploy
+[33m44f0c41[m modificacion para deploy
+[33m08ccc98[m modificacion para deploy
+[33m7c7a428[m modificacion para deploy
+[33m23d2eff[m modificacion para deploy
+[33mda75730[m modificacion para deploy
+[33m5f8fc19[m modificacion para deploy
+[33m437af8e[m modificacion para deploy
+[33me2656cc[m modificacion para deploy
+[33mc3bb662[m modificacion para deploy
+[33m042b7c2[m modificacion para deploy
+[33ma1e59a3[m modificacion para deploy
+[33m92b8662[m se modifico el item talonario en las cotizaciones por no se le podia agregar hojas, ya funciona bien
+[33mc079444[m se modifico el item talonario en las cotizaciones por no se le podia agregar hojas, ya funciona bien
+[33m3ffc3c4[m el item digital se l epuede agregar acabados, tambien a item sencillo. el topbar ya esta configurado paa que sea igual en toda la app
+[33mc3fcd05[m he avanzado en el home, ya puede publicar, filtrar y subir imagenes al post
+[33mbe3507c[m he avanzado en el home, ya tengo creado el feed y crear post, la calculadora esta solo el html, y el top bar se rediseño
+[33macea035[m avance seguridad2
+[33m246f078[m avance seguridad
+[33m4f7fa07[m avance en item senciollo y talonario
+[33m06aec3f[m se avanzo en item revista y talonario funcionando al 100 el dashboad aun no se ve bien
+[33m6d8823d[m se agregaron los acabados estos se pueden agregar solo a item digital, por el momento, al crear un item digital se pueden agregar todos acabados necesarios, pero no está aciendo los calculos bien ni sumandolos al item
+[33ma7626cc[m se agt¡rega lel item digital, funciona bien al crearlo y agregarlo a la cotizacion, solo falta que salga la cantidad del item en el documento
+[33mff92c96[m se ha iniciado a desarrollar el item revista
+[33m7bb000e[m he iniciado el dashboar funciones 3 widget y hace publicaciones
+[33mde76a9a[m pdf realizado
+[33mabcd9a9[m ya se puede agregar item producto en al cotizacion y se pueden editar
+[33m43b74ab[m ya se puede agregar item sencillo a la cotizacion pero el calculo nosale bien
+[33mb878023[m fucionan los docuemntos, por el momneto no se pueden agregar item, funcionan los tipos de maquinas y los tipos de papel
+[33m48ebbcd[m la calculadora funciona bien pero no se dibujar el corte
+[33me6aed68[m se puede crear empresa, usuario y perfiles
+[33m6c9b3e5[m first commit

@@ -14,10 +14,53 @@ class ViewProductionOrder extends ViewRecord
 {
     protected static string $resource = ProductionOrderResource::class;
 
+    /**
+     * Determina si el usuario puede gestionar los estados de esta orden
+     * Solo puede gestionar si:
+     * - Es orden PROPIA (company_id = mi empresa, sin supplier_company_id externo)
+     * - Es orden RECIBIDA (supplier_company_id = mi empresa)
+     */
+    protected function canManageStatus(): bool
+    {
+        $userCompanyId = auth()->user()->company_id;
+        $record = $this->record;
+
+        // Orden RECIBIDA: otra empresa me la envió para que yo produzca
+        if ($record->supplier_company_id === $userCompanyId) {
+            return true;
+        }
+
+        // Orden PROPIA: mi empresa la creó Y no tiene proveedor externo
+        if ($record->company_id === $userCompanyId && is_null($record->supplier_company_id)) {
+            return true;
+        }
+
+        // Orden ENVIADA: mi empresa la creó pero tiene proveedor externo = NO puedo gestionar
+        return false;
+    }
+
+    /**
+     * Determina si es una orden recibida de otra empresa
+     */
+    protected function isReceivedOrder(): bool
+    {
+        return $this->record->supplier_company_id === auth()->user()->company_id;
+    }
+
+    /**
+     * Determina si es una orden propia (producción interna)
+     */
+    protected function isOwnOrder(): bool
+    {
+        $userCompanyId = auth()->user()->company_id;
+        return $this->record->company_id === $userCompanyId && is_null($this->record->supplier_company_id);
+    }
+
     protected function getHeaderActions(): array
     {
         return [
-            EditAction::make(),
+            EditAction::make()
+                ->visible(fn () => $this->canManageStatus()),
 
             Action::make('view_pdf')
                 ->label('Ver PDF')
@@ -54,6 +97,8 @@ class ViewProductionOrder extends ViewRecord
                     return $description;
                 })
                 ->modalIcon('heroicon-o-envelope')
+                // Solo visible para órdenes propias o enviadas (no recibidas)
+                ->visible(fn () => !$this->isReceivedOrder() && $this->record->company_id === auth()->user()->company_id)
                 ->action(function () {
                     // VALIDACIÓN 1: Verificar items
                     if ($this->record->documentItems->isEmpty()) {
@@ -116,6 +161,21 @@ class ViewProductionOrder extends ViewRecord
                     }
                 }),
 
+            // Acción para marcar como RECIBIDA (solo órdenes recibidas de otras empresas)
+            Action::make('mark_received')
+                ->label('Marcar como Recibida')
+                ->icon('heroicon-o-inbox-arrow-down')
+                ->color('primary')
+                ->requiresConfirmation()
+                ->modalHeading('Confirmar Recepción')
+                ->modalDescription('¿Confirmas que has recibido esta orden de producción?')
+                ->visible(fn () => $this->isReceivedOrder() && $this->record->status === ProductionStatus::SENT)
+                ->action(function () {
+                    $this->record->update(['status' => ProductionStatus::RECEIVED]);
+                    Notification::make()->success()->title('Orden marcada como Recibida')->send();
+                }),
+
+            // Iniciar producción (órdenes propias o recibidas)
             Action::make('start_production')
                 ->label('Iniciar Producción')
                 ->icon('heroicon-o-play')
@@ -134,52 +194,84 @@ class ViewProductionOrder extends ViewRecord
                         ->preload()
                         ->required(),
                 ])
-                // Solo visible para órdenes propias (company_id = empresa logueada) sin proveedor externo
-                ->visible(function ($record) {
-                    $userCompanyId = auth()->user()->company_id;
-
-                    // Solo órdenes de MI empresa (no órdenes que me enviaron)
-                    if ($record->company_id !== $userCompanyId) {
+                ->visible(function () {
+                    if (!$this->canManageStatus()) {
                         return false;
                     }
 
-                    // Verificar estado
-                    if (!in_array($record->status, [ProductionStatus::DRAFT, ProductionStatus::SENT])) {
-                        return false;
-                    }
-
-                    // Si tiene supplier_company_id es para proveedor externo
-                    if (!is_null($record->supplier_company_id)) {
-                        return false;
-                    }
-
-                    // Si tiene supplier_id, verificar que sea un contacto de MI empresa (proveedor interno)
-                    if (!is_null($record->supplier_id) && $record->supplier) {
-                        return $record->supplier->company_id === $userCompanyId;
-                    }
-
-                    // Sin proveedor = producción interna
-                    return true;
-                })
-                ->action(function ($record, array $data) {
-                    $record->update([
-                        'operator_user_id' => $data['operator_user_id'],
+                    // Visible en estados que permiten iniciar producción
+                    return in_array($this->record->status, [
+                        ProductionStatus::DRAFT,
+                        ProductionStatus::RECEIVED,
                     ]);
-                    if ($record->changeStatus(ProductionStatus::IN_PROGRESS)) {
-                        Notification::make()->success()->title('Producción Iniciada')->send();
-                    }
+                })
+                ->action(function (array $data) {
+                    $this->record->update([
+                        'operator_user_id' => $data['operator_user_id'],
+                        'status' => ProductionStatus::IN_PROGRESS,
+                    ]);
+                    Notification::make()->success()->title('Producción Iniciada')->send();
                 }),
 
+            // Pausar producción
+            Action::make('pause_production')
+                ->label('Pausar')
+                ->icon('heroicon-o-pause-circle')
+                ->color('gray')
+                ->requiresConfirmation()
+                ->modalHeading('Pausar Producción')
+                ->modalDescription('¿Deseas pausar esta orden de producción?')
+                ->visible(fn () => $this->canManageStatus() && $this->record->status === ProductionStatus::IN_PROGRESS)
+                ->action(function () {
+                    $this->record->update(['status' => ProductionStatus::ON_HOLD]);
+                    Notification::make()->success()->title('Producción Pausada')->send();
+                }),
+
+            // Reanudar producción (desde pausa)
+            Action::make('resume_production')
+                ->label('Reanudar')
+                ->icon('heroicon-o-play')
+                ->color('warning')
+                ->requiresConfirmation()
+                ->visible(fn () => $this->canManageStatus() && $this->record->status === ProductionStatus::ON_HOLD)
+                ->action(function () {
+                    $this->record->update(['status' => ProductionStatus::IN_PROGRESS]);
+                    Notification::make()->success()->title('Producción Reanudada')->send();
+                }),
+
+            // Completar producción
             Action::make('complete_production')
                 ->label('Completar')
                 ->icon('heroicon-o-check-circle')
                 ->color('success')
                 ->requiresConfirmation()
-                ->visible(fn ($record) => $record->status === ProductionStatus::IN_PROGRESS)
-                ->action(function ($record) {
-                    if ($record->changeStatus(ProductionStatus::COMPLETED)) {
-                        Notification::make()->success()->title('Producción Completada')->send();
+                ->visible(fn () => $this->canManageStatus() && $this->record->status === ProductionStatus::IN_PROGRESS)
+                ->action(function () {
+                    $this->record->update(['status' => ProductionStatus::COMPLETED]);
+                    Notification::make()->success()->title('Producción Completada')->send();
+                }),
+
+            // Cancelar orden
+            Action::make('cancel_order')
+                ->label('Cancelar')
+                ->icon('heroicon-o-x-circle')
+                ->color('danger')
+                ->requiresConfirmation()
+                ->modalHeading('Cancelar Orden')
+                ->modalDescription('¿Estás seguro de cancelar esta orden? Esta acción no se puede deshacer.')
+                ->visible(function () {
+                    if (!$this->canManageStatus()) {
+                        return false;
                     }
+                    // No se puede cancelar si ya está completada o cancelada
+                    return !in_array($this->record->status, [
+                        ProductionStatus::COMPLETED,
+                        ProductionStatus::CANCELLED,
+                    ]);
+                })
+                ->action(function () {
+                    $this->record->update(['status' => ProductionStatus::CANCELLED]);
+                    Notification::make()->success()->title('Orden Cancelada')->send();
                 }),
         ];
     }

@@ -1,6 +1,6 @@
 <div style="space-y: 24px;" id="posts-container-{{ $this->getId() }}">
     <!-- Panel de Filtros -->
-    <div style="background: white; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px;">
+    <div class="post-card post-filters-card">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: {{ $showFilters ? '16px' : '0' }};">
             <div style="display: flex; align-items: center; gap: 12px;">
                 <svg style="width: 20px; height: 20px; color: #3b82f6;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -108,30 +108,30 @@
     </div>
 
     @foreach($this->getSocialPosts() as $post)
-        <div style="background: white; border-radius: 12px; padding: 20px; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px;">
+        <div class="post-card">
             <!-- Header del post -->
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-                <div style="display: flex; align-items: center;">
+            <div class="post-header">
+                <div style="display: flex; align-items: center; min-width: 0; flex: 1;">
                     <!-- Avatar -->
-                    <div style="width: 48px; height: 48px; background: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+                    <div class="post-avatar">
                         <span style="color: white; font-size: 16px; font-weight: 600;">
                             {{ strtoupper(substr($post->author->name ?? 'U', 0, 1)) }}{{ strtoupper(substr(explode(' ', $post->author->name ?? 'User')[1] ?? '', 0, 1)) }}
                         </span>
                     </div>
 
                     <!-- Info del autor -->
-                    <div>
-                        <div style="font-size: 15px; font-weight: 600; line-height: 1.2;">
+                    <div style="min-width: 0; flex: 1;">
+                        <div class="post-author-name">
                             <a href="{{ $post->getCompanyProfileUrl() }}" style="color: #2563eb; text-decoration: none;"
                                onmouseover="this.style.textDecoration='underline'"
                                onmouseout="this.style.textDecoration='none'">
                                 {{ $post->getCompanyName() }}
                             </a>
-                            <span style="color: #111827;"> - {{ $post->author->name ?? 'Usuario' }}</span>
+                            <span class="post-author-user"> - {{ $post->author->name ?? 'Usuario' }}</span>
 
                             <!-- Indicador de empresa seguida -->
                             @if($post->isFromFollowedCompany())
-                                <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; background: #eff6ff; color: #3b82f6; padding: 2px 6px; border-radius: 8px; margin-left: 8px;">
+                                <span class="post-following-badge hide-on-mobile">
                                     <svg style="width: 10px; height: 10px;" fill="currentColor" viewBox="0 0 20 20">
                                         <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                     </svg>
@@ -139,32 +139,39 @@
                                 </span>
                             @endif
                         </div>
-                        <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+                        <div class="post-meta">
                             <span style="font-size: 13px; color: #6b7280;">{{ $post->created_at->diffForHumans() }}</span>
-                            <span style="color: #6b7280;">•</span>
 
                             @if($post->getCompanyLocation())
-                                <div style="display: flex; align-items: center; gap: 4px;">
+                                <span class="post-meta-separator">•</span>
+                                <div class="post-meta-item">
                                     <svg style="width: 12px; height: 12px; color: #6b7280;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                                     </svg>
                                     <span style="font-size: 13px; color: #6b7280;">{{ $post->getCompanyLocation() }}</span>
                                 </div>
-                                <span style="color: #6b7280;">•</span>
                             @endif
 
+                            <!-- Tipo de post (visible en móvil, inline) -->
+                            <span class="post-meta-separator show-on-mobile">•</span>
+                            <span class="post-type-badge-mobile show-on-mobile" style="font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 8px; background: {{ $post->getPostTypeColor() === 'success' ? '#dcfce7' : ($post->getPostTypeColor() === 'warning' ? '#fef3c7' : '#dbeafe') }}; color: {{ $post->getPostTypeColor() === 'success' ? '#166534' : ($post->getPostTypeColor() === 'warning' ? '#92400e' : '#1e40af') }};">
+                                {{ $post->getPostTypeLabel() }}
+                            </span>
+
+                            <!-- Seguidores y público (solo desktop) -->
                             @if($post->getCompanyFollowersCount() > 0)
-                                <div style="display: flex; align-items: center; gap: 4px;">
+                                <span class="post-meta-separator hide-on-mobile">•</span>
+                                <div class="post-meta-item hide-on-mobile">
                                     <svg style="width: 12px; height: 12px; color: #6b7280;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
                                     </svg>
                                     <span style="font-size: 13px; color: #6b7280;">{{ $post->getCompanyFollowersCount() }} seguidores</span>
                                 </div>
-                                <span style="color: #6b7280;">•</span>
                             @endif
 
-                            <div style="display: flex; align-items: center; gap: 4px;">
+                            <span class="post-meta-separator hide-on-mobile">•</span>
+                            <div class="post-meta-item hide-on-mobile">
                                 <svg style="width: 12px; height: 12px; color: #6b7280;" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clip-rule="evenodd"/>
                                 </svg>
@@ -174,8 +181,8 @@
                     </div>
                 </div>
 
-                <!-- Tipo de post -->
-                <div style="display: flex; align-items: center; gap: 8px;">
+                <!-- Tipo de post (solo desktop) -->
+                <div class="post-type-badge-desktop hide-on-mobile">
                     <span style="font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: 12px; background: {{ $post->getPostTypeColor() === 'success' ? '#dcfce7' : ($post->getPostTypeColor() === 'warning' ? '#fef3c7' : '#dbeafe') }}; color: {{ $post->getPostTypeColor() === 'success' ? '#166534' : ($post->getPostTypeColor() === 'warning' ? '#92400e' : '#1e40af') }};">
                         {{ $post->getPostTypeLabel() }}
                     </span>
@@ -258,36 +265,39 @@
             <div style="display: grid; grid-template-columns: repeat({{ in_array($post->post_type, ['offer', 'request']) ? '4' : '3' }}, 1fr); gap: 8px;">
                 <!-- Me gusta -->
                 <button wire:click="toggleReaction({{ $post->id }}, 'like')"
-                    style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 16px; background: {{ $this->hasUserReacted($post, 'like') ? '#eff6ff' : 'transparent' }}; border: none; border-radius: 8px; cursor: pointer; color: {{ $this->hasUserReacted($post, 'like') ? '#3b82f6' : '#6b7280' }}; font-size: 14px; font-weight: 500; transition: background-color 0.2s;">
-                    <svg style="width: 18px; height: 18px;" fill="{{ $this->hasUserReacted($post, 'like') ? 'currentColor' : 'none' }}" stroke="currentColor" viewBox="0 0 24 24">
+                    class="post-action-btn"
+                    style="background: {{ $this->hasUserReacted($post, 'like') ? '#eff6ff' : 'transparent' }}; color: {{ $this->hasUserReacted($post, 'like') ? '#3b82f6' : '#6b7280' }};">
+                    <svg style="width: 18px; height: 18px; flex-shrink: 0;" fill="{{ $this->hasUserReacted($post, 'like') ? 'currentColor' : 'none' }}" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2v0a2 2 0 00-2 2v0M7 20l-2-2m2 2l2-2m-2 2v-2.5a2.5 2.5 0 011.3-2.2L11 14"/>
                     </svg>
-                    <span>Me gusta</span>
+                    <span class="post-action-btn-text">Me gusta</span>
                 </button>
 
                 <!-- Me interesa -->
                 <button wire:click="toggleReaction({{ $post->id }}, 'interested')"
-                    style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 16px; background: {{ $this->hasUserReacted($post, 'interested') ? '#fef3c7' : 'transparent' }}; border: none; border-radius: 8px; cursor: pointer; color: {{ $this->hasUserReacted($post, 'interested') ? '#d97706' : '#6b7280' }}; font-size: 14px; font-weight: 500; transition: background-color 0.2s;">
-                    <span style="font-size: 16px;">💡</span>
-                    <span>Interesa</span>
+                    class="post-action-btn"
+                    style="background: {{ $this->hasUserReacted($post, 'interested') ? '#fef3c7' : 'transparent' }}; color: {{ $this->hasUserReacted($post, 'interested') ? '#d97706' : '#6b7280' }};">
+                    <span style="font-size: 16px; flex-shrink: 0;">💡</span>
+                    <span class="post-action-btn-text">Interesa</span>
                 </button>
 
                 <!-- Comentar -->
                 <button onclick="document.getElementById('comment-{{ $post->id }}').style.display = document.getElementById('comment-{{ $post->id }}').style.display === 'none' ? 'block' : 'none'"
-                    style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 16px; background: transparent; border: none; border-radius: 8px; cursor: pointer; color: #6b7280; font-size: 14px; font-weight: 500; transition: background-color 0.2s;">
-                    <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    class="post-action-btn"
+                    style="color: #6b7280;">
+                    <svg style="width: 18px; height: 18px; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
                     </svg>
-                    <span>Comentar</span>
+                    <span class="post-action-btn-text">Comentar</span>
                 </button>
 
                 <!-- Contactar (solo para ofertas/solicitudes) -->
                 @if(in_array($post->post_type, ['offer', 'request']))
-                    <button style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 16px; background: #dcfce7; border: none; border-radius: 8px; cursor: pointer; color: #166534; font-size: 14px; font-weight: 500;">
-                        <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button class="post-action-btn" style="background: #dcfce7; color: #166534;">
+                        <svg style="width: 18px; height: 18px; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
                         </svg>
-                        <span>Contactar</span>
+                        <span class="post-action-btn-text">Contactar</span>
                     </button>
                 @endif
             </div>
@@ -297,7 +307,7 @@
                 <!-- Agregar comentario -->
                 <div style="margin-bottom: 16px;">
                     <div style="display: flex; gap: 12px; align-items: flex-start;">
-                        <div style="width: 32px; height: 32px; background: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <div class="post-avatar-small">
                             <span style="color: white; font-size: 12px; font-weight: 600;">
                                 {{ auth()->check() ? strtoupper(substr(auth()->user()->name, 0, 1)) . strtoupper(substr(explode(' ', auth()->user()->name)[1] ?? '', 0, 1)) : 'U' }}
                             </span>
@@ -320,7 +330,7 @@
                 <!-- Lista de comentarios existentes -->
                 @foreach($post->comments()->with('author')->latest()->take(5)->get() as $comment)
                     <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-                        <div style="width: 32px; height: 32px; background: #6b7280; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <div class="post-avatar-comment">
                             <span style="color: white; font-size: 12px; font-weight: 600;">
                                 {{ strtoupper(substr($comment->author->name ?? 'U', 0, 1)) }}{{ strtoupper(substr(explode(' ', $comment->author->name ?? 'User')[1] ?? '', 0, 1)) }}
                             </span>
@@ -420,6 +430,231 @@
         @keyframes spin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
+        }
+
+        /* Tarjetas de posts */
+        .post-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 24px;
+        }
+
+        .post-filters-card {
+            margin-bottom: 24px;
+        }
+
+        /* Header del post */
+        .post-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            gap: 12px;
+        }
+
+        /* Estilos para avatares - asegurar que sean redondos */
+        .post-avatar {
+            width: 48px;
+            height: 48px;
+            min-width: 48px;
+            min-height: 48px;
+            background: #3b82f6;
+            border-radius: 50% !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .post-avatar-small {
+            width: 32px;
+            height: 32px;
+            min-width: 32px;
+            min-height: 32px;
+            background: #3b82f6;
+            border-radius: 50% !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .post-avatar-comment {
+            width: 32px;
+            height: 32px;
+            min-width: 32px;
+            min-height: 32px;
+            background: #6b7280;
+            border-radius: 50% !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        /* Nombre del autor */
+        .post-author-name {
+            font-size: 15px;
+            font-weight: 600;
+            line-height: 1.3;
+        }
+
+        .post-author-user {
+            color: #111827;
+        }
+
+        .post-following-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            background: #eff6ff;
+            color: #3b82f6;
+            padding: 2px 6px;
+            border-radius: 8px;
+            margin-left: 8px;
+        }
+
+        /* Meta info del post */
+        .post-meta {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        .post-meta-separator {
+            color: #6b7280;
+        }
+
+        .post-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Badge tipo de post */
+        .post-type-badge-desktop {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .post-type-badge-mobile {
+            display: none;
+        }
+
+        /* Clases de visibilidad */
+        .show-on-mobile {
+            display: none !important;
+        }
+
+        .hide-on-mobile {
+            display: flex;
+        }
+
+        /* Botones de acción responsivos */
+        .post-action-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .post-action-btn-text {
+            display: inline;
+        }
+
+        /* Estilos móviles */
+        @media (max-width: 640px) {
+            .post-header {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .post-avatar {
+                width: 40px;
+                height: 40px;
+                min-width: 40px;
+                min-height: 40px;
+                margin-right: 10px;
+            }
+
+            .post-avatar span {
+                font-size: 14px !important;
+            }
+
+            .post-author-name {
+                font-size: 14px;
+            }
+
+            .post-author-user {
+                display: none;
+            }
+
+            .post-meta {
+                gap: 4px;
+            }
+
+            /* Ocultar en móvil */
+            .hide-on-mobile {
+                display: none !important;
+            }
+
+            /* Mostrar en móvil */
+            .show-on-mobile {
+                display: inline-flex !important;
+            }
+
+            .post-type-badge-mobile {
+                display: inline-flex !important;
+            }
+
+            .post-type-badge-desktop {
+                display: none !important;
+            }
+
+            /* Botones de acción */
+            .post-action-btn {
+                padding: 10px 8px;
+                gap: 0;
+            }
+
+            .post-action-btn-text {
+                display: none !important;
+            }
+
+            .post-action-btn svg {
+                width: 20px;
+                height: 20px;
+            }
+
+            /* Tarjetas sin bordes en móvil */
+            .post-card {
+                border-radius: 0 !important;
+                border-left: none !important;
+                border-right: none !important;
+                box-shadow: none !important;
+                margin-bottom: 16px;
+                padding: 16px;
+            }
         }
     </style>
 </div>

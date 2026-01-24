@@ -25,6 +25,7 @@ class Finishing extends Model
         'measurement_unit',
         'is_own_provider',
         'active',
+        'is_public',
     ];
 
     protected $casts = [
@@ -32,6 +33,7 @@ class Finishing extends Model
         'measurement_unit' => FinishingMeasurementUnit::class,
         'is_own_provider' => 'boolean',
         'active' => 'boolean',
+        'is_public' => 'boolean',
     ];
 
     protected static function boot()

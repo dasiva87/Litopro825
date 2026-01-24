@@ -35,7 +35,9 @@ class ProductionOrderInfolist
                             ->color(fn (ProductionStatus $state): string => match ($state) {
                                 ProductionStatus::DRAFT => 'gray',
                                 ProductionStatus::SENT => 'info',
+                                ProductionStatus::RECEIVED => 'primary',
                                 ProductionStatus::IN_PROGRESS => 'warning',
+                                ProductionStatus::ON_HOLD => 'gray',
                                 ProductionStatus::COMPLETED => 'success',
                                 ProductionStatus::CANCELLED => 'danger',
                             })

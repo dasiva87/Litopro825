@@ -28,6 +28,7 @@ class Product extends Model
         'stock',
         'min_stock',
         'active',
+        'is_public',
         'metadata',
         'image_1',
         'image_2',
@@ -41,6 +42,7 @@ class Product extends Model
         'stock' => 'integer',
         'min_stock' => 'integer',
         'active' => 'boolean',
+        'is_public' => 'boolean',
         'metadata' => 'array',
     ];
 

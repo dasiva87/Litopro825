@@ -150,7 +150,17 @@ class PapersTable
                     ->label('Activo')
                     ->boolean()
                     ->alignCenter(),
-                    
+
+                IconColumn::make('is_public')
+                    ->label('Público')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-globe-alt')
+                    ->falseIcon('heroicon-o-lock-closed')
+                    ->trueColor('success')
+                    ->falseColor('gray')
+                    ->alignCenter()
+                    ->tooltip(fn (bool $state): string => $state ? 'Visible para clientes' : 'Solo uso interno'),
+
                 TextColumn::make('created_at')
                     ->label('Creado')
                     ->dateTime()
@@ -351,6 +361,7 @@ class PapersTable
                         return $record->company_id === $currentCompanyId;
                     }),
                 EditAction::make()
+                    ->url(fn ($record) => \App\Filament\Resources\Papers\PaperResource::getUrl('edit', ['record' => $record]))
                     ->visible(function ($record) {
                         // Solo permitir editar papeles propios
                         if (!$record || !isset($record->company_id)) {
@@ -440,6 +451,13 @@ class PapersTable
                 ]),
             ])
             ->defaultSort('code')
-            ->recordUrl(null);
+            ->recordUrl(function ($record) {
+                // Solo redirigir a edición para papeles propios
+                $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                if ($record->company_id === $currentCompanyId) {
+                    return \App\Filament\Resources\Papers\PaperResource::getUrl('edit', ['record' => $record]);
+                }
+                return null;
+            });
     }
 }

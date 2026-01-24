@@ -243,7 +243,12 @@ class ProductionOrder extends Model
      */
     public function isActive(): bool
     {
-        return in_array($this->status, [ProductionStatus::SENT, ProductionStatus::IN_PROGRESS]);
+        return in_array($this->status, [
+            ProductionStatus::SENT,
+            ProductionStatus::RECEIVED,
+            ProductionStatus::IN_PROGRESS,
+            ProductionStatus::ON_HOLD,
+        ]);
     }
 
     /**
@@ -251,7 +256,11 @@ class ProductionOrder extends Model
      */
     public function canBeEdited(): bool
     {
-        return in_array($this->status, [ProductionStatus::DRAFT, ProductionStatus::SENT]);
+        return in_array($this->status, [
+            ProductionStatus::DRAFT,
+            ProductionStatus::SENT,
+            ProductionStatus::RECEIVED,
+        ]);
     }
 
     /**
@@ -259,7 +268,10 @@ class ProductionOrder extends Model
      */
     public function canBeStarted(): bool
     {
-        return $this->status === ProductionStatus::SENT && $this->supplier && $this->operator;
+        return in_array($this->status, [
+            ProductionStatus::DRAFT,
+            ProductionStatus::RECEIVED,
+        ]);
     }
 
     /**

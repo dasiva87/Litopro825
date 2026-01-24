@@ -84,6 +84,11 @@ class DigitalItemForm
                             ->label('Item Digital Activo')
                             ->default(true)
                             ->helperText('Solo los items activos aparecerán en las cotizaciones'),
+
+                        Toggle::make('is_public')
+                            ->label('Público para clientes')
+                            ->default(false)
+                            ->helperText('Si está activo, las litografías clientes podrán ver y usar este item digital'),
                     ]),
                     
                 Section::make('Ejemplos de Cálculo')

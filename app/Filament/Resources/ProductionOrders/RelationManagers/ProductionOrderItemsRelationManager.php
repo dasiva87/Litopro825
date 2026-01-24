@@ -401,9 +401,9 @@ class ProductionOrderItemsRelationManager extends RelationManager
                             ->rows(3),
                     ])
                     ->action(function ($record, array $data, $livewire) {
-                        $productionOrder = $livewire->getOwnerRecord();
-
-                        $productionOrder->updateItemStatus($record, $data['item_status'], [
+                        // $record is a ProductionOrderProcess - update it directly
+                        $record->update([
+                            'item_status' => $data['item_status'],
                             'produced_quantity' => $data['produced_quantity'] ?? 0,
                             'rejected_quantity' => $data['rejected_quantity'] ?? 0,
                             'production_notes' => $data['production_notes'] ?? null,

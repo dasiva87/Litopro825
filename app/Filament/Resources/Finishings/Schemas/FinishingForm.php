@@ -71,6 +71,10 @@ class FinishingForm
                         Toggle::make('active')
                             ->label('Activo')
                             ->default(true),
+                        Toggle::make('is_public')
+                            ->label('Público para clientes')
+                            ->default(false)
+                            ->helperText('Si está activo, las litografías clientes podrán ver y usar este acabado'),
                         Select::make('supplier_id')
                             ->label('Proveedor Externo')
                             ->helperText('Selecciona el proveedor que ofrece este acabado')

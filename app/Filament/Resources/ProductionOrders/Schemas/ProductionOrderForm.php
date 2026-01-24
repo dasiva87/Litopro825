@@ -32,7 +32,42 @@ class ProductionOrderForm
                                     ->options(ProductionStatus::class)
                                     ->required()
                                     ->default(ProductionStatus::DRAFT)
-                                    ->native(false),
+                                    ->native(false)
+                                    ->disabled(function ($record) {
+                                        // En creación siempre habilitado
+                                        if (!$record) {
+                                            return false;
+                                        }
+
+                                        $userCompanyId = auth()->user()->company_id;
+
+                                        // Orden RECIBIDA: yo soy el proveedor, puedo gestionar
+                                        if ($record->supplier_company_id === $userCompanyId) {
+                                            return false;
+                                        }
+
+                                        // Orden PROPIA: mi empresa la creó Y no tiene proveedor externo
+                                        if ($record->company_id === $userCompanyId && is_null($record->supplier_company_id)) {
+                                            return false;
+                                        }
+
+                                        // Orden ENVIADA: no puedo cambiar el estado
+                                        return true;
+                                    })
+                                    ->helperText(function ($record) {
+                                        if (!$record) {
+                                            return null;
+                                        }
+
+                                        $userCompanyId = auth()->user()->company_id;
+
+                                        // Verificar si es orden enviada (no puede gestionar)
+                                        if ($record->company_id === $userCompanyId && !is_null($record->supplier_company_id)) {
+                                            return '⚠️ No puedes cambiar el estado de órdenes enviadas a proveedores externos';
+                                        }
+
+                                        return null;
+                                    }),
                             ]),
 
                         Grid::make(1)
@@ -119,7 +154,7 @@ class ProductionOrderForm
                                     ->native(false)
                                     ->disabled()
                                     ->dehydrated(false)
-                                    ->visible(fn ($get) => in_array($get('status'), [ProductionStatus::IN_PROGRESS, ProductionStatus::COMPLETED])),
+                                    ->visible(fn ($get) => in_array($get('status'), [ProductionStatus::IN_PROGRESS, ProductionStatus::ON_HOLD, ProductionStatus::COMPLETED])),
 
                                 Components\DateTimePicker::make('completed_at')
                                     ->label('Fecha de Finalización')
@@ -177,7 +212,7 @@ class ProductionOrderForm
                             ->placeholder('Observaciones durante la producción...')
                             ->rows(3)
                             ->columnSpanFull()
-                            ->visible(fn ($get) => in_array($get('status'), [ProductionStatus::IN_PROGRESS, ProductionStatus::COMPLETED])),
+                            ->visible(fn ($get) => in_array($get('status'), [ProductionStatus::IN_PROGRESS, ProductionStatus::ON_HOLD, ProductionStatus::COMPLETED])),
                     ])
                     ->collapsible()
                     ->collapsed(),

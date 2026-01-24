@@ -91,17 +91,53 @@ class PrintingMachinesTable
                     
                 TextColumn::make('is_own')
                     ->label('Propiedad')
-                    ->formatStateUsing(fn (bool $state, $record): string => 
+                    ->formatStateUsing(fn (bool $state, $record): string =>
                         $state ? 'Propia' : ($record->supplier ? $record->supplier->name : 'Sin proveedor')
                     )
                     ->badge()
                     ->color(fn (bool $state): string => $state ? 'success' : 'secondary'),
-                    
+
+                TextColumn::make('company.name')
+                    ->label('Origen')
+                    ->getStateUsing(function ($record) {
+                        if (!$record || !isset($record->company_id)) {
+                            return '❓ Desconocido';
+                        }
+                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                        if ($record->company_id === $currentCompanyId) {
+                            return '🏢 Propio';
+                        }
+                        return '🖨️ ' . ($record->company->name ?? 'N/A');
+                    })
+                    ->badge()
+                    ->color(function ($record) {
+                        if (!$record || !isset($record->company_id)) {
+                            return 'warning';
+                        }
+                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                        return $record->company_id === $currentCompanyId ? 'success' : 'info';
+                    })
+                    ->visible(function () {
+                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                        $company = $currentCompanyId ? \App\Models\Company::find($currentCompanyId) : null;
+                        return $company && $company->isLitografia();
+                    }),
+
                 IconColumn::make('is_active')
                     ->label('Activa')
                     ->boolean()
                     ->alignCenter(),
-                    
+
+                IconColumn::make('is_public')
+                    ->label('Público')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-globe-alt')
+                    ->falseIcon('heroicon-o-lock-closed')
+                    ->trueColor('success')
+                    ->falseColor('gray')
+                    ->alignCenter()
+                    ->tooltip(fn (bool $state): string => $state ? 'Visible para clientes' : 'Solo uso interno'),
+
                 TextColumn::make('created_at')
                     ->label('Creado')
                     ->dateTime()
@@ -190,6 +226,6 @@ class PrintingMachinesTable
                 ]),
             ])
             ->defaultSort('name')
-            ->recordUrl(null);
+            ->recordUrl(fn ($record) => \App\Filament\Resources\PrintingMachines\PrintingMachineResource::getUrl('edit', ['record' => $record]));
     }
 }

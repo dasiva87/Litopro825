@@ -135,6 +135,13 @@ class DocumentsTable
                     EditAction::make()
                         ->visible(fn ($record) => $record->canEdit()),
 
+                    Action::make('view_pdf')
+                        ->label('Ver PDF')
+                        ->icon('heroicon-o-document')
+                        ->color('info')
+                        ->url(fn ($record) => route('documents.pdf', $record))
+                        ->openUrlInNewTab(),
+
                     Action::make('send_email')
                         ->label('Enviar email')
                         ->icon('heroicon-o-envelope')

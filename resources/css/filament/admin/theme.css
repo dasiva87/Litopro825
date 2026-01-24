@@ -181,6 +181,17 @@
    ======================================== */
 
 /* Ocultar el botón de submit grande que está fuera del wizard (solo en registro) */
-.fi-sc-wizard ~ .fi-sc-actions .fi-ac.fi-width-full {
+.fi-simple-main:has(.fi-sc-wizard) .fi-sc-actions > .fi-ac.fi-width-full {
     display: none !important;
+}
+
+/* ========================================
+   ESTILOS MÓVILES - PÁGINA GREMIO/POSTS
+   ======================================== */
+
+@media (max-width: 640px) {
+    /* Quitar padding del contenedor principal SOLO en página Gremio (que tiene el widget de posts) */
+    .fi-main:has(#posts-container-social-post-widget) {
+        padding-inline: 0 !important;
+    }
 }

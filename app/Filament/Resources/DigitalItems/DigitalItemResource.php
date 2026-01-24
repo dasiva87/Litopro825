@@ -11,6 +11,7 @@ use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
+use App\Models\Scopes\TenantScope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use UnitEnum;
@@ -64,21 +65,61 @@ class DigitalItemResource extends Resource
         $query = parent::getEloquentQuery()
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
+                TenantScope::class,
             ]);
 
-        // Aplicar filtro por empresa manualmente
-        $tenantId = config('app.current_tenant_id');
+        // Obtener company_id del usuario autenticado (más confiable en peticiones Livewire)
+        if (!auth()->check()) {
+            return $query->with(['company']);
+        }
 
-        if ($tenantId) {
-            $query->forTenant($tenantId);
-        } else {
-            // Fallback: usar company_id del usuario autenticado
-            if (auth()->check() && auth()->user()->company_id) {
-                $query->forCurrentTenant();
+        $currentCompanyId = auth()->user()->company_id;
+        $company = auth()->user()->company;
+
+        if ($currentCompanyId && $company) {
+            if ($company->isLitografia()) {
+                // Para litografías: mostrar sus propios items digitales + items de proveedores con relación aprobada y activa
+                $supplierCompanyIds = \App\Models\SupplierRelationship::where('client_company_id', $currentCompanyId)
+                    ->where('is_active', true)
+                    ->whereNotNull('approved_at')
+                    ->pluck('supplier_company_id')
+                    ->toArray();
+
+                $query->where(function ($query) use ($currentCompanyId, $supplierCompanyIds) {
+                    $query->where('company_id', $currentCompanyId) // Propios (todos)
+                          ->orWhere(function ($q) use ($supplierCompanyIds) {
+                              // De proveedores: solo los públicos
+                              $q->whereIn('company_id', $supplierCompanyIds)
+                                ->where('is_public', true);
+                          });
+                });
+            } else {
+                // Para otras empresas: solo sus propios items digitales
+                $query->where('company_id', $currentCompanyId);
             }
         }
 
-        return $query;
+        return $query->with(['company']);
+    }
+
+    public static function canEdit($record): bool
+    {
+        // Solo permitir editar items digitales propios
+        if (!$record || !isset($record->company_id)) {
+            return false;
+        }
+        $currentCompanyId = auth()->check() ? auth()->user()->company_id : null;
+        return $record->company_id === $currentCompanyId;
+    }
+
+    public static function canDelete($record): bool
+    {
+        // Solo permitir eliminar items digitales propios
+        if (!$record || !isset($record->company_id)) {
+            return false;
+        }
+        $currentCompanyId = auth()->check() ? auth()->user()->company_id : null;
+        return $record->company_id === $currentCompanyId;
     }
 
     public static function getGloballySearchableAttributes(): array

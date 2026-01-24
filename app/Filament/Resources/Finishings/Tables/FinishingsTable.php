@@ -52,9 +52,43 @@ class FinishingsTable
                         $record->supplier_id !== null => 'heroicon-o-building-office',
                         default => 'heroicon-o-question-mark-circle'
                     }),
+                TextColumn::make('company.name')
+                    ->label('Origen')
+                    ->getStateUsing(function ($record) {
+                        if (!$record || !isset($record->company_id)) {
+                            return '❓ Desconocido';
+                        }
+                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                        if ($record->company_id === $currentCompanyId) {
+                            return '🏢 Propio';
+                        }
+                        return '✨ ' . ($record->company->name ?? 'N/A');
+                    })
+                    ->badge()
+                    ->color(function ($record) {
+                        if (!$record || !isset($record->company_id)) {
+                            return 'warning';
+                        }
+                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                        return $record->company_id === $currentCompanyId ? 'success' : 'info';
+                    })
+                    ->visible(function () {
+                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                        $company = $currentCompanyId ? \App\Models\Company::find($currentCompanyId) : null;
+                        return $company && $company->isLitografia();
+                    }),
                 IconColumn::make('active')
                     ->label('Activo')
                     ->boolean(),
+                IconColumn::make('is_public')
+                    ->label('Público')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-globe-alt')
+                    ->falseIcon('heroicon-o-lock-closed')
+                    ->trueColor('success')
+                    ->falseColor('gray')
+                    ->alignCenter()
+                    ->tooltip(fn (bool $state): string => $state ? 'Visible para clientes' : 'Solo uso interno'),
                 TextColumn::make('ranges_count')
                     ->label('Rangos')
                     ->counts('ranges')

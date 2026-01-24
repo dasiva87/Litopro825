@@ -424,8 +424,12 @@ class ProductQuickHandler implements QuickActionHandlerInterface
 
             return Product::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
                 ->where(function ($query) use ($currentCompanyId, $supplierCompanyIds) {
-                    $query->forTenant($currentCompanyId)
-                        ->orWhereIn('company_id', $supplierCompanyIds);
+                    $query->forTenant($currentCompanyId) // Propios (todos)
+                        ->orWhere(function ($q) use ($supplierCompanyIds) {
+                            // De proveedores: solo los públicos
+                            $q->whereIn('company_id', $supplierCompanyIds)
+                                ->where('is_public', true);
+                        });
                 })
                 ->where('active', true)
                 ->with('company')

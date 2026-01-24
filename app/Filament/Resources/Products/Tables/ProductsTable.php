@@ -153,7 +153,18 @@ class ProductsTable
                     ->label('Activo')
                     ->boolean()
                     ->toggleable(),
-                    
+
+                IconColumn::make('is_public')
+                    ->label('Público')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-globe-alt')
+                    ->falseIcon('heroicon-o-lock-closed')
+                    ->trueColor('success')
+                    ->falseColor('gray')
+                    ->alignCenter()
+                    ->tooltip(fn (bool $state): string => $state ? 'Visible para clientes' : 'Solo uso interno')
+                    ->toggleable(),
+
                 TextColumn::make('created_at')
                     ->label('Creado')
                     ->dateTime()

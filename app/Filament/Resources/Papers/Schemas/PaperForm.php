@@ -154,6 +154,11 @@ class PaperForm
                             ->label('Activo')
                             ->default(true)
                             ->helperText('Solo los papeles activos aparecen en cotizaciones'),
+
+                        Toggle::make('is_public')
+                            ->label('Público para clientes')
+                            ->default(false)
+                            ->helperText('Si está activo, las litografías clientes podrán ver y usar este papel'),
                     ]),
             ]);
     }

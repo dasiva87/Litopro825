@@ -26,6 +26,7 @@ class PrintingMachine extends Model
         'is_own',
         'supplier_id',
         'is_active',
+        'is_public',
     ];
 
     protected $casts = [
@@ -37,6 +38,7 @@ class PrintingMachine extends Model
         'setup_cost' => 'decimal:2',
         'is_own' => 'boolean',
         'is_active' => 'boolean',
+        'is_public' => 'boolean',
     ];
 
     public function company(): BelongsTo
