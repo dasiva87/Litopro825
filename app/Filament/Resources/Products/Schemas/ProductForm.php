@@ -55,6 +55,9 @@ class ProductForm
                             ->disk('r2') // Cloudflare R2
                             ->directory('products')
                             ->maxSize(2048)
+                            ->validationMessages([
+                                'max' => 'El archivo es demasiado grande. Tamaño máximo permitido: 2 MB.',
+                            ])
                             ->columnSpanFull(),
 
                         FileUpload::make('image_2')
@@ -63,6 +66,9 @@ class ProductForm
                             ->disk('r2') // Cloudflare R2
                             ->directory('products')
                             ->maxSize(2048)
+                            ->validationMessages([
+                                'max' => 'El archivo es demasiado grande. Tamaño máximo permitido: 2 MB.',
+                            ])
                             ->columnSpanFull(),
 
                         FileUpload::make('image_3')
@@ -71,6 +77,9 @@ class ProductForm
                             ->disk('r2') // Cloudflare R2
                             ->directory('products')
                             ->maxSize(2048)
+                            ->validationMessages([
+                                'max' => 'El archivo es demasiado grande. Tamaño máximo permitido: 2 MB.',
+                            ])
                             ->columnSpanFull(),
                     ])
                     ->collapsible()

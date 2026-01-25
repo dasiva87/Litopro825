@@ -29,7 +29,13 @@ class PaperForm
                                     ->unique(ignoreRecord: true, modifyRuleUsing: function ($rule) {
                                         return $rule->where('company_id', auth()->user()->company_id);
                                     })
-                                    ->alphaDash(),
+                                    ->alphaDash()
+                                    ->validationMessages([
+                                        'alpha_dash' => 'El código solo puede contener letras, números, guiones (-) y guiones bajos (_). No se permiten espacios.',
+                                        'unique' => 'Este código ya está en uso. Por favor, elige otro.',
+                                        'required' => 'El código es obligatorio.',
+                                        'max' => 'El código no puede tener más de 50 caracteres.',
+                                    ]),
                                     
                                 TextInput::make('name')
                                     ->label('Nombre')

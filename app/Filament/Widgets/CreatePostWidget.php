@@ -5,6 +5,7 @@ namespace App\Filament\Widgets;
 use App\Models\SocialPost;
 use App\Services\NotificationService;
 use Filament\Widgets\Widget;
+use Intervention\Image\Laravel\Facades\Image;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -44,10 +45,10 @@ class CreatePostWidget extends Widget
             return;
         }
 
-        // Manejar la carga de imagen
+        // Manejar la carga de imagen con recorte a 1080x1080
         $imagePath = null;
         if ($this->image) {
-            $imagePath = $this->image->store('social-posts', 'r2');
+            $imagePath = $this->processAndStoreImage($this->image);
         }
 
         $post = SocialPost::create([
@@ -101,5 +102,41 @@ class CreatePostWidget extends Widget
             'materials' => 'Materiales',
             'collaboration' => 'Colaboración'
         ];
+    }
+
+    /**
+     * Procesar imagen: recortar a 1080x1080 y guardar
+     */
+    protected function processAndStoreImage($uploadedFile): ?string
+    {
+        try {
+            // Leer la imagen con Intervention
+            $image = Image::read($uploadedFile->getRealPath());
+
+            // Obtener dimensiones actuales
+            $width = $image->width();
+            $height = $image->height();
+
+            // Si es más grande que 1080x1080, recortar desde el centro
+            if ($width > 1080 || $height > 1080) {
+                // Primero redimensionar manteniendo proporción para que el lado menor sea 1080
+                $image->coverDown(1080, 1080);
+            }
+
+            // Generar nombre único
+            $filename = 'social-posts/' . uniqid() . '_' . time() . '.jpg';
+
+            // Convertir a JPG y comprimir
+            $encodedImage = $image->toJpeg(85);
+
+            // Guardar en R2
+            \Illuminate\Support\Facades\Storage::disk('r2')->put($filename, (string) $encodedImage);
+
+            return $filename;
+        } catch (\Exception $e) {
+            \Log::error('Error procesando imagen de post: ' . $e->getMessage());
+            // Si falla el procesamiento, guardar la imagen original
+            return $uploadedFile->store('social-posts', 'r2');
+        }
     }
 }
