@@ -7,6 +7,7 @@ use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
@@ -255,120 +256,105 @@ class ProductsTable
                     ->toggle(),
             ])
             ->actions([
-                Action::make('register_inbound')
-                    ->label('Entrada Stock')
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->color('success')
-                    ->form([
-                        TextInput::make('quantity')
-                            ->label('Cantidad')
-                            ->required()
-                            ->numeric()
-                            ->minValue(1)
-                            ->default(1)
-                            ->suffix('uds')
-                            ->live()
-                            ->helperText(fn ($record) => "Stock actual: {$record->stock} uds"),
+                ActionGroup::make([
+                    Action::make('register_inbound')
+                        ->label('Entrada Stock')
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->color('success')
+                        ->form([
+                            TextInput::make('quantity')
+                                ->label('Cantidad')
+                                ->required()
+                                ->numeric()
+                                ->minValue(1)
+                                ->default(1)
+                                ->suffix('uds')
+                                ->live()
+                                ->helperText(fn ($record) => "Stock actual: {$record->stock} uds"),
 
-                        Select::make('reason')
-                            ->label('Motivo')
-                            ->required()
-                            ->options([
-                                'purchase' => 'Compra',
-                                'return' => 'Devolución',
-                                'adjustment' => 'Ajuste de inventario',
-                                'production' => 'Producción',
-                                'initial_stock' => 'Stock inicial',
-                            ])
-                            ->default('purchase'),
+                            Select::make('reason')
+                                ->label('Motivo')
+                                ->required()
+                                ->options([
+                                    'purchase' => 'Compra',
+                                    'return' => 'Devolución',
+                                    'adjustment' => 'Ajuste de inventario',
+                                    'production' => 'Producción',
+                                    'initial_stock' => 'Stock inicial',
+                                ])
+                                ->default('purchase'),
 
-                        TextInput::make('unit_cost')
-                            ->label('Costo Unitario (opcional)')
-                            ->numeric()
-                            ->prefix('$')
-                            ->minValue(0)
-                            ->helperText('Dejar en blanco si no aplica'),
+                            TextInput::make('unit_cost')
+                                ->label('Costo Unitario (opcional)')
+                                ->numeric()
+                                ->prefix('$')
+                                ->minValue(0)
+                                ->helperText('Dejar en blanco si no aplica'),
 
-                        TextInput::make('batch_number')
-                            ->label('Número de Lote (opcional)')
-                            ->maxLength(255)
-                            ->placeholder('Ej: LOTE-2025-001'),
+                            TextInput::make('batch_number')
+                                ->label('Número de Lote (opcional)')
+                                ->maxLength(255)
+                                ->placeholder('Ej: LOTE-2025-001'),
 
-                        Textarea::make('notes')
-                            ->label('Notas')
-                            ->maxLength(500)
-                            ->rows(3)
-                            ->placeholder('Descripción del movimiento...'),
-                    ])
-                    ->action(function ($record, array $data) {
-                        $stockService = app(StockMovementService::class);
+                            Textarea::make('notes')
+                                ->label('Notas')
+                                ->maxLength(500)
+                                ->rows(3)
+                                ->placeholder('Descripción del movimiento...'),
+                        ])
+                        ->action(function ($record, array $data) {
+                            $stockService = app(StockMovementService::class);
 
-                        try {
-                            $movement = $stockService->recordInbound(
-                                stockable: $record,
-                                reason: $data['reason'],
-                                quantity: (int) $data['quantity'],
-                                unitCost: !empty($data['unit_cost']) ? (float) $data['unit_cost'] : null,
-                                batchNumber: $data['batch_number'] ?? null,
-                                notes: $data['notes'] ?? null
-                            );
+                            try {
+                                $movement = $stockService->recordInbound(
+                                    stockable: $record,
+                                    reason: $data['reason'],
+                                    quantity: (int) $data['quantity'],
+                                    unitCost: !empty($data['unit_cost']) ? (float) $data['unit_cost'] : null,
+                                    batchNumber: $data['batch_number'] ?? null,
+                                    notes: $data['notes'] ?? null
+                                );
 
-                            Notification::make()
-                                ->success()
-                                ->title('Entrada de stock registrada')
-                                ->body("Se agregaron {$data['quantity']} unidades. Nuevo stock: {$movement->new_stock}")
-                                ->send();
-                        } catch (\Exception $e) {
-                            Notification::make()
-                                ->danger()
-                                ->title('Error al registrar entrada')
-                                ->body($e->getMessage())
-                                ->send();
-                        }
-                    })
-                    ->visible(function ($record) {
-                        // Solo para productos propios
-                        if (!$record || !isset($record->company_id)) {
-                            return false;
-                        }
-                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
-                        return $record->company_id === $currentCompanyId;
-                    }),
+                                Notification::make()
+                                    ->success()
+                                    ->title('Entrada de stock registrada')
+                                    ->body("Se agregaron {$data['quantity']} unidades. Nuevo stock: {$movement->new_stock}")
+                                    ->send();
+                            } catch (\Exception $e) {
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Error al registrar entrada')
+                                    ->body($e->getMessage())
+                                    ->send();
+                            }
+                        })
+                        ->visible(function ($record) {
+                            // Solo para productos propios
+                            $currentCompanyId = auth()->user()->company_id ?? null;
+                            return $record->company_id === $currentCompanyId;
+                        }),
 
-                EditAction::make()
-                    ->visible(function ($record) {
-                        // Solo permitir editar productos propios
-                        if (!$record || !isset($record->company_id)) {
-                            return false;
-                        }
-                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
-                        return $record->company_id === $currentCompanyId;
-                    }),
-                DeleteAction::make()
-                    ->visible(function ($record) {
-                        // Solo permitir eliminar productos propios
-                        if (!$record || !isset($record->company_id)) {
-                            return false;
-                        }
-                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
-                        return $record->company_id === $currentCompanyId;
-                    }),
-                ForceDeleteAction::make()
-                    ->visible(function ($record) {
-                        if (!$record || !isset($record->company_id)) {
-                            return false;
-                        }
-                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
-                        return $record->company_id === $currentCompanyId;
-                    }),
-                RestoreAction::make()
-                    ->visible(function ($record) {
-                        if (!$record || !isset($record->company_id)) {
-                            return false;
-                        }
-                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
-                        return $record->company_id === $currentCompanyId;
-                    }),
+                    EditAction::make()
+                        ->visible(function ($record) {
+                            $currentCompanyId = auth()->user()->company_id ?? null;
+                            return $record->company_id === $currentCompanyId;
+                        }),
+                    DeleteAction::make()
+                        ->visible(function ($record) {
+                            $currentCompanyId = auth()->user()->company_id ?? null;
+                            return $record->company_id === $currentCompanyId;
+                        }),
+                    ForceDeleteAction::make()
+                        ->visible(function ($record) {
+                            $currentCompanyId = auth()->user()->company_id ?? null;
+                            return $record->company_id === $currentCompanyId;
+                        }),
+                    RestoreAction::make()
+                        ->visible(function ($record) {
+                            $currentCompanyId = auth()->user()->company_id ?? null;
+                            return $record->company_id === $currentCompanyId;
+                        }),
+                ]),
             ])
             ->bulkActions([
                 BulkActionGroup::make([

@@ -6,7 +6,24 @@ use App\Models\SimpleItem;
 use App\Models\Paper;
 use App\Models\PrintingMachine;
 
-
+/**
+ * Servicio principal de cálculo para SimpleItem
+ *
+ * TERMINOLOGÍA:
+ * - PLIEGO (100×70cm): Papel del proveedor (tamaño original)
+ * - HOJA (ej: 50×35cm): Corte del pliego que va a la máquina de impresión
+ * - TRABAJO (ej: 10×15cm): Producto final (volante, tarjeta, etc.)
+ *
+ * FLUJO DE CÁLCULO:
+ * 1. PLIEGO → [divisor] → HOJAS (cuántas HOJAS salen de un PLIEGO)
+ * 2. HOJA → [montaje] → TRABAJOS (cuántos TRABAJOS caben en una HOJA)
+ *
+ * CAMPOS DEL MODELO:
+ * - paper->width/height = dimensiones del PLIEGO
+ * - printingMachine->max_width/max_height = dimensiones de la HOJA (automático)
+ * - custom_paper_width/height = dimensiones de la HOJA (manual)
+ * - horizontal_size/vertical_size = dimensiones del TRABAJO
+ */
 class SimpleItemCalculatorService
 {
     private CuttingCalculatorService $cuttingCalculator;
@@ -19,55 +36,56 @@ class SimpleItemCalculatorService
     }
 
     /**
-     * PASO 0: Calcular montaje puro (cuántas copias caben en un pliego)
+     * PASO 0: Calcular montaje puro (cuántos TRABAJOS caben en una HOJA)
      * Usa MountingCalculatorService para cálculo genérico
-     * Soporta montaje automático (máquina) y manual (papel personalizado)
+     * Soporta montaje automático (máquina) y manual (hoja personalizada)
      */
     public function calculatePureMounting(SimpleItem $item): ?array
     {
-        // Determinar dimensiones según tipo de montaje
-        $machineWidth = null;
-        $machineHeight = null;
+        // Determinar dimensiones de la HOJA según tipo de montaje
+        $formWidth = null;
+        $formHeight = null;
         $mountingType = $item->mounting_type ?? 'automatic';
 
         if ($mountingType === 'custom') {
-            // Montaje manual: usar dimensiones del papel personalizado
+            // Montaje manual: usar dimensiones de la HOJA personalizada
             if (!$item->custom_paper_width || !$item->custom_paper_height) {
                 return null; // No se puede calcular sin dimensiones custom
             }
-            $machineWidth = $item->custom_paper_width;
-            $machineHeight = $item->custom_paper_height;
+            $formWidth = $item->custom_paper_width;
+            $formHeight = $item->custom_paper_height;
         } else {
-            // Montaje automático: usar dimensiones de la máquina
+            // Montaje automático: usar dimensiones de la máquina como HOJA
             if (!$item->printingMachine) {
                 return null;
             }
-            $machineWidth = $item->printingMachine->max_width ?? 50.0;
-            $machineHeight = $item->printingMachine->max_height ?? 70.0;
+            $formWidth = $item->printingMachine->max_width ?? 50.0;
+            $formHeight = $item->printingMachine->max_height ?? 70.0;
         }
 
-        // Calcular montaje usando el nuevo servicio
+        // Calcular montaje: cuántos TRABAJOS caben en una HOJA
         // Usar margen configurable del item, o 1.0cm por defecto
         $marginPerSide = $item->margin_per_side ?? 1.0;
 
         $mounting = $this->mountingCalculator->calculateMounting(
-            workWidth: $item->horizontal_size,
-            workHeight: $item->vertical_size,
-            machineWidth: $machineWidth,
-            machineHeight: $machineHeight,
+            workWidth: $item->horizontal_size,    // Ancho del TRABAJO
+            workHeight: $item->vertical_size,     // Alto del TRABAJO
+            machineWidth: $formWidth,             // Ancho de la HOJA
+            machineHeight: $formHeight,           // Alto de la HOJA
             marginPerSide: $marginPerSide
         );
 
         // Agregar información del tipo de montaje usado
         $mounting['mounting_type'] = $mountingType;
-        $mounting['paper_width'] = $machineWidth;
-        $mounting['paper_height'] = $machineHeight;
+        $mounting['form_width'] = $formWidth;     // Ancho de la HOJA
+        $mounting['form_height'] = $formHeight;   // Alto de la HOJA
 
-        // Si necesita pliegos de papel, calcular usando el mejor montaje
+        // Si necesita PLIEGOS de papel, calcular usando el mejor montaje
         if ($item->paper && $item->quantity > 0) {
             $bestMounting = $mounting['maximum'];
 
             if ($bestMounting['copies_per_sheet'] > 0) {
+                // Calcular cuántas HOJAS se necesitan para los TRABAJOS
                 $sheetsInfo = $this->mountingCalculator->calculateRequiredSheets(
                     requiredCopies: $item->quantity + ($item->sobrante_papel ?? 0),
                     copiesPerSheet: $bestMounting['copies_per_sheet']
@@ -77,8 +95,8 @@ class SimpleItemCalculatorService
                     workWidth: $bestMounting['work_width'],
                     workHeight: $bestMounting['work_height'],
                     copiesPerSheet: $bestMounting['copies_per_sheet'],
-                    usableWidth: $machineWidth - 2.0,  // Restar márgenes
-                    usableHeight: $machineHeight - 2.0
+                    usableWidth: $formWidth - 2.0,  // Restar márgenes
+                    usableHeight: $formHeight - 2.0
                 );
 
                 $mounting['sheets_info'] = $sheetsInfo;
@@ -90,76 +108,100 @@ class SimpleItemCalculatorService
     }
 
     /**
-     * NUEVO PASO 1: Calcular montaje con sistema de cortes integrado
+     * PASO 1: Calcular montaje con sistema de cortes integrado
      *
-     * TERMINOLOGÍA CORRECTA:
-     * - PLIEGO (Paper Sheet): Papel como viene del proveedor (70x100cm)
-     * - HOJA (Printing Form): Corte del pliego donde se imprime (50x70cm - tamaño máquina)
-     * - COPIA (Copy): Producto final (10x15cm volante)
+     * TERMINOLOGÍA:
+     * - PLIEGO (100×70cm): Papel del proveedor (tamaño original)
+     * - HOJA (ej: 50×35cm): Corte del pliego que va a la máquina
+     * - TRABAJO (ej: 10×15cm): Producto final (volante, tarjeta, etc.)
      *
-     * FLUJO: PLIEGO → [divisor] → HOJAS → [mounting] → COPIAS
+     * FLUJO: PLIEGO → [divisor] → HOJAS → [montaje] → TRABAJOS
      */
     public function calculateMountingWithCuts(SimpleItem $item): ?array
     {
-        if (!$item->paper || !$item->printingMachine) {
+        if (!$item->paper) {
             return null;
         }
 
-        // PASO 1A: Calcular montaje (cuántas COPIAS caben en una HOJA)
+        // Determinar dimensiones de la HOJA según tipo de montaje
+        $mountingType = $item->mounting_type ?? 'automatic';
+        $formWidth = null;
+        $formHeight = null;
+
+        if ($mountingType === 'custom') {
+            // Montaje manual: usar dimensiones de la HOJA personalizada
+            if (!$item->custom_paper_width || !$item->custom_paper_height) {
+                return null; // No se puede calcular sin dimensiones custom
+            }
+            $formWidth = $item->custom_paper_width;
+            $formHeight = $item->custom_paper_height;
+        } else {
+            // Montaje automático: usar dimensiones de la máquina como HOJA
+            if (!$item->printingMachine) {
+                return null;
+            }
+            $formWidth = $item->printingMachine->max_width ?? 50.0;
+            $formHeight = $item->printingMachine->max_height ?? 70.0;
+        }
+
+        // PASO 1A: Calcular montaje (cuántos TRABAJOS caben en una HOJA)
         // Usar margen configurable del item, o 1.0cm por defecto
         $marginPerSide = $item->margin_per_side ?? 1.0;
 
         $mountingResult = $this->mountingCalculator->calculateMounting(
-            workWidth: $item->horizontal_size,
-            workHeight: $item->vertical_size,
-            machineWidth: $item->printingMachine->max_width ?? 50.0,
-            machineHeight: $item->printingMachine->max_height ?? 70.0,
+            workWidth: $item->horizontal_size,    // Ancho del TRABAJO
+            workHeight: $item->vertical_size,     // Alto del TRABAJO
+            machineWidth: $formWidth,             // Ancho de la HOJA
+            machineHeight: $formHeight,           // Alto de la HOJA
             marginPerSide: $marginPerSide
         );
 
-        $copiesPerForm = $mountingResult['maximum']['copies_per_sheet']; // Copias por hoja
+        $worksPerForm = $mountingResult['maximum']['copies_per_sheet']; // TRABAJOS por HOJA
 
-        if ($copiesPerForm <= 0) {
-            return null; // No cabe ni una copia
+        if ($worksPerForm <= 0) {
+            return null; // No cabe ni un TRABAJO
         }
 
         // PASO 1B: Calcular divisor (cuántas HOJAS salen de un PLIEGO)
         $divisorResult = $this->cuttingCalculator->calculateCuts(
-            paperWidth: $item->paper->width,
-            paperHeight: $item->paper->height,
-            cutWidth: $item->printingMachine->max_width ?? 50.0,
-            cutHeight: $item->printingMachine->max_height ?? 70.0,
-            desiredCuts: 0, // Solo calcular divisor, no pliegos
+            paperWidth: $item->paper->width,      // Ancho del PLIEGO
+            paperHeight: $item->paper->height,    // Alto del PLIEGO
+            cutWidth: $formWidth,                 // Ancho de la HOJA
+            cutHeight: $formHeight,               // Alto de la HOJA
+            desiredCuts: 0,                       // Solo calcular divisor
             orientation: 'maximum'
         );
 
-        $formsPerPaperSheet = $divisorResult['cutsPerSheet']; // Hojas por pliego
+        $formsPerPaperSheet = $divisorResult['cutsPerSheet']; // HOJAS por PLIEGO
 
         if ($formsPerPaperSheet <= 0) {
-            return null; // El tamaño de hoja no cabe en el pliego
+            return null; // La HOJA no cabe en el PLIEGO
         }
 
         // PASO 1C: Calcular PLIEGOS necesarios
         $totalQuantity = (int) $item->quantity + ($item->sobrante_papel ?? 0);
-        $formsNeeded = ceil($totalQuantity / $copiesPerForm); // Hojas necesarias
-        $paperSheetsNeeded = ceil($formsNeeded / $formsPerPaperSheet); // Pliegos necesarios
+        $formsNeeded = ceil($totalQuantity / $worksPerForm);           // HOJAS necesarias
+        $paperSheetsNeeded = ceil($formsNeeded / $formsPerPaperSheet); // PLIEGOS necesarios
 
         // PASO 1D: Calcular HOJAS totales a imprimir
         $totalPrintingForms = $paperSheetsNeeded * $formsPerPaperSheet;
 
-        // PASO 1E: Calcular COPIAS producidas
-        $totalCopiesProduced = $totalPrintingForms * $copiesPerForm;
+        // PASO 1E: Calcular TRABAJOS producidos
+        $totalWorksProduced = $totalPrintingForms * $worksPerForm;
 
         return [
             'mounting' => $mountingResult['maximum'],
-            'copies_per_form' => $copiesPerForm,                    // Copias por hoja
-            'forms_per_paper_sheet' => $formsPerPaperSheet,         // Hojas por pliego (divisor)
-            'forms_needed' => $formsNeeded,                         // Hojas necesarias
-            'paper_sheets_needed' => $paperSheetsNeeded,            // Pliegos necesarios
-            'printing_forms_needed' => $totalPrintingForms,         // Hojas a imprimir
-            'total_copies_produced' => $totalCopiesProduced,        // Copias producidas
-            'waste_copies' => $totalCopiesProduced - $totalQuantity,
-            'paper_cost' => $paperSheetsNeeded * $item->paper->cost_per_sheet,
+            'mounting_type' => $mountingType,                       // Tipo de montaje usado
+            'form_width' => $formWidth,                             // Ancho de la HOJA
+            'form_height' => $formHeight,                           // Alto de la HOJA
+            'copies_per_form' => $worksPerForm,                     // TRABAJOS por HOJA (montaje)
+            'forms_per_paper_sheet' => $formsPerPaperSheet,         // HOJAS por PLIEGO (divisor)
+            'forms_needed' => $formsNeeded,                         // HOJAS necesarias
+            'paper_sheets_needed' => $paperSheetsNeeded,            // PLIEGOS necesarios
+            'printing_forms_needed' => $totalPrintingForms,         // HOJAS a imprimir
+            'total_copies_produced' => $totalWorksProduced,         // TRABAJOS producidos
+            'waste_copies' => $totalWorksProduced - $totalQuantity, // TRABAJOS de desperdicio
+            'paper_cost' => $paperSheetsNeeded * ($item->paper->price ?? $item->paper->cost_per_sheet),
             'utilization_percentage' => $divisorResult['usedAreaPercentage'],
             'divisor_layout' => [
                 'vertical_cuts' => $divisorResult['verticalCuts'],
@@ -168,7 +210,7 @@ class SimpleItemCalculatorService
             'raw_divisor_result' => $divisorResult,
 
             // LEGACY KEYS (mantener por compatibilidad temporal)
-            'copies_per_mounting' => $copiesPerForm,
+            'copies_per_mounting' => $worksPerForm,
             'divisor' => $formsPerPaperSheet,
             'impressions_needed' => $formsNeeded,
             'sheets_needed' => $paperSheetsNeeded,
@@ -221,7 +263,7 @@ class SimpleItemCalculatorService
                     sheetsNeeded: $result['sheetsNeeded'],
                     utilizationPercentage: $result['usedAreaPercentage'],
                     wastePercentage: $result['wastedAreaPercentage'],
-                    paperCost: $result['sheetsNeeded'] * $item->paper->cost_per_sheet,
+                    paperCost: $result['sheetsNeeded'] * ($item->paper->price ?? $item->paper->cost_per_sheet),
                     cuttingLayout: [
                         'vertical_cuts' => $result['verticalCuts'],
                         'horizontal_cuts' => $result['horizontalCuts']

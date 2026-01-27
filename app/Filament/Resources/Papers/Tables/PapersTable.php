@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Papers\Tables;
 
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -272,113 +273,95 @@ class PapersTable
                 TrashedFilter::make(),
             ])
             ->actions([
-                Action::make('register_inbound')
-                    ->label('Entrada Stock')
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->color('success')
-                    ->form([
-                        TextInput::make('quantity')
-                            ->label('Cantidad de Pliegos')
-                            ->required()
-                            ->numeric()
-                            ->minValue(1)
-                            ->default(1)
-                            ->suffix('pliegos')
-                            ->live()
-                            ->helperText(fn ($record) => "Stock actual: {$record->stock} pliegos"),
+                ActionGroup::make([
+                    Action::make('register_inbound')
+                        ->label('Entrada Stock')
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->color('success')
+                        ->form([
+                            TextInput::make('quantity')
+                                ->label('Cantidad de Pliegos')
+                                ->required()
+                                ->numeric()
+                                ->minValue(1)
+                                ->default(1)
+                                ->suffix('pliegos')
+                                ->live()
+                                ->helperText(fn ($record) => "Stock actual: {$record->stock} pliegos"),
 
-                        Select::make('reason')
-                            ->label('Motivo')
-                            ->required()
-                            ->options([
-                                'purchase' => 'Compra',
-                                'return' => 'Devolución',
-                                'adjustment' => 'Ajuste de inventario',
-                                'initial_stock' => 'Stock inicial',
-                            ])
-                            ->default('purchase'),
+                            Select::make('reason')
+                                ->label('Motivo')
+                                ->required()
+                                ->options([
+                                    'purchase' => 'Compra',
+                                    'return' => 'Devolución',
+                                    'adjustment' => 'Ajuste de inventario',
+                                    'initial_stock' => 'Stock inicial',
+                                ])
+                                ->default('purchase'),
 
-                        TextInput::make('unit_cost')
-                            ->label('Costo por Pliego (opcional)')
-                            ->numeric()
-                            ->prefix('$')
-                            ->minValue(0)
-                            ->helperText('Dejar en blanco si no aplica'),
+                            TextInput::make('unit_cost')
+                                ->label('Costo por Pliego (opcional)')
+                                ->numeric()
+                                ->prefix('$')
+                                ->minValue(0)
+                                ->helperText('Dejar en blanco si no aplica'),
 
-                        TextInput::make('batch_number')
-                            ->label('Número de Lote (opcional)')
-                            ->maxLength(255)
-                            ->placeholder('Ej: PAPEL-2025-001'),
+                            TextInput::make('batch_number')
+                                ->label('Número de Lote (opcional)')
+                                ->maxLength(255)
+                                ->placeholder('Ej: PAPEL-2025-001'),
 
-                        Textarea::make('notes')
-                            ->label('Notas')
-                            ->maxLength(500)
-                            ->rows(3)
-                            ->placeholder('Descripción del movimiento...'),
-                    ])
-                    ->action(function ($record, array $data) {
-                        $stockService = app(StockMovementService::class);
+                            Textarea::make('notes')
+                                ->label('Notas')
+                                ->maxLength(500)
+                                ->rows(3)
+                                ->placeholder('Descripción del movimiento...'),
+                        ])
+                        ->action(function ($record, array $data) {
+                            $stockService = app(StockMovementService::class);
 
-                        try {
-                            $movement = $stockService->recordInbound(
-                                stockable: $record,
-                                reason: $data['reason'],
-                                quantity: (int) $data['quantity'],
-                                unitCost: !empty($data['unit_cost']) ? (float) $data['unit_cost'] : null,
-                                batchNumber: $data['batch_number'] ?? null,
-                                notes: $data['notes'] ?? null
-                            );
+                            try {
+                                $movement = $stockService->recordInbound(
+                                    stockable: $record,
+                                    reason: $data['reason'],
+                                    quantity: (int) $data['quantity'],
+                                    unitCost: !empty($data['unit_cost']) ? (float) $data['unit_cost'] : null,
+                                    batchNumber: $data['batch_number'] ?? null,
+                                    notes: $data['notes'] ?? null
+                                );
 
-                            Notification::make()
-                                ->success()
-                                ->title('Entrada de stock registrada')
-                                ->body("Se agregaron {$data['quantity']} pliegos. Nuevo stock: {$movement->new_stock}")
-                                ->send();
-                        } catch (\Exception $e) {
-                            Notification::make()
-                                ->danger()
-                                ->title('Error al registrar entrada')
-                                ->body($e->getMessage())
-                                ->send();
-                        }
-                    })
-                    ->visible(function ($record) {
-                        // Solo para papeles propios
-                        if (!$record || !isset($record->company_id)) {
-                            return false;
-                        }
-                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
-                        return $record->company_id === $currentCompanyId;
-                    }),
+                                Notification::make()
+                                    ->success()
+                                    ->title('Entrada de stock registrada')
+                                    ->body("Se agregaron {$data['quantity']} pliegos. Nuevo stock: {$movement->new_stock}")
+                                    ->send();
+                            } catch (\Exception $e) {
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Error al registrar entrada')
+                                    ->body($e->getMessage())
+                                    ->send();
+                            }
+                        })
+                        ->visible(function ($record) {
+                            $currentCompanyId = auth()->user()->company_id ?? null;
+                            return $record->company_id === $currentCompanyId;
+                        }),
 
-                ViewAction::make()
-                    ->visible(function ($record) {
-                        // Solo permitir ver papeles propios
-                        if (!$record || !isset($record->company_id)) {
-                            return false;
-                        }
-                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
-                        return $record->company_id === $currentCompanyId;
-                    }),
-                EditAction::make()
-                    ->url(fn ($record) => \App\Filament\Resources\Papers\PaperResource::getUrl('edit', ['record' => $record]))
-                    ->visible(function ($record) {
-                        // Solo permitir editar papeles propios
-                        if (!$record || !isset($record->company_id)) {
-                            return false;
-                        }
-                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
-                        return $record->company_id === $currentCompanyId;
-                    }),
-                DeleteAction::make()
-                    ->visible(function ($record) {
-                        // Solo permitir eliminar papeles propios
-                        if (!$record || !isset($record->company_id)) {
-                            return false;
-                        }
-                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
-                        return $record->company_id === $currentCompanyId;
-                    }),
+                    ViewAction::make(),
+                    EditAction::make()
+                        ->url(fn ($record) => \App\Filament\Resources\Papers\PaperResource::getUrl('edit', ['record' => $record]))
+                        ->visible(function ($record) {
+                            $currentCompanyId = auth()->user()->company_id ?? null;
+                            return $record->company_id === $currentCompanyId;
+                        }),
+                    DeleteAction::make()
+                        ->visible(function ($record) {
+                            $currentCompanyId = auth()->user()->company_id ?? null;
+                            return $record->company_id === $currentCompanyId;
+                        }),
+                ]),
             ])
             ->bulkActions([
                 BulkActionGroup::make([

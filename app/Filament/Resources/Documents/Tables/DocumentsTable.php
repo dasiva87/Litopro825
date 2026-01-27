@@ -459,33 +459,33 @@ class DocumentsTable
                                 // Items que van como 'papel'
                                 if ($item->itemable_type === 'App\Models\SimpleItem' && $item->itemable && $item->itemable->paper) {
                                     $orderType = 'papel';
-                                    $supplierId = $item->itemable->paper->company_id;
+                                    $supplierId = $item->itemable->paper->supplier_id ?? 0;
                                 } elseif ($item->itemable_type === 'App\Models\TalonarioItem' && $item->itemable) {
                                     // Para talonarios, obtener el proveedor principal de papel
-                                    $supplierId = $item->itemable->getMainPaperSupplier();
+                                    $supplierId = $item->itemable->getMainPaperSupplier() ?? 0;
                                     if ($supplierId) {
                                         $orderType = 'papel';
                                     }
                                 } elseif ($item->itemable_type === 'App\Models\MagazineItem' && $item->itemable) {
                                     // Para revistas, obtener el proveedor principal de papel
-                                    $supplierId = $item->itemable->getMainPaperSupplier();
+                                    $supplierId = $item->itemable->getMainPaperSupplier() ?? 0;
                                     if ($supplierId) {
                                         $orderType = 'papel';
                                     }
                                 } elseif ($item->itemable_type === 'App\Models\Paper' && $item->itemable) {
                                     $orderType = 'papel';
-                                    $supplierId = $item->itemable->company_id;
+                                    $supplierId = $item->itemable->supplier_id ?? 0;
                                 }
                                 // Items que van como 'producto'
                                 elseif ($item->itemable_type === 'App\Models\Product' && $item->itemable) {
                                     $orderType = 'producto';
-                                    $supplierId = $item->itemable->company_id;
+                                    $supplierId = $item->itemable->supplier_contact_id ?? 0;
                                 } elseif ($item->itemable_type === 'App\Models\DigitalItem' && $item->itemable) {
                                     $orderType = 'producto';
-                                    $supplierId = $item->itemable->company_id;
+                                    $supplierId = $item->itemable->supplier_contact_id ?? 0;
                                 } elseif ($item->itemable_type === 'App\Models\CustomItem' && $item->itemable) {
                                     $orderType = 'producto';
-                                    $supplierId = $item->itemable->company_id;
+                                    $supplierId = 0; // CustomItem no tiene proveedor
                                 }
 
                                 return $orderType.'_'.$supplierId;
@@ -495,10 +495,10 @@ class DocumentsTable
                             foreach ($groupedItems as $groupKey => $items) {
                                 [$type, $supplierId] = explode('_', $groupKey);
 
-                                // Crear la orden (sin document_id ni order_type que ya no existen)
+                                // Crear la orden con el proveedor (Contact) asignado
                                 $order = \App\Models\PurchaseOrder::create([
                                     'company_id' => auth()->user()->company_id,
-                                    'supplier_company_id' => $supplierId,
+                                    'supplier_id' => $supplierId ?: null,
                                     'order_date' => now(),
                                     'expected_delivery_date' => now()->addDays(7),
                                     'status' => 'draft',
@@ -515,7 +515,7 @@ class DocumentsTable
                                         foreach ($papersUsed as $paperId => $paperData) {
                                             $paper = $paperData['paper'];
                                             $sheets = $paperData['total_sheets'];
-                                            $unitPrice = $paper->cost_per_sheet ?? 0;
+                                            $unitPrice = $paper->price ?? $paper->cost_per_sheet ?? 0;
                                             $totalPrice = $sheets * $unitPrice;
 
                                             // Crear descripción específica del papel
@@ -557,7 +557,7 @@ class DocumentsTable
                                         foreach ($papersUsed as $paperId => $paperData) {
                                             $paper = $paperData['paper'];
                                             $sheets = $paperData['total_sheets'];
-                                            $unitPrice = $paper->cost_per_sheet ?? 0;
+                                            $unitPrice = $paper->price ?? $paper->cost_per_sheet ?? 0;
                                             $totalPrice = $sheets * $unitPrice;
 
                                             // Crear descripción específica del papel con hojas que lo usan
@@ -604,7 +604,7 @@ class DocumentsTable
                                         if ($item->itemable_type === 'App\Models\SimpleItem' && $item->itemable) {
                                             $paper = $item->itemable->paper;
                                             $sheets = $item->itemable->paper_sheets_needed ?? 0;
-                                            $unitPrice = $paper ? ($paper->cost_per_sheet ?? 0) : 0;
+                                            $unitPrice = $paper ? ($paper->price ?? $paper->cost_per_sheet ?? 0) : 0;
                                             $totalPrice = $sheets * $unitPrice;
                                             $paperId = $paper?->id;
                                             $cutWidth = $item->itemable->horizontal_size;

@@ -3,20 +3,25 @@
 namespace App\Services;
 
 /**
- * Servicio para cálculo de montaje (cuántas copias caben en un pliego)
+ * Servicio para cálculo de montaje (cuántos TRABAJOS caben en una HOJA)
  *
- * Calcula cómo posicionar trabajos dentro del área de impresión de una máquina
+ * TERMINOLOGÍA:
+ * - PLIEGO (100×70cm): Papel del proveedor (tamaño original)
+ * - HOJA (ej: 50×35cm): Corte del pliego que va a la máquina de impresión
+ * - TRABAJO (ej: 10×15cm): Producto final (volante, tarjeta, etc.)
+ *
+ * Este servicio calcula cuántos TRABAJOS caben en una HOJA,
  * considerando márgenes/sangría obligatorios.
  */
 class MountingCalculatorService
 {
     /**
-     * Calcula cuántas copias de un trabajo caben en un pliego de máquina
+     * Calcula cuántos TRABAJOS caben en una HOJA
      *
-     * @param float $workWidth Ancho del trabajo en cm
-     * @param float $workHeight Alto del trabajo en cm
-     * @param float $machineWidth Ancho máximo del pliego de máquina en cm
-     * @param float $machineHeight Alto máximo del pliego de máquina en cm
+     * @param float $workWidth Ancho del TRABAJO (producto final) en cm
+     * @param float $workHeight Alto del TRABAJO (producto final) en cm
+     * @param float $machineWidth Ancho de la HOJA (tamaño máquina) en cm
+     * @param float $machineHeight Alto de la HOJA (tamaño máquina) en cm
      * @param float $marginPerSide Margen/sangría por cada lado en cm (default: 1cm)
      *
      * @return array [
@@ -80,12 +85,12 @@ class MountingCalculatorService
     }
 
     /**
-     * Calcula cuántas copias caben en una orientación específica
+     * Calcula cuántos TRABAJOS caben en una orientación específica
      *
-     * @param float $workW Ancho del trabajo (puede estar rotado)
-     * @param float $workH Alto del trabajo (puede estar rotado)
-     * @param float $usableW Ancho útil del pliego
-     * @param float $usableH Alto útil del pliego
+     * @param float $workW Ancho del TRABAJO (puede estar rotado)
+     * @param float $workH Alto del TRABAJO (puede estar rotado)
+     * @param float $usableW Ancho útil de la HOJA
+     * @param float $usableH Alto útil de la HOJA
      * @param string $orientation Nombre de la orientación ('horizontal' o 'vertical')
      *
      * @return array
@@ -97,13 +102,13 @@ class MountingCalculatorService
         float $usableH,
         string $orientation
     ): array {
-        // Calcular cuántas copias caben horizontalmente
+        // Calcular cuántos TRABAJOS caben horizontalmente en la HOJA
         $copiesHorizontal = (int) floor($usableW / $workW);
 
-        // Calcular cuántas copias caben verticalmente
+        // Calcular cuántos TRABAJOS caben verticalmente en la HOJA
         $copiesVertical = (int) floor($usableH / $workH);
 
-        // Total de copias por pliego
+        // Total de TRABAJOS por HOJA
         $copiesPerSheet = $copiesHorizontal * $copiesVertical;
 
         // Formato del layout (ej: "2 × 3" = 2 columnas × 3 filas)
@@ -147,15 +152,18 @@ class MountingCalculatorService
     }
 
     /**
-     * Calcula pliegos necesarios basándose en cantidad de copias requeridas
+     * Calcula HOJAS necesarias basándose en cantidad de TRABAJOS requeridos
      *
-     * @param int $requiredCopies Cantidad de copias que el cliente necesita
-     * @param int $copiesPerSheet Copias que caben por pliego (del método calculateMounting)
+     * NOTA: Este método calcula cuántas HOJAS se necesitan para producir
+     * la cantidad de TRABAJOS solicitados. Las HOJAS salen de cortar PLIEGOS.
+     *
+     * @param int $requiredCopies Cantidad de TRABAJOS que el cliente necesita
+     * @param int $copiesPerSheet TRABAJOS que caben por HOJA (del método calculateMounting)
      *
      * @return array [
-     *   'sheets_needed' => int,
-     *   'total_copies_produced' => int,
-     *   'waste_copies' => int
+     *   'sheets_needed' => int (HOJAS necesarias),
+     *   'total_copies_produced' => int (TRABAJOS producidos),
+     *   'waste_copies' => int (TRABAJOS de desperdicio)
      * ]
      */
     public function calculateRequiredSheets(int $requiredCopies, int $copiesPerSheet): array
@@ -168,13 +176,13 @@ class MountingCalculatorService
             ];
         }
 
-        // Pliegos necesarios (redondear hacia arriba)
+        // HOJAS necesarias (redondear hacia arriba)
         $sheetsNeeded = (int) ceil($requiredCopies / $copiesPerSheet);
 
-        // Total de copias producidas
+        // Total de TRABAJOS producidos
         $totalCopiesProduced = $sheetsNeeded * $copiesPerSheet;
 
-        // Copias de desperdicio
+        // TRABAJOS de desperdicio
         $wasteCopies = $totalCopiesProduced - $requiredCopies;
 
         return [
@@ -185,13 +193,13 @@ class MountingCalculatorService
     }
 
     /**
-     * Calcula el aprovechamiento del pliego (porcentaje de área utilizada)
+     * Calcula el aprovechamiento de la HOJA (porcentaje de área utilizada)
      *
-     * @param float $workWidth Ancho del trabajo
-     * @param float $workHeight Alto del trabajo
-     * @param int $copiesPerSheet Copias por pliego
-     * @param float $usableWidth Ancho útil del pliego
-     * @param float $usableHeight Alto útil del pliego
+     * @param float $workWidth Ancho del TRABAJO
+     * @param float $workHeight Alto del TRABAJO
+     * @param int $copiesPerSheet TRABAJOS por HOJA
+     * @param float $usableWidth Ancho útil de la HOJA
+     * @param float $usableHeight Alto útil de la HOJA
      *
      * @return float Porcentaje de aprovechamiento (0-100)
      */
@@ -206,10 +214,10 @@ class MountingCalculatorService
             return 0;
         }
 
-        // Área útil del pliego
+        // Área útil de la HOJA
         $usableArea = $usableWidth * $usableHeight;
 
-        // Área ocupada por los trabajos
+        // Área ocupada por los TRABAJOS
         $workArea = $workWidth * $workHeight;
         $occupiedArea = $workArea * $copiesPerSheet;
 

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\PrintingMachines\Tables;
 
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -204,9 +205,13 @@ class PrintingMachinesTable
                 TrashedFilter::make(),
             ])
             ->actions([
-                ViewAction::make(),
-                EditAction::make(),
-                DeleteAction::make(),
+                ActionGroup::make([
+                    ViewAction::make(),
+                    EditAction::make()
+                        ->visible(fn ($record) => $record->company_id === auth()->user()->company_id),
+                    DeleteAction::make()
+                        ->visible(fn ($record) => $record->company_id === auth()->user()->company_id),
+                ]),
             ])
             ->bulkActions([
                 BulkActionGroup::make([
@@ -226,6 +231,13 @@ class PrintingMachinesTable
                 ]),
             ])
             ->defaultSort('name')
-            ->recordUrl(fn ($record) => \App\Filament\Resources\PrintingMachines\PrintingMachineResource::getUrl('edit', ['record' => $record]));
+            ->recordUrl(function ($record) {
+                // Solo hacer clickeable si la máquina pertenece a la empresa actual
+                $currentCompanyId = auth()->user()->company_id ?? null;
+                if ($record->company_id === $currentCompanyId) {
+                    return \App\Filament\Resources\PrintingMachines\PrintingMachineResource::getUrl('edit', ['record' => $record]);
+                }
+                return null; // No clickeable para máquinas de proveedores
+            });
     }
 }

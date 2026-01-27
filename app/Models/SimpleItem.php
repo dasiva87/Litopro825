@@ -10,6 +10,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * SimpleItem - Item Sencillo de Impresión
+ *
+ * TERMINOLOGÍA:
+ * - PLIEGO (100×70cm): Papel del proveedor (tamaño original) → paper->width/height
+ * - HOJA (ej: 50×35cm): Corte del pliego que va a la máquina → printingMachine->max_width/height o custom_paper_width/height
+ * - TRABAJO (ej: 10×15cm): Producto final → horizontal_size/vertical_size
+ *
+ * FLUJO: PLIEGO → [divisor] → HOJAS → [montaje] → TRABAJOS
+ */
 class SimpleItem extends Model
 {
     use BelongsToTenant, HasFactory, SoftDeletes;
@@ -17,22 +27,22 @@ class SimpleItem extends Model
     protected $fillable = [
         'company_id',
         'description',
-        'base_description', // Descripción manual del usuario
-        'quantity',
-        'sobrante_papel',
-        'horizontal_size',
-        'vertical_size',
-        'copies_per_form', // Copias que caben en una hoja (antes mounting_quantity)
-        'margin_per_side', // Margen por lado en cm (configurable, default 1cm)
-        'forms_per_paper_sheet', // Hojas por pliego - divisor (NUEVO)
-        'paper_sheets_needed', // Pliegos necesarios (NUEVO)
-        'printing_forms_needed', // Hojas a imprimir (NUEVO)
-        'custom_paper_width', // Ancho de papel personalizado
-        'custom_paper_height', // Alto de papel personalizado
-        'mounting_type', // 'automatic' o 'custom'
-        'custom_mounting_data', // JSON con datos del montaje custom
-        'cuts_per_form_h', // Cortes horizontales en la hoja (antes paper_cuts_h)
-        'cuts_per_form_v', // Cortes verticales en la hoja (antes paper_cuts_v)
+        'base_description',           // Descripción manual del usuario
+        'quantity',                   // Cantidad de TRABAJOS solicitados
+        'sobrante_papel',             // TRABAJOS extra para desperdicio
+        'horizontal_size',            // Ancho del TRABAJO (producto final)
+        'vertical_size',              // Alto del TRABAJO (producto final)
+        'copies_per_form',            // TRABAJOS que caben en una HOJA (montaje)
+        'margin_per_side',            // Margen por lado en cm (configurable, default 1cm)
+        'forms_per_paper_sheet',      // HOJAS por PLIEGO (divisor)
+        'paper_sheets_needed',        // PLIEGOS necesarios
+        'printing_forms_needed',      // HOJAS a imprimir
+        'custom_paper_width',         // Ancho de la HOJA personalizada (montaje manual)
+        'custom_paper_height',        // Alto de la HOJA personalizada (montaje manual)
+        'mounting_type',              // 'automatic' (usa máquina) o 'custom' (usa dimensiones personalizadas)
+        'custom_mounting_data',       // JSON con datos del montaje custom
+        'cuts_per_form_h',            // Cortes horizontales en la HOJA
+        'cuts_per_form_v',            // Cortes verticales en la HOJA
         'ink_front_count',
         'ink_back_count',
         'front_back_plate',
@@ -42,8 +52,8 @@ class SimpleItem extends Model
         'cutting_cost',
         'mounting_cost',
         'profit_percentage',
-        'paper_id',
-        'printing_machine_id',
+        'paper_id',                   // FK al PLIEGO (papel del proveedor)
+        'printing_machine_id',        // FK a la máquina (define tamaño de HOJA automático)
         'paper_cost',
         'printing_cost',
         'total_cost',
@@ -278,7 +288,8 @@ class SimpleItem extends Model
         }
 
         // CORRECTO: Usar pliegos necesarios (no copias por hoja)
-        return $this->paper_sheets_needed * $this->paper->cost_per_sheet;
+        // Usar precio de venta (price), con fallback a costo (cost_per_sheet)
+        return $this->paper_sheets_needed * ($this->paper->price ?? $this->paper->cost_per_sheet);
     }
 
     public function calculatePrintingCost(): float

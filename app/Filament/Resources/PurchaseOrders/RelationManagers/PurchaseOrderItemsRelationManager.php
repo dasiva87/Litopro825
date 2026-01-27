@@ -213,7 +213,7 @@ class PurchaseOrderItemsRelationManager extends RelationManager
                                 foreach ($papersUsed as $paperId => $paperData) {
                                     $paper = $paperData['paper'];
                                     $sheets = $paperData['total_sheets'];
-                                    $unitPrice = $paper->cost_per_sheet ?? 0;
+                                    $unitPrice = $paper->price ?? $paper->cost_per_sheet ?? 0;
                                     $totalPrice = $sheets * $unitPrice;
 
                                     // Obtener tamaño de corte de la primera página que usa este papel
@@ -248,7 +248,7 @@ class PurchaseOrderItemsRelationManager extends RelationManager
                                 foreach ($papersUsed as $paperId => $paperData) {
                                     $paper = $paperData['paper'];
                                     $sheets = $paperData['total_sheets'];
-                                    $unitPrice = $paper->cost_per_sheet ?? 0;
+                                    $unitPrice = $paper->price ?? $paper->cost_per_sheet ?? 0;
                                     $totalPrice = $sheets * $unitPrice;
 
                                     // Obtener tamaño de corte de la primera hoja que usa este papel
@@ -486,7 +486,7 @@ class PurchaseOrderItemsRelationManager extends RelationManager
     {
         if ($item->itemable_type === 'App\Models\SimpleItem' && $item->itemable) {
             $paper = $item->itemable->paper;
-            return $paper ? ($paper->cost_per_sheet ?? 0) : 0;
+            return $paper ? ($paper->price ?? $paper->cost_per_sheet ?? 0) : 0;
         } elseif ($item->itemable_type === 'App\Models\Product' && $item->itemable) {
             return $item->itemable->sale_price ?? 0;
         }

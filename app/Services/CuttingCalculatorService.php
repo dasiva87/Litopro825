@@ -2,14 +2,42 @@
 
 namespace App\Services;
 
+/**
+ * Servicio para cálculo de cortes (cuántas HOJAS salen de un PLIEGO)
+ *
+ * TERMINOLOGÍA:
+ * - PLIEGO (100×70cm): Papel del proveedor (tamaño original)
+ * - HOJA (ej: 50×35cm): Corte del pliego que va a la máquina de impresión
+ * - TRABAJO (ej: 10×15cm): Producto final (volante, tarjeta, etc.)
+ *
+ * Este servicio calcula cuántas HOJAS (cortes) salen de un PLIEGO.
+ * El parámetro "paper" se refiere al PLIEGO (papel del proveedor).
+ * El parámetro "cut" se refiere a la HOJA (tamaño del corte/máquina).
+ */
 class CuttingCalculatorService
 {
+    /**
+     * Calcula cuántas HOJAS salen de un PLIEGO
+     *
+     * @param float $paperWidth Ancho del PLIEGO (papel proveedor) en cm
+     * @param float $paperHeight Alto del PLIEGO (papel proveedor) en cm
+     * @param float $cutWidth Ancho de la HOJA (tamaño corte/máquina) en cm
+     * @param float $cutHeight Alto de la HOJA (tamaño corte/máquina) en cm
+     * @param int $desiredCuts Cantidad de HOJAS deseadas (0 = solo calcular divisor)
+     * @param string $orientation Orientación del corte
+     *
+     * @return array [
+     *   'cutsPerSheet' => int (HOJAS por PLIEGO - divisor),
+     *   'sheetsNeeded' => int (PLIEGOS necesarios),
+     *   ...
+     * ]
+     */
     public function calculateCuts(
-        float $paperWidth, 
-        float $paperHeight, 
-        float $cutWidth, 
-        float $cutHeight, 
-        int $desiredCuts, 
+        float $paperWidth,
+        float $paperHeight,
+        float $cutWidth,
+        float $cutHeight,
+        int $desiredCuts,
         string $orientation = 'horizontal'
     ): array {
         

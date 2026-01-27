@@ -106,7 +106,7 @@ class DocumentItemController extends Controller
     {
         if ($item->itemable_type === 'App\Models\SimpleItem' && $item->itemable) {
             $paper = $item->itemable->paper;
-            return $paper ? ($paper->cost_per_sheet ?? 0) : 0;
+            return $paper ? ($paper->price ?? $paper->cost_per_sheet ?? 0) : 0;
         } elseif ($item->itemable_type === 'App\Models\Product' && $item->itemable) {
             return $item->itemable->sale_price ?? 0;
         }

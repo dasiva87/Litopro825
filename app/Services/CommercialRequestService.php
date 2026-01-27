@@ -14,6 +14,26 @@ use Illuminate\Support\Facades\Notification;
 class CommercialRequestService
 {
     /**
+     * Verificar si existe un contacto local con el mismo tax_id
+     * Retorna el contacto local si existe, null si no
+     */
+    public function checkDuplicateLocalContact(
+        int $companyId,
+        ?string $taxId,
+        string $type // 'supplier' | 'customer'
+    ): ?Contact {
+        if (empty($taxId)) {
+            return null;
+        }
+
+        return Contact::where('company_id', $companyId)
+            ->where('tax_id', $taxId)
+            ->where('is_local', true)
+            ->whereIn('type', [$type, 'both'])
+            ->first();
+    }
+
+    /**
      * Enviar solicitud de relación comercial
      */
     public function sendRequest(
@@ -23,25 +43,40 @@ class CommercialRequestService
     ): CommercialRequest {
         $user = auth()->user();
 
-        // Validar que no exista solicitud pendiente
-        $existing = CommercialRequest::where([
-            'requester_company_id' => $user->company_id,
-            'target_company_id' => $targetCompany->id,
-            'relationship_type' => $relationshipType,
-        ])
-        ->whereIn('status', ['pending', 'approved'])
-        ->first();
-
-        if ($existing) {
-            throw new \Exception('Ya existe una solicitud activa para esta empresa.');
-        }
-
         // Validar que no sea la misma empresa
         if ($user->company_id === $targetCompany->id) {
             throw new \Exception('No puedes enviar una solicitud a tu propia empresa.');
         }
 
-        // Crear solicitud
+        // Buscar solicitud existente (cualquier estado)
+        $existing = CommercialRequest::where([
+            'requester_company_id' => $user->company_id,
+            'target_company_id' => $targetCompany->id,
+            'relationship_type' => $relationshipType,
+        ])->first();
+
+        if ($existing) {
+            // Si está pendiente o aprobada, no permitir nueva solicitud
+            if (in_array($existing->status, ['pending', 'approved'])) {
+                throw new \Exception('Ya existe una solicitud activa para esta empresa.');
+            }
+
+            // Si fue rechazada, reactivar la solicitud
+            if ($existing->status === 'rejected') {
+                $existing->update([
+                    'status' => 'pending',
+                    'message' => $message,
+                    'requested_by_user_id' => $user->id,
+                    'response_message' => null,
+                    'responded_at' => null,
+                    'responded_by_user_id' => null,
+                ]);
+
+                return $existing;
+            }
+        }
+
+        // Crear nueva solicitud
         $request = CommercialRequest::create([
             'requester_company_id' => $user->company_id,
             'target_company_id' => $targetCompany->id,
@@ -115,6 +150,7 @@ class CommercialRequestService
 
     /**
      * Crear contacto vinculado a empresa Grafired
+     * Si existe un contacto local con el mismo tax_id, lo convierte en enlazado
      */
     protected function createLinkedContact(
         int $companyId,
@@ -123,15 +159,44 @@ class CommercialRequestService
     ): Contact {
         $linkedCompany = Company::find($linkedCompanyId);
 
-        // Verificar si ya existe el contacto
-        $existing = Contact::where('company_id', $companyId)
+        // Verificar si ya existe el contacto enlazado
+        $existingLinked = Contact::where('company_id', $companyId)
             ->where('linked_company_id', $linkedCompanyId)
             ->first();
 
-        if ($existing) {
-            return $existing;
+        if ($existingLinked) {
+            return $existingLinked;
         }
 
+        // NUEVO: Verificar si existe contacto LOCAL con mismo tax_id
+        $existingLocal = $this->checkDuplicateLocalContact(
+            $companyId,
+            $linkedCompany->tax_id,
+            $type
+        );
+
+        if ($existingLocal) {
+            // CONVERTIR el contacto local en enlazado (no crear nuevo)
+            $existingLocal->update([
+                'is_local' => false,
+                'linked_company_id' => $linkedCompanyId,
+                // Sincronizar datos oficiales del gremio
+                'name' => $linkedCompany->name,
+                'email' => $linkedCompany->email,
+                'phone' => $linkedCompany->phone,
+                'address' => $linkedCompany->address,
+                'city_id' => $linkedCompany->city_id,
+                'state_id' => $linkedCompany->state_id,
+                'country_id' => $linkedCompany->country_id,
+                'tax_id' => $linkedCompany->tax_id,
+                'website' => $linkedCompany->website,
+                // Mantener datos comerciales del usuario (credit_limit, payment_terms, etc.)
+            ]);
+
+            return $existingLocal;
+        }
+
+        // Si no existe duplicado, crear nuevo contacto enlazado
         return Contact::create([
             'company_id' => $companyId,
             'linked_company_id' => $linkedCompanyId,

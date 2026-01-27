@@ -383,10 +383,10 @@ class MagazineItem extends Model
             return $b['total_sheets'] <=> $a['total_sheets'];
         });
 
-        // Retornar el supplier del papel más usado
+        // Retornar el supplier_id del papel más usado
         $mainPaper = reset($papers);
 
-        return $mainPaper['paper']->company_id ?? null;
+        return $mainPaper['paper']->supplier_id ?? null;
     }
 
     /**

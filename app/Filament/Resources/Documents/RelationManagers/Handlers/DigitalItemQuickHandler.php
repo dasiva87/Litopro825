@@ -33,7 +33,7 @@ class DigitalItemQuickHandler implements QuickActionHandlerInterface
                         ->live()
                         ->afterStateUpdated(function ($state, $set) {
                             if ($state) {
-                                $item = DigitalItem::find($state);
+                                $item = DigitalItem::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->find($state);
                                 if ($item) {
                                     $set('item_description', $item->description);
                                     $set('pricing_type', $item->pricing_type);
@@ -160,7 +160,7 @@ class DigitalItemQuickHandler implements QuickActionHandlerInterface
 
     public function handleCreate(array $data, Document $document): void
     {
-        $digitalItem = DigitalItem::find($data['digital_item_id']);
+        $digitalItem = DigitalItem::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->find($data['digital_item_id']);
 
         if (!$digitalItem) {
             throw new \Exception('Item digital no encontrado');
@@ -231,7 +231,7 @@ class DigitalItemQuickHandler implements QuickActionHandlerInterface
         if (!empty($finishingsData)) {
             foreach ($finishingsData as $finishingData) {
                 if (isset($finishingData['finishing_id']) && isset($finishingData['calculated_cost'])) {
-                    $finishing = Finishing::find($finishingData['finishing_id']);
+                    $finishing = Finishing::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->find($finishingData['finishing_id']);
 
                     if ($finishing) {
                         // Crear el acabado relacionado con parámetros
@@ -305,12 +305,42 @@ class DigitalItemQuickHandler implements QuickActionHandlerInterface
 
     private function getDigitalItemOptions(): array
     {
-        return DigitalItem::where('active', true)
-            ->forCurrentTenant()
+        $currentCompanyId = auth()->user()->company_id ?? null;
+
+        if (!$currentCompanyId) {
+            return [];
+        }
+
+        // Obtener IDs de proveedores enlazados
+        $supplierCompanyIds = \App\Models\SupplierRelationship::where('client_company_id', $currentCompanyId)
+            ->where('is_active', true)
+            ->pluck('supplier_company_id')
+            ->toArray();
+
+        // Remover el TenantScope global para incluir items de proveedores
+        return DigitalItem::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
+            ->where('active', true)
+            ->where(function ($query) use ($currentCompanyId, $supplierCompanyIds) {
+                // Items propios
+                $query->where('company_id', $currentCompanyId)
+                    // O items públicos de proveedores enlazados
+                    ->orWhere(function ($q) use ($supplierCompanyIds) {
+                        if (!empty($supplierCompanyIds)) {
+                            $q->whereIn('company_id', $supplierCompanyIds)
+                              ->where('is_public', true);
+                        }
+                    });
+            })
+            ->with('company')
             ->get()
-            ->mapWithKeys(function ($item) {
+            ->mapWithKeys(function ($item) use ($currentCompanyId) {
+                $label = $item->description.' ('.$item->pricing_type_name.')';
+                // Agregar nombre del proveedor si no es propio
+                if ($item->company_id !== $currentCompanyId) {
+                    $label .= ' - '.$item->company->name;
+                }
                 return [
-                    $item->id => $item->description.' ('.$item->pricing_type_name.')',
+                    $item->id => $label,
                 ];
             })
             ->toArray();
@@ -318,12 +348,42 @@ class DigitalItemQuickHandler implements QuickActionHandlerInterface
 
     private function getFinishingOptions(): array
     {
-        return Finishing::where('active', true)
-            ->forCurrentTenant()
+        $currentCompanyId = auth()->user()->company_id ?? null;
+
+        if (!$currentCompanyId) {
+            return [];
+        }
+
+        // Obtener IDs de proveedores enlazados
+        $supplierCompanyIds = \App\Models\SupplierRelationship::where('client_company_id', $currentCompanyId)
+            ->where('is_active', true)
+            ->pluck('supplier_company_id')
+            ->toArray();
+
+        // Remover el TenantScope global para incluir acabados de proveedores
+        return Finishing::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
+            ->where('active', true)
+            ->where(function ($query) use ($currentCompanyId, $supplierCompanyIds) {
+                // Acabados propios
+                $query->where('company_id', $currentCompanyId)
+                    // O acabados públicos de proveedores enlazados
+                    ->orWhere(function ($q) use ($supplierCompanyIds) {
+                        if (!empty($supplierCompanyIds)) {
+                            $q->whereIn('company_id', $supplierCompanyIds)
+                              ->where('is_public', true);
+                        }
+                    });
+            })
+            ->with('company')
             ->get()
-            ->mapWithKeys(function ($finishing) {
+            ->mapWithKeys(function ($finishing) use ($currentCompanyId) {
+                $label = $finishing->code.' - '.$finishing->name.' ('.$finishing->measurement_unit->label().')';
+                // Agregar nombre del proveedor si no es propio
+                if ($finishing->company_id !== $currentCompanyId) {
+                    $label .= ' - '.$finishing->company->name;
+                }
                 return [
-                    $finishing->id => $finishing->code.' - '.$finishing->name.' ('.$finishing->measurement_unit->label().')',
+                    $finishing->id => $label,
                 ];
             })
             ->toArray();
@@ -340,7 +400,7 @@ class DigitalItemQuickHandler implements QuickActionHandlerInterface
             return '📋 Selecciona un item digital para ver el cálculo';
         }
 
-        $item = DigitalItem::find($itemId);
+        $item = DigitalItem::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->find($itemId);
         if (!$item) {
             return '❌ Item digital no encontrado';
         }
@@ -399,7 +459,7 @@ class DigitalItemQuickHandler implements QuickActionHandlerInterface
         }
 
         try {
-            $finishing = Finishing::find($finishingId);
+            $finishing = Finishing::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->find($finishingId);
             if (!$finishing) {
                 return 'Acabado no encontrado';
             }

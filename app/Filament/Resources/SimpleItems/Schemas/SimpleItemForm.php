@@ -417,23 +417,23 @@ class SimpleItemForm
                                         Grid::make(3)
                                             ->schema([
                                                 TextInput::make('custom_paper_width')
-                                                    ->label('Ancho del Papel Personalizado')
+                                                    ->label('Ancho de la Hoja')
                                                     ->numeric()
                                                     ->suffix('cm')
                                                     ->step(0.1)
                                                     ->live(onBlur: true)
-                                                    ->helperText('Ingresa el ancho del papel que deseas utilizar'),
+                                                    ->helperText('Ancho de la HOJA para impresión (corte del pliego)'),
 
                                                 TextInput::make('custom_paper_height')
-                                                    ->label('Alto del Papel Personalizado')
+                                                    ->label('Alto de la Hoja')
                                                     ->numeric()
                                                     ->suffix('cm')
                                                     ->step(0.1)
                                                     ->live(onBlur: true)
-                                                    ->helperText('Ingresa el alto del papel que deseas utilizar'),
+                                                    ->helperText('Alto de la HOJA para impresión (corte del pliego)'),
 
                                                 Placeholder::make('custom_paper_area')
-                                                    ->label('Área del Papel')
+                                                    ->label('Área de la Hoja')
                                                     ->content(function ($get) {
                                                         $w = $get('custom_paper_width');
                                                         $h = $get('custom_paper_height');
@@ -461,7 +461,7 @@ class SimpleItemForm
 
                                                 if (!$customWidth || !$customHeight) {
                                                     return new \Illuminate\Support\HtmlString('<div class="p-4 bg-blue-50 rounded text-blue-700 text-center">
-                                                        ✏️ Ingresa las dimensiones del papel personalizado arriba para ver el montaje
+                                                        ✏️ Ingresa las dimensiones de la HOJA arriba para ver el montaje
                                                     </div>');
                                                 }
 
@@ -482,8 +482,8 @@ class SimpleItemForm
 
                                                     if ($best['copies_per_sheet'] == 0) {
                                                         return new \Illuminate\Support\HtmlString('<div class="p-3 bg-red-50 rounded text-red-700 text-sm">
-                                                            ❌ El trabajo NO cabe en el papel personalizado<br>
-                                                            <span class="text-xs">Papel: ' . $customWidth . '×' . $customHeight . 'cm</span>
+                                                            ❌ El TRABAJO no cabe en la HOJA<br>
+                                                            <span class="text-xs">Hoja: ' . $customWidth . '×' . $customHeight . 'cm</span>
                                                         </div>');
                                                     }
 
