@@ -15,6 +15,7 @@ class Document extends Model
 
     protected $fillable = [
         'company_id',
+        'project_id',
         'user_id',
         'contact_id',
         'client_company_id',
@@ -74,6 +75,11 @@ class Document extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
     }
 
     public function contact(): BelongsTo

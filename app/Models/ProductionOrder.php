@@ -18,6 +18,7 @@ class ProductionOrder extends Model
 
     protected $fillable = [
         'company_id',
+        'project_id',
         'production_number',
         'supplier_id',
         'supplier_company_id',
@@ -79,6 +80,11 @@ class ProductionOrder extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
     }
 
     public function supplier(): BelongsTo

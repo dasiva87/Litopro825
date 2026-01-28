@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ProductionOrders\Schemas;
 
 use App\Enums\ProductionStatus;
 use App\Models\Contact;
+use App\Models\Project;
 use App\Models\User;
 use Filament\Forms\Components;
 use Filament\Schemas\Components\Grid;
@@ -70,8 +71,23 @@ class ProductionOrderForm
                                     }),
                             ]),
 
-                        Grid::make(1)
+                        Grid::make(2)
                             ->schema([
+                                Components\Select::make('project_id')
+                                    ->label('Proyecto')
+                                    ->relationship(
+                                        name: 'project',
+                                        titleAttribute: 'name',
+                                        modifyQueryUsing: fn ($query) => $query
+                                            ->forCurrentTenant()
+                                            ->orderBy('created_at', 'desc')
+                                    )
+                                    ->getOptionLabelFromRecordUsing(fn (Project $record) => "{$record->code} - {$record->name}")
+                                    ->searchable()
+                                    ->preload()
+                                    ->default(fn () => request()->query('project_id'))
+                                    ->helperText('Asocia esta orden a un proyecto'),
+
                                 Components\Select::make('supplier_id')
                                     ->label('Proveedor')
                                     ->relationship(

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Documents\Schemas;
 
 use App\Models\DocumentType;
+use App\Models\Project;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Grid;
 use Filament\Forms\Components\Select;
@@ -96,8 +97,23 @@ class DocumentForm
                                     ]),
                             ]),
 
-                        Grid::make(1)
+                        Grid::make(2)
                             ->schema([
+                                Select::make('project_id')
+                                    ->label('Proyecto')
+                                    ->relationship(
+                                        name: 'project',
+                                        titleAttribute: 'name',
+                                        modifyQueryUsing: fn ($query) => $query
+                                            ->forCurrentTenant()
+                                            ->orderBy('created_at', 'desc')
+                                    )
+                                    ->getOptionLabelFromRecordUsing(fn (Project $record) => "{$record->code} - {$record->name}")
+                                    ->searchable()
+                                    ->preload()
+                                    ->default(fn () => request()->query('project_id'))
+                                    ->helperText('Asocia esta cotización a un proyecto'),
+
                                 TextInput::make('reference')
                                     ->label('Referencia')
                                     ->maxLength(255),

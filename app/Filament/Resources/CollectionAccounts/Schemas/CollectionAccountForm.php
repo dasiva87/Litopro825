@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\CollectionAccounts\Schemas;
 
 use App\Enums\CollectionAccountStatus;
+use App\Models\Project;
 use Filament\Forms\Components;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
@@ -36,6 +37,21 @@ class CollectionAccountForm
 
                         Grid::make(2)
                             ->schema([
+                                Components\Select::make('project_id')
+                                    ->label('Proyecto')
+                                    ->relationship(
+                                        name: 'project',
+                                        titleAttribute: 'name',
+                                        modifyQueryUsing: fn ($query) => $query
+                                            ->forCurrentTenant()
+                                            ->orderBy('created_at', 'desc')
+                                    )
+                                    ->getOptionLabelFromRecordUsing(fn (Project $record) => "{$record->code} - {$record->name}")
+                                    ->searchable()
+                                    ->preload()
+                                    ->default(fn () => request()->query('project_id'))
+                                    ->helperText('Asocia esta cuenta a un proyecto'),
+
                                 Components\Select::make('contact_id')
                                     ->label('Cliente')
                                     ->relationship(

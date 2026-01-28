@@ -313,6 +313,7 @@ class DocumentsTable
                         ->action(function ($record, array $data) {
                             $collectionAccount = \App\Models\CollectionAccount::create([
                                 'company_id' => auth()->user()->company_id,
+                                'project_id' => $record->project_id,
                                 'contact_id' => $data['contact_id'],
                                 'issue_date' => now(),
                                 'due_date' => $data['due_date'],
@@ -391,7 +392,7 @@ class DocumentsTable
                                                     if ($item->itemable_type === 'App\Models\SimpleItem' && $item->itemable) {
                                                         $simpleItem = $item->itemable;
                                                         $paper = $simpleItem->paper;
-                                                        $supplier = $paper && $paper->company ? $paper->company->name : 'Proveedor no definido';
+                                                        $supplier = $paper && $paper->supplier ? $paper->supplier->name : 'Proveedor no definido';
                                                         $info .= " | Proveedor: {$supplier}";
                                                         if ($paper) {
                                                             $cost = ($simpleItem->paper_sheets_needed ?? 0) * $paper->cost_per_sheet;
@@ -410,7 +411,7 @@ class DocumentsTable
                                                         $info .= ' | Costo estimado: $'.number_format($totalCost, 2);
                                                     } elseif ($item->itemable_type === 'App\Models\Product' && $item->itemable) {
                                                         $product = $item->itemable;
-                                                        $supplier = $product->company ? $product->company->name : 'Proveedor no definido';
+                                                        $supplier = $product->supplier ? $product->supplier->name : 'Proveedor no definido';
                                                         $info .= " | Proveedor: {$supplier}";
                                                         $cost = $item->quantity * ($product->purchase_price ?? $product->sale_price);
                                                         $info .= ' | Costo estimado: $'.number_format($cost, 2);
@@ -439,13 +440,13 @@ class DocumentsTable
                             $selectedItems->load([
                                 'itemable' => function ($morphTo) {
                                     $morphTo->morphWith([
-                                        'App\Models\SimpleItem' => ['paper.company', 'company'],
-                                        'App\Models\Product' => ['company'],
-                                        'App\Models\DigitalItem' => ['company'],
-                                        'App\Models\TalonarioItem' => ['sheets.simpleItem.paper.company', 'company'],
-                                        'App\Models\MagazineItem' => ['pages.simpleItem.paper.company', 'company'],
-                                        'App\Models\CustomItem' => ['company'],
-                                        'App\Models\Paper' => ['company'],
+                                        'App\Models\SimpleItem' => ['paper.supplier'],
+                                        'App\Models\Product' => ['supplier'],
+                                        'App\Models\DigitalItem' => ['supplier'],
+                                        'App\Models\TalonarioItem' => ['sheets.simpleItem.paper.supplier'],
+                                        'App\Models\MagazineItem' => ['pages.simpleItem.paper.supplier'],
+                                        'App\Models\CustomItem' => [],
+                                        'App\Models\Paper' => ['supplier'],
                                     ]);
                                 },
                             ]);
@@ -498,6 +499,7 @@ class DocumentsTable
                                 // Crear la orden con el proveedor (Contact) asignado
                                 $order = \App\Models\PurchaseOrder::create([
                                     'company_id' => auth()->user()->company_id,
+                                    'project_id' => $record->project_id,
                                     'supplier_id' => $supplierId ?: null,
                                     'order_date' => now(),
                                     'expected_delivery_date' => now()->addDays(7),
@@ -803,6 +805,7 @@ class DocumentsTable
                                 // Crear orden para este proveedor (Contact)
                                 $productionOrder = \App\Models\ProductionOrder::create([
                                     'company_id' => auth()->user()->company_id,
+                                    'project_id' => $record->project_id,
                                     'supplier_id' => $supplierId, // Contact ID
                                     'supplier_company_id' => null, // No es empresa del sistema
                                     'scheduled_date' => $data['scheduled_date'] ?? null,

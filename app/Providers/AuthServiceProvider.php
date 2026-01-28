@@ -10,6 +10,7 @@ use App\Models\Paper;
 use App\Models\PrintingMachine;
 use App\Models\Product;
 use App\Models\ProductionOrder;
+use App\Models\Project;
 use App\Models\PurchaseOrder;
 use App\Models\SimpleItem;
 use App\Models\SupplierRequest;
@@ -22,6 +23,7 @@ use App\Policies\PaperPolicy;
 use App\Policies\PrintingMachinePolicy;
 use App\Policies\ProductionOrderPolicy;
 use App\Policies\ProductPolicy;
+use App\Policies\ProjectPolicy;
 use App\Policies\PurchaseOrderPolicy;
 use App\Policies\RolePolicy;
 use App\Policies\SimpleItemPolicy;
@@ -44,6 +46,7 @@ class AuthServiceProvider extends ServiceProvider
 
         // Core Business Models
         Document::class => DocumentPolicy::class,
+        Project::class => ProjectPolicy::class,
         Contact::class => ContactPolicy::class,
         Product::class => ProductPolicy::class,
         SimpleItem::class => SimpleItemPolicy::class,

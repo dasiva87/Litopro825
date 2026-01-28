@@ -21,6 +21,7 @@ class CollectionAccount extends Model
 
     protected $fillable = [
         'company_id',
+        'project_id',
         'client_company_id',
         'contact_id',
         'account_number',
@@ -104,6 +105,11 @@ class CollectionAccount extends Model
     public function clientCompany(): BelongsTo
     {
         return $this->belongsTo(Company::class, 'client_company_id');
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
     }
 
     public function contact(): BelongsTo
