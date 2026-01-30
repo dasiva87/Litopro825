@@ -29,34 +29,35 @@ class SetTenantContext
     private function setTenantContext(Request $request): void
     {
         try {
-            // Método 1: Si ya está en config, usar eso
-            if (Config::has('app.current_tenant_id')) {
-                return;
+            // Prioridad 1: Usuario autenticado - SIEMPRE usar su company_id actual
+            if (auth()->check()) {
+                $user = auth()->user();
+
+                if ($user->company_id) {
+                    // Verificar si cambió de empresa (sesión tiene otro valor)
+                    $sessionTenantId = Session::get('current_tenant_id');
+
+                    if ($sessionTenantId !== $user->company_id) {
+                        // Actualizar sesión con el company_id correcto
+                        Session::put('current_tenant_id', $user->company_id);
+                    }
+
+                    Config::set('app.current_tenant_id', $user->company_id);
+                    return;
+                }
             }
 
-            // Método 2: Desde sesión si existe
+            // Prioridad 2: Desde sesión si existe y no hay usuario autenticado
             if (Session::has('current_tenant_id')) {
                 $tenantId = Session::get('current_tenant_id');
                 Config::set('app.current_tenant_id', $tenantId);
                 return;
             }
 
-            // Método 3A: Usar Auth::user() si está disponible (para Livewire)
-            if (auth()->check()) {
-                $user = auth()->user();
-
-                if ($user->company_id) {
-                    Config::set('app.current_tenant_id', $user->company_id);
-                    Session::put('current_tenant_id', $user->company_id);
-                    return;
-                }
-            }
-
-            // Método 3B: Si hay usuario autenticado, obtener company_id directamente de la BD
+            // Prioridad 3: Query directa a BD como fallback
             $userId = $request->session()->get('login_web_' . sha1('web'));
 
             if ($userId) {
-                // Query directa a la BD sin usar modelos para evitar scopes
                 $companyId = DB::table('users')
                     ->where('id', $userId)
                     ->where('is_active', true)
@@ -70,7 +71,8 @@ class SetTenantContext
 
         } catch (\Exception $e) {
             // En caso de error, no establecer tenant (modo sin restricciones)
-            // Log del error si es necesario, pero no fallar
+            // Log del error si es necesario
+            \Log::warning('SetTenantContext error: ' . $e->getMessage());
         }
     }
 }

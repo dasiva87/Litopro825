@@ -39,6 +39,7 @@ class ProjectResource extends Resource
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
         return parent::getEloquentQuery()
+            ->where('projects.company_id', auth()->user()->company_id)
             ->with(['contact', 'createdBy']);
     }
 

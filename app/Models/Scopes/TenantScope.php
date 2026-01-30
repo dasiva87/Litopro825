@@ -11,14 +11,44 @@ class TenantScope implements Scope
 {
     public function apply(Builder $builder, Model $model): void
     {
-        // Solo usar el tenant_id desde Config establecido por el middleware
-        $tenantId = Config::get('app.current_tenant_id');
+        // Tablas excluidas del scope automático
+        $excludedTables = ['companies', 'users'];
 
-        // Aplicar scope solo si hay tenantId y no es tabla companies o users
-        // Los users no deben tener scope automático para evitar recursión en auth
-        if ($tenantId && $model->getTable() !== 'companies' && $model->getTable() !== 'users') {
-            $builder->where($model->getTable().'.company_id', $tenantId);
+        if (in_array($model->getTable(), $excludedTables)) {
+            return;
+        }
+
+        // Intentar obtener tenant_id desde múltiples fuentes
+        $tenantId = $this->getTenantId();
+
+        // Aplicar scope solo si hay tenantId
+        if ($tenantId) {
+            $builder->where($model->getTable() . '.company_id', $tenantId);
         }
     }
 
+    /**
+     * Obtener el tenant ID desde múltiples fuentes
+     */
+    private function getTenantId(): ?int
+    {
+        // Prioridad 1: Config (establecido por middleware)
+        $tenantId = Config::get('app.current_tenant_id');
+
+        if ($tenantId) {
+            return (int) $tenantId;
+        }
+
+        // Prioridad 2: Usuario autenticado
+        if (auth()->check() && auth()->user()->company_id) {
+            $companyId = auth()->user()->company_id;
+
+            // Establecer en config para próximas consultas en el mismo request
+            Config::set('app.current_tenant_id', $companyId);
+
+            return (int) $companyId;
+        }
+
+        return null;
+    }
 }

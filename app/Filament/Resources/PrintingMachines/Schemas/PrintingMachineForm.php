@@ -129,41 +129,37 @@ class PrintingMachineForm
                     ]),
                     
                 Section::make('Información de Costos')
+                    ->columns(2)
                     ->schema([
-                        Grid::make(3)
-                            ->schema([
-                                TextInput::make('cost_per_impression')
-                                    ->label('Costo por Millar')
-                                    ->helperText('Costo por cada 1,000 impresiones')
-                                    ->numeric()
-                                    ->prefix('$')
-                                    ->required()
-                                    ->minValue(0)
-                                    ->step(0.01)
-                                    ->placeholder('0.00')
-                                    ->suffix('/ millar'),
+                        TextInput::make('cost_per_impression')
+                            ->label('Costo por Millar')
+                            ->helperText('Costo por cada 1,000 impresiones')
+                            ->numeric()
+                            ->prefix('$')
+                            ->required()
+                            ->minValue(0)
+                            ->step(0.01)
+                            ->placeholder('Ej: 45000'),
 
-                                TextInput::make('costo_ctp')
-                                    ->label('Costo CTP')
-                                    ->helperText('Costo Computer-to-Plate por plancha')
-                                    ->numeric()
-                                    ->prefix('$')
-                                    ->default(0.00)
-                                    ->minValue(0)
-                                    ->step(0.01)
-                                    ->placeholder('0.00')
-                                    ->suffix('/ plancha'),
+                        TextInput::make('setup_cost')
+                            ->label('Costo de Alistamiento')
+                            ->helperText('Costo fijo por cada trabajo')
+                            ->numeric()
+                            ->prefix('$')
+                            ->required()
+                            ->minValue(0)
+                            ->step(0.01)
+                            ->placeholder('Ej: 25000'),
 
-                                TextInput::make('setup_cost')
-                                    ->label('Costo de Alistamiento')
-                                    ->helperText('Costo fijo por cada trabajo')
-                                    ->numeric()
-                                    ->prefix('$')
-                                    ->required()
-                                    ->minValue(0)
-                                    ->step(0.01)
-                                    ->placeholder('0.00'),
-                            ]),
+                        TextInput::make('costo_ctp')
+                            ->label('Costo CTP (Computer-to-Plate)')
+                            ->helperText('Costo por cada plancha de impresión')
+                            ->numeric()
+                            ->prefix('$')
+                            ->default(0.00)
+                            ->minValue(0)
+                            ->step(0.01)
+                            ->placeholder('Ej: 15000'),
                     ]),
             ]);
     }
