@@ -19,7 +19,7 @@ class DocumentInfolist
                 // 1. Información General
                 Section::make()
                     ->columnSpan(2)
-                    ->columns(4)
+                    ->columns(5)
                     ->schema([
                         TextEntry::make('document_number')
                             ->label('Número de Cotización')
@@ -48,64 +48,35 @@ class DocumentInfolist
                                 default => ucfirst($state),
                             }),
 
-                        TextEntry::make('reference')
-                            ->label('Referencia')
-                            ->icon('heroicon-o-bookmark')
-                            ->placeholder('Sin referencia'),
+                        TextEntry::make('project.name')
+                            ->label('Proyecto')
+                            ->icon('heroicon-o-folder')
+                            ->badge()
+                            ->color('primary')
+                            ->url(fn ($record) => $record->project_id
+                                ? route('filament.admin.resources.projects.view', $record->project_id)
+                                : null)
+                            ->visible(fn ($record) => $record->project_id !== null),
 
                         TextEntry::make('version')
                             ->label('Versión')
                             ->icon('heroicon-o-document-duplicate')
                             ->default('1'),
-                    ]),
 
-                // 2. Fechas Importantes
-                Section::make()
-                    ->columnSpan(1)
-                    ->columns(2)
-                    ->schema([
                         TextEntry::make('date')
                             ->label('Fecha de Cotización')
                             ->date('d M, Y')
                             ->icon('heroicon-o-calendar-days'),
+                    ]),
 
-                        TextEntry::make('valid_until')
-                            ->label('Válida Hasta')
-                            ->date('d M, Y')
-                            ->icon(function ($record) {
-                                if (!$record->valid_until) return 'heroicon-o-clock';
 
-                                $now = now();
-                                $validUntil = \Carbon\Carbon::parse($record->valid_until);
-
-                                if ($validUntil->isPast()) {
-                                    return 'heroicon-o-x-circle';
-                                } elseif ($validUntil->diffInDays($now) <= 5) {
-                                    return 'heroicon-o-exclamation-triangle';
-                                }
-                                return 'heroicon-o-check-circle';
-                            })
-                            ->color(function ($record) {
-                                if (!$record->valid_until) return 'gray';
-
-                                $now = now();
-                                $validUntil = \Carbon\Carbon::parse($record->valid_until);
-
-                                if ($validUntil->isPast()) {
-                                    return 'danger';
-                                } elseif ($validUntil->diffInDays($now) <= 5) {
-                                    return 'warning';
-                                }
-                                return 'success';
-                            })
-                            ->badge()
-                            ->placeholder('Sin fecha de vencimiento'),
-
-                        TextEntry::make('due_date')
-                            ->label('Fecha de Vencimiento')
-                            ->date('d M, Y')
-                            ->icon('heroicon-o-calendar-days')
-                            ->placeholder('Sin fecha de vencimiento'),
+                // 2.5. Resumen Financiero (debajo de Fechas)
+                Section::make()
+                    ->columnSpan(1)
+                    ->schema([
+                        ViewEntry::make('financial_summary')
+                            ->label('')
+                            ->view('filament.resources.documents.infolist.financial-summary'),
                     ]),
 
                 // 3. Cliente

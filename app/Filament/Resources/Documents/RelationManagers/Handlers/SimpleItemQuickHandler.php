@@ -19,97 +19,112 @@ class SimpleItemQuickHandler implements QuickActionHandlerInterface
     public function getFormSchema(): array
     {
         return [
-            ...SimpleItemForm::configure(new \Filament\Schemas\Schema)->getComponents(),
+            // Grid de 12 columnas para el layout de 2 columnas (7 + 5)
+            \Filament\Schemas\Components\Grid::make(12)
+                ->schema(SimpleItemForm::configure(new \Filament\Schemas\Schema)->getComponents()),
 
-            // Sección de Acabados
-            \Filament\Schemas\Components\Section::make('🎨 Acabados Opcionales')
-                ->description('Agrega acabados adicionales que se calcularán automáticamente')
+            // Grid de 12 columnas para Acabados (izquierda) y Resumen (derecha)
+            \Filament\Schemas\Components\Grid::make(12)
                 ->schema([
-                    Components\Repeater::make('finishings_data')
-                        ->label('Acabados')
-                        ->defaultItems(0)
+                    // Columna izquierda - Acabados (7/12)
+                    \Filament\Schemas\Components\Grid::make(1)
+                        ->columnSpan(7)
                         ->schema([
-                            Components\Select::make('finishing_id')
-                                ->label('Acabado')
-                                ->helperText('⚠️ El proveedor se asigna desde el catálogo de Acabados')
-                                ->options(function () {
-                                    return $this->getFinishingOptions();
-                                })
-                                ->required()
-                                ->searchable()
-                                ->live()
-                                ->afterStateUpdated(function ($set, $get, $state) {
-                                    if ($this->calculationContext) {
-                                        $this->calculationContext->calculateSimpleFinishingCost($set, $get);
-                                    }
-                                }),
-
-                            \Filament\Schemas\Components\Grid::make(3)
+                            \Filament\Schemas\Components\Section::make('Acabados Opcionales')
+                                ->icon('heroicon-o-sparkles')
+                                ->compact()
                                 ->schema([
-                                    Components\TextInput::make('quantity')
-                                        ->label('Cantidad')
-                                        ->numeric()
-                                        ->default(1)
-                                        ->required()
-                                        ->live()
-                                        ->afterStateUpdated(function ($set, $get, $state) {
-                                            if ($this->calculationContext) {
-                                                $this->calculationContext->calculateSimpleFinishingCost($set, $get);
-                                            }
-                                        }),
+                                    Components\Repeater::make('finishings_data')
+                                        ->label('')
+                                        ->defaultItems(0)
+                                        ->schema([
+                                            Components\Select::make('finishing_id')
+                                                ->label('Acabado')
+                                                ->helperText('El proveedor se asigna desde el catálogo')
+                                                ->options(function () {
+                                                    return $this->getFinishingOptions();
+                                                })
+                                                ->required()
+                                                ->searchable()
+                                                ->live()
+                                                ->afterStateUpdated(function ($set, $get, $state) {
+                                                    if ($this->calculationContext) {
+                                                        $this->calculationContext->calculateSimpleFinishingCost($set, $get);
+                                                    }
+                                                }),
 
-                                    Components\TextInput::make('width')
-                                        ->label('Ancho (cm)')
-                                        ->numeric()
-                                        ->step(0.01)
-                                        ->live()
-                                        ->visible(fn ($get) => $this->shouldShowSizeFields($get('finishing_id')))
-                                        ->afterStateUpdated(function ($set, $get, $state) {
-                                            if ($this->calculationContext) {
-                                                $this->calculationContext->calculateSimpleFinishingCost($set, $get);
-                                            }
-                                        }),
+                                            \Filament\Schemas\Components\Grid::make(3)
+                                                ->schema([
+                                                    Components\TextInput::make('quantity')
+                                                        ->label('Cantidad')
+                                                        ->numeric()
+                                                        ->default(1)
+                                                        ->required()
+                                                        ->live()
+                                                        ->afterStateUpdated(function ($set, $get, $state) {
+                                                            if ($this->calculationContext) {
+                                                                $this->calculationContext->calculateSimpleFinishingCost($set, $get);
+                                                            }
+                                                        }),
 
-                                    Components\TextInput::make('height')
-                                        ->label('Alto (cm)')
-                                        ->numeric()
-                                        ->step(0.01)
-                                        ->live()
-                                        ->visible(fn ($get) => $this->shouldShowSizeFields($get('finishing_id')))
-                                        ->afterStateUpdated(function ($set, $get, $state) {
-                                            if ($this->calculationContext) {
-                                                $this->calculationContext->calculateSimpleFinishingCost($set, $get);
-                                            }
-                                        }),
+                                                    Components\TextInput::make('width')
+                                                        ->label('Ancho (cm)')
+                                                        ->numeric()
+                                                        ->step(0.01)
+                                                        ->live()
+                                                        ->visible(fn ($get) => $this->shouldShowSizeFields($get('finishing_id')))
+                                                        ->afterStateUpdated(function ($set, $get, $state) {
+                                                            if ($this->calculationContext) {
+                                                                $this->calculationContext->calculateSimpleFinishingCost($set, $get);
+                                                            }
+                                                        }),
+
+                                                    Components\TextInput::make('height')
+                                                        ->label('Alto (cm)')
+                                                        ->numeric()
+                                                        ->step(0.01)
+                                                        ->live()
+                                                        ->visible(fn ($get) => $this->shouldShowSizeFields($get('finishing_id')))
+                                                        ->afterStateUpdated(function ($set, $get, $state) {
+                                                            if ($this->calculationContext) {
+                                                                $this->calculationContext->calculateSimpleFinishingCost($set, $get);
+                                                            }
+                                                        }),
+                                                ]),
+
+                                            Components\Placeholder::make('calculated_cost_display')
+                                                ->label('Costo Calculado')
+                                                ->content(function ($get) {
+                                                    return $this->getFinishingCostDisplay($get);
+                                                })
+                                                ->columnSpanFull(),
+
+                                            Components\Hidden::make('calculated_cost'),
+                                        ])
+                                        ->collapsible()
+                                        ->addActionLabel('+ Agregar Acabado'),
                                 ]),
+                        ]),
 
-                            Components\Placeholder::make('calculated_cost_display')
-                                ->label('Costo Calculado')
-                                ->content(function ($get) {
-                                    return $this->getFinishingCostDisplay($get);
-                                })
-                                ->columnSpanFull(),
-
-                            Components\Hidden::make('calculated_cost'),
-                        ])
-                        ->collapsible()
-                        ->addActionLabel('+ Agregar Acabado'),
+                    // Columna derecha - Resumen de precios (5/12)
+                    \Filament\Schemas\Components\Grid::make(1)
+                        ->columnSpan(5)
+                        ->schema([
+                            \Filament\Schemas\Components\Section::make('Resumen de Precios')
+                                ->icon('heroicon-o-calculator')
+                                ->compact()
+                                ->schema([
+                                    Components\Placeholder::make('price_preview')
+                                        ->label('')
+                                        ->live()
+                                        ->content(function ($get) {
+                                            return $this->getPricePreview($get);
+                                        })
+                                        ->html()
+                                        ->columnSpanFull(),
+                                ]),
+                        ]),
                 ]),
-
-            // Resumen de cálculo reactivo - AL FINAL para visualizar el total incluyendo acabados
-            \Filament\Schemas\Components\Section::make('💰 Resumen de precios')
-                ->schema([
-                    Components\Placeholder::make('price_preview')
-                        ->label('')
-                        ->live()
-                        ->content(function ($get) {
-                            return $this->getPricePreview($get);
-                        })
-                        ->html()
-                        ->columnSpanFull(),
-                ])
-                ->collapsed(false)
-                ->collapsible(),
         ];
     }
 
@@ -244,22 +259,23 @@ class SimpleItemQuickHandler implements QuickActionHandlerInterface
     private function getPricePreview($get): string
     {
         try {
-            // Debug info
             $quantity = $get('quantity') ?? 0;
             $horizontalSize = $get('horizontal_size') ?? 0;
             $verticalSize = $get('vertical_size') ?? 0;
             $paperId = $get('paper_id');
             $machineId = $get('printing_machine_id');
 
-            // Mostrar debug si no hay datos
+            // Estado inicial
             if (! $quantity && ! $horizontalSize && ! $verticalSize && ! $paperId && ! $machineId) {
-                return '<div class="p-4 bg-blue-50 rounded text-center">
-                    <div class="text-sm text-blue-700">👋 Complete los campos del formulario</div>
-                    <div class="text-xs text-blue-600 mt-1">El cálculo aparecerá automáticamente aquí</div>
-                </div>';
+                return '
+                    <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; padding: 32px 20px; text-align: center;">
+                        <div style="font-size: 40px; margin-bottom: 8px; opacity: 0.5;">💰</div>
+                        <div style="color: #64748b; font-size: 13px; font-weight: 500;">Complete los campos para ver el precio</div>
+                    </div>
+                ';
             }
 
-            // Crear un SimpleItem temporal con los datos del formulario
+            // Crear SimpleItem temporal
             $tempItem = new SimpleItem([
                 'quantity' => $quantity,
                 'horizontal_size' => $get('horizontal_size') ?? 0,
@@ -281,46 +297,55 @@ class SimpleItemQuickHandler implements QuickActionHandlerInterface
                 'custom_paper_height' => $get('custom_paper_height'),
             ]);
 
-            // Cargar relaciones necesarias
+            // Cargar relaciones (sin TenantScope para permitir papeles de proveedores)
             if ($tempItem->paper_id) {
-                $tempItem->setRelation('paper', \App\Models\Paper::find($tempItem->paper_id));
+                $paper = \App\Models\Paper::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
+                    ->find($tempItem->paper_id);
+                $tempItem->setRelation('paper', $paper);
             }
-
             if ($tempItem->printing_machine_id) {
-                $tempItem->setRelation('printingMachine', \App\Models\PrintingMachine::find($tempItem->printing_machine_id));
+                $machine = \App\Models\PrintingMachine::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
+                    ->find($tempItem->printing_machine_id);
+                $tempItem->setRelation('printingMachine', $machine);
             }
 
             // Validar datos mínimos
             if (! $tempItem->paper || ! $tempItem->printingMachine || ! $tempItem->quantity || ! $tempItem->horizontal_size || ! $tempItem->vertical_size) {
-                return '<div class="p-4 bg-gray-50 rounded text-center text-gray-500">
-                    <div class="text-sm">Complete todos los campos requeridos para ver el cálculo</div>
-                    <div class="text-xs mt-1">Se requiere: cantidad, tamaño, papel y máquina</div>
-                </div>';
+                return '
+                    <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 12px; padding: 20px; text-align: center;">
+                        <div style="font-size: 32px; margin-bottom: 6px;">⚠️</div>
+                        <div style="color: #92400e; font-size: 12px; font-weight: 500;">Faltan datos requeridos</div>
+                        <div style="color: #a16207; font-size: 11px; margin-top: 4px;">Cantidad, tamaño, papel y máquina</div>
+                    </div>
+                ';
             }
 
-            // Validar montaje manual si está seleccionado
-            if ($tempItem->mounting_type === 'custom') {
-                if (! $tempItem->custom_paper_width || ! $tempItem->custom_paper_height) {
-                    return '<div class="p-4 bg-blue-50 rounded text-center text-blue-700">
-                        <div class="text-sm">✏️ Montaje Manual seleccionado</div>
-                        <div class="text-xs mt-1">Ingresa las dimensiones del papel personalizado en el tab "Montaje Manual"</div>
-                    </div>';
-                }
+            // Validar montaje manual
+            if ($tempItem->mounting_type === 'custom' && (! $tempItem->custom_paper_width || ! $tempItem->custom_paper_height)) {
+                return '
+                    <div style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-radius: 12px; padding: 20px; text-align: center;">
+                        <div style="font-size: 32px; margin-bottom: 6px;">✏️</div>
+                        <div style="color: #1d4ed8; font-size: 12px; font-weight: 500;">Montaje Manual</div>
+                        <div style="color: #3b82f6; font-size: 11px; margin-top: 4px;">Ingresa dimensiones de hoja personalizada</div>
+                    </div>
+                ';
             }
 
-            // Calcular usando el servicio
+            // Calcular
             $calculator = new \App\Services\SimpleItemCalculatorService;
             $pricingResult = $calculator->calculateFinalPricingNew($tempItem);
 
             if (! $pricingResult) {
-                return '<div class="p-4 bg-yellow-50 rounded text-center">
-                    <div class="text-sm text-yellow-700">No se pudo calcular el precio</div>
-                    <div class="text-xs text-yellow-600 mt-1">Verifique que los datos sean válidos</div>
-                </div>';
+                return '
+                    <div style="background: #fef2f2; border-radius: 12px; padding: 20px; text-align: center;">
+                        <div style="color: #dc2626; font-size: 13px;">No se pudo calcular el precio</div>
+                    </div>
+                ';
             }
 
-            // Calcular acabados si existen
+            // Calcular acabados
             $finishingsTotal = 0;
+            $finishingsCount = 0;
             $finishingsData = $get('finishings_data') ?? [];
             if (! empty($finishingsData)) {
                 $finishingCalculator = app(\App\Services\FinishingCalculatorService::class);
@@ -328,80 +353,122 @@ class SimpleItemQuickHandler implements QuickActionHandlerInterface
                     if (! empty($finishingData['finishing_id'])) {
                         $finishing = Finishing::find($finishingData['finishing_id']);
                         if ($finishing) {
-                            $params = [
+                            $finishingsCount++;
+                            $finishingsTotal += $finishingCalculator->calculateCost($finishing, [
                                 'quantity' => $finishingData['quantity'] ?? $tempItem->quantity,
                                 'width' => $finishingData['width'] ?? null,
                                 'height' => $finishingData['height'] ?? null,
-                            ];
-                            $finishingsTotal += $finishingCalculator->calculateCost($finishing, $params);
+                            ]);
                         }
                     }
                 }
             }
 
-            // Construir HTML de resumen
+            // Calcular totales
             $finalPriceWithFinishings = $pricingResult->finalPrice + $finishingsTotal;
             $unitPrice = $finalPriceWithFinishings / $tempItem->quantity;
+            $subtotal = $pricingResult->mountingOption->paperCost + $pricingResult->printingCalculation->printingCost + $pricingResult->additionalCosts->getTotalCost();
 
-            $content = '<div class="space-y-3">';
+            // ═══════════════════════════════════════════════════════════
+            // CONSTRUIR HTML CON DISEÑO MEJORADO
+            // ═══════════════════════════════════════════════════════════
 
-            // Información del montaje
-            $content .= '<div class="p-3 bg-blue-50 rounded border border-blue-200">';
-            $content .= '<div class="text-xs font-medium text-blue-700 mb-1">MONTAJE</div>';
-            $content .= '<div class="grid grid-cols-3 gap-2 text-xs">';
-            $content .= '<div><span class="text-gray-600">Copias/montaje:</span> <strong>'.$pricingResult->mountingOption->cutsPerSheet.'</strong></div>';
-            $content .= '<div><span class="text-gray-600">Pliegos:</span> <strong>'.$pricingResult->mountingOption->sheetsNeeded.'</strong></div>';
-            $content .= '<div><span class="text-gray-600">Aprovech:</span> <strong>'.number_format($pricingResult->mountingOption->utilizationPercentage, 1).'%</strong></div>';
-            $content .= '</div>';
-            $content .= '</div>';
+            $html = '<div style="font-family: system-ui, -apple-system, sans-serif;">';
+
+            // Header con precio total destacado
+            $html .= '
+                <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; padding: 16px 20px; margin-bottom: 16px; text-align: center; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);">
+                    <div style="color: rgba(255,255,255,0.85); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Precio Total</div>
+                    <div style="color: white; font-size: 36px; font-weight: 800; line-height: 1; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">$'.number_format($finalPriceWithFinishings, 0).'</div>
+                    <div style="color: rgba(255,255,255,0.9); font-size: 12px; margin-top: 6px;">
+                        <span style="background: rgba(255,255,255,0.2); padding: 3px 10px; border-radius: 20px;">Unitario: $'.number_format($unitPrice, 0).'</span>
+                    </div>
+                </div>
+            ';
+
+            // Tarjetas de métricas
+            $html .= '
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px;">
+                    <div style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-radius: 8px; padding: 10px; text-align: center; border: 1px solid #bfdbfe;">
+                        <div style="font-size: 20px; font-weight: 700; color: #1e40af;">'.$pricingResult->mountingOption->cutsPerSheet.'</div>
+                        <div style="font-size: 9px; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.3px;">Copias/Pliego</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-radius: 8px; padding: 10px; text-align: center; border: 1px solid #bbf7d0;">
+                        <div style="font-size: 20px; font-weight: 700; color: #166534;">'.$pricingResult->mountingOption->sheetsNeeded.'</div>
+                        <div style="font-size: 9px; color: #22c55e; text-transform: uppercase; letter-spacing: 0.3px;">Pliegos</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #fefce8 0%, #fef08a 100%); border-radius: 8px; padding: 10px; text-align: center; border: 1px solid #fde047;">
+                        <div style="font-size: 20px; font-weight: 700; color: #a16207;">'.number_format($pricingResult->mountingOption->utilizationPercentage, 0).'%</div>
+                        <div style="font-size: 9px; color: #ca8a04; text-transform: uppercase; letter-spacing: 0.3px;">Aprovech.</div>
+                    </div>
+                </div>
+            ';
 
             // Desglose de costos
-            $content .= '<div class="space-y-1">';
-            $content .= '<div class="flex justify-between text-sm">';
-            $content .= '<span class="text-gray-600">Papel</span>';
-            $content .= '<span>$'.number_format($pricingResult->mountingOption->paperCost, 0).'</span>';
-            $content .= '</div>';
-            $content .= '<div class="flex justify-between text-sm">';
-            $content .= '<span class="text-gray-600">Impresión</span>';
-            $content .= '<span>$'.number_format($pricingResult->printingCalculation->printingCost, 0).'</span>';
-            $content .= '</div>';
-            $content .= '<div class="flex justify-between text-sm">';
-            $content .= '<span class="text-gray-600">Otros costos</span>';
-            $content .= '<span>$'.number_format($pricingResult->additionalCosts->getTotalCost(), 0).'</span>';
-            $content .= '</div>';
+            $html .= '<div style="background: #f8fafc; border-radius: 10px; padding: 14px; margin-bottom: 12px;">';
+            $html .= '<div style="font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; font-weight: 600;">Desglose de Costos</div>';
 
-            if ($finishingsTotal > 0) {
-                $content .= '<div class="flex justify-between text-sm text-purple-600">';
-                $content .= '<span>Acabados</span>';
-                $content .= '<span>+$'.number_format($finishingsTotal, 0).'</span>';
-                $content .= '</div>';
+            // Líneas de costo
+            $costLines = [
+                ['label' => 'Papel', 'value' => $pricingResult->mountingOption->paperCost, 'icon' => '📄'],
+                ['label' => 'Impresión', 'value' => $pricingResult->printingCalculation->printingCost, 'icon' => '🖨️'],
+                ['label' => 'Otros costos', 'value' => $pricingResult->additionalCosts->getTotalCost(), 'icon' => '📦'],
+            ];
+
+            foreach ($costLines as $line) {
+                if ($line['value'] > 0) {
+                    $html .= '
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #e2e8f0;">
+                            <span style="color: #475569; font-size: 12px;">'.$line['icon'].' '.$line['label'].'</span>
+                            <span style="color: #1e293b; font-size: 12px; font-weight: 600;">$'.number_format($line['value'], 0).'</span>
+                        </div>
+                    ';
+                }
             }
 
-            $content .= '<div class="flex justify-between text-sm text-green-600 border-t pt-1">';
-            $content .= '<span>Ganancia ('.$tempItem->profit_percentage.'%)</span>';
-            $content .= '<span>+$'.number_format($pricingResult->profitAmount, 0).'</span>';
-            $content .= '</div>';
-            $content .= '</div>';
+            // Acabados si existen
+            if ($finishingsTotal > 0) {
+                $html .= '
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #e2e8f0;">
+                        <span style="color: #7c3aed; font-size: 12px;">🎨 Acabados ('.$finishingsCount.')</span>
+                        <span style="color: #7c3aed; font-size: 12px; font-weight: 600;">+$'.number_format($finishingsTotal, 0).'</span>
+                    </div>
+                ';
+            }
 
-            // Total
-            $content .= '<div class="flex justify-between items-center font-bold text-lg border-t-2 pt-2 mt-2">';
-            $content .= '<span>PRECIO TOTAL</span>';
-            $content .= '<span class="text-blue-600">$'.number_format($finalPriceWithFinishings, 0).'</span>';
-            $content .= '</div>';
+            // Subtotal
+            $html .= '
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; margin-top: 4px;">
+                    <span style="color: #64748b; font-size: 11px; font-weight: 500;">SUBTOTAL</span>
+                    <span style="color: #475569; font-size: 13px; font-weight: 600;">$'.number_format($subtotal + $finishingsTotal, 0).'</span>
+                </div>
+            ';
 
-            $content .= '<div class="text-center text-xs text-gray-500 mt-1">';
-            $content .= 'Precio unitario: <strong>$'.number_format($unitPrice, 2).'</strong>';
-            $content .= '</div>';
+            $html .= '</div>'; // Fin desglose
 
-            $content .= '</div>';
+            // Ganancia
+            $html .= '
+                <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-radius: 10px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #86efac;">
+                    <div>
+                        <div style="color: #166534; font-size: 12px; font-weight: 600;">Ganancia</div>
+                        <div style="color: #22c55e; font-size: 10px;">'.$tempItem->profit_percentage.'% de margen</div>
+                    </div>
+                    <div style="color: #166534; font-size: 18px; font-weight: 700;">+$'.number_format($pricingResult->profitAmount, 0).'</div>
+                </div>
+            ';
 
-            return $content;
+            $html .= '</div>'; // Fin container
+
+            return $html;
 
         } catch (\Exception $e) {
-            return '<div class="p-4 bg-red-50 rounded">
-                <div class="text-sm text-red-700">Error al calcular</div>
-                <div class="text-xs text-red-600 mt-1">'.$e->getMessage().'</div>
-            </div>';
+            return '
+                <div style="background: #fef2f2; border-radius: 12px; padding: 20px; text-align: center;">
+                    <div style="font-size: 32px; margin-bottom: 8px;">❌</div>
+                    <div style="color: #dc2626; font-size: 13px; font-weight: 500;">Error al calcular</div>
+                    <div style="color: #f87171; font-size: 11px; margin-top: 4px;">'.$e->getMessage().'</div>
+                </div>
+            ';
         }
     }
 }

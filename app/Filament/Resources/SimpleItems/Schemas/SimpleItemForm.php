@@ -7,7 +7,6 @@ use Filament\Schemas\Components\Grid;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Placeholder;
 use Filament\Schemas\Schema;
 use App\Models\Paper;
@@ -18,937 +17,534 @@ class SimpleItemForm
     public static function configure(Schema $schema): Schema
     {
         return $schema
+            ->columns(12)
             ->components([
-                // Sección Información del Producto - Ancho completo
-                Section::make('📝 Información del Producto')
-                    ->description('Datos básicos del trabajo de impresión')
+                // ═══════════════════════════════════════════════════════════════
+                // COLUMNA IZQUIERDA (7/12) - Datos de Entrada
+                // ═══════════════════════════════════════════════════════════════
+                Grid::make(1)
+                    ->columnSpan(7)
                     ->schema([
-                        Grid::make(3)
+                        // Sección 1: Información del Producto
+                        Section::make('')
+                            ->compact()
                             ->schema([
-                                Textarea::make('description')
-                                    ->label('Descripción del Trabajo')
-                                    ->required()
-                                    ->rows(3)
-                                    ->placeholder('Ej: Volantes promocionales full color...')
-                                    ->columnSpan(2),
-
-                                Grid::make(1)
+                                Grid::make(4)
                                     ->schema([
-                                        TextInput::make('quantity')
-                                            ->label('Cantidad')
+                                        Textarea::make('description')
+                                            ->label('Descripción del Trabajo')
+                                            ->required()
+                                            ->rows(1)
+                                            ->placeholder('Ej: Volantes, membretes, carpetas...')
+                                            ->columnSpan(2),
+
+                                        Grid::make(1)
+                                            ->schema([
+                                                TextInput::make('quantity')
+                                                    ->label('Cantidad')
+                                                    ->numeric()
+                                                    ->required()
+                                                    ->default(1)
+                                                    ->minValue(1)
+                                                    ->suffix('unid.')
+                                                    ->live(onBlur: true),
+                                            ])
+                                            ->columnSpan(1),
+                                        Grid::make(1)
+                                            ->schema([
+                                                TextInput::make('sobrante_papel')
+                                                    ->label('Sobrante')
+                                                    ->numeric()
+                                                    ->default(0)
+                                                    ->minValue(0)
+                                                    ->suffix('unid.')
+                                                    ->live(onBlur: true),
+                                            ])
+                                            ->columnSpan(1),
+                                    ]),
+
+                                Grid::make(4)
+                                    ->schema([
+                                        TextInput::make('horizontal_size')
+                                            ->label('Ancho')
                                             ->numeric()
                                             ->required()
-                                            ->default(1)
-                                            ->minValue(1)
-                                            ->suffix('unidades')
+                                            ->suffix('cm')
+                                            ->step(0.1)
                                             ->live(onBlur: true),
 
-                                        TextInput::make('sobrante_papel')
-                                            ->label('Sobrante')
+                                        TextInput::make('vertical_size')
+                                            ->label('Alto')
                                             ->numeric()
-                                            ->default(0)
-                                            ->minValue(0)
-                                            ->suffix('unidades')
-                                            ->helperText('Desperdicios (si >100 se cobra)')
+                                            ->required()
+                                            ->suffix('cm')
+                                            ->step(0.1)
                                             ->live(onBlur: true),
-                                    ])
-                                    ->columnSpan(1),
-                            ]),
 
-                        Grid::make(4)
-                            ->schema([
-                                TextInput::make('horizontal_size')
-                                    ->label('Ancho del Trabajo')
-                                    ->numeric()
-                                    ->required()
-                                    ->suffix('cm')
-                                    ->step(0.1)
-                                    ->live(onBlur: true),
-
-                                TextInput::make('vertical_size')
-                                    ->label('Alto del Trabajo')
-                                    ->numeric()
-                                    ->required()
-                                    ->suffix('cm')
-                                    ->step(0.1)
-                                    ->live(onBlur: true),
-
-                                Placeholder::make('area_calculation')
-                                    ->label('Área Total')
-                                    ->content(function ($get) {
-                                        $h = $get('horizontal_size');
-                                        $v = $get('vertical_size');
-                                        return $h && $v ? '<strong>' . number_format($h * $v, 2) . ' cm²</strong>' : '-';
-                                    })
-                                    ->html(),
-
-                                Placeholder::make('format_info')
-                                    ->label('Formato')
-                                    ->content(function ($get) {
-                                        $h = $get('horizontal_size');
-                                        $v = $get('vertical_size');
-                                        if (!$h || !$v) return '-';
-
-                                        // Detectar formatos comunes
-                                        if (abs($h - 9) < 0.5 && abs($v - 5) < 0.5) return '<span class="text-blue-600 font-semibold">📇 Tarjeta</span>';
-                                        if (abs($h - 14.8) < 0.5 && abs($v - 21) < 0.5) return '<span class="text-blue-600 font-semibold">📄 A5</span>';
-                                        if (abs($h - 21) < 0.5 && abs($v - 29.7) < 0.5) return '<span class="text-blue-600 font-semibold">📄 A4</span>';
-                                        return '<span class="text-gray-500">Personalizado</span>';
-                                    })
-                                    ->html(),
-                            ]),
-                    ])
-                    ->columnSpanFull(),
-
-                // Sección Configuración de Impresión - Ancho completo
-                Section::make('🖨️ Configuración de Impresión')
-                    ->description('Papel, máquina y tintas para el trabajo')
-                    ->schema([
-                        Grid::make(2)
-                            ->schema([
-                                Select::make('paper_id')
-                                    ->label('Tipo de Papel')
-                                    ->options(function () {
-                                        $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
-                                        $company = $currentCompanyId ? \App\Models\Company::find($currentCompanyId) : null;
-
-                                        if (!$company) {
-                                            return [];
-                                        }
-
-                                        if ($company->isLitografia()) {
-                                            $supplierCompanyIds = \App\Models\SupplierRelationship::where('client_company_id', $currentCompanyId)
-                                                ->where('is_active', true)
-                                                ->whereNotNull('approved_at')
-                                                ->pluck('supplier_company_id')
-                                                ->toArray();
-
-                                            $papers = Paper::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->where(function ($query) use ($currentCompanyId, $supplierCompanyIds) {
-                                                $query->forTenant($currentCompanyId) // Propios (todos)
-                                                      ->orWhere(function ($q) use ($supplierCompanyIds) {
-                                                          // De proveedores: solo los públicos
-                                                          $q->whereIn('company_id', $supplierCompanyIds)
-                                                            ->where('is_public', true);
-                                                      });
-                                            })
-                                            ->where('is_active', true)
-                                            ->with('company')
-                                            ->get()
-                                            ->mapWithKeys(function ($paper) use ($currentCompanyId) {
-                                                $origin = $paper->company_id === $currentCompanyId ? '✓' : '📦';
-                                                $label = "$origin {$paper->code} - {$paper->name} ({$paper->width}x{$paper->height}cm)";
-                                                return [$paper->id => $label];
-                                            });
-
-                                            return $papers->toArray();
-                                        } else {
-                                            return Paper::where('company_id', $currentCompanyId)
-                                                ->where('is_active', true)
-                                                ->get()
-                                                ->mapWithKeys(function ($paper) {
-                                                    return [$paper->id => "{$paper->code} - {$paper->name} ({$paper->width}x{$paper->height}cm)"];
-                                                })
-                                                ->toArray();
-                                        }
-                                    })
-                                    ->required()
-                                    ->searchable()
-                                    ->preload()
-                                    ->columnSpan(1),
-
-                                Select::make('printing_machine_id')
-                                    ->label('Máquina de Impresión')
-                                    ->relationship('printingMachine', 'name')
-                                    ->getOptionLabelFromRecordUsing(fn($record) =>
-                                        $record->name . ' - ' . ucfirst($record->type) .
-                                        ' (Max: ' . $record->max_colors . ' tintas)'
-                                    )
-                                    ->required()
-                                    ->searchable()
-                                    ->preload()
-                                    ->live()
-                                    ->columnSpan(1),
-                            ]),
-
-                        Grid::make(4)
-                            ->schema([
-                                TextInput::make('ink_front_count')
-                                    ->label('Tintas Tiro (Frente)')
-                                    ->numeric()
-                                    ->required()
-                                    ->default(4)
-                                    ->minValue(0)
-                                    ->maxValue(8)
-                                    ->helperText('Colores en la cara frontal'),
-
-                                TextInput::make('ink_back_count')
-                                    ->label('Tintas Retiro (Reverso)')
-                                    ->numeric()
-                                    ->required()
-                                    ->default(0)
-                                    ->minValue(0)
-                                    ->maxValue(8)
-                                    ->helperText('Colores en la cara posterior'),
-
-                                TextInput::make('margin_per_side')
-                                    ->label('Margen del Montaje')
-                                    ->numeric()
-                                    ->default(1.0)
-                                    ->step(0.1)
-                                    ->minValue(0)
-                                    ->maxValue(5)
-                                    ->suffix('cm')
-                                    ->helperText('Margen por lado (default 1cm)')
-                                    ->live(onBlur: true),
-
-                                Placeholder::make('total_colors')
-                                    ->label('Total de Tintas')
-                                    ->content(function ($get) {
-                                        $front = $get('ink_front_count') ?? 0;
-                                        $back = $get('ink_back_count') ?? 0;
-
-                                        $total = $front + $back;
-                                        return '<span class="text-lg font-bold text-green-600">' . $total . ' tintas</span><br><span class="text-xs text-gray-500">' . $front . '+' . $back . '</span>';
-                                    })
-                                    ->html(),
-                            ]),
-                    ])
-                    ->columnSpanFull(),
-
-                // Vista previa de montaje con Tabs (automático y manual)
-                Section::make('📐 Vista Previa de Montaje')
-                    ->description('Selecciona el tipo de montaje y visualiza los resultados')
-                    ->schema([
-                        \Filament\Schemas\Components\Tabs::make('Mounting Tabs')
-                            ->tabs([
-                                // TAB 1: Montaje Automático
-                                \Filament\Schemas\Components\Tabs\Tab::make('Montaje Automático')
-                                    ->icon('heroicon-o-cog')
-                                    ->schema([
-                                        Placeholder::make('mounting_preview_auto')
-                                            ->label('')
-                                            ->live()
+                                        Placeholder::make('area_calculation')
+                                            ->label('Área')
                                             ->content(function ($get) {
-                                $horizontalSize = $get('horizontal_size');
-                                $verticalSize = $get('vertical_size');
-                                $machineId = $get('printing_machine_id');
-                                $quantity = $get('quantity') ?? 0;
-                                $sobrante = $get('sobrante_papel') ?? 0;
-
-                                if (!$horizontalSize || !$verticalSize || !$machineId) {
-                                    return new \Illuminate\Support\HtmlString('<div class="p-4 bg-gray-50 rounded text-gray-500 text-center">
-                                        📋 Complete los campos de tamaño y máquina para ver el montaje
-                                    </div>');
-                                }
-
-                                try {
-                                    $machine = \App\Models\PrintingMachine::find($machineId);
-                                    if (!$machine) {
-                                        return new \Illuminate\Support\HtmlString('<div class="p-3 bg-yellow-50 rounded text-yellow-700 text-sm">
-                                            ⚠️ Máquina no encontrada
-                                        </div>');
-                                    }
-
-                                    $calc = new \App\Services\MountingCalculatorService();
-                                    // Usar margen configurable o 1.0 por defecto
-                                    $marginPerSide = $get('margin_per_side') ?? 1.0;
-
-                                    $result = $calc->calculateMounting(
-                                        workWidth: (float) $horizontalSize,
-                                        workHeight: (float) $verticalSize,
-                                        machineWidth: $machine->max_width ?? 50.0,
-                                        machineHeight: $machine->max_height ?? 70.0,
-                                        marginPerSide: $marginPerSide
-                                    );
-
-                                    $best = $result['maximum'];
-
-                                    if ($best['copies_per_sheet'] == 0) {
-                                        return new \Illuminate\Support\HtmlString('<div class="p-3 bg-red-50 rounded text-red-700 text-sm">
-                                            ❌ El trabajo NO cabe en la máquina seleccionada<br>
-                                            <span class="text-xs">Máquina: ' . $machine->name . ' (' . $machine->max_width . '×' . $machine->max_height . 'cm)</span>
-                                        </div>');
-                                    }
-
-                                    // Calcular pliegos necesarios si hay cantidad
-                                    $sheetsInfo = '';
-                                    if ($quantity > 0) {
-                                        $sheets = $calc->calculateRequiredSheets(
-                                            requiredCopies: (int) $quantity + (int) $sobrante,
-                                            copiesPerSheet: $best['copies_per_sheet']
-                                        );
-
-                                        $efficiency = $calc->calculateEfficiency(
-                                            workWidth: $best['work_width'],
-                                            workHeight: $best['work_height'],
-                                            copiesPerSheet: $best['copies_per_sheet'],
-                                            usableWidth: ($machine->max_width ?? 50.0) - 2.0,
-                                            usableHeight: ($machine->max_height ?? 70.0) - 2.0
-                                        );
-
-                                        $sheetsInfo = '
-                                            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden h-full" style="display:flex;flex-direction:column;">
-                                                <div class="bg-gradient-to-r from-emerald-500 to-teal-600 px-3 py-2 text-center">
-                                                    <div style="color:white;font-weight:600;font-size:12px;margin-bottom:4px;">📦 Producción</div>
-                                                    <div style="background:rgba(255,255,255,0.2);color:white;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;display:inline-block;">
-                                                        ' . number_format($efficiency, 1) . '% aprovech.
-                                                    </div>
-                                                </div>
-                                                <div class="p-3" style="flex:1;display:flex;flex-direction:column;gap:8px;">
-                                                    <!-- Pliegos -->
-                                                    <div style="text-align:center;padding:8px;background:linear-gradient(to bottom right, #dbeafe, #bfdbfe);border:2px solid #93c5fd;border-radius:6px;flex:1;">
-                                                        <div style="font-size:22px;margin-bottom:2px;">📄</div>
-                                                        <div style="font-size:20px;font-weight:700;color:#1e40af;margin-bottom:1px;">' . $sheets['sheets_needed'] . '</div>
-                                                        <div style="font-size:10px;color:#2563eb;font-weight:600;">Pliegos</div>
-                                                    </div>
-
-                                                    <!-- Producción -->
-                                                    <div style="text-align:center;padding:8px;background:linear-gradient(to bottom right, #d1fae5, #a7f3d0);border:2px solid #6ee7b7;border-radius:6px;flex:1;">
-                                                        <div style="font-size:22px;margin-bottom:2px;">✅</div>
-                                                        <div style="font-size:20px;font-weight:700;color:#065f46;margin-bottom:1px;">' . number_format($sheets['total_copies_produced']) . '</div>
-                                                        <div style="font-size:10px;color:#059669;font-weight:600;">Producción</div>
-                                                    </div>
-
-                                                    <!-- Desperdicio -->
-                                                    <div style="text-align:center;padding:8px;background:linear-gradient(to bottom right, #fed7aa, #fbbf24);border:2px solid #fb923c;border-radius:6px;flex:1;">
-                                                        <div style="font-size:22px;margin-bottom:2px;">⚠️</div>
-                                                        <div style="font-size:20px;font-weight:700;color:#c2410c;margin-bottom:1px;">' . $sheets['waste_copies'] . '</div>
-                                                        <div style="font-size:10px;color:#ea580c;font-weight:600;">Desperdicio</div>
-                                                    </div>
-                                                </div>
-                                            </div>';
-                                    }
-
-                                    // Generar visualización SVG
-                                    $svgVisual = '';
-                                    try {
-                                        $svgVisual = self::generateMountingSVG(
-                                            $best,
-                                            $machine->max_width ?? 50.0,
-                                            $machine->max_height ?? 70.0,
-                                            (float) $horizontalSize,
-                                            (float) $verticalSize
-                                        );
-
-                                    } catch (\Exception $svgError) {
-                                        // Fallback visual simple si falla el SVG
-                                        $svgVisual = '<div class="p-4 bg-yellow-50 rounded border border-yellow-300 text-center">
-                                            <div class="text-yellow-800 font-semibold mb-2">⚠️ Vista simplificada</div>
-                                            <div class="text-sm text-gray-700">
-                                                <strong>' . $best['copies_per_sheet'] . ' copias</strong> por pliego
-                                                <br>
-                                                Layout: ' . $best['layout'] . ' (' . ucfirst($best['orientation']) . ')
-                                            </div>
-                                        </div>';
-                                    }
-
-                                    $content = '
-                                        <div class="grid grid-cols-3 gap-4">
-                                            <!-- Columna 1: Visualización SVG -->
-                                            <div class="col-span-1">
-                                                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden h-full">
-                                                    <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-3 py-2 text-white text-center">
-                                                        <span style="font-weight:600;font-size:12px;">🎨 ' . ucfirst($best['orientation']) . '</span>
-                                                    </div>
-                                                    <div class="p-3 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center" style="min-height:200px;">
-                                                        ' . $svgVisual . '
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <!-- Columna 2: Opciones de Montaje -->
-                                            <div class="col-span-1">
-                                                <div style="display:flex;flex-direction:column;gap:12px;height:100%;">
-                                                    <!-- Horizontal -->
-                                                    <div class="relative bg-white rounded-lg border-2 ' . ($best['orientation'] === 'horizontal' ? 'border-green-400 shadow-md' : 'border-gray-200') . '" style="padding:12px;flex:1;">
-                                                        ' . ($best['orientation'] === 'horizontal' ? '<div style="position:absolute;top:-8px;right:-8px;background:#10b981;color:white;font-size:9px;font-weight:bold;padding:3px 8px;border-radius:10px;">✓ MEJOR</div>' : '') . '
-                                                        <div style="margin-bottom:6px;">
-                                                            <span style="font-size:18px;margin-right:4px;">↔️</span>
-                                                            <span style="font-size:12px;font-weight:600;color:#374151;">Horizontal</span>
-                                                        </div>
-                                                        <div style="margin-bottom:3px;">
-                                                            <span style="font-size:28px;font-weight:700;color:#111827;">' . $result['horizontal']['copies_per_sheet'] . '</span>
-                                                            <span style="font-size:11px;color:#6b7280;margin-left:3px;">copias</span>
-                                                        </div>
-                                                        <div style="display:inline-block;font-size:10px;color:#4b5563;background:#f3f4f6;padding:2px 6px;border-radius:3px;">
-                                                            ' . $result['horizontal']['layout'] . '
-                                                        </div>
-                                                    </div>
-
-                                                    <!-- Vertical -->
-                                                    <div class="relative bg-white rounded-lg border-2 ' . ($best['orientation'] === 'vertical' ? 'border-green-400 shadow-md' : 'border-gray-200') . '" style="padding:12px;flex:1;">
-                                                        ' . ($best['orientation'] === 'vertical' ? '<div style="position:absolute;top:-8px;right:-8px;background:#10b981;color:white;font-size:9px;font-weight:bold;padding:3px 8px;border-radius:10px;">✓ MEJOR</div>' : '') . '
-                                                        <div style="margin-bottom:6px;">
-                                                            <span style="font-size:18px;margin-right:4px;">↕️</span>
-                                                            <span style="font-size:12px;font-weight:600;color:#374151;">Vertical</span>
-                                                        </div>
-                                                        <div style="margin-bottom:3px;">
-                                                            <span style="font-size:28px;font-weight:700;color:#111827;">' . $result['vertical']['copies_per_sheet'] . '</span>
-                                                            <span style="font-size:11px;color:#6b7280;margin-left:3px;">copias</span>
-                                                        </div>
-                                                        <div style="display:inline-block;font-size:10px;color:#4b5563;background:#f3f4f6;padding:2px 6px;border-radius:3px;">
-                                                            ' . $result['vertical']['layout'] . '
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <!-- Columna 3: Resumen de Producción -->
-                                            <div class="col-span-1">
-                                                ' . $sheetsInfo . '
-                                            </div>
-                                        </div>';
-
-                                    return new \Illuminate\Support\HtmlString($content);
-
-                                } catch (\Exception $e) {
-                                    return new \Illuminate\Support\HtmlString('<div class="p-3 bg-red-50 rounded text-red-700 text-sm">
-                                        ❌ Error al calcular montaje: ' . $e->getMessage() . '
-                                    </div>');
-                                }
-                            })
-                            ->columnSpanFull(),
-                                    ]), // Cierre Tab Automático
-
-                                // TAB 2: Montaje Manual
-                                \Filament\Schemas\Components\Tabs\Tab::make('Montaje Manual')
-                                    ->icon('heroicon-o-pencil-square')
-                                    ->schema([
-                                        Grid::make(3)
-                                            ->schema([
-                                                TextInput::make('custom_paper_width')
-                                                    ->label('Ancho de la Hoja')
-                                                    ->numeric()
-                                                    ->suffix('cm')
-                                                    ->step(0.1)
-                                                    ->live(onBlur: true)
-                                                    ->helperText('Ancho de la HOJA para impresión (corte del pliego)'),
-
-                                                TextInput::make('custom_paper_height')
-                                                    ->label('Alto de la Hoja')
-                                                    ->numeric()
-                                                    ->suffix('cm')
-                                                    ->step(0.1)
-                                                    ->live(onBlur: true)
-                                                    ->helperText('Alto de la HOJA para impresión (corte del pliego)'),
-
-                                                Placeholder::make('custom_paper_area')
-                                                    ->label('Área de la Hoja')
-                                                    ->content(function ($get) {
-                                                        $w = $get('custom_paper_width');
-                                                        $h = $get('custom_paper_height');
-                                                        return $w && $h ? '<strong>' . number_format($w * $h, 2) . ' cm²</strong>' : '-';
-                                                    })
-                                                    ->html(),
-                                            ]),
-
-                                        Placeholder::make('mounting_preview_custom')
-                                            ->label('')
-                                            ->live()
-                                            ->content(function ($get) {
-                                                $horizontalSize = $get('horizontal_size');
-                                                $verticalSize = $get('vertical_size');
-                                                $customWidth = $get('custom_paper_width');
-                                                $customHeight = $get('custom_paper_height');
-                                                $quantity = $get('quantity') ?? 0;
-                                                $sobrante = $get('sobrante_papel') ?? 0;
-
-                                                if (!$horizontalSize || !$verticalSize) {
-                                                    return new \Illuminate\Support\HtmlString('<div class="p-4 bg-gray-50 rounded text-gray-500 text-center">
-                                                        📋 Complete los campos de tamaño del trabajo primero
-                                                    </div>');
-                                                }
-
-                                                if (!$customWidth || !$customHeight) {
-                                                    return new \Illuminate\Support\HtmlString('<div class="p-4 bg-blue-50 rounded text-blue-700 text-center">
-                                                        ✏️ Ingresa las dimensiones de la HOJA arriba para ver el montaje
-                                                    </div>');
-                                                }
-
-                                                try {
-                                                    $calc = new \App\Services\MountingCalculatorService();
-                                                    // Usar margen configurable o 1.0 por defecto
-                                                    $marginPerSide = $get('margin_per_side') ?? 1.0;
-
-                                                    $result = $calc->calculateMounting(
-                                                        workWidth: (float) $horizontalSize,
-                                                        workHeight: (float) $verticalSize,
-                                                        machineWidth: (float) $customWidth,
-                                                        machineHeight: (float) $customHeight,
-                                                        marginPerSide: $marginPerSide
-                                                    );
-
-                                                    $best = $result['maximum'];
-
-                                                    if ($best['copies_per_sheet'] == 0) {
-                                                        return new \Illuminate\Support\HtmlString('<div class="p-3 bg-red-50 rounded text-red-700 text-sm">
-                                                            ❌ El TRABAJO no cabe en la HOJA<br>
-                                                            <span class="text-xs">Hoja: ' . $customWidth . '×' . $customHeight . 'cm</span>
-                                                        </div>');
-                                                    }
-
-                                                    // Calcular pliegos necesarios
-                                                    $sheetsInfo = '';
-                                                    if ($quantity > 0) {
-                                                        $sheets = $calc->calculateRequiredSheets(
-                                                            requiredCopies: (int) $quantity + (int) $sobrante,
-                                                            copiesPerSheet: $best['copies_per_sheet']
-                                                        );
-
-                                                        $efficiency = $calc->calculateEfficiency(
-                                                            workWidth: $best['work_width'],
-                                                            workHeight: $best['work_height'],
-                                                            copiesPerSheet: $best['copies_per_sheet'],
-                                                            usableWidth: $customWidth - 2.0,
-                                                            usableHeight: $customHeight - 2.0
-                                                        );
-
-                                                        $sheetsInfo = '
-                                                            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden h-full" style="display:flex;flex-direction:column;">
-                                                                <div class="bg-gradient-to-r from-purple-500 to-purple-600 px-3 py-2 text-center">
-                                                                    <div style="color:white;font-weight:600;font-size:12px;margin-bottom:4px;">📦 Producción</div>
-                                                                    <div style="background:rgba(255,255,255,0.2);color:white;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;display:inline-block;">
-                                                                        ' . number_format($efficiency, 1) . '% aprovech.
-                                                                    </div>
-                                                                </div>
-                                                                <div class="p-3" style="flex:1;display:flex;flex-direction:column;gap:8px;">
-                                                                    <!-- Pliegos -->
-                                                                    <div style="text-align:center;padding:8px;background:linear-gradient(to bottom right, #dbeafe, #bfdbfe);border:2px solid #93c5fd;border-radius:6px;flex:1;">
-                                                                        <div style="font-size:22px;margin-bottom:2px;">📄</div>
-                                                                        <div style="font-size:20px;font-weight:700;color:#1e40af;margin-bottom:1px;">' . $sheets['sheets_needed'] . '</div>
-                                                                        <div style="font-size:10px;color:#2563eb;font-weight:600;">Pliegos</div>
-                                                                    </div>
-
-                                                                    <!-- Producción -->
-                                                                    <div style="text-align:center;padding:8px;background:linear-gradient(to bottom right, #d1fae5, #a7f3d0);border:2px solid #6ee7b7;border-radius:6px;flex:1;">
-                                                                        <div style="font-size:22px;margin-bottom:2px;">✅</div>
-                                                                        <div style="font-size:20px;font-weight:700;color:#065f46;margin-bottom:1px;">' . number_format($sheets['total_copies_produced']) . '</div>
-                                                                        <div style="font-size:10px;color:#059669;font-weight:600;">Producción</div>
-                                                                    </div>
-
-                                                                    <!-- Desperdicio -->
-                                                                    <div style="text-align:center;padding:8px;background:linear-gradient(to bottom right, #fed7aa, #fbbf24);border:2px solid #fb923c;border-radius:6px;flex:1;">
-                                                                        <div style="font-size:22px;margin-bottom:2px;">⚠️</div>
-                                                                        <div style="font-size:20px;font-weight:700;color:#c2410c;margin-bottom:1px;">' . $sheets['waste_copies'] . '</div>
-                                                                        <div style="font-size:10px;color:#ea580c;font-weight:600;">Desperdicio</div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>';
-                                                    }
-
-                                                    // Generar visualización SVG
-                                                    $svgVisual = '';
-                                                    try {
-                                                        $svgVisual = self::generateMountingSVG(
-                                                            $best,
-                                                            (float) $customWidth,
-                                                            (float) $customHeight,
-                                                            (float) $horizontalSize,
-                                                            (float) $verticalSize
-                                                        );
-                                                    } catch (\Exception $svgError) {
-                                                        $svgVisual = '<div class="p-4 bg-yellow-50 rounded border border-yellow-300 text-center">
-                                                            <div class="text-yellow-800 font-semibold mb-2">⚠️ Vista simplificada</div>
-                                                            <div class="text-sm text-gray-700">
-                                                                <strong>' . $best['copies_per_sheet'] . ' copias</strong> por pliego
-                                                                <br>
-                                                                Layout: ' . $best['layout'] . ' (' . ucfirst($best['orientation']) . ')
-                                                            </div>
-                                                        </div>';
-                                                    }
-
-                                                    $content = '
-                                                        <div class="grid grid-cols-3 gap-4">
-                                                            <!-- Columna 1: Visualización SVG -->
-                                                            <div class="col-span-1">
-                                                                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden h-full">
-                                                                    <div class="bg-gradient-to-r from-purple-500 to-purple-600 px-3 py-2 text-white text-center">
-                                                                        <span style="font-weight:600;font-size:12px;">🎨 ' . ucfirst($best['orientation']) . '</span>
-                                                                    </div>
-                                                                    <div class="p-3 bg-gradient-to-br from-purple-50 to-purple-100 flex items-center justify-center" style="min-height:200px;">
-                                                                        ' . $svgVisual . '
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            <!-- Columna 2: Opciones de Montaje -->
-                                                            <div class="col-span-1">
-                                                                <div style="display:flex;flex-direction:column;gap:12px;height:100%;">
-                                                                    <!-- Horizontal -->
-                                                                    <div class="relative bg-white rounded-lg border-2 ' . ($best['orientation'] === 'horizontal' ? 'border-purple-400 shadow-md' : 'border-gray-200') . '" style="padding:12px;flex:1;">
-                                                                        ' . ($best['orientation'] === 'horizontal' ? '<div style="position:absolute;top:-8px;right:-8px;background:#a855f7;color:white;font-size:9px;font-weight:bold;padding:3px 8px;border-radius:10px;">✓ MEJOR</div>' : '') . '
-                                                                        <div style="margin-bottom:6px;">
-                                                                            <span style="font-size:18px;margin-right:4px;">↔️</span>
-                                                                            <span style="font-size:12px;font-weight:600;color:#374151;">Horizontal</span>
-                                                                        </div>
-                                                                        <div style="margin-bottom:3px;">
-                                                                            <span style="font-size:28px;font-weight:700;color:#111827;">' . $result['horizontal']['copies_per_sheet'] . '</span>
-                                                                            <span style="font-size:11px;color:#6b7280;margin-left:3px;">copias</span>
-                                                                        </div>
-                                                                        <div style="display:inline-block;font-size:10px;color:#4b5563;background:#f3f4f6;padding:2px 6px;border-radius:3px;">
-                                                                            ' . $result['horizontal']['layout'] . '
-                                                                        </div>
-                                                                    </div>
-
-                                                                    <!-- Vertical -->
-                                                                    <div class="relative bg-white rounded-lg border-2 ' . ($best['orientation'] === 'vertical' ? 'border-purple-400 shadow-md' : 'border-gray-200') . '" style="padding:12px;flex:1;">
-                                                                        ' . ($best['orientation'] === 'vertical' ? '<div style="position:absolute;top:-8px;right:-8px;background:#a855f7;color:white;font-size:9px;font-weight:bold;padding:3px 8px;border-radius:10px;">✓ MEJOR</div>' : '') . '
-                                                                        <div style="margin-bottom:6px;">
-                                                                            <span style="font-size:18px;margin-right:4px;">↕️</span>
-                                                                            <span style="font-size:12px;font-weight:600;color:#374151;">Vertical</span>
-                                                                        </div>
-                                                                        <div style="margin-bottom:3px;">
-                                                                            <span style="font-size:28px;font-weight:700;color:#111827;">' . $result['vertical']['copies_per_sheet'] . '</span>
-                                                                            <span style="font-size:11px;color:#6b7280;margin-left:3px;">copias</span>
-                                                                        </div>
-                                                                        <div style="display:inline-block;font-size:10px;color:#4b5563;background:#f3f4f6;padding:2px 6px;border-radius:3px;">
-                                                                            ' . $result['vertical']['layout'] . '
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            <!-- Columna 3: Resumen de Producción -->
-                                                            <div class="col-span-1">
-                                                                ' . $sheetsInfo . '
-                                                            </div>
-                                                        </div>';
-
-                                                    return new \Illuminate\Support\HtmlString($content);
-
-                                                } catch (\Exception $e) {
-                                                    return new \Illuminate\Support\HtmlString('<div class="p-3 bg-red-50 rounded text-red-700 text-sm">
-                                                        ❌ Error al calcular montaje: ' . $e->getMessage() . '
-                                                    </div>');
-                                                }
+                                                $h = $get('horizontal_size');
+                                                $v = $get('vertical_size');
+                                                return $h && $v ? '<strong>' . number_format($h * $v, 2) . ' cm²</strong>' : '-';
                                             })
-                                            ->columnSpanFull(),
-                                    ]), // Cierre Tab Manual
-                            ]) // Cierre Tabs
-                            ->columnSpanFull(),
-                    ])
-                    ->columnSpanFull(),
+                                            ->html(),
 
-                // Selector de tipo de montaje
-                Section::make('✅ Selección de Montaje')
-                    ->description('Elige qué montaje quieres usar para los cálculos de esta cotización')
-                    ->schema([
-                        \Filament\Forms\Components\Radio::make('mounting_type')
-                            ->label('Tipo de Montaje a Utilizar')
-                            ->options([
-                                'automatic' => 'Usar Montaje Automático (tamaño máximo de máquina)',
-                                'custom' => 'Usar Montaje Manual (papel personalizado)',
-                            ])
-                            ->default('automatic')
-                            ->inline()
-                            ->live()
-                            ->helperText(function ($get) {
-                                $type = $get('mounting_type');
-                                if ($type === 'automatic') {
-                                    return '✓ Se usarán las dimensiones máximas de la máquina seleccionada para calcular el montaje';
-                                } else {
-                                    return '✓ Se usarán las dimensiones del papel personalizado que ingresaste';
-                                }
-                            }),
-                    ])
-                    ->columnSpanFull(),
+                                        Placeholder::make('format_info')
+                                            ->label('Formato')
+                                            ->content(function ($get) {
+                                                $h = $get('horizontal_size');
+                                                $v = $get('vertical_size');
+                                                if (!$h || !$v) return '-';
 
-                // Sección de costos - ancho completo pero más compacta
-                Section::make('💰 Costos y Márgenes')
-                    ->collapsed(false)
-                    ->schema([
-                        Grid::make(4)
-                            ->schema([
-                                TextInput::make('design_value')
-                                    ->label('Diseño')
-                                    ->numeric()
-                                    ->prefix('$')
-                                    ->default(0)
-                                    ->minValue(0),
-
-                                TextInput::make('transport_value')
-                                    ->label('Transporte')
-                                    ->numeric()
-                                    ->prefix('$')
-                                    ->default(0)
-                                    ->minValue(0),
-
-                                TextInput::make('rifle_value')
-                                    ->label('Rifle/Doblez')
-                                    ->numeric()
-                                    ->prefix('$')
-                                    ->default(0)
-                                    ->minValue(0),
-
-                                TextInput::make('profit_percentage')
-                                    ->label('Ganancia')
-                                    ->numeric()
-                                    ->suffix('%')
-                                    ->default(30)
-                                    ->minValue(0)
-                                    ->maxValue(100),
+                                                if (abs($h - 9) < 0.5 && abs($v - 5) < 0.5) return '<span class="text-blue-600 font-semibold">Tarjeta</span>';
+                                                if (abs($h - 14.8) < 0.5 && abs($v - 21) < 0.5) return '<span class="text-blue-600 font-semibold">A5</span>';
+                                                if (abs($h - 21) < 0.5 && abs($v - 29.7) < 0.5) return '<span class="text-blue-600 font-semibold">A4</span>';
+                                                return '<span class="text-gray-500">Personalizado</span>';
+                                            })
+                                            ->html(),
+                                    ]),
                             ]),
 
-                        Grid::make(2)
+                        // Sección 2: Configuración de Impresión
+                        Section::make('')
+                            ->compact()
                             ->schema([
-                                TextInput::make('cutting_cost')
-                                    ->label('Corte (0 = automático)')
-                                    ->numeric()
-                                    ->prefix('$')
-                                    ->default(0)
-                                    ->minValue(0),
-
-                                TextInput::make('mounting_cost')
-                                    ->label('Montaje (0 = automático)')
-                                    ->numeric()
-                                    ->prefix('$')
-                                    ->default(0)
-                                    ->minValue(0),
-                            ]),
-                    ])
-                    ->columnSpanFull(),
-
-                // NOTA: Sección de Acabados Sugeridos comentada para evitar duplicados
-                // La sección de acabados se maneja desde SimpleItemQuickHandler
-                /*
-                Section::make('🎨 Acabados Sugeridos')
-                    ->description('Acabados recomendados para este tipo de trabajo (opcionales)')
-                    ->collapsed()
-                    ->schema([
-                        \Filament\Forms\Components\Repeater::make('finishings_data')
-                            ->label('Acabados')
-                            ->defaultItems(0)
-                            ->schema([
-                                Grid::make(3)
+                                Grid::make(2)
                                     ->schema([
-                                        Select::make('finishing_id')
-                                            ->label('Acabado')
+                                        Select::make('paper_id')
+                                            ->label('Tipo de Papel')
                                             ->options(function () {
                                                 $currentCompanyId = config('app.current_tenant_id') ?? auth()->user()->company_id ?? null;
+                                                $company = $currentCompanyId ? \App\Models\Company::find($currentCompanyId) : null;
 
-                                                return \App\Models\Finishing::where('company_id', $currentCompanyId)
-                                                    ->where('active', true)
-                                                    ->get()
-                                                    ->mapWithKeys(function ($finishing) {
-                                                        return [$finishing->id => $finishing->name . ' - ' . $finishing->measurement_unit->label()];
+                                                if (!$company) {
+                                                    return [];
+                                                }
+
+                                                if ($company->isLitografia()) {
+                                                    $supplierCompanyIds = \App\Models\SupplierRelationship::where('client_company_id', $currentCompanyId)
+                                                        ->where('is_active', true)
+                                                        ->whereNotNull('approved_at')
+                                                        ->pluck('supplier_company_id')
+                                                        ->toArray();
+
+                                                    $papers = Paper::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->where(function ($query) use ($currentCompanyId, $supplierCompanyIds) {
+                                                        $query->forTenant($currentCompanyId)
+                                                              ->orWhere(function ($q) use ($supplierCompanyIds) {
+                                                                  $q->whereIn('company_id', $supplierCompanyIds)
+                                                                    ->where('is_public', true);
+                                                              });
                                                     })
-                                                    ->toArray();
+                                                    ->where('is_active', true)
+                                                    ->with('company')
+                                                    ->get()
+                                                    ->mapWithKeys(function ($paper) use ($currentCompanyId) {
+                                                        $origin = $paper->company_id === $currentCompanyId ? '✓' : '📦';
+                                                        $label = "$origin {$paper->code} - {$paper->name} ({$paper->width}x{$paper->height}cm)";
+                                                        return [$paper->id => $label];
+                                                    });
+
+                                                    return $papers->toArray();
+                                                } else {
+                                                    return Paper::where('company_id', $currentCompanyId)
+                                                        ->where('is_active', true)
+                                                        ->get()
+                                                        ->mapWithKeys(function ($paper) {
+                                                            return [$paper->id => "{$paper->code} - {$paper->name} ({$paper->width}x{$paper->height}cm)"];
+                                                        })
+                                                        ->toArray();
+                                                }
                                             })
                                             ->required()
                                             ->searchable()
+                                            ->preload(),
+
+                                        Select::make('printing_machine_id')
+                                            ->label('Máquina de Impresión')
+                                            ->relationship(
+                                                'printingMachine',
+                                                'name',
+                                                fn ($query) => $query->where('type', 'offset')->where('is_active', true)
+                                            )
+                                            ->getOptionLabelFromRecordUsing(fn($record) =>
+                                                $record->name . ' (' . $record->max_width . '×' . $record->max_height . 'cm)'
+                                            )
+                                            ->required()
+                                            ->searchable()
                                             ->preload()
-                                            ->live()
-                                            ->afterStateUpdated(function ($set, $get, $state) {
-                                                // Auto-poblar parámetros basados en el SimpleItem
-                                                if ($state) {
-                                                    $finishing = \App\Models\Finishing::find($state);
-                                                    if ($finishing) {
-                                                        $parentState = $get('../../');
-
-                                                        switch ($finishing->measurement_unit->value) {
-                                                            case 'millar':
-                                                            case 'rango':
-                                                            case 'unidad':
-                                                                $set('quantity', $parentState['quantity'] ?? 1);
-                                                                break;
-                                                            case 'tamaño':
-                                                                $set('width', $parentState['horizontal_size'] ?? 0);
-                                                                $set('height', $parentState['vertical_size'] ?? 0);
-                                                                break;
-                                                        }
-                                                    }
-                                                }
-                                            })
-                                            ->columnSpan(3),
-
-                                        // Campos de cantidad (para MILLAR, RANGO, UNIDAD)
-                                        TextInput::make('quantity')
-                                            ->label('Cantidad')
-                                            ->numeric()
-                                            ->default(1)
-                                            ->minValue(0)
-                                            ->live(onBlur: true)
-                                            ->visible(function ($get) {
-                                                $finishingId = $get('finishing_id');
-                                                if (!$finishingId) return false;
-
-                                                $finishing = \App\Models\Finishing::find($finishingId);
-                                                if (!$finishing) return false;
-
-                                                return in_array($finishing->measurement_unit->value, ['millar', 'rango', 'unidad']);
-                                            })
-                                            ->columnSpan(1),
-
-                                        // Campos de tamaño (para TAMAÑO)
-                                        TextInput::make('width')
-                                            ->label('Ancho (cm)')
-                                            ->numeric()
-                                            ->step(0.1)
-                                            ->minValue(0)
-                                            ->live(onBlur: true)
-                                            ->visible(function ($get) {
-                                                $finishingId = $get('finishing_id');
-                                                if (!$finishingId) return false;
-
-                                                $finishing = \App\Models\Finishing::find($finishingId);
-                                                if (!$finishing) return false;
-
-                                                return $finishing->measurement_unit->value === 'tamaño';
-                                            })
-                                            ->columnSpan(1),
-
-                                        TextInput::make('height')
-                                            ->label('Alto (cm)')
-                                            ->numeric()
-                                            ->step(0.1)
-                                            ->minValue(0)
-                                            ->live(onBlur: true)
-                                            ->visible(function ($get) {
-                                                $finishingId = $get('finishing_id');
-                                                if (!$finishingId) return false;
-
-                                                $finishing = \App\Models\Finishing::find($finishingId);
-                                                if (!$finishing) return false;
-
-                                                return $finishing->measurement_unit->value === 'tamaño';
-                                            })
-                                            ->columnSpan(1),
-
-                                        // Placeholder para mostrar el costo calculado
-                                        Placeholder::make('cost_preview')
-                                            ->label('Costo Estimado')
-                                            ->content(function ($get) {
-                                                $finishingId = $get('finishing_id');
-                                                $quantity = $get('quantity') ?? 0;
-                                                $width = $get('width') ?? 0;
-                                                $height = $get('height') ?? 0;
-
-                                                if (!$finishingId) {
-                                                    return '<span class="text-gray-400">Seleccione un acabado</span>';
-                                                }
-
-                                                try {
-                                                    $finishing = \App\Models\Finishing::find($finishingId);
-                                                    if (!$finishing) {
-                                                        return '<span class="text-red-500">Acabado no encontrado</span>';
-                                                    }
-
-                                                    $calculator = app(\App\Services\FinishingCalculatorService::class);
-
-                                                    $params = [];
-                                                    switch ($finishing->measurement_unit->value) {
-                                                        case 'millar':
-                                                        case 'rango':
-                                                        case 'unidad':
-                                                            $params = ['quantity' => (int) $quantity];
-                                                            break;
-                                                        case 'tamaño':
-                                                            $params = [
-                                                                'width' => (float) $width,
-                                                                'height' => (float) $height
-                                                            ];
-                                                            break;
-                                                    }
-
-                                                    $cost = $calculator->calculateCost($finishing, $params);
-
-                                                    return '<span class="text-lg font-bold text-green-600">$' . number_format($cost, 2) . '</span>';
-
-                                                } catch (\Exception $e) {
-                                                    return '<span class="text-red-500">Error: ' . $e->getMessage() . '</span>';
-                                                }
-                                            })
-                                            ->html()
-                                            ->columnSpan(3),
-
-                                        Toggle::make('is_default')
-                                            ->label('Sugerencia por defecto')
-                                            ->default(true)
-                                            ->inline(false)
-                                            ->helperText('Este acabado se sugerirá automáticamente')
-                                            ->columnSpan(3),
+                                            ->live(),
                                     ]),
-                            ])
-                            ->collapsible()
-                            ->collapsed(false)
-                            ->addActionLabel('+ Agregar Acabado Sugerido')
-                            ->helperText('Estos acabados se calcularán automáticamente en el precio del item'),
 
-                        Placeholder::make('finishings_total')
-                            ->label('Costo Total de Acabados')
-                            ->content(function ($get, $record) {
-                                if (!$record || !$record->exists) {
-                                    return '<span class="text-gray-400">Guarde el item para ver el total</span>';
-                                }
+                                Grid::make(4)
+                                    ->schema([
+                                        TextInput::make('ink_front_count')
+                                            ->label('Tintas Frente')
+                                            ->numeric()
+                                            ->required()
+                                            ->default(4)
+                                            ->minValue(0)
+                                            ->maxValue(8)
+                                            ->live(onBlur: true),
 
-                                try {
-                                    $record->load('finishings');
-                                    $total = $record->calculateFinishingsCost();
+                                        TextInput::make('ink_back_count')
+                                            ->label('Tintas Reverso')
+                                            ->numeric()
+                                            ->required()
+                                            ->default(0)
+                                            ->minValue(0)
+                                            ->maxValue(8)
+                                            ->live(onBlur: true),
 
-                                    return '<div class="p-3 bg-green-50 rounded border border-green-200">
-                                        <div class="text-2xl font-bold text-green-700">$' . number_format($total, 2) . '</div>
-                                        <div class="text-xs text-gray-600 mt-1">' . $record->finishings->count() . ' acabado(s) configurado(s)</div>
-                                    </div>';
-                                } catch (\Exception $e) {
-                                    return '<span class="text-red-500">Error al calcular: ' . $e->getMessage() . '</span>';
-                                }
-                            })
-                            ->html(),
-                    ])
-                    ->columnSpanFull(),
-                */
+                                        TextInput::make('margin_per_side')
+                                            ->label('Margen de la pinza')
+                                            ->numeric()
+                                            ->default(1.0)
+                                            ->step(0.1)
+                                            ->minValue(0)
+                                            ->maxValue(5)
+                                            ->suffix('cm')
+                                            ->live(onBlur: true),
 
-                // Sección de resultados - solo visible en edición
-                Section::make('📊 Resultados del Cálculo')
-                    ->collapsed()
-                    ->visible(fn ($record) => $record !== null)
-                    ->schema([
-                        Grid::make(2)
+                                        Placeholder::make('total_colors')
+                                            ->label('Total Tintas')
+                                            ->live()
+                                            ->content(function ($get) {
+                                                $front = $get('ink_front_count') ?? 0;
+                                                $back = $get('ink_back_count') ?? 0;
+                                                $total = $front + $back;
+                                                return '<span class="text-lg font-bold text-primary-600">' . $total . '</span> <span class="text-xs text-gray-500">(' . $front . '+' . $back . ')</span>';
+                                            })
+                                            ->html(),
+                                    ]),
+                            ]),
+
+                        // Sección 3: Tipo de Montaje
+                        Section::make('')
+                            ->compact()
                             ->schema([
-                                // Opciones de Montaje
-                                Placeholder::make('mounting_options')
-                                    ->label('Opciones de Montaje')
-                                    ->content(function ($record) {
-                                        if (!$record) return null;
+                                \Filament\Forms\Components\Radio::make('mounting_type')
+                                    ->label('')
+                                    ->options([
+                                        'automatic' => 'Automático (usa dimensiones de la máquina)',
+                                        'custom' => 'Manual (papel personalizado)',
+                                    ])
+                                    ->default('automatic')
+                                    ->inline()
+                                    ->live(),
 
-                                        $simpleItem = $record;
-                                        if ($record instanceof \App\Models\DocumentItem && $record->itemable_type === 'App\\Models\\SimpleItem') {
-                                            $simpleItem = $record->itemable;
+                                // Campos para montaje manual (solo visibles si es custom)
+                                Grid::make(3)
+                                    ->schema([
+                                        TextInput::make('custom_paper_width')
+                                            ->label('Ancho de Hoja')
+                                            ->numeric()
+                                            ->suffix('cm')
+                                            ->step(0.1)
+                                            ->live(onBlur: true)
+                                            ->helperText('Ancho del corte del pliego'),
+
+                                        TextInput::make('custom_paper_height')
+                                            ->label('Alto de Hoja')
+                                            ->numeric()
+                                            ->suffix('cm')
+                                            ->step(0.1)
+                                            ->live(onBlur: true)
+                                            ->helperText('Alto del corte del pliego'),
+
+                                        Placeholder::make('custom_paper_area')
+                                            ->label('Área Hoja')
+                                            ->content(function ($get) {
+                                                $w = $get('custom_paper_width');
+                                                $h = $get('custom_paper_height');
+                                                return $w && $h ? '<strong>' . number_format($w * $h, 2) . ' cm²</strong>' : '-';
+                                            })
+                                            ->html(),
+                                    ])
+                                    ->visible(fn ($get) => $get('mounting_type') === 'custom'),
+                            ]),
+
+                        // Sección 4: Costos y Márgenes
+                        Section::make('Costos y Márgenes')
+                            ->icon('heroicon-o-currency-dollar')
+                            ->compact()
+                            ->schema([
+                                Grid::make(4)
+                                    ->schema([
+                                        TextInput::make('design_value')
+                                            ->label('Diseño')
+                                            ->numeric()
+                                            ->prefix('$')
+                                            ->default(0)
+                                            ->minValue(0)
+                                            ->live(onBlur: true),
+
+                                        TextInput::make('transport_value')
+                                            ->label('Transporte')
+                                            ->numeric()
+                                            ->prefix('$')
+                                            ->default(0)
+                                            ->minValue(0)
+                                            ->live(onBlur: true),
+
+                                        TextInput::make('rifle_value')
+                                            ->label('Rifle/Doblez')
+                                            ->numeric()
+                                            ->prefix('$')
+                                            ->default(0)
+                                            ->minValue(0)
+                                            ->live(onBlur: true),
+
+                                        TextInput::make('profit_percentage')
+                                            ->label('Ganancia')
+                                            ->numeric()
+                                            ->suffix('%')
+                                            ->default(30)
+                                            ->minValue(0)
+                                            ->maxValue(100)
+                                            ->live(onBlur: true),
+                                    ]),
+
+                                Grid::make(2)
+                                    ->schema([
+                                        TextInput::make('cutting_cost')
+                                            ->label('Corte (0=auto)')
+                                            ->numeric()
+                                            ->prefix('$')
+                                            ->default(0)
+                                            ->minValue(0)
+                                            ->live(onBlur: true),
+
+                                        TextInput::make('mounting_cost')
+                                            ->label('Montaje (0=auto)')
+                                            ->numeric()
+                                            ->prefix('$')
+                                            ->default(0)
+                                            ->minValue(0)
+                                            ->live(onBlur: true),
+                                    ]),
+                            ]),
+                    ]),
+
+                // ═══════════════════════════════════════════════════════════════
+                // COLUMNA DERECHA (5/12) - Vista Previa y Resultados
+                // ═══════════════════════════════════════════════════════════════
+                Grid::make(1)
+                    ->columnSpan(5)
+                    ->schema([
+                        // Vista Previa de Montaje
+                        Section::make('')
+                            ->compact()
+                            ->schema([
+                                Placeholder::make('mounting_preview')
+                                    ->label('')
+                                    ->live()
+                                    ->content(function ($get) {
+                                        $horizontalSize = $get('horizontal_size');
+                                        $verticalSize = $get('vertical_size');
+                                        $machineId = $get('printing_machine_id');
+                                        $mountingType = $get('mounting_type') ?? 'automatic';
+                                        $customWidth = $get('custom_paper_width');
+                                        $customHeight = $get('custom_paper_height');
+                                        $quantity = $get('quantity') ?? 0;
+                                        $sobrante = $get('sobrante_papel') ?? 0;
+                                        $marginPerSide = $get('margin_per_side') ?? 1.0;
+
+                                        // Validaciones iniciales
+                                        if (!$horizontalSize || !$verticalSize) {
+                                            return new \Illuminate\Support\HtmlString('
+                                                <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; padding: 32px 16px; text-align: center;">
+                                                    <div style="font-size: 48px; margin-bottom: 8px; opacity: 0.6;">📐</div>
+                                                    <div style="color: #64748b; font-size: 13px; font-weight: 500;">Ingresa las dimensiones del trabajo</div>
+                                                </div>
+                                            ');
                                         }
 
-                                        if (!$simpleItem || !method_exists($simpleItem, 'getMountingOptions')) {
-                                            return 'No disponible';
+                                        // Determinar dimensiones de la hoja según tipo de montaje
+                                        if ($mountingType === 'custom') {
+                                            if (!$customWidth || !$customHeight) {
+                                                return new \Illuminate\Support\HtmlString('
+                                                    <div style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-radius: 12px; padding: 32px 16px; text-align: center;">
+                                                        <div style="font-size: 48px; margin-bottom: 8px;">✏️</div>
+                                                        <div style="color: #3b82f6; font-size: 13px; font-weight: 500;">Ingresa dimensiones de hoja personalizada</div>
+                                                    </div>
+                                                ');
+                                            }
+                                            $sheetWidth = (float) $customWidth;
+                                            $sheetHeight = (float) $customHeight;
+                                            $sheetLabel = $customWidth . ' × ' . $customHeight . ' cm';
+                                            $accentGradient = 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)';
+                                            $accentLight = '#f3e8ff';
+                                            $accentBorder = '#a855f7';
+                                        } else {
+                                            if (!$machineId) {
+                                                return new \Illuminate\Support\HtmlString('
+                                                    <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; padding: 32px 16px; text-align: center;">
+                                                        <div style="font-size: 48px; margin-bottom: 8px; opacity: 0.6;">🖨️</div>
+                                                        <div style="color: #64748b; font-size: 13px; font-weight: 500;">Selecciona una máquina</div>
+                                                    </div>
+                                                ');
+                                            }
+                                            $machine = \App\Models\PrintingMachine::find($machineId);
+                                            if (!$machine) {
+                                                return new \Illuminate\Support\HtmlString('<div style="padding: 12px; background: #fef3c7; border-radius: 8px; color: #92400e; font-size: 13px;">Máquina no encontrada</div>');
+                                            }
+                                            $sheetWidth = $machine->max_width ?? 50.0;
+                                            $sheetHeight = $machine->max_height ?? 70.0;
+                                            $sheetLabel = $sheetWidth . ' × ' . $sheetHeight . ' cm';
+                                            $accentGradient = 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)';
+                                            $accentLight = '#eff6ff';
+                                            $accentBorder = '#3b82f6';
                                         }
 
-                                        $options = $simpleItem->getMountingOptions();
-                                        if (empty($options)) return 'Sin opciones';
+                                        try {
+                                            $calc = new \App\Services\MountingCalculatorService();
+                                            $result = $calc->calculateMounting(
+                                                workWidth: (float) $horizontalSize,
+                                                workHeight: (float) $verticalSize,
+                                                machineWidth: $sheetWidth,
+                                                machineHeight: $sheetHeight,
+                                                marginPerSide: $marginPerSide
+                                            );
 
-                                        $content = '<div class="space-y-2">';
-                                        foreach ($options as $index => $option) {
-                                            $isSelected = $index === 0;
-                                            $bgColor = $isSelected ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200';
+                                            $best = $result['maximum'];
 
-                                            $content .= "<div class='p-2 {$bgColor} rounded border'>";
-                                            $content .= "<div class='flex justify-between items-center'>";
-                                            $content .= "<div class='text-sm'>";
-                                            $content .= "<span class='font-medium'>" . ucfirst($option->orientation) . "</span>";
-                                            if ($isSelected) $content .= " <span class='text-green-600'>✓</span>";
-                                            $content .= "<div class='text-xs text-gray-600'>";
-                                            $content .= "{$option->cutsPerSheet} cortes | {$option->sheetsNeeded} pliegos | ";
-                                            $content .= number_format($option->utilizationPercentage, 1) . "% aprovech.";
-                                            $content .= "</div></div>";
-                                            $content .= "<span class='font-bold text-sm'>$" . number_format($option->paperCost, 0) . "</span>";
-                                            $content .= "</div></div>";
+                                            if ($best['copies_per_sheet'] == 0) {
+                                                return new \Illuminate\Support\HtmlString('
+                                                    <div style="background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border-radius: 12px; padding: 24px; text-align: center;">
+                                                        <div style="font-size: 40px; margin-bottom: 8px;">❌</div>
+                                                        <div style="color: #dc2626; font-weight: 600; font-size: 14px;">El trabajo no cabe</div>
+                                                        <div style="color: #f87171; font-size: 11px; margin-top: 4px;">' . $sheetLabel . '</div>
+                                                    </div>
+                                                ');
+                                            }
+
+                                            // Generar SVG
+                                            $svgVisual = self::generateMountingSVG($best, $sheetWidth, $sheetHeight, (float) $horizontalSize, (float) $verticalSize);
+
+                                            // Header con copias destacadas
+                                            $headerHtml = '
+                                                <div style="background: ' . $accentGradient . '; border-radius: 10px; padding: 12px 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                                                    <div>
+                                                        <div style="color: rgba(255,255,255,0.8); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Copias por pliego</div>
+                                                        <div style="color: white; font-size: 28px; font-weight: 700; line-height: 1;">' . $best['copies_per_sheet'] . '</div>
+                                                    </div>
+                                                    <div style="text-align: right;">
+                                                        <div style="color: rgba(255,255,255,0.8); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Layout</div>
+                                                        <div style="color: white; font-size: 14px; font-weight: 600;">' . $best['layout'] . '</div>
+                                                        <div style="color: rgba(255,255,255,0.7); font-size: 11px;">' . ucfirst($best['orientation']) . '</div>
+                                                    </div>
+                                                </div>
+                                            ';
+
+                                            // SVG Container
+                                            $svgHtml = '
+                                                <div style="background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 8px; padding: 12px; margin-bottom: 12px; display: flex; justify-content: center; align-items: center; min-height: 160px;">
+                                                    ' . $svgVisual . '
+                                                </div>
+                                            ';
+
+                                            // Info de hoja
+                                            $infoHtml = '
+                                                <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                                                    <div style="flex: 1; background: #f8fafc; border-radius: 6px; padding: 8px 10px; border-left: 3px solid ' . $accentBorder . ';">
+                                                        <div style="color: #64748b; font-size: 9px; text-transform: uppercase; letter-spacing: 0.3px;">Hoja</div>
+                                                        <div style="color: #1e293b; font-size: 12px; font-weight: 600;">' . $sheetLabel . '</div>
+                                                    </div>
+                                                    <div style="flex: 1; background: #f8fafc; border-radius: 6px; padding: 8px 10px; border-left: 3px solid #10b981;">
+                                                        <div style="color: #64748b; font-size: 9px; text-transform: uppercase; letter-spacing: 0.3px;">Trabajo</div>
+                                                        <div style="color: #1e293b; font-size: 12px; font-weight: 600;">' . $horizontalSize . ' × ' . $verticalSize . ' cm</div>
+                                                    </div>
+                                                </div>
+                                            ';
+
+                                            // Calcular producción si hay cantidad
+                                            $productionHtml = '';
+                                            if ($quantity > 0) {
+                                                $sheets = $calc->calculateRequiredSheets(
+                                                    requiredCopies: (int) $quantity + (int) $sobrante,
+                                                    copiesPerSheet: $best['copies_per_sheet']
+                                                );
+
+                                                $efficiency = $calc->calculateEfficiency(
+                                                    workWidth: $best['work_width'],
+                                                    workHeight: $best['work_height'],
+                                                    copiesPerSheet: $best['copies_per_sheet'],
+                                                    usableWidth: $sheetWidth - 2.0,
+                                                    usableHeight: $sheetHeight - 2.0
+                                                );
+
+                                                $efficiencyColor = $efficiency >= 70 ? '#10b981' : ($efficiency >= 50 ? '#f59e0b' : '#ef4444');
+
+                                                $productionHtml = '
+                                                    <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-radius: 10px; padding: 12px; border: 1px solid #bbf7d0;">
+                                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                                            <span style="color: #166534; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Producción</span>
+                                                            <span style="background: ' . $efficiencyColor . '; color: white; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px;">' . number_format($efficiency, 0) . '% aprov.</span>
+                                                        </div>
+                                                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                                                            <div style="text-align: center; background: white; border-radius: 6px; padding: 8px 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                                                                <div style="font-size: 20px; font-weight: 700; color: #1e40af;">' . $sheets['sheets_needed'] . '</div>
+                                                                <div style="font-size: 9px; color: #64748b; text-transform: uppercase;">Pliegos</div>
+                                                            </div>
+                                                            <div style="text-align: center; background: white; border-radius: 6px; padding: 8px 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                                                                <div style="font-size: 20px; font-weight: 700; color: #059669;">' . number_format($sheets['total_copies_produced']) . '</div>
+                                                                <div style="font-size: 9px; color: #64748b; text-transform: uppercase;">Total</div>
+                                                            </div>
+                                                            <div style="text-align: center; background: white; border-radius: 6px; padding: 8px 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                                                                <div style="font-size: 20px; font-weight: 700; color: #d97706;">' . $sheets['waste_copies'] . '</div>
+                                                                <div style="font-size: 9px; color: #64748b; text-transform: uppercase;">Sobrante</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ';
+                                            }
+
+                                            // Opciones de montaje comparativas
+                                            $hSelected = $best['orientation'] === 'horizontal';
+                                            $vSelected = $best['orientation'] === 'vertical';
+
+                                            $optionsHtml = '
+                                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 12px;">
+                                                    <div style="background: ' . ($hSelected ? $accentLight : '#f8fafc') . '; border: 2px solid ' . ($hSelected ? $accentBorder : '#e2e8f0') . '; border-radius: 8px; padding: 8px; text-align: center; position: relative;">
+                                                        ' . ($hSelected ? '<div style="position: absolute; top: -6px; right: -6px; background: #10b981; color: white; font-size: 10px; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">✓</div>' : '') . '
+                                                        <div style="font-size: 10px; color: #64748b; margin-bottom: 2px;">↔ Horizontal</div>
+                                                        <div style="font-size: 18px; font-weight: 700; color: #1e293b;">' . $result['horizontal']['copies_per_sheet'] . '</div>
+                                                        <div style="font-size: 9px; color: #94a3b8;">' . $result['horizontal']['layout'] . '</div>
+                                                    </div>
+                                                    <div style="background: ' . ($vSelected ? $accentLight : '#f8fafc') . '; border: 2px solid ' . ($vSelected ? $accentBorder : '#e2e8f0') . '; border-radius: 8px; padding: 8px; text-align: center; position: relative;">
+                                                        ' . ($vSelected ? '<div style="position: absolute; top: -6px; right: -6px; background: #10b981; color: white; font-size: 10px; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">✓</div>' : '') . '
+                                                        <div style="font-size: 10px; color: #64748b; margin-bottom: 2px;">↕ Vertical</div>
+                                                        <div style="font-size: 18px; font-weight: 700; color: #1e293b;">' . $result['vertical']['copies_per_sheet'] . '</div>
+                                                        <div style="font-size: 9px; color: #94a3b8;">' . $result['vertical']['layout'] . '</div>
+                                                    </div>
+                                                </div>
+                                            ';
+
+                                            $content = '<div>' . $headerHtml . $svgHtml . $infoHtml . $optionsHtml . $productionHtml . '</div>';
+
+                                            return new \Illuminate\Support\HtmlString($content);
+
+                                        } catch (\Exception $e) {
+                                            return new \Illuminate\Support\HtmlString('
+                                                <div style="padding: 16px; background: #fef2f2; border-radius: 8px; color: #dc2626; font-size: 12px;">
+                                                    Error: ' . $e->getMessage() . '
+                                                </div>
+                                            ');
                                         }
-                                        $content .= '</div>';
+                                    }),
+                            ]),
 
-                                        return $content;
-                                    })
-                                    ->html(),
-
+                        // Resultados del Cálculo (solo visible en edición)
+                        Section::make('Resultados')
+                            ->icon('heroicon-o-calculator')
+                            ->compact()
+                            ->collapsed()
+                            ->visible(fn ($record) => $record !== null)
+                            ->schema([
                                 // Resumen Financiero
                                 Placeholder::make('pricing_summary')
-                                    ->label('Resumen Financiero')
+                                    ->label('')
                                     ->content(function ($record) {
                                         if (!$record) return null;
 
@@ -964,114 +560,118 @@ class SimpleItemForm
                                         $unitPrice = $simpleItem->final_price / max($simpleItem->quantity, 1);
                                         $profitAmount = ($simpleItem->final_price ?? 0) - ($simpleItem->total_cost ?? 0);
 
-                                        $content = '<div class="space-y-1.5">';
-                                        $content .= '<div class="flex justify-between text-sm">';
-                                        $content .= '<span class="text-gray-600">Subtotal</span>';
-                                        $content .= '<span>$' . number_format($simpleItem->total_cost ?? 0, 0) . '</span>';
+                                        $content = '
+                                            <div class="space-y-2 p-3 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg">
+                                                <div class="flex justify-between text-sm">
+                                                    <span class="text-gray-600">Subtotal</span>
+                                                    <span class="font-medium">$' . number_format($simpleItem->total_cost ?? 0, 0) . '</span>
+                                                </div>
+                                                <div class="flex justify-between text-sm text-green-600">
+                                                    <span>Ganancia (' . ($simpleItem->profit_percentage ?? 0) . '%)</span>
+                                                    <span class="font-medium">+$' . number_format($profitAmount, 0) . '</span>
+                                                </div>
+                                                <div class="flex justify-between font-bold text-base border-t border-gray-200 pt-2 mt-2">
+                                                    <span>TOTAL</span>
+                                                    <span class="text-primary-600">$' . number_format($simpleItem->final_price ?? 0, 0) . '</span>
+                                                </div>
+                                                <div class="text-center text-xs text-gray-500 pt-1">
+                                                    Unitario: <strong>$' . number_format($unitPrice, 2) . '</strong>
+                                                </div>
+                                            </div>
+                                        ';
+
+                                        return new \Illuminate\Support\HtmlString($content);
+                                    })
+                                    ->html(),
+
+                                // Desglose de costos
+                                Placeholder::make('detailed_breakdown')
+                                    ->label('Desglose')
+                                    ->content(function ($record) {
+                                        if (!$record) return null;
+
+                                        $simpleItem = $record;
+                                        if ($record instanceof \App\Models\DocumentItem && $record->itemable_type === 'App\\Models\\SimpleItem') {
+                                            $simpleItem = $record->itemable;
+                                        }
+
+                                        if (!$simpleItem || !method_exists($simpleItem, 'getDetailedCostBreakdown')) {
+                                            return 'No disponible';
+                                        }
+
+                                        $breakdown = $simpleItem->getDetailedCostBreakdown();
+                                        if (empty($breakdown)) return 'Sin desglose';
+
+                                        $content = '<div class="space-y-1">';
+                                        foreach ($breakdown as $key => $detail) {
+                                            $cost = str_replace(['$', ','], '', $detail['cost']);
+                                            if ($cost > 0) {
+                                                $content .= '
+                                                    <div class="flex justify-between text-xs py-1 border-b border-gray-100">
+                                                        <span class="text-gray-600">' . $detail['description'] . '</span>
+                                                        <span class="font-medium">' . $detail['cost'] . '</span>
+                                                    </div>
+                                                ';
+                                            }
+                                        }
                                         $content .= '</div>';
 
-                                        $content .= '<div class="flex justify-between text-sm text-green-600">';
-                                        $content .= '<span>Ganancia (' . ($simpleItem->profit_percentage ?? 0) . '%)</span>';
-                                        $content .= '<span>+$' . number_format($profitAmount, 0) . '</span>';
+                                        return new \Illuminate\Support\HtmlString($content);
+                                    })
+                                    ->html(),
+
+                                // Validaciones técnicas
+                                Placeholder::make('technical_validations')
+                                    ->label('Validaciones')
+                                    ->content(function ($record) {
+                                        if (!$record) return null;
+
+                                        $simpleItem = $record;
+                                        if ($record instanceof \App\Models\DocumentItem && $record->itemable_type === 'App\\Models\\SimpleItem') {
+                                            $simpleItem = $record->itemable;
+                                        }
+
+                                        if (!$simpleItem || !method_exists($simpleItem, 'validateTechnicalViability')) {
+                                            return 'No disponible';
+                                        }
+
+                                        $validations = $simpleItem->validateTechnicalViability();
+
+                                        if (empty($validations)) {
+                                            return new \Illuminate\Support\HtmlString('
+                                                <div class="flex items-center text-green-600 text-sm p-2 bg-green-50 rounded">
+                                                    <svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                                    </svg>
+                                                    <span>Todo OK</span>
+                                                </div>
+                                            ');
+                                        }
+
+                                        $content = '<div class="space-y-1">';
+                                        foreach ($validations as $validation) {
+                                            $isError = $validation['type'] === 'error';
+                                            $bgColor = $isError ? 'bg-red-50' : 'bg-yellow-50';
+                                            $textColor = $isError ? 'text-red-600' : 'text-yellow-600';
+                                            $content .= '
+                                                <div class="flex items-start ' . $bgColor . ' ' . $textColor . ' text-xs p-2 rounded">
+                                                    <span class="mr-1">⚠️</span>
+                                                    <span>' . $validation['message'] . '</span>
+                                                </div>
+                                            ';
+                                        }
                                         $content .= '</div>';
 
-                                        $content .= '<div class="flex justify-between font-bold text-base border-t pt-1.5 mt-1">';
-                                        $content .= '<span>TOTAL</span>';
-                                        $content .= '<span class="text-blue-600">$' . number_format($simpleItem->final_price ?? 0, 0) . '</span>';
-                                        $content .= '</div>';
-
-                                        $content .= '<div class="text-center text-xs text-gray-500 mt-1">';
-                                        $content .= 'Unitario: <strong>$' . number_format($unitPrice, 2) . '</strong>';
-                                        $content .= '</div>';
-                                        $content .= '</div>';
-
-                                        return $content;
+                                        return new \Illuminate\Support\HtmlString($content);
                                     })
                                     ->html(),
                             ]),
-
-                        // Desglose de costos - ancho completo
-                        Placeholder::make('detailed_breakdown')
-                            ->label('Desglose Detallado')
-                            ->content(function ($record) {
-                                if (!$record) return null;
-
-                                $simpleItem = $record;
-                                if ($record instanceof \App\Models\DocumentItem && $record->itemable_type === 'App\\Models\\SimpleItem') {
-                                    $simpleItem = $record->itemable;
-                                }
-
-                                if (!$simpleItem || !method_exists($simpleItem, 'getDetailedCostBreakdown')) {
-                                    return 'No disponible';
-                                }
-
-                                $breakdown = $simpleItem->getDetailedCostBreakdown();
-                                if (empty($breakdown)) return 'Sin desglose';
-
-                                $content = '<div class="grid grid-cols-2 gap-2">';
-                                foreach ($breakdown as $key => $detail) {
-                                    $cost = str_replace(['$', ','], '', $detail['cost']);
-                                    if ($cost > 0) {
-                                        $content .= '<div class="flex justify-between text-sm py-1 border-b border-gray-100">';
-                                        $content .= '<span class="text-gray-700">' . $detail['description'] . '</span>';
-                                        $content .= '<span class="font-medium">' . $detail['cost'] . '</span>';
-                                        $content .= '</div>';
-                                    }
-                                }
-                                $content .= '</div>';
-
-                                return $content;
-                            })
-                            ->html()
-                            ->columnSpanFull(),
-
-                        // Validaciones técnicas
-                        Placeholder::make('technical_validations')
-                            ->label('Validaciones Técnicas')
-                            ->content(function ($record) {
-                                if (!$record) return null;
-
-                                $simpleItem = $record;
-                                if ($record instanceof \App\Models\DocumentItem && $record->itemable_type === 'App\\Models\\SimpleItem') {
-                                    $simpleItem = $record->itemable;
-                                }
-
-                                if (!$simpleItem || !method_exists($simpleItem, 'validateTechnicalViability')) {
-                                    return 'No disponible';
-                                }
-
-                                $validations = $simpleItem->validateTechnicalViability();
-
-                                if (empty($validations)) {
-                                    return '<div class="flex items-center text-green-600 text-sm">
-                                        <svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                        </svg>
-                                        <span>Todas las validaciones OK</span>
-                                    </div>';
-                                }
-
-                                $content = '<div class="space-y-1">';
-                                foreach ($validations as $validation) {
-                                    $isError = $validation['type'] === 'error';
-                                    $color = $isError ? 'red' : 'yellow';
-                                    $content .= '<div class="flex items-start text-' . $color . '-600 text-sm">';
-                                    $content .= '<span class="mr-1">⚠️</span>';
-                                    $content .= '<span>' . $validation['message'] . '</span>';
-                                    $content .= '</div>';
-                                }
-                                $content .= '</div>';
-
-                                return $content;
-                            })
-                            ->html()
-                            ->columnSpanFull(),
                     ]),
             ]);
     }
 
     /**
-     * Genera visualización SVG del montaje
+     * Genera visualización SVG del montaje (versión compacta)
      */
     public static function generateMountingSVG(
         array $mounting,
@@ -1080,105 +680,65 @@ class SimpleItemForm
         float $workWidth,
         float $workHeight
     ): string {
-        // Escala para que el SVG sea responsive (max 500px de ancho)
-        $maxSvgWidth = 500;
+        // Escala para SVG compacto (max 280px de ancho)
+        $maxSvgWidth = 280;
         $scale = $maxSvgWidth / max($machineWidth, $machineHeight);
 
-        // Dimensiones del SVG
         $svgWidth = $machineWidth * $scale;
         $svgHeight = $machineHeight * $scale;
 
-        // Margen de 1cm escalado
         $margin = 1 * $scale;
 
-        // Área útil
-        $usableX = $margin;
-        $usableY = $margin;
         $usableWidth = $svgWidth - (2 * $margin);
         $usableHeight = $svgHeight - (2 * $margin);
 
-        // Dimensiones del trabajo (según orientación)
         $itemWidth = $mounting['work_width'] * $scale;
         $itemHeight = $mounting['work_height'] * $scale;
 
-        // Número de copias en cada dirección
         $cols = $mounting['cols'];
         $rows = $mounting['rows'];
 
-        // Calcular el espacio total que ocupan todos los trabajos PEGADOS (sin espaciado entre ellos)
         $totalWorksWidth = $cols * $itemWidth;
         $totalWorksHeight = $rows * $itemHeight;
 
-        // NO hay espaciado entre copias - están pegadas
-        $spacingX = 0;
-        $spacingY = 0;
-
-        // Calcular el offset para centrar todo el bloque de trabajos pegados
         $offsetX = $margin + ($usableWidth - $totalWorksWidth) / 2;
         $offsetY = $margin + ($usableHeight - $totalWorksHeight) / 2;
 
-        $svg = '<svg width="' . $svgWidth . '" height="' . $svgHeight . '" viewBox="0 0 ' . $svgWidth . ' ' . $svgHeight . '" xmlns="http://www.w3.org/2000/svg" class="border-2 border-gray-400 rounded shadow-sm">';
+        $svg = '<svg width="' . $svgWidth . '" height="' . $svgHeight . '" viewBox="0 0 ' . $svgWidth . ' ' . $svgHeight . '" xmlns="http://www.w3.org/2000/svg" class="rounded shadow-sm">';
 
-        // Fondo del pliego (azul claro)
-        $svg .= '<rect x="0" y="0" width="' . $svgWidth . '" height="' . $svgHeight . '" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>';
+        // Fondo del pliego
+        $svg .= '<rect x="0" y="0" width="' . $svgWidth . '" height="' . $svgHeight . '" fill="#dbeafe" stroke="#3b82f6" stroke-width="2" rx="4"/>';
 
-        // Área de margen (amarillo claro con patrón)
-        $svg .= '<defs>
-            <pattern id="marginPattern" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
-                <rect width="10" height="10" fill="#fef3c7"/>
-                <path d="M0,10 l10,-10 M-2.5,2.5 l5,-5 M7.5,12.5 l5,-5" stroke="#fbbf24" stroke-width="1" opacity="0.3"/>
-            </pattern>
-        </defs>';
+        // Márgenes (pattern simplificado)
+        $svg .= '<rect x="0" y="0" width="' . $svgWidth . '" height="' . $margin . '" fill="#fef3c7" opacity="0.7"/>';
+        $svg .= '<rect x="0" y="' . ($svgHeight - $margin) . '" width="' . $svgWidth . '" height="' . $margin . '" fill="#fef3c7" opacity="0.7"/>';
+        $svg .= '<rect x="0" y="' . $margin . '" width="' . $margin . '" height="' . ($svgHeight - 2 * $margin) . '" fill="#fef3c7" opacity="0.7"/>';
+        $svg .= '<rect x="' . ($svgWidth - $margin) . '" y="' . $margin . '" width="' . $margin . '" height="' . ($svgHeight - 2 * $margin) . '" fill="#fef3c7" opacity="0.7"/>';
 
-        // Márgenes superior e inferior
-        $svg .= '<rect x="0" y="0" width="' . $svgWidth . '" height="' . $margin . '" fill="url(#marginPattern)" stroke="#f59e0b" stroke-width="1" opacity="0.7"/>';
-        $svg .= '<rect x="0" y="' . ($svgHeight - $margin) . '" width="' . $svgWidth . '" height="' . $margin . '" fill="url(#marginPattern)" stroke="#f59e0b" stroke-width="1" opacity="0.7"/>';
-
-        // Márgenes izquierdo y derecho
-        $svg .= '<rect x="0" y="' . $margin . '" width="' . $margin . '" height="' . ($svgHeight - 2 * $margin) . '" fill="url(#marginPattern)" stroke="#f59e0b" stroke-width="1" opacity="0.7"/>';
-        $svg .= '<rect x="' . ($svgWidth - $margin) . '" y="' . $margin . '" width="' . $margin . '" height="' . ($svgHeight - 2 * $margin) . '" fill="url(#marginPattern)" stroke="#f59e0b" stroke-width="1" opacity="0.7"/>';
-
-        // Dibujar cada copia del trabajo (centradas)
+        // Dibujar copias
         for ($row = 0; $row < $rows; $row++) {
             for ($col = 0; $col < $cols; $col++) {
-                $x = $offsetX + ($col * ($itemWidth + $spacingX));
-                $y = $offsetY + ($row * ($itemHeight + $spacingY));
+                $x = $offsetX + ($col * $itemWidth);
+                $y = $offsetY + ($row * $itemHeight);
 
-                // Rectángulo del trabajo (verde con gradiente)
                 $svg .= '<rect x="' . $x . '" y="' . $y . '" width="' . $itemWidth . '" height="' . $itemHeight . '"
-                    fill="#86efac"
-                    stroke="#16a34a"
-                    stroke-width="1.5"
-                    rx="2"
-                    opacity="0.85"/>';
+                    fill="#86efac" stroke="#16a34a" stroke-width="1" rx="2" opacity="0.85"/>';
 
-                // Número de copia (si caben más de 9, reducir tamaño de fuente)
-                $fontSize = $mounting['copies_per_sheet'] > 20 ? 8 : 10;
+                // Número de copia (si cabe)
+                $fontSize = $mounting['copies_per_sheet'] > 20 ? 7 : 9;
                 $copyNumber = ($row * $cols) + $col + 1;
 
-                // Solo mostrar número si el item es lo suficientemente grande
-                if ($itemWidth > 15 && $itemHeight > 15) {
+                if ($itemWidth > 12 && $itemHeight > 12) {
                     $svg .= '<text x="' . ($x + $itemWidth / 2) . '" y="' . ($y + $itemHeight / 2) . '"
-                        font-size="' . $fontSize . '"
-                        fill="#166534"
-                        font-weight="bold"
-                        text-anchor="middle"
-                        dominant-baseline="middle">' . $copyNumber . '</text>';
+                        font-size="' . $fontSize . '" fill="#166534" font-weight="bold"
+                        text-anchor="middle" dominant-baseline="middle">' . $copyNumber . '</text>';
                 }
             }
         }
 
-        // Dimensiones del pliego (texto)
-        $svg .= '<text x="' . ($svgWidth / 2) . '" y="15" font-size="12" fill="#1e40af" font-weight="bold" text-anchor="middle">' . $machineWidth . 'cm</text>';
-        $svg .= '<text x="15" y="' . ($svgHeight / 2) . '" font-size="12" fill="#1e40af" font-weight="bold" text-anchor="middle" transform="rotate(-90 15 ' . ($svgHeight / 2) . ')">' . $machineHeight . 'cm</text>';
-
-        // Dimensiones del trabajo (en la primera copia centrada)
-        if ($cols > 0 && $rows > 0 && $itemWidth > 30 && $itemHeight > 20) {
-            $firstX = $offsetX;
-            $firstY = $offsetY;
-
-            $svg .= '<text x="' . ($firstX + $itemWidth / 2) . '" y="' . ($firstY + $itemHeight + 12) . '" font-size="9" fill="#15803d" font-weight="bold" text-anchor="middle">' . number_format($mounting['work_width'], 1) . '×' . number_format($mounting['work_height'], 1) . 'cm</text>';
-        }
+        // Dimensiones
+        $svg .= '<text x="' . ($svgWidth / 2) . '" y="12" font-size="10" fill="#1e40af" font-weight="bold" text-anchor="middle">' . $machineWidth . 'cm</text>';
+        $svg .= '<text x="10" y="' . ($svgHeight / 2) . '" font-size="10" fill="#1e40af" font-weight="bold" text-anchor="middle" transform="rotate(-90 10 ' . ($svgHeight / 2) . ')">' . $machineHeight . 'cm</text>';
 
         $svg .= '</svg>';
 

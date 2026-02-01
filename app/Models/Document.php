@@ -300,15 +300,19 @@ class Document extends Model
         // Calcular descuento
         if ($this->discount_percentage > 0) {
             $this->discount_amount = $this->subtotal * ($this->discount_percentage / 100);
+        } else {
+            $this->discount_amount = 0;
         }
-        
+
         $subtotalAfterDiscount = $this->subtotal - $this->discount_amount;
-        
+
         // Calcular impuestos
         if ($this->tax_percentage > 0) {
             $this->tax_amount = $subtotalAfterDiscount * ($this->tax_percentage / 100);
+        } else {
+            $this->tax_amount = 0;
         }
-        
+
         $this->total = $subtotalAfterDiscount + $this->tax_amount;
         $this->save();
     }

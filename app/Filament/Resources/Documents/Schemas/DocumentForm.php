@@ -10,6 +10,8 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\ViewField;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -120,7 +122,7 @@ class DocumentForm
                             ]),
                     ]),
                     
-                Section::make('Fechas')
+                Section::make('')
                     ->schema([
                         Grid::make(3)
                             ->schema([
@@ -136,10 +138,90 @@ class DocumentForm
                                 DatePicker::make('valid_until')
                                     ->label('Válida Hasta')
                                     ->default(now()->addDays(15)),
+
+                                    
                             ]),
+
+                            // Resumen Financiero con campos editables (solo visible en edición)
+                            Grid::make(3)
+                                ->schema([
+                                    TextInput::make('discount_percentage')
+                                        ->label('Descuento')
+                                        ->numeric()
+                                        ->suffix('%')
+                                        ->default(0)
+                                        ->minValue(0)
+                                        ->maxValue(100)
+                                        ->live(onBlur: true)
+                                        ->afterStateUpdated(function ($state, $record, $livewire) {
+                                            if ($record) {
+                                                $record->discount_percentage = $state ?? 0;
+                                                $record->recalculateTotals();
+                                                $livewire->dispatch('$refresh');
+                                            }
+                                        }),
+
+                                    Toggle::make('apply_tax')
+                                        ->label('Aplicar IVA')
+                                        ->default(false)
+                                        ->live()
+                                        ->afterStateHydrated(function ($state, $set, $record) {
+                                            // Activar el toggle si ya tiene IVA configurado
+                                            if ($record && $record->tax_percentage > 0) {
+                                                $set('apply_tax', true);
+                                            }
+                                        })
+                                        ->afterStateUpdated(function ($state, $set, $record, $livewire) {
+                                            if (!$state) {
+                                                $set('tax_percentage', 0);
+                                                if ($record) {
+                                                    $record->tax_percentage = 0;
+                                                    $record->recalculateTotals();
+                                                }
+                                            } else {
+                                                $set('tax_percentage', 19);
+                                                if ($record) {
+                                                    $record->tax_percentage = 19;
+                                                    $record->recalculateTotals();
+                                                }
+                                            }
+
+                                            // Forzar re-renderización del formulario
+                                            $livewire->dispatch('$refresh');
+                                        })
+                                        ->dehydrated(false),
+
+                                    TextInput::make('tax_percentage')
+                                        ->label('IVA')
+                                        ->numeric()
+                                        ->suffix('%')
+                                        ->default(0)
+                                        ->minValue(0)
+                                        ->maxValue(100)
+                                        ->live(onBlur: true)
+                                        ->visible(fn ($get) => $get('apply_tax') === true)
+                                        ->afterStateUpdated(function ($state, $record, $livewire) {
+                                            if ($record) {
+                                                $record->tax_percentage = $state ?? 0;
+                                                $record->recalculateTotals();
+                                                $livewire->dispatch('$refresh');
+                                            }
+                                        }),
+                                ])
+                                ->visible(fn ($record) => $record !== null),
+
+                            // Vista del resumen (solo lectura)
+                            Grid::make(1)
+                                ->schema([
+                                    ViewField::make('financial_summary_view')
+                                        ->view('filament.resources.documents.form.financial-summary')
+                                        ->dehydrated(false),
+                                ])
+                                ->visible(fn ($record) => $record !== null),
+
                     ]),
 
-                Section::make('Notas')
+                /*Section::make('Notas')
                     ->schema([
                         Textarea::make('notes')
                             ->label('Notas para el Cliente')
@@ -149,7 +231,7 @@ class DocumentForm
                             ->label('Notas Internas')
                             ->rows(3),
                     ])
-                    ->collapsed(),
+                    ->collapsed(),*/
             ]);
     }
 }

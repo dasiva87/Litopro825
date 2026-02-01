@@ -129,10 +129,6 @@ class ViewDocument extends ViewRecord
 
     protected function getFooterWidgets(): array
     {
-        return [
-            FinancialSummaryWidget::make([
-                'record' => $this->record,
-            ]),
-        ];
+        return [];
     }
 }

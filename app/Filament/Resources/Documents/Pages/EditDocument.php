@@ -142,10 +142,6 @@ class EditDocument extends EditRecord
 
     protected function getFooterWidgets(): array
     {
-        return [
-            FinancialSummaryWidget::make([
-                'record' => $this->record,
-            ]),
-        ];
+        return [];
     }
 }

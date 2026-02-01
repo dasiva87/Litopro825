@@ -326,12 +326,6 @@
         </div>
     </div>
     @endif
-    
-    @if($document->status === 'draft')
-    <div style="margin-top: 20px; text-align: center; color: #dc3545; font-weight: bold; font-size: 10pt;">
-        ⚠️ DOCUMENTO BORRADOR - SIN VALOR COMERCIAL
-    </div>
-    @endif
 
     <div class="footer">
         <p>Generado el {{ now()->format('d/m/Y H:i') }} - {{ $document->company->name }}</p>
