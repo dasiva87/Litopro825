@@ -159,12 +159,13 @@ class CalculadoraCorteWidget extends Widget
     {
         $this->anchoPapel = 70;
         $this->largoPapel = 100;
-        $this->anchoCorte = "";
-        $this->largoCorte = "";
+        $this->anchoCorte = 22;
+        $this->largoCorte = 28;
         $this->cantidadDeseada = 1000;
         $this->orientacion = 'optimo';
         $this->resultado = null;
         $this->calculado = false;
+        $this->calcular();
     }
 
     /**
