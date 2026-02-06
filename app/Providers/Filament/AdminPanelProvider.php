@@ -53,21 +53,13 @@ class AdminPanelProvider extends PanelProvider
             ->homeUrl('/admin')
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
-                // Default Filament Widgets
                 AccountWidget::class,
-
-                // GrafiRed Onboarding Widget (removed from global - only shown in Dashboard/Home via getWidgets())
-                // \App\Filament\Widgets\OnboardingWidget::class,
-
-                // GrafiRed Central Panel Widgets (optimized load)
+                \App\Filament\Widgets\OnboardingWidget::class,
                 \App\Filament\Widgets\DashboardStatsWidget::class,
-                \App\Filament\Widgets\ActiveDocumentsWidget::class,
-                \App\Filament\Widgets\SocialFeedWidget::class,
-
-                // GrafiRed Sidebar Widgets (specialized tools)
-                \App\Filament\Widgets\StockAlertsWidget::class,
                 \App\Filament\Widgets\DeadlinesWidget::class,
-                \App\Filament\Widgets\PaperCalculatorWidget::class,
+                \App\Filament\Widgets\StockAlertsWidget::class,
+                \App\Filament\Widgets\ActiveDocumentsWidget::class,
+                \App\Filament\Widgets\ActiveProjectsWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

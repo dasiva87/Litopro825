@@ -171,6 +171,99 @@ class SimpleItemQuickHandler implements QuickActionHandlerInterface
         $document->recalculateTotals();
     }
 
+    /**
+     * Manejar la actualización de un SimpleItem existente
+     */
+    public function handleUpdate(array $data, \App\Models\DocumentItem $documentItem): void
+    {
+        $simpleItem = $documentItem->itemable;
+
+        if (!$simpleItem instanceof SimpleItem) {
+            throw new \Exception('Error: El item relacionado no es un SimpleItem válido');
+        }
+
+        // Filtrar solo los campos que pertenecen al SimpleItem (excluir finishings_data)
+        $simpleItemData = array_filter($data, function ($key) {
+            return !in_array($key, ['finishings_data', 'item_type', 'itemable_type', 'itemable_id']);
+        }, ARRAY_FILTER_USE_KEY);
+
+        // Actualizar el SimpleItem
+        $simpleItem->fill($simpleItemData);
+
+        // Recalcular automáticamente
+        if (method_exists($simpleItem, 'calculateAll')) {
+            $simpleItem->calculateAll();
+        }
+        $simpleItem->save();
+
+        // Sincronizar acabados en tabla pivot
+        $finishingsData = $data['finishings_data'] ?? [];
+
+        // Primero, detach todos los acabados existentes
+        $simpleItem->finishings()->detach();
+
+        // Luego, attach los nuevos acabados
+        if (!empty($finishingsData)) {
+            foreach ($finishingsData as $finishingData) {
+                if (isset($finishingData['finishing_id'])) {
+                    $simpleItem->finishings()->attach($finishingData['finishing_id'], [
+                        'quantity' => $finishingData['quantity'] ?? 1,
+                        'width' => $finishingData['width'] ?? null,
+                        'height' => $finishingData['height'] ?? null,
+                        'calculated_cost' => $finishingData['calculated_cost'] ?? 0,
+                        'is_default' => $finishingData['is_default'] ?? false,
+                        'sort_order' => 0,
+                    ]);
+                }
+            }
+        }
+
+        // Actualizar también el DocumentItem con los nuevos valores
+        $documentItem->update([
+            'description' => 'SimpleItem: ' . $simpleItem->description,
+            'quantity' => $simpleItem->quantity,
+            'unit_price' => $simpleItem->final_price / $simpleItem->quantity,
+            'total_price' => $simpleItem->final_price,
+        ]);
+
+        // Recalcular totales del documento
+        $documentItem->document->recalculateTotals();
+    }
+
+    /**
+     * Prellenar datos del formulario para edición
+     */
+    public function fillFormData(\App\Models\DocumentItem $documentItem): array
+    {
+        $simpleItem = $documentItem->itemable;
+
+        if (!$simpleItem instanceof SimpleItem) {
+            return [];
+        }
+
+        // Cargar todos los datos del SimpleItem
+        $data = $simpleItem->toArray();
+
+        // Cargar acabados existentes desde tabla pivot
+        $finishingsData = [];
+        $existingFinishings = $simpleItem->finishings()->get();
+
+        foreach ($existingFinishings as $finishing) {
+            $finishingsData[] = [
+                'finishing_id' => $finishing->id,
+                'quantity' => $finishing->pivot->quantity ?? 1,
+                'width' => $finishing->pivot->width,
+                'height' => $finishing->pivot->height,
+                'calculated_cost' => $finishing->pivot->calculated_cost,
+                'is_default' => $finishing->pivot->is_default ?? false,
+            ];
+        }
+
+        $data['finishings_data'] = $finishingsData;
+
+        return $data;
+    }
+
     public function getLabel(): string
     {
         return 'Sencillo';
@@ -367,7 +460,7 @@ class SimpleItemQuickHandler implements QuickActionHandlerInterface
             // Calcular totales
             $finalPriceWithFinishings = $pricingResult->finalPrice + $finishingsTotal;
             $unitPrice = $finalPriceWithFinishings / $tempItem->quantity;
-            $subtotal = $pricingResult->mountingOption->paperCost + $pricingResult->printingCalculation->printingCost + $pricingResult->additionalCosts->getTotalCost();
+            $subtotal = $pricingResult->subtotal;
 
             // ═══════════════════════════════════════════════════════════
             // CONSTRUIR HTML CON DISEÑO MEJORADO
@@ -408,22 +501,109 @@ class SimpleItemQuickHandler implements QuickActionHandlerInterface
             $html .= '<div style="background: #f8fafc; border-radius: 10px; padding: 14px; margin-bottom: 12px;">';
             $html .= '<div style="font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; font-weight: 600;">Desglose de Costos</div>';
 
-            // Líneas de costo
-            $costLines = [
-                ['label' => 'Papel', 'value' => $pricingResult->mountingOption->paperCost, 'icon' => '📄'],
-                ['label' => 'Impresión', 'value' => $pricingResult->printingCalculation->printingCost, 'icon' => '🖨️'],
-                ['label' => 'Otros costos', 'value' => $pricingResult->additionalCosts->getTotalCost(), 'icon' => '📦'],
-            ];
-
-            foreach ($costLines as $line) {
-                if ($line['value'] > 0) {
-                    $html .= '
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #e2e8f0;">
-                            <span style="color: #475569; font-size: 12px;">'.$line['icon'].' '.$line['label'].'</span>
-                            <span style="color: #1e293b; font-size: 12px; font-weight: 600;">$'.number_format($line['value'], 0).'</span>
+            // ── 1. PAPEL ──
+            $paperCost = $pricingResult->mountingOption->paperCost;
+            if ($paperCost > 0) {
+                $paperSheets = $pricingResult->mountingOption->paperSheetsNeeded ?? $pricingResult->mountingOption->sheetsNeeded;
+                $paperUnitPrice = $paper->price ?? $paper->cost_per_sheet ?? 0;
+                $html .= '
+                    <div style="padding: 6px 0; border-bottom: 1px solid #e2e8f0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: #475569; font-size: 12px;">📄 Papel</span>
+                            <span style="color: #1e293b; font-size: 12px; font-weight: 600;">$'.number_format($paperCost, 0).'</span>
                         </div>
-                    ';
+                        <div style="color: #94a3b8; font-size: 10px; margin-top: 2px; padding-left: 20px;">'.$paperSheets.' pliegos × $'.number_format($paperUnitPrice, 0).'/pliego</div>
+                    </div>
+                ';
+            }
+
+            // ── 2. IMPRESIÓN ──
+            $printingCost = $pricingResult->printingCalculation->printingCost;
+            if ($printingCost > 0) {
+                $millaresRaw = $pricingResult->printingCalculation->millaresRaw;
+                $millaresFinal = $pricingResult->printingCalculation->millaresFinal;
+                $totalColors = $pricingResult->printingCalculation->totalColors;
+                $costPerMillar = $machine->cost_per_impression ?? 0;
+                $setupCost = $pricingResult->printingCalculation->setupCost;
+
+                // Calcular millar base (redondeado, antes de multiplicar por tintas)
+                $millarBase = $millaresFinal / $totalColors;
+
+                $html .= '
+                    <div style="padding: 6px 0; border-bottom: 1px solid #e2e8f0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: #475569; font-size: 12px;">🖨️ Impresión</span>
+                            <span style="color: #1e293b; font-size: 12px; font-weight: 600;">$'.number_format($printingCost, 0).'</span>
+                        </div>
+                        <div style="color: #94a3b8; font-size: 10px; margin-top: 2px; padding-left: 20px;">'.number_format($millarBase, 0).' millar × '.$totalColors.' tintas = '.$millaresFinal.' mill.</div>
+                        <div style="color: #94a3b8; font-size: 10px; padding-left: 20px;">'.$millaresFinal.' mill. × $'.number_format($costPerMillar, 0).'/millar</div>';
+
+                if ($setupCost > 0) {
+                    $html .= '<div style="color: #94a3b8; font-size: 10px; padding-left: 20px;">Alistamiento: $'.number_format($setupCost, 0).'</div>';
                 }
+
+                $html .= '</div>';
+            }
+
+            // ── 3. CTP ──
+            $ctpCost = $pricingResult->additionalCosts->ctpCost;
+            if ($ctpCost > 0) {
+                $totalColors = $pricingResult->printingCalculation->totalColors;
+                $ctpPerPlate = $machine->costo_ctp ?? 0;
+                $html .= '
+                    <div style="padding: 6px 0; border-bottom: 1px solid #e2e8f0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: #475569; font-size: 12px;">🔲 Planchas CTP</span>
+                            <span style="color: #1e293b; font-size: 12px; font-weight: 600;">$'.number_format($ctpCost, 0).'</span>
+                        </div>
+                        <div style="color: #94a3b8; font-size: 10px; margin-top: 2px; padding-left: 20px;">'.$totalColors.' planchas × $'.number_format($ctpPerPlate, 0).'/plancha</div>
+                    </div>
+                ';
+            }
+
+            // ── 4. OTROS COSTOS (solo valores ingresados por el usuario) ──
+            $otherCosts = $pricingResult->additionalCosts;
+            $otherTotal = $otherCosts->cuttingCost + $otherCosts->mountingCost + $otherCosts->designCost + $otherCosts->transportCost + $otherCosts->rifleCost;
+            if ($otherTotal > 0) {
+                $html .= '
+                    <div style="padding: 6px 0; border-bottom: 1px solid #e2e8f0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: #475569; font-size: 12px;">📦 Otros costos</span>
+                            <span style="color: #1e293b; font-size: 12px; font-weight: 600;">$'.number_format($otherTotal, 0).'</span>
+                        </div>';
+
+                if ($otherCosts->cuttingCost > 0) {
+                    $html .= '<div style="display: flex; justify-content: space-between; color: #94a3b8; font-size: 10px; padding-left: 20px; margin-top: 2px;">
+                        <span>Corte</span>
+                        <span>$'.number_format($otherCosts->cuttingCost, 0).'</span>
+                    </div>';
+                }
+                if ($otherCosts->mountingCost > 0) {
+                    $html .= '<div style="display: flex; justify-content: space-between; color: #94a3b8; font-size: 10px; padding-left: 20px;">
+                        <span>Montaje</span>
+                        <span>$'.number_format($otherCosts->mountingCost, 0).'</span>
+                    </div>';
+                }
+                if ($otherCosts->designCost > 0) {
+                    $html .= '<div style="display: flex; justify-content: space-between; color: #94a3b8; font-size: 10px; padding-left: 20px;">
+                        <span>Diseño</span>
+                        <span>$'.number_format($otherCosts->designCost, 0).'</span>
+                    </div>';
+                }
+                if ($otherCosts->transportCost > 0) {
+                    $html .= '<div style="display: flex; justify-content: space-between; color: #94a3b8; font-size: 10px; padding-left: 20px;">
+                        <span>Transporte</span>
+                        <span>$'.number_format($otherCosts->transportCost, 0).'</span>
+                    </div>';
+                }
+                if ($otherCosts->rifleCost > 0) {
+                    $html .= '<div style="display: flex; justify-content: space-between; color: #94a3b8; font-size: 10px; padding-left: 20px;">
+                        <span>Rifle/Doblez</span>
+                        <span>$'.number_format($otherCosts->rifleCost, 0).'</span>
+                    </div>';
+                }
+
+                $html .= '</div>';
             }
 
             // Acabados si existen

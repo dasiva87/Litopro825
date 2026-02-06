@@ -9,7 +9,7 @@
 
         <x-slot name="headerEnd">
             <x-filament::link
-                :href="route('filament.admin.pages.projects')"
+                :href="route('filament.admin.resources.projects.index')"
                 tag="a"
                 icon="heroicon-o-arrow-right"
                 icon-position="after"
@@ -25,7 +25,7 @@
         @if(count($projects) > 0)
             <div class="space-y-3">
                 @foreach($projects as $project)
-                    <a href="{{ route('filament.admin.pages.project-detail', ['code' => $project['code']]) }}"
+                    <a href="{{ route('filament.admin.resources.projects.view', ['record' => $project['id']]) }}"
                        class="block p-4 bg-gray-50 dark:bg-gray-900 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700">
                         <div class="flex items-center justify-between gap-4">
                             <div class="flex-1 min-w-0">
@@ -34,30 +34,27 @@
                                         {{ $project['code'] }}
                                     </h3>
                                     <span class="px-2 py-1 text-xs rounded-full {{
-                                        match($project['status']) {
-                                            'completed' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-                                            'in_production' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-                                            'approved' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-                                            'sent' => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+                                        match($project['statusColor']) {
+                                            'success' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                                            'warning' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+                                            'info' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+                                            'danger' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+                                            'secondary' => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
                                             default => 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200',
                                         }
                                     }}">
-                                        {{
-                                            match($project['status']) {
-                                                'draft' => 'Borrador',
-                                                'sent' => 'Enviado',
-                                                'approved' => 'Aprobado',
-                                                'in_production' => 'En Producción',
-                                                'completed' => 'Completado',
-                                                'cancelled' => 'Cancelado',
-                                                default => 'Desconocido',
-                                            }
-                                        }}
+                                        {{ $project['statusLabel'] }}
                                     </span>
                                 </div>
 
+                                @if($project['name'])
+                                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        {{ $project['name'] }}
+                                    </p>
+                                @endif
+
                                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                                    Cliente: {{ $project['clientName'] ?? 'Sin cliente' }}
+                                    Cliente: {{ $project['clientName'] }}
                                 </p>
 
                                 <div class="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-500">
@@ -70,8 +67,8 @@
                                         {{ $project['purchaseOrdersCount'] }} pedidos
                                     </span>
                                     <span class="flex items-center gap-1">
-                                        <x-heroicon-o-cog class="w-4 h-4" />
-                                        {{ $project['productionOrdersCount'] }} producción
+                                        <x-heroicon-o-cog-6-tooth class="w-4 h-4" />
+                                        {{ $project['productionOrdersCount'] }} produccion
                                     </span>
                                 </div>
                             </div>
@@ -82,14 +79,14 @@
                                         ${{ number_format($project['totalAmount'], 0, ',', '.') }}
                                     </p>
                                     <p class="text-xs text-gray-500 dark:text-gray-500">
-                                        {{ $project['getCompletionPercentage']() }}% completado
+                                        {{ $project['completionPercentage'] }}% completado
                                     </p>
                                 </div>
 
                                 {{-- Progress bar --}}
                                 <div class="w-32 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                     <div class="bg-primary-600 h-2 rounded-full transition-all"
-                                         style="width: {{ $project['getCompletionPercentage']() }}%"></div>
+                                         style="width: {{ $project['completionPercentage'] }}%"></div>
                                 </div>
                             </div>
                         </div>
@@ -97,11 +94,11 @@
                 @endforeach
             </div>
         @else
-            <div class="text-center py-12">
-                <x-heroicon-o-folder class="w-16 h-16 mx-auto text-gray-400 mb-4" />
+            <div class="text-center py-8">
+                <x-heroicon-o-folder class="w-12 h-12 mx-auto text-gray-400 mb-3" />
                 <p class="text-gray-500 dark:text-gray-400">No hay proyectos activos</p>
-                <p class="text-sm text-gray-400 dark:text-gray-500 mt-2">
-                    Los proyectos se crean automáticamente al asignar un código de referencia a una cotización
+                <p class="text-sm text-gray-400 dark:text-gray-500 mt-1">
+                    Crea un proyecto para agrupar cotizaciones relacionadas
                 </p>
             </div>
         @endif

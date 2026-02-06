@@ -384,9 +384,9 @@ class SimpleItemCalculatorService
      */
     public function calculateAdditionalCosts(SimpleItem $item, MountingOption $mountingOption): AdditionalCosts
     {
-        // Usar los valores del formulario o calcular si están en 0
-        $cuttingCost = ($item->cutting_cost > 0) ? $item->cutting_cost : $this->calculateCuttingCost($mountingOption);
-        $mountingCost = ($item->mounting_cost > 0) ? $item->mounting_cost : $this->calculateMountingCost($item, $mountingOption);
+        // Costos adicionales: solo usar valores ingresados por el usuario (sin cálculos automáticos)
+        $cuttingCost = $item->cutting_cost ?? 0;
+        $mountingCost = $item->mounting_cost ?? 0;
 
         // CTP siempre se calcula automáticamente basado en tintas y máquina
         $ctpCost = $this->calculateCtpCost($item);
@@ -420,14 +420,9 @@ class SimpleItemCalculatorService
         // Calcular millares con el nuevo método
         $printingCalc = $this->calculatePrintingMillaresNew($item, $mountingWithCuts);
 
-        // Calcular costos adicionales (usar pliegos del nuevo cálculo)
-        $cuttingCost = ($item->cutting_cost > 0)
-            ? $item->cutting_cost
-            : $this->calculateCuttingCostFromSheets($mountingWithCuts['paper_sheets_needed']);
-
-        $mountingCost = ($item->mounting_cost > 0)
-            ? $item->mounting_cost
-            : $this->calculateMountingCost($item, null);
+        // Costos adicionales: solo usar valores ingresados por el usuario (sin cálculos automáticos)
+        $cuttingCost = $item->cutting_cost ?? 0;
+        $mountingCost = $item->mounting_cost ?? 0;
 
         $ctpCost = $this->calculateCtpCost($item);
 

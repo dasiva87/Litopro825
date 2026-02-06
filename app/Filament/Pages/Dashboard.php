@@ -21,17 +21,24 @@ class Dashboard extends Page
     {
         return [
             \App\Filament\Widgets\OnboardingWidget::class,
-            \App\Filament\Widgets\PurchaseOrderNotificationsWidget::class,
-            \App\Filament\Widgets\PurchaseOrdersOverviewWidget::class,
             \App\Filament\Widgets\DashboardStatsWidget::class,
-            \App\Filament\Widgets\ActiveDocumentsWidget::class,
-            \App\Filament\Widgets\StockAlertsWidget::class,
             \App\Filament\Widgets\DeadlinesWidget::class,
+            \App\Filament\Widgets\StockAlertsWidget::class,
+            \App\Filament\Widgets\ActiveDocumentsWidget::class,
+            \App\Filament\Widgets\ActiveProjectsWidget::class,
         ];
     }
 
     protected function getHeaderWidgets(): array
     {
         return $this->getWidgets();
+    }
+
+    public function getHeaderWidgetsColumns(): int | array
+    {
+        return [
+            'md' => 2,
+            'xl' => 3,
+        ];
     }
 }
