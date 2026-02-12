@@ -14,7 +14,6 @@ use App\Filament\Resources\Documents\RelationManagers\Handlers\SimpleItemQuickHa
 use App\Filament\Resources\Documents\RelationManagers\Handlers\TalonarioItemHandler;
 use App\Filament\Resources\Documents\RelationManagers\Traits\CalculatesFinishings;
 use App\Filament\Resources\Documents\RelationManagers\Traits\CalculatesProducts;
-use App\Filament\Resources\SimpleItems\Schemas\SimpleItemForm;
 use App\Filament\Resources\TalonarioItems\Schemas\TalonarioItemForm;
 use App\Models\DocumentItem;
 use App\Models\SimpleItem;
@@ -106,6 +105,8 @@ class DocumentItemsRelationManager extends RelationManager
         $width = $get('width') ?? 0;
         $height = $get('height') ?? 0;
 
+        $cost = 0;
+
         if ($finishingId && $quantity > 0) {
             try {
                 $finishing = \App\Models\Finishing::find($finishingId);
@@ -116,14 +117,19 @@ class DocumentItemsRelationManager extends RelationManager
                         'width' => $width,
                         'height' => $height,
                     ]);
-
-                    $set('calculated_cost', $cost);
                 }
             } catch (\Exception $e) {
-                $set('calculated_cost', 0);
+                $cost = 0;
             }
-        } else {
-            $set('calculated_cost', 0);
+        }
+
+        $set('calculated_cost', $cost);
+
+        // Forzar actualización del precio total usando timestamp como trigger
+        try {
+            $set('../../finishings_total_cache', microtime(true));
+        } catch (\Exception $e) {
+            // Ignorar si la ruta no existe
         }
     }
 
@@ -401,7 +407,7 @@ class DocumentItemsRelationManager extends RelationManager
             ])
             ->headerActions([
 
-               /* Action::make('quick_magazine_item')
+                /* Action::make('quick_magazine_item')
                     ->label('Revista')
                     ->icon('heroicon-o-rectangle-stack')
                     ->color('primary')
@@ -562,7 +568,7 @@ class DocumentItemsRelationManager extends RelationManager
                         $pageClass = $this->getPageClass();
                         $isEditPage = $pageClass === \App\Filament\Resources\Documents\Pages\EditDocument::class;
 
-                        if (!$isEditPage) {
+                        if (! $isEditPage) {
                             return false;
                         }
 
@@ -617,8 +623,9 @@ class DocumentItemsRelationManager extends RelationManager
                     ->form(function ($record) {
                         if ($record->itemable_type === 'App\\Models\\SimpleItem') {
                             // Usar el mismo handler que para crear (incluye Resumen de Precios)
-                            $handler = new SimpleItemQuickHandler();
+                            $handler = new SimpleItemQuickHandler;
                             $handler->setCalculationContext($this);
+
                             return $handler->getFormSchema();
                         }
 
@@ -713,7 +720,8 @@ class DocumentItemsRelationManager extends RelationManager
                     ->mutateRecordDataUsing(function (array $data, $record): array {
                         if ($record->itemable_type === 'App\\Models\\SimpleItem' && $record->itemable) {
                             // Usar el handler para cargar datos (igual que para crear)
-                            $handler = new SimpleItemQuickHandler();
+                            $handler = new SimpleItemQuickHandler;
+
                             return $handler->fillFormData($record);
                         }
 
@@ -765,7 +773,7 @@ class DocumentItemsRelationManager extends RelationManager
                     ->mutateFormDataUsing(function (array $data, $record): array {
                         if ($record->itemable_type === 'App\\Models\\SimpleItem' && $record->itemable) {
                             // Usar el handler para actualizar (igual que para crear)
-                            $handler = new SimpleItemQuickHandler();
+                            $handler = new SimpleItemQuickHandler;
                             $handler->handleUpdate($data, $record);
                         } elseif ($record->itemable_type === 'App\\Models\\MagazineItem' && $record->itemable) {
                             // Manejar edición de MagazineItems
@@ -880,12 +888,13 @@ class DocumentItemsRelationManager extends RelationManager
                     ->icon('heroicon-o-document-duplicate')
                     ->color('secondary')
                     ->visible(function ($record) {
-                        if (!$record || $record->itemable === null) {
+                        if (! $record || $record->itemable === null) {
                             return false;
                         }
 
                         $document = $this->getOwnerRecord();
-                        return !$document->isApproved() && !$document->isRejected();
+
+                        return ! $document->isApproved() && ! $document->isRejected();
                     })
                     ->authorize(false)
                     ->requiresConfirmation()
@@ -974,12 +983,13 @@ class DocumentItemsRelationManager extends RelationManager
                     ->icon('heroicon-o-document-duplicate')
                     ->color('secondary')
                     ->visible(function ($record) {
-                        if (!$record || $record->itemable === null) {
+                        if (! $record || $record->itemable === null) {
                             return false;
                         }
 
                         $document = $this->getOwnerRecord();
-                        return !$document->isApproved() && !$document->isRejected();
+
+                        return ! $document->isApproved() && ! $document->isRejected();
                     })
                     ->action(function ($record) {
                         if ($record->itemable) {
@@ -1384,7 +1394,7 @@ class DocumentItemsRelationManager extends RelationManager
                 $pageClass = $this->getPageClass();
                 $isEditPage = $pageClass === \App\Filament\Resources\Documents\Pages\EditDocument::class;
 
-                if (!$isEditPage) {
+                if (! $isEditPage) {
                     return false;
                 }
 

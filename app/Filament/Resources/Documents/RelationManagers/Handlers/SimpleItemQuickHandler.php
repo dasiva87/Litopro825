@@ -37,20 +37,36 @@ class SimpleItemQuickHandler implements QuickActionHandlerInterface
                                     Components\Repeater::make('finishings_data')
                                         ->label('')
                                         ->defaultItems(0)
+                                        ->live()
+                                        ->afterStateUpdated(function ($livewire) {
+                                            // Forzar actualización del componente completo
+                                            $livewire->dispatch('$refresh');
+                                        })
                                         ->schema([
                                             Components\Select::make('finishing_id')
                                                 ->label('Acabado')
                                                 ->helperText('El proveedor se asigna desde el catálogo')
                                                 ->options(function () {
-                                                    return $this->getFinishingOptions();
+                                                    return Finishing::where('active', true)
+                                                        ->forCurrentTenant()
+                                                        ->get()
+                                                        ->mapWithKeys(fn ($f) => [$f->id => "{$f->name} ({$f->measurement_unit->label()})"])
+                                                        ->toArray();
                                                 })
                                                 ->required()
                                                 ->searchable()
-                                                ->live()
-                                                ->afterStateUpdated(function ($set, $get, $state) {
-                                                    if ($this->calculationContext) {
-                                                        $this->calculationContext->calculateSimpleFinishingCost($set, $get);
-                                                    }
+                                                ->live(onBlur: false)
+                                                ->afterStateUpdated(function ($set, $get, $state, $livewire) {
+                                                    // Calcular costo directamente
+                                                    $cost = self::calculateFinishingCostStatic(
+                                                        $state,
+                                                        $get('quantity') ?? 1,
+                                                        $get('width'),
+                                                        $get('height')
+                                                    );
+                                                    $set('calculated_cost', $cost);
+                                                    // Forzar actualización
+                                                    $livewire->dispatch('$refresh');
                                                 }),
 
                                             \Filament\Schemas\Components\Grid::make(3)
@@ -60,42 +76,88 @@ class SimpleItemQuickHandler implements QuickActionHandlerInterface
                                                         ->numeric()
                                                         ->default(1)
                                                         ->required()
-                                                        ->live()
-                                                        ->afterStateUpdated(function ($set, $get, $state) {
-                                                            if ($this->calculationContext) {
-                                                                $this->calculationContext->calculateSimpleFinishingCost($set, $get);
-                                                            }
+                                                        ->live(onBlur: false)
+                                                        ->afterStateUpdated(function ($set, $get, $state, $livewire) {
+                                                            $cost = self::calculateFinishingCostStatic(
+                                                                $get('finishing_id'),
+                                                                $state ?? 1,
+                                                                $get('width'),
+                                                                $get('height')
+                                                            );
+                                                            $set('calculated_cost', $cost);
+                                                            $livewire->dispatch('$refresh');
                                                         }),
 
                                                     Components\TextInput::make('width')
                                                         ->label('Ancho (cm)')
                                                         ->numeric()
                                                         ->step(0.01)
-                                                        ->live()
-                                                        ->visible(fn ($get) => $this->shouldShowSizeFields($get('finishing_id')))
-                                                        ->afterStateUpdated(function ($set, $get, $state) {
-                                                            if ($this->calculationContext) {
-                                                                $this->calculationContext->calculateSimpleFinishingCost($set, $get);
+                                                        ->live(onBlur: false)
+                                                        ->visible(function ($get) {
+                                                            $finishingId = $get('finishing_id');
+                                                            if (! $finishingId) {
+                                                                return false;
                                                             }
+                                                            $finishing = Finishing::find($finishingId);
+
+                                                            return $finishing && $finishing->measurement_unit === \App\Enums\FinishingMeasurementUnit::TAMAÑO;
+                                                        })
+                                                        ->afterStateUpdated(function ($set, $get, $state, $livewire) {
+                                                            $cost = self::calculateFinishingCostStatic(
+                                                                $get('finishing_id'),
+                                                                $get('quantity') ?? 1,
+                                                                $state,
+                                                                $get('height')
+                                                            );
+                                                            $set('calculated_cost', $cost);
+                                                            $livewire->dispatch('$refresh');
                                                         }),
 
                                                     Components\TextInput::make('height')
                                                         ->label('Alto (cm)')
                                                         ->numeric()
                                                         ->step(0.01)
-                                                        ->live()
-                                                        ->visible(fn ($get) => $this->shouldShowSizeFields($get('finishing_id')))
-                                                        ->afterStateUpdated(function ($set, $get, $state) {
-                                                            if ($this->calculationContext) {
-                                                                $this->calculationContext->calculateSimpleFinishingCost($set, $get);
+                                                        ->live(onBlur: false)
+                                                        ->visible(function ($get) {
+                                                            $finishingId = $get('finishing_id');
+                                                            if (! $finishingId) {
+                                                                return false;
                                                             }
+                                                            $finishing = Finishing::find($finishingId);
+
+                                                            return $finishing && $finishing->measurement_unit === \App\Enums\FinishingMeasurementUnit::TAMAÑO;
+                                                        })
+                                                        ->afterStateUpdated(function ($set, $get, $state, $livewire) {
+                                                            $cost = self::calculateFinishingCostStatic(
+                                                                $get('finishing_id'),
+                                                                $get('quantity') ?? 1,
+                                                                $get('width'),
+                                                                $state
+                                                            );
+                                                            $set('calculated_cost', $cost);
+                                                            $livewire->dispatch('$refresh');
                                                         }),
                                                 ]),
 
                                             Components\Placeholder::make('calculated_cost_display')
                                                 ->label('Costo Calculado')
+                                                ->live()
                                                 ->content(function ($get) {
-                                                    return $this->getFinishingCostDisplay($get);
+                                                    $finishingId = $get('finishing_id');
+                                                    $quantity = $get('quantity') ?? 0;
+
+                                                    if (! $finishingId || $quantity <= 0) {
+                                                        return '$0.00';
+                                                    }
+
+                                                    $cost = self::calculateFinishingCostStatic(
+                                                        $finishingId,
+                                                        $quantity,
+                                                        $get('width'),
+                                                        $get('height')
+                                                    );
+
+                                                    return '$'.number_format($cost, 2);
                                                 })
                                                 ->columnSpanFull(),
 
@@ -118,6 +180,13 @@ class SimpleItemQuickHandler implements QuickActionHandlerInterface
                                         ->label('')
                                         ->live()
                                         ->content(function ($get) {
+                                            // Log para debug
+                                            $finishingsData = $get('finishings_data') ?? [];
+                                            \Log::info('price_preview evaluado', [
+                                                'finishings_count' => count($finishingsData),
+                                                'finishings_data' => $finishingsData,
+                                            ]);
+
                                             return $this->getPricePreview($get);
                                         })
                                         ->html()
@@ -178,13 +247,13 @@ class SimpleItemQuickHandler implements QuickActionHandlerInterface
     {
         $simpleItem = $documentItem->itemable;
 
-        if (!$simpleItem instanceof SimpleItem) {
+        if (! $simpleItem instanceof SimpleItem) {
             throw new \Exception('Error: El item relacionado no es un SimpleItem válido');
         }
 
         // Filtrar solo los campos que pertenecen al SimpleItem (excluir finishings_data)
         $simpleItemData = array_filter($data, function ($key) {
-            return !in_array($key, ['finishings_data', 'item_type', 'itemable_type', 'itemable_id']);
+            return ! in_array($key, ['finishings_data', 'item_type', 'itemable_type', 'itemable_id']);
         }, ARRAY_FILTER_USE_KEY);
 
         // Actualizar el SimpleItem
@@ -203,7 +272,7 @@ class SimpleItemQuickHandler implements QuickActionHandlerInterface
         $simpleItem->finishings()->detach();
 
         // Luego, attach los nuevos acabados
-        if (!empty($finishingsData)) {
+        if (! empty($finishingsData)) {
             foreach ($finishingsData as $finishingData) {
                 if (isset($finishingData['finishing_id'])) {
                     $simpleItem->finishings()->attach($finishingData['finishing_id'], [
@@ -220,7 +289,7 @@ class SimpleItemQuickHandler implements QuickActionHandlerInterface
 
         // Actualizar también el DocumentItem con los nuevos valores
         $documentItem->update([
-            'description' => 'SimpleItem: ' . $simpleItem->description,
+            'description' => 'SimpleItem: '.$simpleItem->description,
             'quantity' => $simpleItem->quantity,
             'unit_price' => $simpleItem->final_price / $simpleItem->quantity,
             'total_price' => $simpleItem->final_price,
@@ -237,7 +306,7 @@ class SimpleItemQuickHandler implements QuickActionHandlerInterface
     {
         $simpleItem = $documentItem->itemable;
 
-        if (!$simpleItem instanceof SimpleItem) {
+        if (! $simpleItem instanceof SimpleItem) {
             return [];
         }
 
@@ -262,6 +331,40 @@ class SimpleItemQuickHandler implements QuickActionHandlerInterface
         $data['finishings_data'] = $finishingsData;
 
         return $data;
+    }
+
+    /**
+     * Calcular costo del acabado de forma estática (sin depender de contexto)
+     */
+    public static function calculateFinishingCostStatic($finishingId, $quantity, $width = null, $height = null): float
+    {
+        \Log::info('calculateFinishingCostStatic', compact('finishingId', 'quantity', 'width', 'height'));
+
+        if (! $finishingId || $quantity <= 0) {
+            return 0;
+        }
+
+        try {
+            $finishing = Finishing::find($finishingId);
+            if (! $finishing) {
+                return 0;
+            }
+
+            $calculator = app(\App\Services\FinishingCalculatorService::class);
+            $cost = $calculator->calculateCost($finishing, [
+                'quantity' => (int) $quantity,
+                'width' => $width ? (float) $width : null,
+                'height' => $height ? (float) $height : null,
+            ]);
+
+            \Log::info('Finishing cost calculated', ['cost' => $cost, 'unit' => $finishing->measurement_unit->value]);
+
+            return $cost;
+        } catch (\Exception $e) {
+            \Log::error('Error calculating finishing cost: '.$e->getMessage());
+
+            return 0;
+        }
     }
 
     public function getLabel(): string

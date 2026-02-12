@@ -39,7 +39,7 @@ trait CalculatesFinishings
                 'height' => $height,
             ];
 
-            $totalCost = $finishingService->calculateTotalCost($finishing, $params);
+            $totalCost = $finishingService->calculateCost($finishing, $params);
             $set('calculated_cost', $totalCost);
 
         } catch (\Exception $e) {
@@ -80,7 +80,7 @@ trait CalculatesFinishings
                 'height' => $height > 0 ? $height : null,
             ];
 
-            $totalCost = $finishingService->calculateTotalCost($finishing, $params);
+            $totalCost = $finishingService->calculateCost($finishing, $params);
             $set('calculated_cost', round($totalCost, 2));
 
         } catch (\Exception $e) {
