@@ -14,4 +14,10 @@ export default defineConfig({
         }),
         tailwindcss(),
     ],
+    build: {
+        // Desactivar preload para evitar advertencias en Filament SPA mode
+        modulePreload: {
+            polyfill: false,
+        },
+    },
 });

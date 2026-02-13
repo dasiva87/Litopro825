@@ -74,16 +74,26 @@ class Finishing extends Model
             return null;
         }
 
-        $selfContact = \App\Models\Contact::where('company_id', $companyId)
-            ->where('name', 'LIKE', $company->name . ' (Producción Propia)')
+        $selfContactName = $company->name . ' (Producción Propia)';
+
+        // Buscar contacto existente con búsqueda exacta
+        $selfContact = \App\Models\Contact::withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->where('name', $selfContactName)
             ->first();
 
         // Si no existe, crearlo
         if (!$selfContact) {
+            // Generar email seguro usando Str::slug para evitar caracteres inválidos
+            $slug = Str::slug($company->name, '');
+            $email = 'produccion@' . ($slug ?: 'empresa') . '.internal';
+
             $selfContact = \App\Models\Contact::create([
                 'company_id' => $companyId,
-                'name' => $company->name . ' (Producción Propia)',
-                'email' => 'produccion@' . strtolower(str_replace(' ', '', $company->name)) . '.com',
+                'type' => 'supplier', // Es un proveedor interno
+                'name' => $selfContactName,
+                'email' => $email,
+                'is_local' => true,
             ]);
         }
 
