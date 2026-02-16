@@ -329,41 +329,82 @@
         </div>
     </div>
 
-    <!-- Tabla de items -->
+    <!-- Tabla de procesos -->
     <table class="items-table">
         <thead>
             <tr>
                 <th style="width: 5%">#</th>
-                <th style="width: 40%">Descripción</th>
-                <th style="width: 12%" class="center">Cantidad</th>
-                <th style="width: 12%" class="center">Impresiones</th>
-                <th style="width: 18%">Documento</th>
-                <th style="width: 13%">Estado</th>
+                <th style="width: 12%">Proceso</th>
+                <th style="width: 33%">Descripción</th>
+                <th style="width: 10%" class="center">Cantidad</th>
+                <th style="width: 10%" class="center">Pliegos</th>
+                <th style="width: 10%" class="center">Millares</th>
+                <th style="width: 10%" class="center">Tintas</th>
+                <th style="width: 10%">Estado</th>
             </tr>
         </thead>
         <tbody>
-            @foreach($productionOrder->documentItems as $index => $item)
+            @foreach($productionOrder->productionProcesses as $index => $process)
             <tr>
                 <td class="center">{{ $index + 1 }}</td>
-                <td>
-                    <strong>{{ $item->itemable->name ?? 'Item' }}</strong>
-                    @if($item->itemable && $item->itemable->description)
-                        <br><small style="color: #666;">{{ Str::limit($item->itemable->description, 80) }}</small>
-                    @endif
-                </td>
-                <td class="center">{{ number_format($item->pivot->quantity ?? $item->quantity, 0) }}</td>
                 <td class="center">
-                    {{ number_format($item->pivot->impressions ?? 0, 0) }}
-                </td>
-                <td>
-                    @if($item->document)
-                        {{ $item->document->document_number ?? 'N/A' }}
+                    @if($process->process_type === 'printing')
+                        <span style="background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 3px; font-size: 8pt;">🖨️ Impresión</span>
+                    @elseif($process->process_type === 'finishing')
+                        <span style="background: #d1fae5; color: #065f46; padding: 2px 6px; border-radius: 3px; font-size: 8pt;">🎯 {{ $process->finishing_name ?? 'Acabado' }}</span>
                     @else
-                        <em>Sin documento</em>
+                        <span style="background: #e5e7eb; color: #374151; padding: 2px 6px; border-radius: 3px; font-size: 8pt;">Otro</span>
                     @endif
                 </td>
                 <td>
-                    <small>{{ ucfirst($item->pivot->status ?? 'pending') }}</small>
+                    <strong>{{ $process->process_description ?? 'Sin descripción' }}</strong>
+                    @if($process->documentItem && $process->documentItem->document)
+                        <br><small style="color: #666;">Cot: {{ $process->documentItem->document->document_number }}</small>
+                    @endif
+                </td>
+                <td class="center">{{ number_format($process->quantity_to_produce ?? 0, 0) }}</td>
+                <td class="center">
+                    @if($process->sheets_needed)
+                        {{ number_format($process->sheets_needed, 0) }}
+                    @else
+                        —
+                    @endif
+                </td>
+                <td class="center">
+                    @if($process->total_impressions)
+                        {{ number_format($process->total_impressions, 2) }}
+                    @else
+                        —
+                    @endif
+                </td>
+                <td class="center">
+                    @if($process->process_type === 'printing' && ($process->ink_front_count || $process->ink_back_count))
+                        F:{{ $process->ink_front_count ?? 0 }}/R:{{ $process->ink_back_count ?? 0 }}
+                        @if($process->front_back_plate)
+                            <br><small style="color: #059669;">(T/R)</small>
+                        @endif
+                    @else
+                        —
+                    @endif
+                </td>
+                <td>
+                    @php
+                        $statusLabel = match($process->item_status) {
+                            'pending' => 'Pendiente',
+                            'in_progress' => 'En Proceso',
+                            'completed' => 'Completado',
+                            'paused' => 'Pausado',
+                            default => $process->item_status ?? 'Pendiente'
+                        };
+                        $statusColor = match($process->item_status) {
+                            'pending' => '#6b7280',
+                            'in_progress' => '#2563eb',
+                            'completed' => '#059669',
+                            'paused' => '#d97706',
+                            default => '#6b7280'
+                        };
+                    @endphp
+                    <span style="color: {{ $statusColor }}; font-size: 8pt;">{{ $statusLabel }}</span>
                 </td>
             </tr>
             @endforeach

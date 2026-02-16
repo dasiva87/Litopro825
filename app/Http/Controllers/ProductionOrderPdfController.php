@@ -18,8 +18,8 @@ class ProductionOrderPdfController extends Controller
             'supplier',
             'supplierCompany',
             'operator',
-            'documentItems.itemable',
-            'documentItems.document',
+            'productionProcesses.documentItem.itemable',
+            'productionProcesses.documentItem.document',
         ]);
 
         // Generar PDF con DomPDF en tamaño carta
@@ -50,8 +50,8 @@ class ProductionOrderPdfController extends Controller
             'supplier',
             'supplierCompany',
             'operator',
-            'documentItems.itemable',
-            'documentItems.document',
+            'productionProcesses.documentItem.itemable',
+            'productionProcesses.documentItem.document',
         ]);
 
         // Generar PDF con DomPDF en tamaño carta

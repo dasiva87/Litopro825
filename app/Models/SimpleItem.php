@@ -434,7 +434,19 @@ class SimpleItem extends Model
     private function calculateAllLegacy(): void
     {
         // LEGACY: Este método usa el cálculo antiguo
-        // TODO: Eventualmente eliminar cuando el nuevo sistema esté 100% probado
+        // Ahora soporta montaje custom
+
+        // Determinar dimensiones de la hoja según tipo de montaje
+        $mountingType = $this->mounting_type ?? 'automatic';
+
+        if ($mountingType === 'custom' && $this->custom_paper_width && $this->custom_paper_height) {
+            // Montaje manual: calcular usando dimensiones custom
+            $this->calculateAllLegacyCustom();
+
+            return;
+        }
+
+        // Montaje automático: usar dimensiones del papel directamente
         $this->paper_sheets_needed = $this->calculateMounting();
 
         $cuts = $this->calculatePaperCuts();
@@ -446,6 +458,77 @@ class SimpleItem extends Model
         $this->mounting_cost = $this->calculateMountingCost();
         $this->total_cost = $this->calculateTotalCost();
         $this->final_price = $this->calculateFinalPrice();
+    }
+
+    /**
+     * Cálculo legacy para montaje custom
+     */
+    private function calculateAllLegacyCustom(): void
+    {
+        if (! $this->paper || ! $this->custom_paper_width || ! $this->custom_paper_height) {
+            return;
+        }
+
+        $calculator = new CuttingCalculatorService;
+
+        // Paso 1: Calcular cuántas HOJAS (custom) caben en un PLIEGO
+        try {
+            $divisorResult = $calculator->calculateCuts(
+                paperWidth: $this->paper->width,
+                paperHeight: $this->paper->height,
+                cutWidth: (float) $this->custom_paper_width,
+                cutHeight: (float) $this->custom_paper_height,
+                desiredCuts: 0,
+                orientation: 'maximum'
+            );
+
+            $formsPerPaperSheet = $divisorResult['cutsPerSheet'];
+
+            if ($formsPerPaperSheet <= 0) {
+                return; // La hoja custom no cabe en el pliego
+            }
+
+            // Paso 2: Calcular cuántos TRABAJOS caben en una HOJA (custom)
+            $mountingResult = $calculator->calculateCuts(
+                paperWidth: (float) $this->custom_paper_width,
+                paperHeight: (float) $this->custom_paper_height,
+                cutWidth: $this->horizontal_size,
+                cutHeight: $this->vertical_size,
+                desiredCuts: 0,
+                orientation: 'maximum'
+            );
+
+            $copiesPerForm = $mountingResult['cutsPerSheet'];
+
+            if ($copiesPerForm <= 0) {
+                return; // El trabajo no cabe en la hoja custom
+            }
+
+            // Paso 3: Calcular pliegos necesarios
+            $totalQuantity = (int) $this->quantity + ($this->sobrante_papel ?? 0);
+            $formsNeeded = ceil($totalQuantity / $copiesPerForm);
+            $paperSheetsNeeded = ceil($formsNeeded / $formsPerPaperSheet);
+            $totalPrintingForms = $paperSheetsNeeded * $formsPerPaperSheet;
+
+            // Guardar resultados
+            $this->copies_per_form = $copiesPerForm;
+            $this->forms_per_paper_sheet = $formsPerPaperSheet;
+            $this->paper_sheets_needed = $paperSheetsNeeded;
+            $this->printing_forms_needed = $totalPrintingForms;
+            $this->cuts_per_form_h = $mountingResult['horizontalCuts'];
+            $this->cuts_per_form_v = $mountingResult['verticalCuts'];
+
+            // Calcular costos
+            $this->paper_cost = $this->calculatePaperCost();
+            $this->printing_cost = $this->calculatePrintingCost();
+            $this->mounting_cost = $this->calculateMountingCost();
+            $this->total_cost = $this->calculateTotalCost();
+            $this->final_price = $this->calculateFinalPrice();
+
+        } catch (\Exception $e) {
+            // Si hay error, dejar valores en 0
+            return;
+        }
     }
 
     // Método para obtener opciones de montaje disponibles

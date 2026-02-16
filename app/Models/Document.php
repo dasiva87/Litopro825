@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Models\Concerns\BelongsToTenant;
 
 class Document extends Model
 {
@@ -196,7 +196,7 @@ class Document extends Model
     public function scopeExpiringSoon($query, $days = 7)
     {
         return $query->where('valid_until', '<=', now()->addDays($days))
-                    ->where('status', 'sent');
+            ->where('status', 'sent');
     }
 
     // Métodos de estado
@@ -278,7 +278,7 @@ class Document extends Model
         $subtotal = 0;
         foreach ($this->items as $item) {
             $itemTotal = 0;
-            
+
             if ($item->itemable_type === 'App\\Models\\Product') {
                 // Para productos, usar total_price del DocumentItem
                 $itemTotal = $item->total_price ?? 0;
@@ -292,11 +292,11 @@ class Document extends Model
                 // Fallback: usar total_price del DocumentItem
                 $itemTotal = $item->total_price ?? 0;
             }
-            
+
             $subtotal += $itemTotal;
         }
         $this->subtotal = $subtotal;
-        
+
         // Calcular descuento
         if ($this->discount_percentage > 0) {
             $this->discount_amount = $this->subtotal * ($this->discount_percentage / 100);
@@ -316,7 +316,7 @@ class Document extends Model
         $this->total = $subtotalAfterDiscount + $this->tax_amount;
         $this->save();
     }
-    
+
     public function recalculateTotals(): void
     {
         $this->load('items.itemable');
@@ -338,7 +338,7 @@ class Document extends Model
         if ($lastDocument) {
             // Extraer el número del último documento
             preg_match('/(\d+)$/', $lastDocument->document_number, $matches);
-            $nextNumber = isset($matches[1]) ? (int)$matches[1] + 1 : 1;
+            $nextNumber = isset($matches[1]) ? (int) $matches[1] + 1 : 1;
         }
 
         return str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
@@ -346,7 +346,7 @@ class Document extends Model
 
     private function getDocumentPrefix(): string
     {
-        return match($this->documentType?->code ?? DocumentType::QUOTE) {
+        return match ($this->documentType?->code ?? DocumentType::QUOTE) {
             DocumentType::QUOTE => 'COT',
             DocumentType::ORDER => 'ORD',
             DocumentType::INVOICE => 'FAC',
@@ -360,35 +360,38 @@ class Document extends Model
     // Métodos de transición de estado
     public function markAsSent(): bool
     {
-        if (!$this->canSend()) {
+        if (! $this->canSend()) {
             return false;
         }
-        
+
         $this->status = 'sent';
+
         return $this->save();
     }
 
     public function markAsApproved(): bool
     {
-        if (!$this->canApprove()) {
+        if (! $this->canApprove()) {
             return false;
         }
-        
+
         $this->status = 'approved';
+
         return $this->save();
     }
 
-    public function markAsRejected(string $reason = null): bool
+    public function markAsRejected(?string $reason = null): bool
     {
-        if (!$this->canApprove()) {
+        if (! $this->canApprove()) {
             return false;
         }
-        
+
         $this->status = 'rejected';
         if ($reason) {
-            $this->internal_notes = ($this->internal_notes ? $this->internal_notes . "\n\n" : '') . 
-                                   "Rechazado: " . $reason;
+            $this->internal_notes = ($this->internal_notes ? $this->internal_notes."\n\n" : '').
+                                   'Rechazado: '.$reason;
         }
+
         return $this->save();
     }
 
@@ -402,18 +405,41 @@ class Document extends Model
         $newDocument->document_number = null; // Se generará automáticamente
         $newDocument->save();
 
-        // Duplicar items
-        foreach ($this->items as $item) {
+        // Duplicar items con sus itemables y relaciones
+        foreach ($this->items()->with('itemable')->get() as $item) {
+            // Primero duplicar el itemable si existe
+            $newItemableId = $item->itemable_id;
+
+            if ($item->itemable) {
+                $newItemable = $item->itemable->replicate();
+                $newItemable->save();
+                $newItemableId = $newItemable->id;
+
+                // Copiar relación de acabados si el itemable los soporta
+                if (method_exists($item->itemable, 'finishings') && $item->itemable->finishings->isNotEmpty()) {
+                    // Obtener los IDs de acabados con sus datos pivote
+                    $finishingsData = [];
+                    foreach ($item->itemable->finishings as $finishing) {
+                        $finishingsData[$finishing->id] = [
+                            'quantity' => $finishing->pivot->quantity ?? null,
+                            'width' => $finishing->pivot->width ?? null,
+                            'height' => $finishing->pivot->height ?? null,
+                            'calculated_cost' => $finishing->pivot->calculated_cost ?? null,
+                            'is_default' => $finishing->pivot->is_default ?? true,
+                            'sort_order' => $finishing->pivot->sort_order ?? 0,
+                        ];
+                    }
+                    // Sincronizar acabados con el nuevo itemable
+                    $newItemable->finishings()->sync($finishingsData);
+                }
+            }
+
+            // Duplicar el DocumentItem
             $newItem = $item->replicate();
             $newItem->document_id = $newDocument->id;
+            $newItem->itemable_id = $newItemableId;
+            $newItem->order_status = 'available'; // Reset order status
             $newItem->save();
-
-            // Duplicar acabados del item si existen
-            foreach ($item->finishings as $finishing) {
-                $newFinishing = $finishing->replicate();
-                $newFinishing->document_item_id = $newItem->id;
-                $newFinishing->save();
-            }
         }
 
         return $newDocument;
@@ -453,10 +479,16 @@ class Document extends Model
 
     // Constantes de estado
     const STATUS_DRAFT = 'draft';
+
     const STATUS_SENT = 'sent';
+
     const STATUS_APPROVED = 'approved';
+
     const STATUS_REJECTED = 'rejected';
+
     const STATUS_IN_PRODUCTION = 'in_production';
+
     const STATUS_COMPLETED = 'completed';
+
     const STATUS_CANCELLED = 'cancelled';
 }

@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
-use App\Models\SimpleItem;
 use App\Models\Paper;
 use App\Models\PrintingMachine;
+use App\Models\SimpleItem;
 
 /**
  * Servicio principal de cálculo para SimpleItem
@@ -27,12 +27,13 @@ use App\Models\PrintingMachine;
 class SimpleItemCalculatorService
 {
     private CuttingCalculatorService $cuttingCalculator;
+
     private MountingCalculatorService $mountingCalculator;
 
     public function __construct()
     {
-        $this->cuttingCalculator = new CuttingCalculatorService();
-        $this->mountingCalculator = new MountingCalculatorService();
+        $this->cuttingCalculator = new CuttingCalculatorService;
+        $this->mountingCalculator = new MountingCalculatorService;
     }
 
     /**
@@ -49,14 +50,14 @@ class SimpleItemCalculatorService
 
         if ($mountingType === 'custom') {
             // Montaje manual: usar dimensiones de la HOJA personalizada
-            if (!$item->custom_paper_width || !$item->custom_paper_height) {
+            if (! $item->custom_paper_width || ! $item->custom_paper_height) {
                 return null; // No se puede calcular sin dimensiones custom
             }
-            $formWidth = $item->custom_paper_width;
-            $formHeight = $item->custom_paper_height;
+            $formWidth = (float) $item->custom_paper_width;
+            $formHeight = (float) $item->custom_paper_height;
         } else {
             // Montaje automático: usar dimensiones de la máquina como HOJA
-            if (!$item->printingMachine) {
+            if (! $item->printingMachine) {
                 return null;
             }
             $formWidth = $item->printingMachine->max_width ?? 50.0;
@@ -119,7 +120,12 @@ class SimpleItemCalculatorService
      */
     public function calculateMountingWithCuts(SimpleItem $item): ?array
     {
-        if (!$item->paper) {
+        if (! $item->paper) {
+            return null;
+        }
+
+        // La máquina de impresión siempre es requerida para calcular costos
+        if (! $item->printingMachine) {
             return null;
         }
 
@@ -130,16 +136,13 @@ class SimpleItemCalculatorService
 
         if ($mountingType === 'custom') {
             // Montaje manual: usar dimensiones de la HOJA personalizada
-            if (!$item->custom_paper_width || !$item->custom_paper_height) {
+            if (! $item->custom_paper_width || ! $item->custom_paper_height) {
                 return null; // No se puede calcular sin dimensiones custom
             }
-            $formWidth = $item->custom_paper_width;
-            $formHeight = $item->custom_paper_height;
+            $formWidth = (float) $item->custom_paper_width;
+            $formHeight = (float) $item->custom_paper_height;
         } else {
             // Montaje automático: usar dimensiones de la máquina como HOJA
-            if (!$item->printingMachine) {
-                return null;
-            }
             $formWidth = $item->printingMachine->max_width ?? 50.0;
             $formHeight = $item->printingMachine->max_height ?? 70.0;
         }
@@ -205,7 +208,7 @@ class SimpleItemCalculatorService
             'utilization_percentage' => $divisorResult['usedAreaPercentage'],
             'divisor_layout' => [
                 'vertical_cuts' => $divisorResult['verticalCuts'],
-                'horizontal_cuts' => $divisorResult['horizontalCuts']
+                'horizontal_cuts' => $divisorResult['horizontalCuts'],
             ],
             'raw_divisor_result' => $divisorResult,
 
@@ -225,7 +228,7 @@ class SimpleItemCalculatorService
      */
     public function calculateMountingOptions(SimpleItem $item): array
     {
-        if (!$item->paper) {
+        if (! $item->paper) {
             return [];
         }
 
@@ -266,7 +269,7 @@ class SimpleItemCalculatorService
                     paperCost: $result['sheetsNeeded'] * ($item->paper->price ?? $item->paper->cost_per_sheet),
                     cuttingLayout: [
                         'vertical_cuts' => $result['verticalCuts'],
-                        'horizontal_cuts' => $result['horizontalCuts']
+                        'horizontal_cuts' => $result['horizontalCuts'],
                     ],
                     rawCalculation: $result
                 );
@@ -278,7 +281,7 @@ class SimpleItemCalculatorService
         }
 
         // Sort by best utilization
-        usort($options, fn($a, $b) => $b->utilizationPercentage <=> $a->utilizationPercentage);
+        usort($options, fn ($a, $b) => $b->utilizationPercentage <=> $a->utilizationPercentage);
 
         return $options;
     }
@@ -362,7 +365,7 @@ class SimpleItemCalculatorService
         $millaresFinal = $this->roundUpMillares($millaresRaw) * $totalColors;
 
         // Calcular costo
-        $printingCost = $millaresFinal  * $item->printingMachine->cost_per_impression;
+        $printingCost = $millaresFinal * $item->printingMachine->cost_per_impression;
 
         // Agregar costo de alistamiento
         $setupCost = $item->printingMachine->setup_cost ?? 0;
@@ -413,7 +416,7 @@ class SimpleItemCalculatorService
         // Usar el nuevo sistema de cálculo
         $mountingWithCuts = $this->calculateMountingWithCuts($item);
 
-        if (!$mountingWithCuts) {
+        if (! $mountingWithCuts) {
             return null;
         }
 
@@ -481,14 +484,14 @@ class SimpleItemCalculatorService
     /**
      * PASO 4 LEGACY: Calcular precio final con desglose completo
      */
-    public function calculateFinalPricing(SimpleItem $item, MountingOption $mountingOption = null): PricingResult
+    public function calculateFinalPricing(SimpleItem $item, ?MountingOption $mountingOption = null): PricingResult
     {
         // Si no se especifica montaje, usar el óptimo
-        if (!$mountingOption) {
+        if (! $mountingOption) {
             $mountingOptions = $this->calculateMountingOptions($item);
             $mountingOption = $mountingOptions[0] ?? null;
-            
-            if (!$mountingOption) {
+
+            if (! $mountingOption) {
                 throw new \Exception('No se pudo calcular opciones de montaje válidas');
             }
         }
@@ -498,8 +501,8 @@ class SimpleItemCalculatorService
         $additionalCosts = $this->calculateAdditionalCosts($item, $mountingOption);
 
         // Sumar costos base
-        $subtotal = $mountingOption->paperCost + 
-                   $printingCalc->totalCost + 
+        $subtotal = $mountingOption->paperCost +
+                   $printingCalc->totalCost +
                    $additionalCosts->getTotalCost();
 
         // Aplicar margen de ganancia
@@ -531,7 +534,7 @@ class SimpleItemCalculatorService
         if ($item->printingMachine) {
             $maxWidth = $item->printingMachine->max_width ?? 125;
             $maxHeight = $item->printingMachine->max_height ?? 125;
-            
+
             if ($item->horizontal_size > $maxWidth || $item->vertical_size > $maxHeight) {
                 $errors[] = "Las dimensiones del item ({$item->horizontal_size}x{$item->vertical_size}cm) exceden los límites de la máquina ({$maxWidth}x{$maxHeight}cm)";
             }
@@ -541,7 +544,7 @@ class SimpleItemCalculatorService
         if ($item->printingMachine) {
             $maxColors = $item->printingMachine->max_colors ?? 8;
             $totalColors = $item->ink_front_count + $item->ink_back_count;
-            
+
             if ($totalColors > $maxColors) {
                 $errors[] = "El número total de tintas ($totalColors) excede la capacidad de la máquina ($maxColors)";
             }
@@ -550,7 +553,7 @@ class SimpleItemCalculatorService
         // Validar disponibilidad de papel
         if ($item->paper && $item->paper->stock !== null) {
             $mountingOptions = $this->calculateMountingOptions($item);
-            if (!empty($mountingOptions)) {
+            if (! empty($mountingOptions)) {
                 $sheetsNeeded = $mountingOptions[0]->sheetsNeeded;
                 if ($sheetsNeeded > $item->paper->stock) {
                     $warnings[] = "Se necesitan {$sheetsNeeded} pliegos pero solo hay {$item->paper->stock} en stock";
@@ -620,7 +623,7 @@ class SimpleItemCalculatorService
     private function calculateCtpCost(SimpleItem $item): float
     {
         // Si no tiene máquina de impresión, no hay costo CTP
-        if (!$item->printingMachine) {
+        if (! $item->printingMachine) {
             return 0;
         }
 
@@ -640,12 +643,12 @@ class SimpleItemCalculatorService
      */
     private function calculateFinishingsCost(SimpleItem $item): float
     {
-        if (!$item->relationLoaded('finishings') || $item->finishings->isEmpty()) {
+        if (! $item->relationLoaded('finishings') || $item->finishings->isEmpty()) {
             return 0;
         }
 
         $total = 0;
-        $finishingCalculator = new FinishingCalculatorService();
+        $finishingCalculator = new FinishingCalculatorService;
 
         foreach ($item->finishings as $finishing) {
             $params = $this->buildFinishingParams($item, $finishing);
@@ -667,15 +670,15 @@ class SimpleItemCalculatorService
      */
     private function buildFinishingParams(SimpleItem $item, \App\Models\Finishing $finishing): array
     {
-        return match($finishing->measurement_unit) {
+        return match ($finishing->measurement_unit) {
             \App\Enums\FinishingMeasurementUnit::MILLAR,
             \App\Enums\FinishingMeasurementUnit::RANGO,
             \App\Enums\FinishingMeasurementUnit::UNIDAD => [
-                'quantity' => (int) $item->quantity
+                'quantity' => (int) $item->quantity,
             ],
             \App\Enums\FinishingMeasurementUnit::TAMAÑO => [
                 'width' => (float) $item->horizontal_size,
-                'height' => (float) $item->vertical_size
+                'height' => (float) $item->vertical_size,
             ],
             default => []
         };
@@ -686,54 +689,54 @@ class SimpleItemCalculatorService
         return [
             'paper' => [
                 'description' => 'Papel',
-                'quantity' => $mountingWithCuts['paper_sheets_needed'] . ' pliegos',
-                'cost' => $mountingWithCuts['paper_cost']
+                'quantity' => $mountingWithCuts['paper_sheets_needed'].' pliegos',
+                'cost' => $mountingWithCuts['paper_cost'],
             ],
             'printing' => [
                 'description' => 'Impresión',
-                'quantity' => $printing->millaresFinal . ' millares (' . $mountingWithCuts['printing_forms_needed'] . ' hojas)',
-                'cost' => $printing->printingCost
+                'quantity' => $printing->millaresFinal.' millares ('.$mountingWithCuts['printing_forms_needed'].' hojas)',
+                'cost' => $printing->printingCost,
             ],
             'setup' => [
                 'description' => 'Alistamiento',
                 'quantity' => '1 trabajo',
-                'cost' => $printing->setupCost
+                'cost' => $printing->setupCost,
             ],
             'cutting' => [
                 'description' => 'Corte',
-                'quantity' => $mountingWithCuts['paper_sheets_needed'] . ' pliegos',
-                'cost' => $additional->cuttingCost
+                'quantity' => $mountingWithCuts['paper_sheets_needed'].' pliegos',
+                'cost' => $additional->cuttingCost,
             ],
             'mounting' => [
                 'description' => 'Montaje',
-                'quantity' => $mountingWithCuts['copies_per_form'] . ' copias/hoja × ' . $mountingWithCuts['forms_per_paper_sheet'] . ' hojas/pliego',
-                'cost' => $additional->mountingCost
+                'quantity' => $mountingWithCuts['copies_per_form'].' copias/hoja × '.$mountingWithCuts['forms_per_paper_sheet'].' hojas/pliego',
+                'cost' => $additional->mountingCost,
             ],
             'design' => [
                 'description' => 'Diseño',
                 'quantity' => '1 trabajo',
-                'cost' => $additional->designCost
+                'cost' => $additional->designCost,
             ],
             'transport' => [
                 'description' => 'Transporte',
                 'quantity' => '1 envío',
-                'cost' => $additional->transportCost
+                'cost' => $additional->transportCost,
             ],
             'rifle' => [
                 'description' => 'Rifle/Doblez',
                 'quantity' => '1 proceso',
-                'cost' => $additional->rifleCost
+                'cost' => $additional->rifleCost,
             ],
             'ctp' => [
                 'description' => 'Planchas CTP',
                 'quantity' => '1 juego',
-                'cost' => $additional->ctpCost
+                'cost' => $additional->ctpCost,
             ],
             'finishings' => [
                 'description' => 'Acabados',
                 'quantity' => 'Varios',
-                'cost' => $additional->finishingsCost
-            ]
+                'cost' => $additional->finishingsCost,
+            ],
         ];
     }
 
@@ -742,54 +745,54 @@ class SimpleItemCalculatorService
         return [
             'paper' => [
                 'description' => 'Papel',
-                'quantity' => $mountingOption->sheetsNeeded . ' pliegos',
-                'cost' => $mountingOption->paperCost
+                'quantity' => $mountingOption->sheetsNeeded.' pliegos',
+                'cost' => $mountingOption->paperCost,
             ],
             'printing' => [
                 'description' => 'Impresión',
-                'quantity' => $printing->millaresFinal . ' millares',
-                'cost' => $printing->printingCost
+                'quantity' => $printing->millaresFinal.' millares',
+                'cost' => $printing->printingCost,
             ],
             'setup' => [
                 'description' => 'Alistamiento',
                 'quantity' => '1 trabajo',
-                'cost' => $printing->setupCost
+                'cost' => $printing->setupCost,
             ],
             'cutting' => [
                 'description' => 'Corte',
-                'quantity' => $mountingOption->sheetsNeeded . ' pliegos',
-                'cost' => $additional->cuttingCost
+                'quantity' => $mountingOption->sheetsNeeded.' pliegos',
+                'cost' => $additional->cuttingCost,
             ],
             'mounting' => [
                 'description' => 'Montaje',
                 'quantity' => '1 trabajo',
-                'cost' => $additional->mountingCost
+                'cost' => $additional->mountingCost,
             ],
             'design' => [
                 'description' => 'Diseño',
                 'quantity' => '1 trabajo',
-                'cost' => $additional->designCost
+                'cost' => $additional->designCost,
             ],
             'transport' => [
                 'description' => 'Transporte',
                 'quantity' => '1 envío',
-                'cost' => $additional->transportCost
+                'cost' => $additional->transportCost,
             ],
             'rifle' => [
                 'description' => 'Rifle/Doblez',
                 'quantity' => '1 proceso',
-                'cost' => $additional->rifleCost
+                'cost' => $additional->rifleCost,
             ],
             'ctp' => [
                 'description' => 'Planchas CTP',
                 'quantity' => '1 juego',
-                'cost' => $additional->ctpCost
+                'cost' => $additional->ctpCost,
             ],
             'finishings' => [
                 'description' => 'Acabados',
                 'quantity' => 'Varios',
-                'cost' => $additional->finishingsCost
-            ]
+                'cost' => $additional->finishingsCost,
+            ],
         ];
     }
 }
@@ -825,16 +828,25 @@ class MountingOption
 
     public function getEfficiencyRating(): string
     {
-        if ($this->utilizationPercentage >= 90) return 'Excelente';
-        if ($this->utilizationPercentage >= 80) return 'Muy Bueno';
-        if ($this->utilizationPercentage >= 70) return 'Bueno';
-        if ($this->utilizationPercentage >= 60) return 'Regular';
+        if ($this->utilizationPercentage >= 90) {
+            return 'Excelente';
+        }
+        if ($this->utilizationPercentage >= 80) {
+            return 'Muy Bueno';
+        }
+        if ($this->utilizationPercentage >= 70) {
+            return 'Bueno';
+        }
+        if ($this->utilizationPercentage >= 60) {
+            return 'Regular';
+        }
+
         return 'Bajo';
     }
 
     public function getDescription(): string
     {
-        return ucfirst($this->orientation) . " - {$this->cutsPerSheet} cortes/pliego ({$this->utilizationPercentage}% aprovechamiento)";
+        return ucfirst($this->orientation)." - {$this->cutsPerSheet} cortes/pliego ({$this->utilizationPercentage}% aprovechamiento)";
     }
 }
 
@@ -858,6 +870,7 @@ class PrintingCalculation
         if ($this->frontBackPlate) {
             return "{$this->totalColors} colores (tiro y retiro plancha)";
         }
+
         return "{$this->totalColors} colores total";
     }
 }
@@ -897,7 +910,7 @@ class AdditionalCosts
             'cutting' => $this->cuttingCost,
             'mounting' => $this->mountingCost,
             'ctp' => $this->ctpCost,
-            'finishings' => $this->finishingsCost
+            'finishings' => $this->finishingsCost,
         ];
     }
 }
@@ -929,7 +942,7 @@ class PricingResult
             'subtotal' => $this->subtotal,
             'profit_amount' => $this->profitAmount,
             'final_price' => $this->finalPrice,
-            'unit_price' => $this->unitPrice
+            'unit_price' => $this->unitPrice,
         ];
     }
 
@@ -941,10 +954,11 @@ class PricingResult
                 $formatted[$key] = [
                     'description' => $item['description'],
                     'detail' => $item['quantity'],
-                    'cost' => '$' . number_format($item['cost'], 2)
+                    'cost' => '$'.number_format($item['cost'], 2),
                 ];
             }
         }
+
         return $formatted;
     }
 }
@@ -962,14 +976,14 @@ class ValidationResult
 
     public function hasWarnings(): bool
     {
-        return !empty($this->warnings);
+        return ! empty($this->warnings);
     }
 
     public function getAllMessages(): array
     {
         return array_merge(
-            array_map(fn($error) => ['type' => 'error', 'message' => $error], $this->errors),
-            array_map(fn($warning) => ['type' => 'warning', 'message' => $warning], $this->warnings)
+            array_map(fn ($error) => ['type' => 'error', 'message' => $error], $this->errors),
+            array_map(fn ($warning) => ['type' => 'warning', 'message' => $warning], $this->warnings)
         );
     }
 }

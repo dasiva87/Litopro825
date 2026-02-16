@@ -1,16 +1,4 @@
 <x-filament-panels::page>
-    {{-- Header Widgets --}}
-    <x-filament-widgets::widgets
-        :columns="$this->getHeaderWidgetsColumns()"
-        :data="
-            [
-                ...$this->getWidgetData(),
-                'activeTab' => $activeTab,
-            ]
-        "
-        :widgets="$this->getHeaderWidgets()"
-    />
-
     {{-- Tabs Section --}}
     <div class="space-y-6">
         <x-filament::tabs wire:model.live="activeTab">
@@ -42,52 +30,32 @@
         {{-- Tab Content --}}
         <div>
             @if ($activeTab === 'resumen')
-                {{-- Tab Resumen --}}
-                <div class="space-y-6">
-                    <x-filament-widgets::widgets
-                        :columns="$this->getFooterWidgetsColumns()"
-                        :data="
-                            [
-                                ...$this->getWidgetData(),
-                            ]
-                        "
-                        :widgets="[
-                            \App\Filament\Widgets\StockTrendsChartWidget::class,
-                            \App\Filament\Widgets\TopConsumedProductsWidget::class,
-                        ]"
-                    />
-                </div>
+                {{-- Tab Resumen: Gráfico de tendencias --}}
+                <x-filament-widgets::widgets
+                    :columns="$this->getFooterWidgetsColumns()"
+                    :data="$this->getWidgetData()"
+                    :widgets="[
+                        \App\Filament\Widgets\StockTrendsChartWidget::class,
+                    ]"
+                />
             @elseif ($activeTab === 'movimientos')
-                {{-- Tab Movimientos --}}
-                <div class="space-y-6">
-                    <x-filament-widgets::widgets
-                        :columns="$this->getFooterWidgetsColumns()"
-                        :data="
-                            [
-                                ...$this->getWidgetData(),
-                            ]
-                        "
-                        :widgets="[
-                            \App\Filament\Widgets\StockMovementsTableWidget::class,
-                            \App\Filament\Widgets\RecentMovementsWidget::class,
-                        ]"
-                    />
-                </div>
+                {{-- Tab Movimientos: Tabla con filtros --}}
+                <x-filament-widgets::widgets
+                    :columns="$this->getFooterWidgetsColumns()"
+                    :data="$this->getWidgetData()"
+                    :widgets="[
+                        \App\Filament\Widgets\StockMovementsTableWidget::class,
+                    ]"
+                />
             @elseif ($activeTab === 'alertas')
-                {{-- Tab Alertas --}}
-                <div class="space-y-6">
-                    <x-filament-widgets::widgets
-                        :columns="$this->getFooterWidgetsColumns()"
-                        :data="
-                            [
-                                ...$this->getWidgetData(),
-                            ]
-                        "
-                        :widgets="[
-                            \App\Filament\Widgets\CriticalAlertsTableWidget::class,
-                        ]"
-                    />
-                </div>
+                {{-- Tab Alertas: Tabla de alertas críticas --}}
+                <x-filament-widgets::widgets
+                    :columns="$this->getFooterWidgetsColumns()"
+                    :data="$this->getWidgetData()"
+                    :widgets="[
+                        \App\Filament\Widgets\CriticalAlertsTableWidget::class,
+                    ]"
+                />
             @endif
         </div>
     </div>

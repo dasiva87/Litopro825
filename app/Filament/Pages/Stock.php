@@ -104,26 +104,14 @@ class Stock extends Page
     protected function getHeaderWidgets(): array
     {
         return [
-            \App\Filament\Widgets\SimpleStockKpisWidget::class,
-            \App\Filament\Widgets\StockMovementsKpisWidget::class,
-            \App\Filament\Widgets\StockAlertsWidget::class,
+            \App\Filament\Widgets\StockOverviewWidget::class,
         ];
     }
 
     protected function getFooterWidgets(): array
     {
-        return [
-            // Tab Resumen
-            \App\Filament\Widgets\StockTrendsChartWidget::class,
-            \App\Filament\Widgets\TopConsumedProductsWidget::class,
-
-            // Tab Movimientos
-            \App\Filament\Widgets\StockMovementsTableWidget::class,
-            \App\Filament\Widgets\RecentMovementsWidget::class,
-
-            // Tab Alertas
-            \App\Filament\Widgets\CriticalAlertsTableWidget::class,
-        ];
+        // Los widgets se cargan dinámicamente en la vista según el tab activo
+        return [];
     }
 
     public function getWidgetData(): array
