@@ -2,6 +2,7 @@
 
 namespace App\Filament\SuperAdmin\Resources;
 
+use App\Filament\SuperAdmin\Resources\Subscriptions\Schemas\SubscriptionInfolist;
 use App\Models\Subscription;
 use App\Models\Company;
 use App\Models\Plan;
@@ -105,6 +106,11 @@ class SubscriptionResource extends Resource
                             ->maxLength(255),
                     ]),
             ]);
+    }
+
+    public static function infolist(Schema $schema): Schema
+    {
+        return SubscriptionInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table
