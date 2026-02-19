@@ -412,7 +412,7 @@ class SimpleItemQuickHandler implements QuickActionHandlerInterface
             ->get()
             ->mapWithKeys(function ($finishing) {
                 return [
-                    $finishing->id => $finishing->code.' - '.$finishing->name.' ('.$finishing->measurement_unit->label().')',
+                    $finishing->id => $finishing->name.' ('.$finishing->measurement_unit->label().')',
                 ];
             })
             ->toArray();

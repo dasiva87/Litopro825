@@ -19,7 +19,6 @@ class Finishing extends Model
     protected $fillable = [
         'company_id',
         'supplier_id',
-        'code',
         'name',
         'description',
         'unit_price',
@@ -42,11 +41,6 @@ class Finishing extends Model
         parent::boot();
 
         static::creating(function ($finishing) {
-            // Generar código único si no tiene
-            if (empty($finishing->code)) {
-                $finishing->code = static::generateUniqueCode($finishing->company_id);
-            }
-
             // Si es acabado propio y no tiene supplier_id, asignar la empresa como proveedor
             if ($finishing->is_own_provider && empty($finishing->supplier_id)) {
                 $finishing->supplier_id = static::getSelfContactId($finishing->company_id);
@@ -104,27 +98,6 @@ class Finishing extends Model
         }
 
         return $selfContact->id;
-    }
-
-    /**
-     * Generar código único para el acabado
-     */
-    protected static function generateUniqueCode(int $companyId): string
-    {
-        $prefix = 'ACB';
-        $lastFinishing = static::withoutGlobalScopes()
-            ->where('company_id', $companyId)
-            ->where('code', 'LIKE', $prefix . '%')
-            ->orderByRaw('CAST(SUBSTRING(code, 4) AS UNSIGNED) DESC')
-            ->first();
-
-        if ($lastFinishing && preg_match('/^' . $prefix . '(\d+)$/', $lastFinishing->code, $matches)) {
-            $nextNumber = (int) $matches[1] + 1;
-        } else {
-            $nextNumber = 1;
-        }
-
-        return $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
     }
 
     /**

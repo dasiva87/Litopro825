@@ -377,7 +377,7 @@ class DigitalItemQuickHandler implements QuickActionHandlerInterface
             ->with('company')
             ->get()
             ->mapWithKeys(function ($finishing) use ($currentCompanyId) {
-                $label = $finishing->code.' - '.$finishing->name.' ('.$finishing->measurement_unit->label().')';
+                $label = $finishing->name.' ('.$finishing->measurement_unit->label().')';
                 // Agregar nombre del proveedor si no es propio
                 if ($finishing->company_id !== $currentCompanyId) {
                     $label .= ' - '.$finishing->company->name;

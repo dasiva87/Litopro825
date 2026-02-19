@@ -31,7 +31,6 @@ class FinishingFactory extends Factory
 
         return [
             'company_id' => Company::factory(),
-            'code' => null, // Se genera automáticamente
             'name' => $this->faker->randomElement($finishingNames),
             'description' => $this->faker->optional(0.7)->sentence(),
             'unit_price' => $this->faker->randomFloat(2, 5000, 50000),
