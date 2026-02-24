@@ -604,13 +604,22 @@ class DocumentsTable
                                         $cutHeight = null;
 
                                         if ($item->itemable_type === 'App\Models\SimpleItem' && $item->itemable) {
-                                            $paper = $item->itemable->paper;
-                                            $sheets = $item->itemable->paper_sheets_needed ?? 0;
+                                            $simpleItem = $item->itemable;
+                                            $paper = $simpleItem->paper;
+                                            $sheets = $simpleItem->paper_sheets_needed ?? 0;
                                             $unitPrice = $paper ? ($paper->price ?? $paper->cost_per_sheet ?? 0) : 0;
                                             $totalPrice = $sheets * $unitPrice;
                                             $paperId = $paper?->id;
-                                            $cutWidth = $item->itemable->horizontal_size;
-                                            $cutHeight = $item->itemable->vertical_size;
+                                            // Determinar tamaño de corte según mounting_type
+                                            if ($simpleItem->mounting_type === 'custom') {
+                                                // Usar dimensiones personalizadas de la hoja
+                                                $cutWidth = $simpleItem->custom_paper_width;
+                                                $cutHeight = $simpleItem->custom_paper_height;
+                                            } else {
+                                                // Usar dimensiones de la máquina (automático)
+                                                $cutWidth = $simpleItem->printingMachine?->max_width ?? $simpleItem->horizontal_size;
+                                                $cutHeight = $simpleItem->printingMachine?->max_height ?? $simpleItem->vertical_size;
+                                            }
                                         } elseif ($item->itemable_type === 'App\Models\Product' && $item->itemable) {
                                             $unitPrice = $item->itemable->sale_price ?? 0;
                                             $totalPrice = $item->quantity * $unitPrice;

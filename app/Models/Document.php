@@ -237,7 +237,7 @@ class Document extends Model
 
     public function canEdit(): bool
     {
-        return in_array($this->status, ['draft', 'rejected']);
+        return in_array($this->status, ['draft', 'sent', 'rejected']);
     }
 
     public function canSend(): bool

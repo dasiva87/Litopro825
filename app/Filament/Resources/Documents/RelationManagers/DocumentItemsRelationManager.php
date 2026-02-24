@@ -564,6 +564,12 @@ class DocumentItemsRelationManager extends RelationManager
                     ->icon('heroicon-o-document-text')
                     ->color('green')
                     ->visible(function () {
+                        // Verificar si el documento permite edición
+                        $document = $this->getOwnerRecord();
+                        if (!$document->canEdit()) {
+                            return false;
+                        }
+
                         // Verificar si estamos en modo edición usando la clase de la página
                         $pageClass = $this->getPageClass();
                         $isEditPage = $pageClass === \App\Filament\Resources\Documents\Pages\EditDocument::class;
@@ -618,7 +624,9 @@ class DocumentItemsRelationManager extends RelationManager
                     ->label('')
                     ->icon('heroicon-o-pencil')
                     ->visible(function ($record) {
-                        return $record && $record->itemable !== null;
+                        // Solo editar si el item existe y el documento permite edición
+                        $document = $this->getOwnerRecord();
+                        return $record && $record->itemable !== null && $document->canEdit();
                     })
                     ->form(function ($record) {
                         if ($record->itemable_type === 'App\\Models\\SimpleItem') {
@@ -883,6 +891,24 @@ class DocumentItemsRelationManager extends RelationManager
                         $this->dispatch('$refresh');
                     }),
 
+                // Acción para VER item (cuando no se puede editar - cotización aprobada/en proceso/completada/cancelada)
+                Action::make('view_item')
+                    ->label('')
+                    ->icon('heroicon-o-eye')
+                    ->color('gray')
+                    ->tooltip('Ver configuración')
+                    ->visible(function ($record) {
+                        $document = $this->getOwnerRecord();
+                        return $record && $record->itemable !== null && !$document->canEdit();
+                    })
+                    ->modalHeading(fn ($record) => 'Ver Item: ' . ($record->itemable?->description ?? $record->description))
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Cerrar')
+                    ->form(fn ($record) => $this->getViewFormSchema($record))
+                    ->fillForm(fn ($record) => $this->getItemFormData($record))
+                    ->modalWidth('7xl')
+                    ->slideOver(),
+
                 Action::make('duplicate')
                     ->label('')
                     ->icon('heroicon-o-document-duplicate')
@@ -894,7 +920,7 @@ class DocumentItemsRelationManager extends RelationManager
 
                         $document = $this->getOwnerRecord();
 
-                        return ! $document->isApproved() && ! $document->isRejected();
+                        return $document->canEdit();
                     })
                     ->authorize(false)
                     ->requiresConfirmation()
@@ -989,7 +1015,7 @@ class DocumentItemsRelationManager extends RelationManager
 
                         $document = $this->getOwnerRecord();
 
-                        return ! $document->isApproved() && ! $document->isRejected();
+                        return $document->canEdit();
                     })
                     ->action(function ($record) {
                         if ($record->itemable) {
@@ -1039,6 +1065,7 @@ class DocumentItemsRelationManager extends RelationManager
 
                 DeleteAction::make()
                     ->label('')
+                    ->visible(fn () => $this->getOwnerRecord()->canEdit())
                     ->after(function ($record) {
                         // Eliminar el item relacionado también
                         if ($record->itemable) {
@@ -1055,7 +1082,8 @@ class DocumentItemsRelationManager extends RelationManager
                     ->color('success')
                     ->tooltip('Agregar Hoja')
                     ->visible(function ($record) {
-                        return $record->itemable_type === 'App\\Models\\TalonarioItem' && $record->itemable !== null;
+                        $document = $this->getOwnerRecord();
+                        return $document->canEdit() && $record->itemable_type === 'App\\Models\\TalonarioItem' && $record->itemable !== null;
                     })
                     ->modalHeading('Crear Nueva Hoja para el Talonario')
                     ->modalWidth('7xl')
@@ -1252,6 +1280,7 @@ class DocumentItemsRelationManager extends RelationManager
             ->bulkActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
+                        ->visible(fn () => $this->getOwnerRecord()->canEdit())
                         ->after(function ($records) {
                             // Eliminar los items relacionados también
                             foreach ($records as $record) {
@@ -1390,6 +1419,12 @@ class DocumentItemsRelationManager extends RelationManager
             ->icon($handler->getIcon())
             ->color($handler->getColor())
             ->visible(function () use ($handler) {
+                // Verificar si el documento permite edición
+                $document = $this->getOwnerRecord();
+                if (!$document->canEdit()) {
+                    return false;
+                }
+
                 // Verificar si estamos en modo edición usando la clase de la página
                 $pageClass = $this->getPageClass();
                 $isEditPage = $pageClass === \App\Filament\Resources\Documents\Pages\EditDocument::class;
@@ -1431,5 +1466,318 @@ class DocumentItemsRelationManager extends RelationManager
         }
 
         return $actions;
+    }
+
+    /**
+     * Obtener los datos del formulario para un item (reutilizable para editar y ver)
+     */
+    protected function getItemFormData($record): array
+    {
+        if ($record->itemable_type === 'App\\Models\\SimpleItem' && $record->itemable) {
+            $handler = new SimpleItemQuickHandler;
+            return $handler->fillFormData($record);
+        }
+
+        if ($record->itemable_type === 'App\\Models\\MagazineItem' && $record->itemable) {
+            $handler = new MagazineItemHandler;
+            return $handler->fillForm($record);
+        }
+
+        if ($record->itemable_type === 'App\\Models\\CustomItem' && $record->itemable) {
+            return $record->itemable->toArray();
+        }
+
+        if ($record->itemable_type === 'App\\Models\\Product' && $record->itemable) {
+            $handler = new ProductHandler;
+            return $handler->fillForm($record);
+        }
+
+        if ($record->itemable_type === 'App\\Models\\Paper' && $record->itemable) {
+            $handler = new PaperHandler;
+            return $handler->fillForm($record);
+        }
+
+        if ($record->itemable_type === 'App\\Models\\TalonarioItem' && $record->itemable) {
+            $handler = new TalonarioItemHandler;
+            return $handler->fillForm($record);
+        }
+
+        if ($record->itemable_type === 'App\\Models\\DigitalItem' && $record->itemable) {
+            $handler = new \App\Filament\Resources\Documents\RelationManagers\Handlers\DigitalItemHandler;
+            return $handler->fillForm($record);
+        }
+
+        return [
+            'description' => $record->itemable ? $record->itemable->description : $record->description,
+            'quantity' => $record->quantity,
+            'unit_price' => $record->unit_price,
+        ];
+    }
+
+    /**
+     * Obtener el esquema del formulario para un item
+     */
+    protected function getEditFormSchema($record): array
+    {
+        if ($record->itemable_type === 'App\\Models\\SimpleItem') {
+            $handler = new SimpleItemQuickHandler;
+            $handler->setCalculationContext($this);
+            return $handler->getFormSchema();
+        }
+
+        if ($record->itemable_type === 'App\\Models\\MagazineItem') {
+            $handler = new MagazineItemHandler;
+            return $handler->getEditForm($record);
+        }
+
+        if ($record->itemable_type === 'App\\Models\\CustomItem') {
+            return [
+                \Filament\Schemas\Components\Section::make('Detalles del Item Personalizado')
+                    ->schema([
+                        Forms\Components\Textarea::make('description')
+                            ->label('Descripción del Item')
+                            ->rows(3)
+                            ->columnSpanFull(),
+
+                        Grid::make(3)
+                            ->schema([
+                                Forms\Components\TextInput::make('quantity')
+                                    ->label('Cantidad')
+                                    ->numeric()
+                                    ->suffix('unidades'),
+
+                                Forms\Components\TextInput::make('unit_price')
+                                    ->label('Precio Unitario')
+                                    ->numeric()
+                                    ->prefix('$'),
+
+                                Forms\Components\Placeholder::make('calculated_total')
+                                    ->label('Total')
+                                    ->content(function ($get) {
+                                        $quantity = $get('quantity') ?? 1;
+                                        $unitPrice = $get('unit_price') ?? 0;
+                                        return '$'.number_format($quantity * $unitPrice, 2);
+                                    }),
+                            ]),
+
+                        Forms\Components\Textarea::make('notes')
+                            ->label('Notas Adicionales')
+                            ->rows(2)
+                            ->columnSpanFull(),
+                    ]),
+            ];
+        }
+
+        if ($record->itemable_type === 'App\\Models\\Product') {
+            $handler = new ProductHandler;
+            return $handler->getEditForm($record);
+        }
+
+        if ($record->itemable_type === 'App\\Models\\Paper') {
+            $handler = new PaperHandler;
+            return $handler->getEditForm($record);
+        }
+
+        if ($record->itemable_type === 'App\\Models\\TalonarioItem') {
+            return TalonarioItemForm::configure(new \Filament\Schemas\Schema)->getComponents();
+        }
+
+        if ($record->itemable_type === 'App\\Models\\DigitalItem') {
+            $handler = new \App\Filament\Resources\Documents\RelationManagers\Handlers\DigitalItemHandler;
+            return $handler->getEditForm($record);
+        }
+
+        return [];
+    }
+
+    /**
+     * Obtener el formulario en modo solo lectura para ver un item
+     */
+    protected function getViewFormSchema($record): array
+    {
+        // Usar Placeholders para mostrar datos de solo lectura
+        $data = $this->getItemFormData($record);
+
+        $sections = [];
+
+        // Sección principal con información básica
+        $basicFields = [
+            Forms\Components\Placeholder::make('description_view')
+                ->label('Descripción')
+                ->content($data['description'] ?? '-')
+                ->columnSpanFull(),
+        ];
+
+        if ($record->itemable_type === 'App\\Models\\SimpleItem' && $record->itemable) {
+            $simpleItem = $record->itemable;
+
+            $sections[] = \Filament\Schemas\Components\Section::make('Información General')
+                ->columns(3)
+                ->schema([
+                    Forms\Components\Placeholder::make('description_view')
+                        ->label('Descripción')
+                        ->content($simpleItem->description ?? '-')
+                        ->columnSpanFull(),
+                    Forms\Components\Placeholder::make('quantity_view')
+                        ->label('Cantidad')
+                        ->content(number_format($simpleItem->quantity ?? 0) . ' unidades'),
+                    Forms\Components\Placeholder::make('size_view')
+                        ->label('Tamaño del Trabajo')
+                        ->content(($simpleItem->horizontal_size ?? 0) . ' x ' . ($simpleItem->vertical_size ?? 0) . ' cm'),
+                    Forms\Components\Placeholder::make('paper_view')
+                        ->label('Papel')
+                        ->content($simpleItem->paper?->full_name ?? '-'),
+                ]);
+
+            $sections[] = \Filament\Schemas\Components\Section::make('Configuración de Impresión')
+                ->columns(4)
+                ->schema([
+                    Forms\Components\Placeholder::make('machine_view')
+                        ->label('Máquina')
+                        ->content($simpleItem->printingMachine?->name ?? '-'),
+                    Forms\Components\Placeholder::make('ink_front_view')
+                        ->label('Tintas Frente')
+                        ->content($simpleItem->ink_front_count ?? 0),
+                    Forms\Components\Placeholder::make('ink_back_view')
+                        ->label('Tintas Reverso')
+                        ->content($simpleItem->ink_back_count ?? 0),
+                    Forms\Components\Placeholder::make('mounting_view')
+                        ->label('Tipo de Montaje')
+                        ->content($simpleItem->mounting_type === 'custom' ? 'Personalizado' : 'Automático'),
+                ]);
+
+            if ($simpleItem->mounting_type === 'custom') {
+                $sections[] = \Filament\Schemas\Components\Section::make('Montaje Personalizado')
+                    ->columns(2)
+                    ->schema([
+                        Forms\Components\Placeholder::make('custom_width_view')
+                            ->label('Ancho de Hoja Personalizado')
+                            ->content(($simpleItem->custom_paper_width ?? 0) . ' cm'),
+                        Forms\Components\Placeholder::make('custom_height_view')
+                            ->label('Alto de Hoja Personalizado')
+                            ->content(($simpleItem->custom_paper_height ?? 0) . ' cm'),
+                    ]);
+            }
+
+            $sections[] = \Filament\Schemas\Components\Section::make('Cálculos')
+                ->columns(4)
+                ->schema([
+                    Forms\Components\Placeholder::make('copies_per_form_view')
+                        ->label('Copias por Hoja')
+                        ->content($simpleItem->copies_per_form ?? 0),
+                    Forms\Components\Placeholder::make('forms_per_paper_view')
+                        ->label('Hojas por Pliego')
+                        ->content($simpleItem->forms_per_paper_sheet ?? 0),
+                    Forms\Components\Placeholder::make('paper_sheets_view')
+                        ->label('Pliegos Necesarios')
+                        ->content($simpleItem->paper_sheets_needed ?? 0),
+                    Forms\Components\Placeholder::make('printing_forms_view')
+                        ->label('Hojas a Imprimir')
+                        ->content($simpleItem->printing_forms_needed ?? 0),
+                ]);
+
+            $sections[] = \Filament\Schemas\Components\Section::make('Precios')
+                ->columns(3)
+                ->schema([
+                    Forms\Components\Placeholder::make('profit_view')
+                        ->label('Porcentaje de Ganancia')
+                        ->content(($simpleItem->profit_percentage ?? 0) . '%'),
+                    Forms\Components\Placeholder::make('unit_price_view')
+                        ->label('Precio Unitario')
+                        ->content('$' . number_format(($simpleItem->final_price ?? 0) / max($simpleItem->quantity ?? 1, 1), 2)),
+                    Forms\Components\Placeholder::make('final_price_view')
+                        ->label('Precio Final')
+                        ->content('$' . number_format($simpleItem->final_price ?? 0, 2)),
+                ]);
+
+        } elseif ($record->itemable_type === 'App\\Models\\Product' && $record->itemable) {
+            $product = $record->itemable;
+
+            $sections[] = \Filament\Schemas\Components\Section::make('Información del Producto')
+                ->columns(3)
+                ->schema([
+                    Forms\Components\Placeholder::make('product_name_view')
+                        ->label('Producto')
+                        ->content($product->name ?? '-')
+                        ->columnSpanFull(),
+                    Forms\Components\Placeholder::make('quantity_view')
+                        ->label('Cantidad')
+                        ->content(number_format($record->quantity ?? 0)),
+                    Forms\Components\Placeholder::make('unit_price_view')
+                        ->label('Precio Unitario')
+                        ->content('$' . number_format($record->unit_price ?? 0, 2)),
+                    Forms\Components\Placeholder::make('total_price_view')
+                        ->label('Precio Total')
+                        ->content('$' . number_format($record->total_price ?? 0, 2)),
+                ]);
+
+        } elseif ($record->itemable_type === 'App\\Models\\CustomItem' && $record->itemable) {
+            $customItem = $record->itemable;
+
+            $sections[] = \Filament\Schemas\Components\Section::make('Item Personalizado')
+                ->columns(3)
+                ->schema([
+                    Forms\Components\Placeholder::make('description_view')
+                        ->label('Descripción')
+                        ->content($customItem->description ?? '-')
+                        ->columnSpanFull(),
+                    Forms\Components\Placeholder::make('quantity_view')
+                        ->label('Cantidad')
+                        ->content(number_format($customItem->quantity ?? 0)),
+                    Forms\Components\Placeholder::make('unit_price_view')
+                        ->label('Precio Unitario')
+                        ->content('$' . number_format($customItem->unit_price ?? 0, 2)),
+                    Forms\Components\Placeholder::make('total_price_view')
+                        ->label('Precio Total')
+                        ->content('$' . number_format($customItem->total_price ?? 0, 2)),
+                    Forms\Components\Placeholder::make('notes_view')
+                        ->label('Notas')
+                        ->content($customItem->notes ?? '-')
+                        ->columnSpanFull(),
+                ]);
+
+        } elseif ($record->itemable_type === 'App\\Models\\DigitalItem' && $record->itemable) {
+            $digitalItem = $record->itemable;
+
+            $sections[] = \Filament\Schemas\Components\Section::make('Item Digital')
+                ->columns(3)
+                ->schema([
+                    Forms\Components\Placeholder::make('name_view')
+                        ->label('Nombre')
+                        ->content($digitalItem->name ?? '-')
+                        ->columnSpanFull(),
+                    Forms\Components\Placeholder::make('quantity_view')
+                        ->label('Cantidad')
+                        ->content(number_format($record->quantity ?? 0)),
+                    Forms\Components\Placeholder::make('unit_price_view')
+                        ->label('Precio Unitario')
+                        ->content('$' . number_format($record->unit_price ?? 0, 2)),
+                    Forms\Components\Placeholder::make('total_price_view')
+                        ->label('Precio Total')
+                        ->content('$' . number_format($record->total_price ?? 0, 2)),
+                ]);
+
+        } else {
+            // Fallback genérico para otros tipos
+            $sections[] = \Filament\Schemas\Components\Section::make('Información del Item')
+                ->columns(3)
+                ->schema([
+                    Forms\Components\Placeholder::make('description_view')
+                        ->label('Descripción')
+                        ->content($record->description ?? '-')
+                        ->columnSpanFull(),
+                    Forms\Components\Placeholder::make('quantity_view')
+                        ->label('Cantidad')
+                        ->content(number_format($record->quantity ?? 0)),
+                    Forms\Components\Placeholder::make('unit_price_view')
+                        ->label('Precio Unitario')
+                        ->content('$' . number_format($record->unit_price ?? 0, 2)),
+                    Forms\Components\Placeholder::make('total_price_view')
+                        ->label('Precio Total')
+                        ->content('$' . number_format($record->total_price ?? 0, 2)),
+                ]);
+        }
+
+        return $sections;
     }
 }

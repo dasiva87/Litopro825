@@ -56,6 +56,17 @@ class ProductionCalculatorService
             $simpleItem->front_back_plate ?? false
         );
 
+        // Determinar tamaño de corte (HOJA) según mounting_type
+        if ($simpleItem->mounting_type === 'custom') {
+            // Usar dimensiones personalizadas de la hoja
+            $cutWidth = $simpleItem->custom_paper_width;
+            $cutHeight = $simpleItem->custom_paper_height;
+        } else {
+            // Usar dimensiones de la máquina (automático)
+            $cutWidth = $simpleItem->printingMachine?->max_width ?? $simpleItem->horizontal_size;
+            $cutHeight = $simpleItem->printingMachine?->max_height ?? $simpleItem->vertical_size;
+        }
+
         return [
             'quantity_to_produce' => $quantityToProduce,
             'sheets_needed' => $sheetsNeeded,
@@ -66,6 +77,8 @@ class ProductionCalculatorService
             'paper_id' => $simpleItem->paper_id,
             'horizontal_size' => $simpleItem->horizontal_size,
             'vertical_size' => $simpleItem->vertical_size,
+            'cut_width' => $cutWidth,
+            'cut_height' => $cutHeight,
             'produced_quantity' => 0,
             'rejected_quantity' => 0,
             'item_status' => 'pending',
