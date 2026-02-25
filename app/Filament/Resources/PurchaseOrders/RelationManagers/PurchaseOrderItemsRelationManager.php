@@ -41,12 +41,32 @@ class PurchaseOrderItemsRelationManager extends RelationManager
         return $table
             ->modifyQueryUsing(fn ($query) => $query->with(['documentItem', 'paper']))
             ->columns([
-                Tables\Columns\TextColumn::make('sheets_quantity')
-                    ->label('Cantidad (Pliegos)')
-                    ->numeric(decimalPlaces: 0)
+                Tables\Columns\TextColumn::make('quantity_display')
+                    ->label('Cantidad')
+                    ->state(function ($record) {
+                        // Para productos y otros items sin papel, mostrar quantity_ordered
+                        if ($record->documentItem && in_array($record->documentItem->itemable_type, [
+                            'App\Models\Product',
+                            'App\Models\DigitalItem',
+                            'App\Models\CustomItem',
+                        ])) {
+                            return number_format($record->quantity_ordered ?? 0, 0) . ' uds';
+                        }
+                        // Para papeles, mostrar sheets_quantity (pliegos)
+                        return number_format($record->sheets_quantity ?? 0, 0) . ' pliegos';
+                    })
                     ->alignCenter()
                     ->badge()
-                    ->color('warning'),
+                    ->color(function ($record) {
+                        if ($record->documentItem && in_array($record->documentItem->itemable_type, [
+                            'App\Models\Product',
+                            'App\Models\DigitalItem',
+                            'App\Models\CustomItem',
+                        ])) {
+                            return 'info';
+                        }
+                        return 'warning';
+                    }),
 
                 Tables\Columns\TextColumn::make('paper_name')
                     ->label('Descripción')
@@ -55,6 +75,10 @@ class PurchaseOrderItemsRelationManager extends RelationManager
                         // Mostrar cantidad de revistas si es MagazineItem
                         if ($record->documentItem && $record->documentItem->itemable_type === 'App\Models\MagazineItem') {
                             return "Cantidad de revistas: " . number_format($record->quantity_ordered, 0);
+                        }
+                        // Mostrar información adicional para productos
+                        if ($record->documentItem && $record->documentItem->itemable_type === 'App\Models\Product') {
+                            return "Producto de catálogo";
                         }
                         return null;
                     }),
@@ -488,7 +512,8 @@ class PurchaseOrderItemsRelationManager extends RelationManager
             $paper = $item->itemable->paper;
             return $paper ? ($paper->price ?? $paper->cost_per_sheet ?? 0) : 0;
         } elseif ($item->itemable_type === 'App\Models\Product' && $item->itemable) {
-            return $item->itemable->sale_price ?? 0;
+            // Para órdenes de compra usar purchase_price (costo), no sale_price (venta)
+            return $item->itemable->purchase_price ?? $item->itemable->sale_price ?? 0;
         }
 
         return $item->unit_price ?? 0;

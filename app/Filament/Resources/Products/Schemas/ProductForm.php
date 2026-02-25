@@ -134,18 +134,24 @@ class ProductForm
                             ->default(true)
                             ->live()
                             ->helperText('Activa esta opción si el producto es fabricado o desarrollado por tu empresa'),
-                            
+
                         Select::make('supplier_contact_id')
                             ->label('Proveedor')
-                            ->relationship('supplier', 'name')
-                            ->getOptionLabelFromRecordUsing(fn($record) => 
-                                $record->name . ' (' . $record->email . ')'
+                            ->relationship(
+                                name: 'supplier',
+                                titleAttribute: 'name',
+                                modifyQueryUsing: fn ($query) => $query->where('company_id', auth()->user()->company_id)
+                                    ->whereIn('type', ['supplier', 'both'])
+                            )
+                            ->getOptionLabelFromRecordUsing(fn($record) =>
+                                $record->name . ($record->email ? ' (' . $record->email . ')' : '')
                             )
                             ->searchable()
                             ->preload()
-                            ->visible(fn ($get) => !$get('is_own_product'))
                             ->required(fn ($get) => !$get('is_own_product'))
-                            ->helperText('Selecciona el proveedor de este producto'),
+                            ->helperText(fn ($get) => $get('is_own_product')
+                                ? 'Opcional: selecciona un proveedor si compras este producto a terceros'
+                                : 'Requerido: selecciona el proveedor de este producto'),
                     ]),
                     
                 Section::make('Control de Inventario')

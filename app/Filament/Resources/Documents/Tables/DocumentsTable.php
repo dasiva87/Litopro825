@@ -431,31 +431,27 @@ class DocumentsTable
                                 ]),
                         ])
                         ->action(function ($record, array $data) {
-                            // Crear las órdenes de pedido
-                            $selectedItems = \App\Models\DocumentItem::whereIn('id', $data['selected_items'])
-                                ->with(['itemable'])
-                                ->get();
+                            // Crear las órdenes de pedido - cargar items con todas las relaciones necesarias
+                            $selectedItems = \App\Models\DocumentItem::whereIn('id', $data['selected_items'])->get();
 
-                            // Cargar relaciones específicas según el tipo
-                            $selectedItems->load([
-                                'itemable' => function ($morphTo) {
-                                    $morphTo->morphWith([
-                                        'App\Models\SimpleItem' => ['paper.supplier'],
-                                        'App\Models\Product' => ['supplier'],
-                                        'App\Models\DigitalItem' => ['supplier'],
-                                        'App\Models\TalonarioItem' => ['sheets.simpleItem.paper.supplier'],
-                                        'App\Models\MagazineItem' => ['pages.simpleItem.paper.supplier'],
-                                        'App\Models\CustomItem' => [],
-                                        'App\Models\Paper' => ['supplier'],
-                                    ]);
-                                },
+                            // Cargar relaciones polimórficas con sus dependencias
+                            $selectedItems->loadMorph('itemable', [
+                                \App\Models\SimpleItem::class => ['paper.supplier'],
+                                \App\Models\Product::class => ['supplier'],
+                                \App\Models\DigitalItem::class => ['supplier'],
+                                \App\Models\TalonarioItem::class => ['sheets.simpleItem.paper.supplier'],
+                                \App\Models\MagazineItem::class => ['pages.simpleItem.paper.supplier'],
+                                \App\Models\CustomItem::class => [],
+                                \App\Models\Paper::class => ['supplier'],
                             ]);
 
                             // Agrupar por proveedor y tipo
-                            $groupedItems = $selectedItems->groupBy(function ($item) {
+                            $currentCompanyId = auth()->user()->company_id;
+                            $groupedItems = $selectedItems->groupBy(function ($item) use ($currentCompanyId) {
                                 // Determinar el tipo de orden basado en el tipo de item
                                 $orderType = 'producto'; // Default
-                                $supplierId = 0; // Default
+                                $supplierId = 0; // Contact ID
+                                $supplierCompanyId = 0; // Company ID (para productos de la red)
 
                                 // Items que van como 'papel'
                                 if ($item->itemable_type === 'App\Models\SimpleItem' && $item->itemable && $item->itemable->paper) {
@@ -480,27 +476,38 @@ class DocumentsTable
                                 // Items que van como 'producto'
                                 elseif ($item->itemable_type === 'App\Models\Product' && $item->itemable) {
                                     $orderType = 'producto';
-                                    $supplierId = $item->itemable->supplier_contact_id ?? 0;
+                                    $product = $item->itemable;
+
+                                    // Verificar si es producto de otra empresa de la red
+                                    if ($product->company_id && $product->company_id !== $currentCompanyId) {
+                                        // Producto de la red - usar company_id como proveedor
+                                        $supplierCompanyId = $product->company_id;
+                                    } else {
+                                        // Producto propio o con proveedor Contact
+                                        $supplierId = $product->supplier?->id ?? 0;
+                                    }
                                 } elseif ($item->itemable_type === 'App\Models\DigitalItem' && $item->itemable) {
                                     $orderType = 'producto';
-                                    $supplierId = $item->itemable->supplier_contact_id ?? 0;
+                                    $supplierId = $item->itemable->supplier?->id ?? 0;
                                 } elseif ($item->itemable_type === 'App\Models\CustomItem' && $item->itemable) {
                                     $orderType = 'producto';
                                     $supplierId = 0; // CustomItem no tiene proveedor
                                 }
 
-                                return $orderType.'_'.$supplierId;
+                                // Formato: tipo_contactId_companyId
+                                return $orderType.'_'.$supplierId.'_'.$supplierCompanyId;
                             });
 
                             $ordersCreated = 0;
                             foreach ($groupedItems as $groupKey => $items) {
-                                [$type, $supplierId] = explode('_', $groupKey);
+                                [$type, $supplierId, $supplierCompanyId] = explode('_', $groupKey);
 
-                                // Crear la orden con el proveedor (Contact) asignado
+                                // Crear la orden con el proveedor asignado
                                 $order = \App\Models\PurchaseOrder::create([
                                     'company_id' => auth()->user()->company_id,
                                     'project_id' => $record->project_id,
-                                    'supplier_id' => $supplierId ?: null,
+                                    'supplier_id' => $supplierId ?: null, // Contact
+                                    'supplier_company_id' => $supplierCompanyId ?: null, // Company de la red
                                     'order_date' => now(),
                                     'expected_delivery_date' => now()->addDays(7),
                                     'status' => 'draft',
@@ -621,7 +628,8 @@ class DocumentsTable
                                                 $cutHeight = $simpleItem->printingMachine?->max_height ?? $simpleItem->vertical_size;
                                             }
                                         } elseif ($item->itemable_type === 'App\Models\Product' && $item->itemable) {
-                                            $unitPrice = $item->itemable->sale_price ?? 0;
+                                            // Para órdenes de compra usar purchase_price (costo), no sale_price (venta)
+                                            $unitPrice = $item->itemable->purchase_price ?? $item->itemable->sale_price ?? 0;
                                             $totalPrice = $item->quantity * $unitPrice;
                                             // Product no tiene cut_width/cut_height (producto terminado)
                                         } else {

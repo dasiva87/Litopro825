@@ -257,6 +257,7 @@
         <div class="detail-section">
             <h3>Proveedor</h3>
             <div class="detail-grid">
+                @if($supplier)
                 <div class="detail-row">
                     <span class="detail-label">Nombre:</span>
                     <span class="detail-value font-bold">{{ $supplier->name }}</span>
@@ -269,6 +270,11 @@
                     <span class="detail-label">Dirección:</span>
                     <span class="detail-value">{{ $supplier->address ?? 'N/A' }}</span>
                 </div>
+                @else
+                <div class="detail-row">
+                    <span class="detail-value" style="color: #666;">Sin proveedor asignado</span>
+                </div>
+                @endif
             </div>
         </div>
 

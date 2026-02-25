@@ -79,19 +79,20 @@ class PurchaseOrderInfolist
                             ->color('success'),
                     ]),
 
-                // 3. Empresa Solicitante
+                // 3. Empresa Solicitante y Proveedor
                 Section::make()
                     ->columns(2)
                     ->schema([
                         TextEntry::make('company.name')
-                            ->label('Nombre de la Empresa')
+                            ->label('Empresa Solicitante')
                             ->icon('heroicon-o-building-storefront')
                             ->weight(FontWeight::SemiBold),
 
-                        TextEntry::make('supplierCompany.name')
-                            ->label('Nombre del Proveedor')
-                            ->icon('heroicon-o-building-library')
-                            ->weight(FontWeight::SemiBold),
+                        TextEntry::make('supplier_name')
+                            ->label('Proveedor')
+                            ->icon('heroicon-o-truck')
+                            ->weight(FontWeight::SemiBold)
+                            ->placeholder('Sin proveedor asignado'),
                     ]),
 
               

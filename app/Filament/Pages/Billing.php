@@ -54,8 +54,9 @@ class Billing extends Page implements HasActions, HasForms
     public function subscribeToAction(): Action
     {
         return Action::make('subscribeTo')
-            ->label('Suscribirse')
+            ->label('Elegir Plan')
             ->color('primary')
+            ->icon('heroicon-o-arrow-right')
             ->requiresConfirmation()
             ->modalHeading('Confirmar Suscripción')
             ->modalDescription('¿Estás seguro de que quieres suscribirte a este plan?')
@@ -130,7 +131,10 @@ class Billing extends Page implements HasActions, HasForms
     {
         return Action::make('cancelSubscription')
             ->label('Cancelar Suscripción')
-            ->color('danger')
+            ->color('gray')
+            ->outlined()
+            ->size('sm')
+            ->icon('heroicon-o-x-circle')
             ->requiresConfirmation()
             ->modalHeading('Cancelar Suscripción')
             ->modalDescription('¿Estás seguro de que quieres cancelar tu suscripción? Tendrás acceso hasta que expire tu período actual.')
