@@ -265,7 +265,10 @@
                 // Calcular precios correctos para mostrar en PDF
                 $unitPrice = 0;
                 $totalPrice = 0;
-                
+
+                // Obtener descripción limpia del itemable (sin prefijo de tipo)
+                $cleanDescription = $item->itemable->description ?? $item->description;
+
                 if ($item->itemable_type === 'App\\Models\\SimpleItem' && $item->itemable) {
                     $totalPrice = $item->itemable->final_price ?? 0;
                     $unitPrice = $item->itemable->quantity > 0 ? $totalPrice / $item->itemable->quantity : 0;
@@ -289,7 +292,7 @@
                 }
             @endphp
             <tr>
-                <td>{{ $item->description }}</td>
+                <td>{{ $cleanDescription }}</td>
                 <td class="center">{{ number_format($item->quantity, 0, ',', '.') }}</td>
                 <td class="number">${{ number_format($unitPrice, 2, ',', '.') }}</td>
                 <td class="number">${{ number_format($totalPrice, 2, ',', '.') }}</td>

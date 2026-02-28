@@ -62,6 +62,7 @@ class CollectionAccountSent extends Notification implements ShouldQueue
 
         return (new MailMessage)
             ->subject("{$companyName} - Nueva Cuenta de Cobro #{$collectionAccount->account_number}")
+            ->replyTo($collectionAccount->company->email ?? config('mail.from.address'), $companyName)
             ->markdown('emails.collection-account.sent', [
                 'collectionAccount' => $collectionAccount,
                 'recipientName' => $recipientName,

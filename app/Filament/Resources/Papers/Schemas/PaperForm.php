@@ -64,7 +64,7 @@ class PaperForm
                                     ->required()
                                     ->minValue(0)
                                     ->placeholder('Ej: 70, 100...')
-                                    ->live()
+                                    ->live(onBlur: true)
                                     ->afterStateUpdated(function ($state, $set, $get) {
                                         if ($state && $get('height')) {
                                             $area = $state * $get('height');
@@ -79,7 +79,7 @@ class PaperForm
                                     ->required()
                                     ->minValue(0)
                                     ->placeholder('Ej: 100, 140...')
-                                    ->live()
+                                    ->live(onBlur: true)
                                     ->afterStateUpdated(function ($state, $set, $get) {
                                         if ($state && $get('width')) {
                                             $area = $state * $get('width');

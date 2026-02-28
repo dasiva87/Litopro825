@@ -59,6 +59,7 @@ class QuoteSent extends Notification implements ShouldQueue
 
         return (new MailMessage)
             ->subject("{$companyName} - Nueva {$documentTypeName} #{$document->document_number}")
+            ->replyTo($document->company->email ?? config('mail.from.address'), $companyName)
             ->markdown('emails.quote.sent', [
                 'document' => $document,
             ])

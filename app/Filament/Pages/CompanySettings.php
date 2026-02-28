@@ -20,6 +20,8 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\ViewField;
+use Filament\Forms\Components\Select;
+use Filament\Schemas\Components\Grid;
 use Livewire\Features\SupportFileUploads\WithFileUploads;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Facades\Storage;
@@ -121,6 +123,60 @@ class CompanySettings extends Page implements HasForms, HasActions
                                     ->label('Dirección')
                                     ->rows(2)
                                     ->columnSpanFull(),
+
+                                Grid::make(3)
+                                    ->schema([
+                                        Select::make('country_id')
+                                            ->label('País')
+                                            ->relationship(
+                                                name: 'country',
+                                                titleAttribute: 'name',
+                                                modifyQueryUsing: fn ($query) => $query->where('is_active', true)->orderBy('name')
+                                            )
+                                            ->searchable()
+                                            ->preload()
+                                            ->live()
+                                            ->afterStateUpdated(function ($state, callable $set) {
+                                                $set('state_id', null);
+                                                $set('city_id', null);
+                                            }),
+
+                                        Select::make('state_id')
+                                            ->label('Departamento/Estado')
+                                            ->relationship(
+                                                name: 'state',
+                                                titleAttribute: 'name',
+                                                modifyQueryUsing: fn ($query, $get) => $query
+                                                    ->when(
+                                                        $get('country_id'),
+                                                        fn ($q, $countryId) => $q->where('country_id', $countryId)
+                                                    )
+                                                    ->where('is_active', true)
+                                                    ->orderBy('name')
+                                            )
+                                            ->searchable()
+                                            ->preload()
+                                            ->live()
+                                            ->disabled(fn ($get) => !$get('country_id'))
+                                            ->afterStateUpdated(fn (callable $set) => $set('city_id', null)),
+
+                                        Select::make('city_id')
+                                            ->label('Ciudad')
+                                            ->relationship(
+                                                name: 'city',
+                                                titleAttribute: 'name',
+                                                modifyQueryUsing: fn ($query, $get) => $query
+                                                    ->when(
+                                                        $get('state_id'),
+                                                        fn ($q, $stateId) => $q->where('state_id', $stateId)
+                                                    )
+                                                    ->where('is_active', true)
+                                                    ->orderBy('name')
+                                            )
+                                            ->searchable()
+                                            ->preload()
+                                            ->disabled(fn ($get) => !$get('state_id')),
+                                    ]),
 
                                 TextInput::make('website')
                                     ->label('Sitio Web')

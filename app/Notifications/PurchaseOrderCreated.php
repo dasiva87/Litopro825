@@ -49,6 +49,7 @@ class PurchaseOrderCreated extends Notification implements ShouldQueue
 
         return (new MailMessage)
             ->subject("{$companyName} - Nueva Orden de Pedido #{$purchaseOrder->order_number}")
+            ->replyTo($purchaseOrder->company->email ?? config('mail.from.address'), $companyName)
             ->markdown('emails.purchase-order.created', [
                 'purchaseOrder' => $purchaseOrder,
             ])

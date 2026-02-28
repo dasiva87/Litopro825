@@ -71,6 +71,7 @@ class ProductionOrderSent extends Notification implements ShouldQueue
 
         return (new MailMessage)
             ->subject("{$companyName} - Nueva Orden de Producción #{$productionOrder->production_number}")
+            ->replyTo($productionOrder->company->email ?? config('mail.from.address'), $companyName)
             ->markdown('emails.production-order.sent', [
                 'productionOrder' => $productionOrder,
             ])

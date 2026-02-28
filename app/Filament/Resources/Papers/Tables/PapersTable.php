@@ -32,6 +32,10 @@ class PapersTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with([
+                'company',
+                'supplier',
+            ]))
             ->columns([
                 TextColumn::make('code')
                     ->label('Código')

@@ -28,6 +28,7 @@ class Contact extends Model
         'tax_id',
         'website',
         'notes',
+        'additional_contacts',
         'credit_limit',
         'payment_terms',
         'discount_percentage',
@@ -41,6 +42,7 @@ class Contact extends Model
         'is_local' => 'boolean',
         'credit_limit' => 'decimal:2',
         'discount_percentage' => 'decimal:2',
+        'additional_contacts' => 'array',
     ];
 
 

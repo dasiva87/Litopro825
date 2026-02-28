@@ -32,7 +32,7 @@ class CustomItemQuickHandler implements QuickActionHandlerInterface
                                 ->default(1)
                                 ->minValue(1)
                                 ->suffix('unidades')
-                                ->live()
+                                ->live(onBlur: true)
                                 ->afterStateUpdated(function ($state, $get, $set) {
                                     $unitPrice = $get('unit_price') ?? 0;
                                     $total = $state * $unitPrice;
@@ -46,7 +46,7 @@ class CustomItemQuickHandler implements QuickActionHandlerInterface
                                 ->prefix('$')
                                 ->step(0.01)
                                 ->minValue(0)
-                                ->live()
+                                ->live(onBlur: true)
                                 ->afterStateUpdated(function ($state, $get, $set) {
                                     $quantity = $get('quantity') ?? 1;
                                     $total = $quantity * $state;

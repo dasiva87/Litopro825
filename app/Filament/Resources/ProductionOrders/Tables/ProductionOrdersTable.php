@@ -13,12 +13,19 @@ use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class ProductionOrdersTable
 {
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->with([
+                'operator',
+                'supplier',
+                'supplierCompany',
+                'documentItems',
+            ]))
             ->columns([
                 TextColumn::make('production_number')
                     ->label('Número')
